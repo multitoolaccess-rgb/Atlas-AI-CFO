@@ -2,20 +2,20 @@
 
 > Generated from `PROJECT_STATUS.json`; regenerate with `python3 scripts/atlas_project_status.py render`.
 
-- Current phase: **phase-1 — Forecast persistence** (not_started)
-- Overall status: **planned**
-- Current objective: Maintain the validated Atlas foundation; Phase 1 has not started.
-- Last updated: 2026-07-26T21:27:28Z
+- Current phase: **phase-1 — Forecast persistence** (in_progress)
+- Overall status: **in_progress**
+- Current objective: Review and approve the Phase 1 forecast-persistence architecture and implementation sequence; production implementation has not started.
+- Last updated: 2026-07-27T04:54:29Z
 
 ## Active work
-- None
+- work-p1-forecast-persistence-planning: Plan immutable forecast persistence and versioned read APIs (in_progress)
 
 ## Blockers
 - None
 
 ## Phase progress
 - phase-0 — Projection foundation and Atlas baseline: complete (4/4 exit criteria)
-- phase-1 — Forecast persistence: not_started (0/2 exit criteria)
+- phase-1 — Forecast persistence: in_progress (0/5 exit criteria)
 - phase-2 — Forecast UI migration: not_started (0/1 exit criteria)
 - phase-3 — Goal-linked recommendations: not_started (0/1 exit criteria)
 - phase-4 — Decision journal: not_started (0/1 exit criteria)
@@ -27,6 +27,8 @@
 - risk-legacy-product-names [low/high, open]: Legacy Finance Copilot, WealthIQ, CashFlix, and Finlynq names remain.
 - risk-fixture-compatibility-names [low/medium, open]: Synthetic fixture directories retain compatibility-oriented names.
 - risk-service-dependency-separation [high/high, mitigated]: Rules Service and Finlynq require separate FastAPI-pinned environments.
+- risk-p1-legacy-goal-float [high/medium, open]: The existing Goal.target_amount Float can lose source precision before Phase 1 snapshot normalization.
+- risk-p1-dialect-parity [high/medium, open]: SQLite and PostgreSQL differ in exact numeric storage and concurrency semantics for immutable forecast versions.
 
 ## Recently completed work
 - work-p0-atlas-baseline: Atlas baseline from validated Finance Copilot foundation — commit c0f5287, PR None
@@ -43,6 +45,6 @@
 - Test test-p0-typescript: TypeScript check — passed
 
 ## Next bounded task
-- next-phase-1-authorization: Review and explicitly authorize a bounded Phase 1 forecast-persistence planning task; do not implement Phase 1 automatically.
+- next-p1-plan-review: Review ADR-006 and the Phase 1 plan, resolve the three open architecture questions, and explicitly authorize only the contract-test implementation slice.
 
 Do not begin the next phase or task automatically.
