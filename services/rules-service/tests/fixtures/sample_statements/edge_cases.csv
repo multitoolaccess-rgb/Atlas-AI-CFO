@@ -1,0 +1,19 @@
+Date,Description,Amount
+06/15/2026,Refund accounting,(50.00)
+06/15/2026,Padded sign negative,- 100.00
+06/15/2026,Trailing dash negative,100.00-
+06/15/2026,Signed parens,-(75.50)
+06/15/2026,Euro symbol,€500.50
+06/15/2026,Pound symbol,"£1,200.99"
+06/15/2026,Us thousands,"$1,234.56"
+06/15/2026,Big payroll,"$1,250,000.00"
+06/15/2026,Synthetic edge 0,10.10
+06/15/2026,Synthetic edge 1,11.10
+06/15/2026,Synthetic edge 2,12.10
+06/15/2026,Synthetic edge 3,13.10
+06/15/2026,Synthetic edge 4,14.10
+06/15/2026,Synthetic edge 5,15.10
+06/15/2026,Synthetic edge 6,16.10
+06/15/2026,Synthetic edge 7,17.10
+06/15/2026,Synthetic edge 8,18.10
+06/15/2026,Synthetic edge 9,19.10

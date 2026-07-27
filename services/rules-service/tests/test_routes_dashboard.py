@@ -506,7 +506,7 @@ def test_citi_dual_column_csv_upload_end_to_end(
     layer (parser, route, balance recompute, dashboard formula)
     surfaces here, not as a silent "balance is wrong" complaint.
 
-    Fixture shape (citi_credit_card.csv):
+    Fixture shape (atlas_test_credit_card.csv):
       Status,Date,Description,Debit,Credit
       Cleared,06/19/2026,BURRITOS...,10.68,
       Cleared,06/18/2026,WA DOL LIC & REG...,116.39,
@@ -535,7 +535,7 @@ def test_citi_dual_column_csv_upload_end_to_end(
     # Load the fixture from disk so the test exercises the same
     # wire shape the FE sends (multipart/form-data with a file upload).
     fixture_path = (
-        Path(__file__).parent / "fixtures" / "citi_credit_card.csv"
+        Path(__file__).parent / "fixtures" / "atlas_test_credit_card.csv"
     )
     assert fixture_path.exists(), (
         f"Test fixture missing: {fixture_path} — required for the "
@@ -560,7 +560,7 @@ def test_citi_dual_column_csv_upload_end_to_end(
     # — the test exercises the full chain).
     r = client.post(
         "/api/imports/upload",
-        files={"file": ("citi_credit_card.csv", csv_bytes, "text/csv")},
+        files={"file": ("atlas_test_credit_card.csv", csv_bytes, "text/csv")},
     )
     assert r.status_code == 200, (
         f"Upload failed: {r.status_code} {r.text} — parser may have "
@@ -589,11 +589,10 @@ def test_citi_dual_column_csv_upload_end_to_end(
     # length change surfaces as a clear test failure, not a silent
     # ``None`` on a fuzzy key).
     by_desc = {t.description[:30]: t for t in persisted}
-    # The fixture file's first row truncates to "BURRITOS CALIFORNIA MA MARYSVI"
-    # (29 chars + the trailing position 30 is ``L``). The exact prefix is
-    # locked in this test and the AUTOPAY one below matches the same way.
-    BURRITOS_KEY = "BURRITOS CALIFORNIA MA MARYSVI"[:30]
-    AUTOPAY_KEY = "AUTOPAY 999990000076194RAUTOPAY"[:30]
+    # Synthetic fixture identifiers are intentionally obvious and contain no
+    # merchant or customer data; keep prefix matching to cover truncation.
+    BURRITOS_KEY = "ATLAS SYNTHETIC BURRITOS TEST-0001"[:30]
+    AUTOPAY_KEY = "ATLAS SYNTHETIC AUTOPAY TEST-0002"[:30]
     # Purchases: debit populated, credit NULL, amount negative.
     burritos = by_desc.get(BURRITOS_KEY)
     assert burritos is not None, f"Missing BURRITOS row: {by_desc.keys()}"

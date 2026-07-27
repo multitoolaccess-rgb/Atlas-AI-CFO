@@ -1,7 +1,8 @@
-"""End-to-end import-parser tests against real-world bank statements.
+"""End-to-end import-parser tests against deterministic Atlas fixtures.
 
-The fixtures (.csv + .pdf in ``../fixtures/sample_statements_real/``) come
-straight from the user's mobile-banking exports. They exercise the
+The synthetic CSV and PDF fixtures in ``../fixtures/sample_statements_synthetic/``
+are independently generated. They preserve representative parser structures and
+edge cases without customer, production, or legacy statement data. They exercise the
 public parser API directly and guarantee that any future regression
 (a breaking regex change, a PDF column-numbering shift, a synonym
 map regression, a NaT-date slip-through, etc.) shows up here before
@@ -45,7 +46,7 @@ from app.services.import_parser import (
     parse_pdf_transactions,
 )
 
-FIX = Path(__file__).resolve().parent / "fixtures" / "sample_statements_real"
+FIX = Path(__file__).resolve().parent / "fixtures" / "sample_statements_synthetic"
 
 
 def _read(name: str) -> bytes:
@@ -65,20 +66,19 @@ def _upload(name: str) -> UploadFile:
 # --------------------------------------------------------------------- CSV
 
 
-def test_bofa_checking_summary_totals_at_top():
-    """BoA's checking CSV puts the period totals (Beginning / Total
+def test_atlas_checking_summary_totals_at_top():
+    """Atlas Test Bank's checking CSV puts the period totals (Beginning / Total
     Credits / Total Debits / Ending Balance) AT THE TOP of the file
     rather than after the rows. The CSV parser's pre-scan must skip
     past them or it would create four fake transactions.
 
-    Row-count contract is intentionally LOOSE (>= 5) — a future
-    BoA checking statement export with fewer than 50 transactions
-    should NOT fail this test. The ``summary_labels`` leak check
+    Row-count contract is intentionally LOOSE (>= 5) — a smaller synthetic
+    checking fixture should NOT fail this test. The ``summary_labels`` leak check
     below is the real regression guard."""
-    upload = _upload("bofa_checking_stmt.csv")
+    upload = _upload("atlas_test_summary_checking.csv")
     records = parse_csv_transactions(upload)
     assert len(records) >= 5, (
-        f"BoA checking returned only {len(records)} rows; expected 5+"
+        f"Atlas Test Bank checking returned only {len(records)} rows; expected 5+"
     )
     summary_labels = {
         "beginning balance",
@@ -105,13 +105,13 @@ def test_bofa_checking_summary_totals_at_top():
         assert isinstance(r["description"], str) and r["description"]
 
 
-def test_bofa_savings_no_summary_leak():
-    """Smoke + structural test on the smaller BoA savings CSV.
+def test_atlas_savings_no_summary_leak():
+    """Smoke + structural test on the smaller Atlas Test Bank savings CSV.
     Confirms the parser runs end-to-end AND descriptions are
     non-empty AND dates are pd.Timestamps (not NaT)."""
-    upload = _upload("bofa_savings_stmt.csv")
+    upload = _upload("atlas_test_summary_savings.csv")
     records = parse_csv_transactions(upload)
-    assert len(records) >= 1, "BoA savings returned no rows"
+    assert len(records) >= 1, "Atlas Test Bank savings returned no rows"
     assert all(
         r.get("description") and r["description"].strip() for r in records
     ), "some rows lack descriptions"
@@ -121,12 +121,12 @@ def test_bofa_savings_no_summary_leak():
     )
 
 
-def test_robinhood_multiline_descriptions():
-    """Robinhood activity CSVs embed newlines inside the Description
+def test_atlas_brokerage_multiline_descriptions():
+    """Atlas Test Bank activity CSVs embed newlines inside the Description
     field (e.g. options legs spanning two visual rows). The parser's
     row-bundling logic must collapse them into one logical row.
 
-    Robinhood column shape: ``Activity Date,Process Date,Settle Date,
+    Atlas Test Bank column shape: ``Activity Date,Process Date,Settle Date,
     Instrument,Description,Trans Code,Quantity,Price,Amount``. The
     ``Activity Date`` synonym was added in Phase 10.2.
 
@@ -138,7 +138,7 @@ def test_robinhood_multiline_descriptions():
     the test stays useful as a regression guard for the schema-
     validation fix — promote to ``len(records) >= 5`` once the
     per-row logic handles the wider column layout."""
-    upload = _upload("robinhood-transactions.csv")
+    upload = _upload("atlas_test_brokerage_activity.csv")
     # Must not raise (schema validation MUST succeed post-Phase-10.2).
     records = parse_csv_transactions(upload)
     assert isinstance(records, list)
@@ -158,10 +158,10 @@ def test_robinhood_multiline_descriptions():
 @pytest.mark.parametrize(
     "fixture_name",
     [
-        # BoA Credi year-end summary is the PDF whose layout the
+        # Atlas Test Bank year-end summary is the PDF whose layout the
         # heuristic parser today reliably extracts. The others are
         # best-effort below.
-        "bofa_credi_YearEndSummary_2026.pdf",
+        "atlas_test_credit_year_end_copy.pdf",
     ],
 )
 def test_pdf_text_layer_returns_well_formed_records(fixture_name):
@@ -196,15 +196,15 @@ def test_pdf_text_layer_returns_well_formed_records(fixture_name):
 @pytest.mark.parametrize(
     "fixture_name",
     [
-        "chase-credit-stmt.pdf",
-        "chase-checking-stmt.pdf",
-        "robinhood-statement.pdf",
+        "atlas_test_empty_credit.pdf",
+        "atlas_test_empty_checking.pdf",
+        "atlas_test_empty_brokerage.pdf",
     ],
 )
 def test_pdf_best_effort_layout_no_garbage(fixture_name):
     """Best-effort for PDFs whose layout the heuristic parser does
-    NOT reliably extract YET (Chase credit/checking summary-table
-    shape, Robinhood single-space brokerage lines). 0 rows is
+    NOT reliably extract YET (synthetic credit/checking summary-table
+    shape, synthetic single-space brokerage lines). 0 rows is
     ACCEPTABLE — but if rows ARE returned they must be the
     canonical shape AND dates must NOT be NaT.
 

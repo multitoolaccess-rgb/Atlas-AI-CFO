@@ -674,8 +674,8 @@ def test_upload_respects_pre_tagged_category_on_other_batches(
 CHASE_FIXTURE_PATH = os.path.join(
     os.path.dirname(__file__),
     "fixtures",
-    "sample_statements_real",
-    "chase_checking_3100.csv",
+    "sample_statements_synthetic",
+    "atlas_test_checking_trailing_columns.csv",
 )
 
 
@@ -697,7 +697,7 @@ def test_read_csv_dataframe_tolerates_chase_trailing_comma():
 
     csv_body = open(CHASE_FIXTURE_PATH, "rb").read()
     upload = UploadFile(
-        filename="chase_checking_3100.csv",
+        filename="atlas_test_checking_trailing_columns.csv",
         file=BytesIO(csv_body),
     )
 
@@ -776,7 +776,7 @@ def test_parse_csv_file_chase_trailing_comma_does_not_zero_records(
         "/api/imports/upload",
         files={
             "file": (
-                "chase_checking_3100.csv",
+                "atlas_test_checking_trailing_columns.csv",
                 io.BytesIO(csv_body),
                 "text/csv",
             ),
@@ -804,7 +804,7 @@ def test_parse_csv_file_chase_trailing_comma_does_not_zero_records(
     # table, not just in the response envelope.
     batch = (
         db_session.query(ImportBatch)
-        .filter(ImportBatch.filename == "chase_checking_3100.csv")
+        .filter(ImportBatch.filename == "atlas_test_checking_trailing_columns.csv")
         .one()
     )
     txns = (
@@ -1160,8 +1160,8 @@ def test_upload_uses_user_documents_and_assigns_real_categories(
 CHASE_CREDIT_FIXTURE_PATH = os.path.join(
     os.path.dirname(__file__),
     "fixtures",
-    "sample_statements_real",
-    "chase_credit_3407_activity.csv",
+    "sample_statements_synthetic",
+    "atlas_test_credit_activity.csv",
 )
 
 
@@ -1454,8 +1454,8 @@ def test_parse_csv_transactions_chase_credit_extracts_merchant_from_description(
     row.
 
     The fix:
-      (a) the per-row first-wins merge keeps the real Description
-          (``FRANZ FAMILY BAKERY 9028``) instead of clobbering it
+      (a) the per-row first-wins merge keeps the synthetic Description
+          (``ATLAS SYNTHETIC BAKERY 9028``) instead of clobbering it
           with the blank ``Memo`` column.
       (b) merchant auto-promotion copies the description into
           ``merchant_name`` when no column maps to ``merchant_name``
@@ -1464,10 +1464,10 @@ def test_parse_csv_transactions_chase_credit_extracts_merchant_from_description(
     Asserts:
       - HTTP 200
       - ``saved_transactions > 0``
-      - At least one persisted row has ``description = "FRANZ
-        FAMILY BAKERY 9028"`` (the canonical real merchant that the
+      - At least one persisted row has ``description = "ATLAS
+        SYNTHETIC BAKERY 9028"`` (the synthetic merchant that the
         bug used to drop)
-      - The same row has ``merchant_name = "FRANZ FAMILY BAKERY
+      - The same row has ``merchant_name = "ATLAS SYNTHETIC BAKERY
         9028"`` (the auto-promotion)
       - No row has ``description = "Imported transaction"`` (the
         placeholder that the bug used to ship)
@@ -1482,7 +1482,7 @@ def test_parse_csv_transactions_chase_credit_extracts_merchant_from_description(
         "/api/imports/upload",
         files={
             "file": (
-                "chase_credit_3407_activity.csv",
+                "atlas_test_credit_activity.csv",
                 io.BytesIO(csv_body),
                 "text/csv",
             ),
@@ -1499,14 +1499,13 @@ def test_parse_csv_transactions_chase_credit_extracts_merchant_from_description(
         f"saved_transactions={body['saved_transactions']}"
     )
 
-    # DB-level proof — the canonical real merchant "FRANZ FAMILY
-    # BAKERY 9028" must have landed in BOTH description and
+    # DB-level proof — the synthetic merchant must land in BOTH description and
     # merchant_name. The bug used to put "Imported transaction" in
     # description and None in merchant_name for every Chase credit
     # row.
     batch = (
         db_session.query(ImportBatch)
-        .filter(ImportBatch.filename == "chase_credit_3407_activity.csv")
+        .filter(ImportBatch.filename == "atlas_test_credit_activity.csv")
         .one()
     )
     txns = (
@@ -1514,14 +1513,13 @@ def test_parse_csv_transactions_chase_credit_extracts_merchant_from_description(
         .filter(Transaction.import_batch_id == batch.id)
         .all()
     )
-    franz_rows = [t for t in txns if t.description == "FRANZ FAMILY BAKERY 9028"]
+    franz_rows = [t for t in txns if t.description == "ATLAS SYNTHETIC BAKERY 9028"]
     assert len(franz_rows) >= 1, (
-        f"Phase 50: the canonical real merchant 'FRANZ FAMILY "
-        f"BAKERY 9028' must land in description; got "
+        f"Phase 50: the synthetic merchant must land in description; got "
         f"descriptions={[t.description for t in txns[:5]]}"
     )
-    # Merchant auto-promotion fired for the FRANZ row.
-    assert franz_rows[0].merchant_name == "FRANZ FAMILY BAKERY 9028", (
+    # Merchant auto-promotion fired for the synthetic row.
+    assert franz_rows[0].merchant_name == "ATLAS SYNTHETIC BAKERY 9028", (
         f"Phase 50: merchant_name must auto-promote from description "
         f"when no merchant column is mapped; got merchant_name="
         f"{franz_rows[0].merchant_name!r}"
@@ -1864,7 +1862,7 @@ def test_upload_chase_credit_csv_deactivates_orphan_imported_statements(
     The user said in June 2026: ``when i imported the credit chase
     transaction it creates 2 accounts, the imported statements
     account is back again``. This test reproduces their exact flow
-    using the ``chase_credit_3407_activity.csv`` fixture (created in
+    using the ``atlas_test_credit_activity.csv`` fixture (created in
     Phase 50 for the merchant-promotion bug).
 
     SETUP: deterministic clean slate — bulk-delete any leftover
@@ -1907,7 +1905,7 @@ def test_upload_chase_credit_csv_deactivates_orphan_imported_statements(
         "/api/imports/upload",
         files={
             "file": (
-                "chase_credit_3407_activity.csv",
+                "atlas_test_credit_activity.csv",
                 io.BytesIO(csv_body),
                 "text/csv",
             ),
@@ -1936,9 +1934,9 @@ def test_upload_chase_credit_csv_deactivates_orphan_imported_statements(
         f"(the bug: 2 active accounts including the orphan)"
     )
     csv_named = active_accts[0]
-    assert csv_named.account_name == "Chase_Credit_3407_Activity", (
+    assert csv_named.account_name == "Atlas_Test_Credit_Activity", (
         f"the single active account must be the CSV-derived "
-        f"``Chase_Credit_3407_Activity``; got {csv_named.account_name!r}"
+        f"``Atlas_Test_Credit_Activity``; got {csv_named.account_name!r}"
     )
 
     # The orphan exists in DB but is deactivated.
@@ -1989,7 +1987,7 @@ def test_upload_chase_credit_csv_deactivates_orphan_imported_statements(
     batch_row = (
         db_session.query(ImportBatch)
         .filter(
-            ImportBatch.filename == "chase_credit_3407_activity.csv"
+            ImportBatch.filename == "atlas_test_credit_activity.csv"
         )
         .one()
     )
@@ -2295,4 +2293,3 @@ def test_upload_route_derives_debit_credit_from_amount_when_parser_omits(
         f"account.current_balance must equal SUM(transactions.amount); "
         f"got {account.current_balance!r} -- balance_recalc regressed"
     )
-

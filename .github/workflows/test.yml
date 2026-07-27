@@ -9,7 +9,7 @@
 #            Full suite including Playwright. ~3-5 min.
 #
 # Both jobs:
-#   - checkout -> setup Python 3.12 + .venv -> install JS deps
+#   - checkout with history -> setup Python 3.12 + isolated service venvs -> install JS deps
 #     -> bash scripts/test.sh
 # The heavy job additionally installs Playwright chromium with system
 # deps before running the full suite.
@@ -48,12 +48,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
 
       - name: Setup Node 20
         uses: actions/setup-node@v4
@@ -62,11 +63,19 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'ui/package-lock.json'
 
-      - name: Install Python deps (project-root .venv)
+      - name: Install isolated Python environments
         run: |
-          python -m venv .venv
-          .venv/bin/pip install --upgrade pip wheel setuptools
-          .venv/bin/pip install -r services/rules-service/requirements.txt
+          python -m venv .venv-rules
+          .venv-rules/bin/python -m pip install --upgrade pip wheel setuptools
+          .venv-rules/bin/python -m pip install -r services/rules-service/requirements.txt
+          python -m venv .venv-finlynq
+          .venv-finlynq/bin/python -m pip install --upgrade pip wheel setuptools
+          .venv-finlynq/bin/python -m pip install -r services/finlynq/requirements.txt
+
+      - name: Install Rules Service OCR runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes tesseract-ocr
 
       - name: Install JS deps (npm ci)
         working-directory: ui
@@ -94,12 +103,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
 
       - name: Setup Node 20
         uses: actions/setup-node@v4
@@ -108,11 +118,19 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'ui/package-lock.json'
 
-      - name: Install Python deps
+      - name: Install isolated Python environments
         run: |
-          python -m venv .venv
-          .venv/bin/pip install --upgrade pip wheel setuptools
-          .venv/bin/pip install -r services/rules-service/requirements.txt
+          python -m venv .venv-rules
+          .venv-rules/bin/python -m pip install --upgrade pip wheel setuptools
+          .venv-rules/bin/python -m pip install -r services/rules-service/requirements.txt
+          python -m venv .venv-finlynq
+          .venv-finlynq/bin/python -m pip install --upgrade pip wheel setuptools
+          .venv-finlynq/bin/python -m pip install -r services/finlynq/requirements.txt
+
+      - name: Install Rules Service OCR runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes tesseract-ocr
 
       - name: Install JS deps (npm ci)
         working-directory: ui

@@ -1,12 +1,12 @@
 """Phase 30b — Integration test using the sample CSV statement.
 
 Uses the project's own ``checking_stmt.csv`` fixture (which contains
-SERVICEMAC mortgage payment rows observed on a real BofA statement) to
+Atlas Test Mortgage Services rows from a synthetic statement) to
 verify the categorizer fix + finance_query tools work end-to-end:
 
 1. Parse the CSV via the real import_parser.
 2. Categorize the resulting transactions.
-3. Assert SERVICEMAC rows are tagged (the bug: they stayed untagged).
+3. Assert Atlas Test Mortgage Services rows are tagged (the bug: they stayed untagged).
 4. Run finance_query.get_totals + get_merchant_spend on the seeded data.
 """
 import csv
@@ -80,8 +80,7 @@ def _load_csv_transactions(csv_path: Path) -> list[dict]:
 
 @pytest.fixture
 def seeded_csv_data(client, db_session, make_account, make_transaction):
-    """Seed a custom Mortgage category + SERVICEMAC rule, then insert
-    a subset of the sample CSV's SERVICEMAC transactions."""
+    """Seed a custom Mortgage category + Atlas Test Mortgage Services rule."""
     # Seed defaults.
     seed_default_categories(db_session)
     db_session.commit()
@@ -99,10 +98,10 @@ def seeded_csv_data(client, db_session, make_account, make_transaction):
     db_session.commit()
     db_session.refresh(mortgage_cat)
 
-    # Add SERVICEMAC rule pointing to Mortgage.
+    # Add Atlas Test Mortgage Services rule pointing to Mortgage.
     rule = MerchantRule(
         category_id=mortgage_cat.id,
-        keyword="SERVICEMAC",
+        keyword="ATLAS TEST MORTGAGE SERVICES",
         is_archived=False,
         source="manual",
         priority=100,
@@ -111,18 +110,18 @@ def seeded_csv_data(client, db_session, make_account, make_transaction):
     db_session.commit()
 
     # Create an account.
-    account = make_account(account_name="BofA Checking", account_type="checking")
+    account = make_account(account_name="Atlas Test Checking", account_type="checking")
     db_session.add(account)
     db_session.commit()
     db_session.refresh(account)
 
-    # Load SERVICEMAC rows from the sample CSV.
+    # Load Atlas Test Mortgage Services rows from the sample CSV.
     csv_rows = _load_csv_transactions(_CSV_PATH)
-    servicemac_rows = [r for r in csv_rows if "SERVICEMAC" in r["description"].upper()]
+    mortgage_rows = [r for r in csv_rows if "ATLAS TEST MORTGAGE SERVICES" in r["description"].upper()]
 
-    # Insert up to 3 SERVICEMAC transactions.
+    # Insert up to 3 Atlas Test Mortgage Services transactions.
     txns = []
-    for row in servicemac_rows[:3]:
+    for row in mortgage_rows[:3]:
         t = make_transaction(
             account_id=account.id,
             description=row["description"],
@@ -141,14 +140,14 @@ def seeded_csv_data(client, db_session, make_account, make_transaction):
     }
 
 
-def test_csv_servicemac_transactions_get_tagged_after_categorize(
+def test_csv_atlas_test_mortgage_transactions_get_tagged_after_categorize(
     client, db_session, seeded_csv_data
 ):
-    """SERVICEMAC rows from the sample CSV must be tagged with the
+    """Atlas Test Mortgage Services rows from the sample CSV must be tagged with the
     custom Mortgage category after categorize_transactions runs."""
     data = seeded_csv_data
     txn_ids = data["txn_ids"]
-    assert len(txn_ids) > 0, "Expected at least 1 SERVICEMAC transaction from the CSV"
+    assert len(txn_ids) > 0, "Expected at least 1 Atlas Test Mortgage Services transaction from the CSV"
 
     # Load the transactions from DB (they were committed in the fixture).
     txns = (
@@ -163,7 +162,7 @@ def test_csv_servicemac_transactions_get_tagged_after_categorize(
     categorized, skipped, _conflicts = categorize_transactions(db_session, txns)
     db_session.commit()
 
-    # All should be categorized (the SERVICEMAC rule + Mortgage category
+    # All should be categorized (the Atlas Test Mortgage Services rule + Mortgage category
     # are in the lookup now).
     assert categorized == len(txns), (
         f"Expected {len(txns)} categorized, got {categorized}"
@@ -184,30 +183,30 @@ def test_csv_servicemac_transactions_get_tagged_after_categorize(
 def test_csv_finance_query_get_totals_works_on_seeded_data(
     client, db_session, seeded_csv_data
 ):
-    """get_totals returns non-zero expenses for the seeded SERVICEMAC data."""
+    """get_totals returns non-zero expenses for the seeded synthetic mortgage data."""
     uid = seeded_csv_data["user_id"]
     result = get_totals(db_session, {}, uid)
 
     # The SERVICEMAC payments are negative (expenses).
     assert result["total_expenses_month"] > 0, (
-        "Expected non-zero expenses from SERVICEMAC transactions"
+        "Expected non-zero expenses from Atlas Test Mortgage Services transactions"
     )
 
 
-def test_csv_finance_query_get_merchant_spend_finds_servicemac(
+def test_csv_finance_query_get_merchant_spend_finds_atlas_test_mortgage_services(
     client, db_session, seeded_csv_data
 ):
-    """get_merchant_spend for 'SERVICEMAC' returns the sum of the
+    """get_merchant_spend for Atlas Test Mortgage Services returns the sum of the
     seeded transactions."""
     uid = seeded_csv_data["user_id"]
     result = get_merchant_spend(
         db_session,
-        {"merchant": "SERVICEMAC", "months_back": 0},
+        {"merchant": "ATLAS TEST MORTGAGE SERVICES", "months_back": 0},
         uid,
     )
 
-    assert result["merchant"] == "SERVICEMAC"
+    assert result["merchant"] == "ATLAS TEST MORTGAGE SERVICES"
     assert result["total_spend"] > 0, (
-        "Expected non-zero spend for SERVICEMAC merchant"
+        "Expected non-zero spend for Atlas Test Mortgage Services merchant"
     )
     assert result["transaction_count"] > 0
