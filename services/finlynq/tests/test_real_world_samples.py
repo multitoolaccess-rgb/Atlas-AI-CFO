@@ -135,8 +135,8 @@ def test_credit_card_year_end_summary_extracts():
       amount to a NEGATIVE value so refunds surface as outflow
       reductions (matches credit-card sign convention where sales
       are + and credits are -).
-    - Spot-checked signed amounts (``160.27``, ``99.50`` -> -99.50,
-      ``1,868.73``, ``143.37``) are present in the persist path —
+    - Spot-checked signed synthetic amounts (``1.00``, ``2.00``,
+      ``99.50`` -> -99.50, ``5.00``) are present in the persist path —
       catches a regex-quantifier or amount-token regression.
     - Calibration: the running total MUST match a well-known
       sub-category sum (e.g. ``$3,479.96`` for the page-3 Food
@@ -169,7 +169,7 @@ def test_credit_card_year_end_summary_extracts():
 
     # Spot-check signed amounts (positive purchases).
     amounts_two_dec = sorted({round(r["amount"], 2) for r in recs})
-    for expected in (160.27, 1_868.73, 143.37, 99.50, 27.81):
+    for expected in (1.00, 2.00, 5.00, 99.50, 27.81):
         # We check both signs because some references appear as a
         # purchase AND an inverse credit/refund in the same file.
         assert expected in amounts_two_dec or -expected in amounts_two_dec, (

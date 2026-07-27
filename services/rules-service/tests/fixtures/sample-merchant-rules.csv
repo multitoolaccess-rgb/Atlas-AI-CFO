@@ -1,0 +1,6 @@
+category_name,keyword,priority,is_archived,source
+Food & Dining,SAMPLE-FIXTURE-FOOD-A,10,false,synthetic
+Food & Dining,SAMPLE-FIXTURE-FOOD-B,20,false,synthetic
+Groceries,SAMPLE-FIXTURE-GROCERY-A,30,false,synthetic
+Transportation,SAMPLE-FIXTURE-TRANSIT,40,false,synthetic
+Shopping,SAMPLE-FIXTURE-SHOP-A,50,false,synthetic

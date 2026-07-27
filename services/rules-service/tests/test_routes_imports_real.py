@@ -1454,8 +1454,8 @@ def test_parse_csv_transactions_chase_credit_extracts_merchant_from_description(
     row.
 
     The fix:
-      (a) the per-row first-wins merge keeps the real Description
-          (``FRANZ FAMILY BAKERY 9028``) instead of clobbering it
+      (a) the per-row first-wins merge keeps the synthetic Description
+          (``ATLAS SYNTHETIC BAKERY 9028``) instead of clobbering it
           with the blank ``Memo`` column.
       (b) merchant auto-promotion copies the description into
           ``merchant_name`` when no column maps to ``merchant_name``
@@ -1464,10 +1464,10 @@ def test_parse_csv_transactions_chase_credit_extracts_merchant_from_description(
     Asserts:
       - HTTP 200
       - ``saved_transactions > 0``
-      - At least one persisted row has ``description = "FRANZ
-        FAMILY BAKERY 9028"`` (the canonical real merchant that the
+      - At least one persisted row has ``description = "ATLAS
+        SYNTHETIC BAKERY 9028"`` (the synthetic merchant that the
         bug used to drop)
-      - The same row has ``merchant_name = "FRANZ FAMILY BAKERY
+      - The same row has ``merchant_name = "ATLAS SYNTHETIC BAKERY
         9028"`` (the auto-promotion)
       - No row has ``description = "Imported transaction"`` (the
         placeholder that the bug used to ship)
@@ -1499,8 +1499,7 @@ def test_parse_csv_transactions_chase_credit_extracts_merchant_from_description(
         f"saved_transactions={body['saved_transactions']}"
     )
 
-    # DB-level proof — the canonical real merchant "FRANZ FAMILY
-    # BAKERY 9028" must have landed in BOTH description and
+    # DB-level proof — the synthetic merchant must land in BOTH description and
     # merchant_name. The bug used to put "Imported transaction" in
     # description and None in merchant_name for every Chase credit
     # row.
@@ -1514,14 +1513,13 @@ def test_parse_csv_transactions_chase_credit_extracts_merchant_from_description(
         .filter(Transaction.import_batch_id == batch.id)
         .all()
     )
-    franz_rows = [t for t in txns if t.description == "FRANZ FAMILY BAKERY 9028"]
+    franz_rows = [t for t in txns if t.description == "ATLAS SYNTHETIC BAKERY 9028"]
     assert len(franz_rows) >= 1, (
-        f"Phase 50: the canonical real merchant 'FRANZ FAMILY "
-        f"BAKERY 9028' must land in description; got "
+        f"Phase 50: the synthetic merchant must land in description; got "
         f"descriptions={[t.description for t in txns[:5]]}"
     )
-    # Merchant auto-promotion fired for the FRANZ row.
-    assert franz_rows[0].merchant_name == "FRANZ FAMILY BAKERY 9028", (
+    # Merchant auto-promotion fired for the synthetic row.
+    assert franz_rows[0].merchant_name == "ATLAS SYNTHETIC BAKERY 9028", (
         f"Phase 50: merchant_name must auto-promote from description "
         f"when no merchant column is mapped; got merchant_name="
         f"{franz_rows[0].merchant_name!r}"
@@ -2295,4 +2293,3 @@ def test_upload_route_derives_debit_credit_from_amount_when_parser_omits(
         f"account.current_balance must equal SUM(transactions.amount); "
         f"got {account.current_balance!r} -- balance_recalc regressed"
     )
-

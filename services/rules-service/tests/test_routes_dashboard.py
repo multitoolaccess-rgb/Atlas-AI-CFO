@@ -589,11 +589,10 @@ def test_citi_dual_column_csv_upload_end_to_end(
     # length change surfaces as a clear test failure, not a silent
     # ``None`` on a fuzzy key).
     by_desc = {t.description[:30]: t for t in persisted}
-    # The fixture file's first row truncates to "BURRITOS CALIFORNIA MA MARYSVI"
-    # (29 chars + the trailing position 30 is ``L``). The exact prefix is
-    # locked in this test and the AUTOPAY one below matches the same way.
-    BURRITOS_KEY = "BURRITOS CALIFORNIA MA MARYSVI"[:30]
-    AUTOPAY_KEY = "AUTOPAY 999990000076194RAUTOPAY"[:30]
+    # Synthetic fixture identifiers are intentionally obvious and contain no
+    # merchant or customer data; keep prefix matching to cover truncation.
+    BURRITOS_KEY = "ATLAS SYNTHETIC BURRITOS TEST-0001"[:30]
+    AUTOPAY_KEY = "ATLAS SYNTHETIC AUTOPAY TEST-0002"[:30]
     # Purchases: debit populated, credit NULL, amount negative.
     burritos = by_desc.get(BURRITOS_KEY)
     assert burritos is not None, f"Missing BURRITOS row: {by_desc.keys()}"

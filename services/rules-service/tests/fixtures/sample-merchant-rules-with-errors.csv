@@ -1,0 +1,8 @@
+category_name,keyword,priority,is_archived,source
+Food & Dining,EDGE-OK-FOOD,10,false,synthetic
+Transportation,EDGE-OK-TRANSIT,20,false,synthetic
+,EDGE-BLANK-CATEGORY,30,false,synthetic
+No Such Category,EDGE-BAD-CATEGORY,40,false,synthetic
+Food & Dining,EDGE-BAD-PRIORITY,not-a-number,false,synthetic
+Food & Dining,EDGE-BAD-ARCHIVED,50,maybe,synthetic
+Food & Dining,,60,false,synthetic
