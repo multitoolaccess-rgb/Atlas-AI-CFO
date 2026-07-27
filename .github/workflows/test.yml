@@ -72,6 +72,11 @@ jobs:
           .venv-finlynq/bin/python -m pip install --upgrade pip wheel setuptools
           .venv-finlynq/bin/python -m pip install -r services/finlynq/requirements.txt
 
+      - name: Install Rules Service OCR runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes tesseract-ocr
+
       - name: Install JS deps (npm ci)
         working-directory: ui
         run: npm ci
@@ -121,6 +126,11 @@ jobs:
           python -m venv .venv-finlynq
           .venv-finlynq/bin/python -m pip install --upgrade pip wheel setuptools
           .venv-finlynq/bin/python -m pip install -r services/finlynq/requirements.txt
+
+      - name: Install Rules Service OCR runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes tesseract-ocr
 
       - name: Install JS deps (npm ci)
         working-directory: ui
