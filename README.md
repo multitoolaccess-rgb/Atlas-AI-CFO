@@ -31,3 +31,9 @@ This repository captures the product foundation for Atlas: an AI-powered Wealth 
 ## Status
 
 Version 1.0. These are living documents and should be updated through explicit, reviewed changes. Product truth flows from the Master Product Specification; architecture and implementation documents must not silently override it.
+
+## Local Python setup
+
+Rules Service and Finlynq use separate Python 3.12 environments. Never install
+both manifests into one environment or use the old Finance Copilot `.venv`.
+See [Local Python Environments](docs/07-engineering/LOCAL_PYTHON_ENVIRONMENTS.md).

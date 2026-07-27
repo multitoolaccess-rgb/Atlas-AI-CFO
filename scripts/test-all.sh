@@ -27,7 +27,8 @@
 set -u
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
-VENV_PY="$PROJECT_ROOT/.venv/bin/python"
+RULES_VENV_PY="$PROJECT_ROOT/.venv-rules/bin/python"
+FINLYNQ_VENV_PY="$PROJECT_ROOT/.venv-finlynq/bin/python"
 RUN_DIR="$PROJECT_ROOT/.run"
 mkdir -p "$RUN_DIR"
 
@@ -49,8 +50,10 @@ done
 find "$PROJECT_ROOT"/services "$PROJECT_ROOT"/tests -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null >/dev/null
 rm -f /tmp/fc-rules-test-*.db /tmp/fc-finlynq-test-*.db /tmp/fc-cross-engine-*.db 2>/dev/null
 
-VENV_OK=0
-[ -x "$VENV_PY" ] && VENV_OK=1
+RULES_VENV_OK=0
+FINLYNQ_VENV_OK=0
+[ -x "$RULES_VENV_PY" ] && RULES_VENV_OK=1
+[ -x "$FINLYNQ_VENV_PY" ] && FINLYNQ_VENV_OK=1
 
 # ---- helpers -----------------------------------------------------------
 hr()  { printf '\n=== %s ===\n' "$1"; }
@@ -63,18 +66,19 @@ TIERS=()
 # ---- TIER 1 — backend pytest -------------------------------------------
 hr "TIER 1 — backend pytest"
 TIER1_RC=0
-if [ "$VENV_OK" -eq 0 ]; then
-  bad "missing venv at $VENV_PY — run scripts/bootstrap.sh first"
+if [ "$RULES_VENV_OK" -eq 0 ] || [ "$FINLYNQ_VENV_OK" -eq 0 ]; then
+  [ "$RULES_VENV_OK" -eq 0 ] && bad "missing Rules Service environment at $RULES_VENV_PY — run scripts/bootstrap.sh first"
+  [ "$FINLYNQ_VENV_OK" -eq 0 ] && bad "missing Finlynq environment at $FINLYNQ_VENV_PY — run scripts/bootstrap.sh first"
   TIER1_RC=1
 else
   set +e
   ( cd "$PROJECT_ROOT/services/rules-service"
-    "$VENV_PY" -m pytest -q --tb=short -p no:cacheprovider --no-header \
+    "$RULES_VENV_PY" -m pytest -q --tb=short -p no:cacheprovider --no-header \
       tests/ 2>&1 ) > /tmp/fc-tier1-be.log
   TIER1_BE_RC=$?
   if [ -f "$PROJECT_ROOT/services/finlynq/pytest.ini" ]; then
     ( cd "$PROJECT_ROOT/services/finlynq"
-      "$VENV_PY" -m pytest -q --tb=short -p no:cacheprovider --no-header \
+      "$FINLYNQ_VENV_PY" -m pytest -q --tb=short -p no:cacheprovider --no-header \
         tests/ 2>&1 ) > /tmp/fc-tier1-fq.log
     TIER1_FQ_RC=$?
     TIER1_FQ_NOTE="ok"
@@ -87,7 +91,7 @@ else
     : > /tmp/fc-tier1-fq.log
   fi
   ( cd "$PROJECT_ROOT/tests"
-    "$VENV_PY" -m pytest -v --tb=short -p no:cacheprovider --no-header \
+    "$RULES_VENV_PY" -m pytest -v --tb=short -p no:cacheprovider --no-header \
       test_start_sh_unit.py test_start_sh_e2e.py 2>&1 ) > /tmp/fc-tier1-proj.log
   TIER1_PROJ_RC=$?
   set -e
@@ -145,8 +149,8 @@ if [ "$SKIP_E2E" -eq 1 ]; then
   ok "e2e (skipped)"
 else
   hr "TIER 4 — e2e (Playwright)"
-  if [ "$VENV_OK" -eq 0 ]; then
-    bad "venv missing — can't run backend; skipping e2e"
+  if [ "$RULES_VENV_OK" -eq 0 ]; then
+    bad "Rules Service environment missing — can't run backend; skipping e2e"
     TIER4_RC=1
   else
     set +e

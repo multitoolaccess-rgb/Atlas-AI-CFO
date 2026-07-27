@@ -32,7 +32,7 @@ export default function RootError({
             title={isBackendUnavailable ? 'Backend Unavailable:' : 'Something went wrong:'}
             message={
               isBackendUnavailable
-                ? "The Atlas backend on :8000 isn't responding. Start it with: cd services/rules-service && .venv/bin/python -m uvicorn app.main:app. Then refresh this page."
+                ? "The Atlas backend on :8000 isn't responding. Start it with: cd services/rules-service && ../../.venv-rules/bin/python -m uvicorn app.main:app. Then refresh this page."
                 : error.message || 'An unexpected error occurred. Please refresh the page.'
             }
             retryHref="/"

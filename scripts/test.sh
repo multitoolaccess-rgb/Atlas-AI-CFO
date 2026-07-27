@@ -32,7 +32,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 UI_DIR="$PROJECT_ROOT/ui"
 RULES_DIR="$PROJECT_ROOT/services/rules-service"
-VENV_PY="$PROJECT_ROOT/.venv/bin/python"
+RULES_VENV_PY="$PROJECT_ROOT/.venv-rules/bin/python"
+FINLYNQ_VENV_PY="$PROJECT_ROOT/.venv-finlynq/bin/python"
 
 # ---- Pretty banner ----
 echo ""
@@ -77,8 +78,8 @@ run_step() {
 
 # ---- Step 1: backend pytest ----
 step_backend() {
-  if [ ! -x "$VENV_PY" ]; then
-    echo "❌  $VENV_PY missing. Run: bash scripts/bootstrap.sh"
+  if [ ! -x "$RULES_VENV_PY" ]; then
+    echo "❌  Rules Service environment missing: $RULES_VENV_PY. Run: bash scripts/bootstrap.sh"
     return 1
   fi
   cd "$RULES_DIR"
@@ -90,20 +91,20 @@ step_backend() {
       echo "→ postgres on :5433 not running; pytest will use the SQLite path from .env"
     fi
   fi
-  "$VENV_PY" -m pytest -q --tb=short
+  "$RULES_VENV_PY" -m pytest -q --tb=short
 }
 
 # ---- Step 1b: finlynq backend pytest ----
 step_finlynq_backend() {
-  if [ ! -x "$VENV_PY" ]; then
-    echo "❌  $VENV_PY missing. Run: bash scripts/bootstrap.sh"
+  if [ ! -x "$FINLYNQ_VENV_PY" ]; then
+    echo "❌  Finlynq environment missing: $FINLYNQ_VENV_PY. Run: bash scripts/bootstrap.sh"
     return 1
   fi
   # finlynq's pytest.ini sets `pythonpath = .` so the flat
   # `from app.main import app` imports used in tests/* resolve when
   # pytest is run from inside services/finlynq.
   cd "$PROJECT_ROOT/services/finlynq"
-  "$VENV_PY" -m pytest -q --tb=short
+  "$FINLYNQ_VENV_PY" -m pytest -q --tb=short
 }
 
 # ---- Step 2: frontend vitest ----

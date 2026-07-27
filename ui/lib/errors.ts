@@ -127,7 +127,7 @@ export function classifyError(err: unknown): ClassifiedError {
   // No response object → real network failure (BE down, ECONNREFUSED, offline).
   return {
     message:
-      "Can't reach the backend. Make sure the rules-service is running on :8000 (cd services/rules-service && .venv/bin/python -m uvicorn app.main:app).",
+      "Can't reach the backend. Make sure the rules-service is running on :8000 (cd services/rules-service && ../../.venv-rules/bin/python -m uvicorn app.main:app).",
     category: 'network',
     cause: err,
   }

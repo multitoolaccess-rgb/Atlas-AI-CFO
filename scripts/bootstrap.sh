@@ -1,103 +1,93 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "========================================="
-echo "🚀 Starting Finance Copilot Phase 0 Setup"
-echo "========================================="
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$PROJECT_ROOT"
 
-# 1. Environment Management
-if [ ! -f .env ]; then
-    echo "-> Copying example environment variables from .env.example to .env"
-    cp .env.example .env
-else
-    echo "-> Found existing .env file. Skipping copy."
+# Preserve the existing local configuration bootstrap behavior. The generated
+# file remains ignored; only a safe example template may be copied.
+if [ ! -f .env ] && [ -f .env.example ]; then
+  echo "→ Copying .env.example to ignored local .env"
+  cp .env.example .env
 fi
 
-# 2. Initial Service Setup (e.g., database migration, initial data load)
-# NOTE: Add specific initialization commands here if services require it (e.g., 'docker compose run --rm rules-service migrate')
-echo "-> Running placeholder service setup checks..."
-# Placeholder for future migrations/initialization scripts
-
-# 3. Python local virtualenv
-#    Convention: project-root .venv, Python 3.12 (matches services/rules-service/Dockerfile
-#    `FROM python:3.12-slim`). Honors the project-root `.python-version` file. Never
-#    `pip install` into system Python — it pollutes the host and conflicts between projects.
 require_python_3_12() {
-    # Hard-fail with remediation when the available interpreter cannot be used.
-    local detected_major_minor="$1"
-    local label="$2"
-    echo "❌ $label uses Python $detected_major_minor, but this project requires 3.12."
-    echo "   services/rules-service/requirements.txt pins pydantic==2.7.4 which has no"
-    echo "   prebuilt macOS arm64 wheels for 3.13 or 3.14; pip will try to compile"
-    echo "   pydantic-core from source (slow, requires a Rust toolchain, often fails)."
-    echo ""
-    echo "   Fix (macOS):   brew install python@3.12 && rm -rf .venv && bash scripts/bootstrap.sh"
-    echo "   Fix (Ubuntu):  sudo apt install python3.12 python3.12-venv && rm -rf .venv && bash scripts/bootstrap.sh"
-    echo "   Fix (Windows): winget install Python.Python.3.12  (or: choco install python312)"
-    echo "   Fix (other):   install Python 3.12 via your manager of choice, then re-run."
-    exit 1
+  local detected_major_minor="$1"
+  local label="$2"
+  echo "❌ $label uses Python $detected_major_minor, but Atlas requires Python 3.12."
+  echo "   Install Python 3.12, then rerun: bash scripts/bootstrap.sh"
+  exit 1
 }
 
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [ -z "$PYTHON_BIN" ]; then
-    for candidate in /opt/homebrew/bin/python3.12 python3.12 python3; do
-        if command -v "$candidate" >/dev/null 2>&1; then
-            PYTHON_BIN="$candidate"
-            break
-        fi
-    done
+  for candidate in /opt/homebrew/bin/python3.12 python3.12 python3; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      PYTHON_BIN="$candidate"
+      break
+    fi
+  done
 fi
 if [ -z "$PYTHON_BIN" ]; then
-    echo "❌ Could not find a python3 interpreter on PATH."
-    echo "   Install Python 3.12 (see remediation in CLAUDE.md → Python setup)."; exit 1
+  echo "❌ Could not find Python 3.12. Install it, then rerun: bash scripts/bootstrap.sh"
+  exit 1
 fi
-PY_MAJOR_MINOR="$("$PYTHON_BIN" -c 'import sys;print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+PY_MAJOR_MINOR="$($PYTHON_BIN -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
 if [ "$PY_MAJOR_MINOR" != "3.12" ]; then
-    require_python_3_12 "$PY_MAJOR_MINOR" "$PYTHON_BIN"
+  require_python_3_12 "$PY_MAJOR_MINOR" "$PYTHON_BIN"
 fi
 
-# .venv reuse invariant: if .venv already exists, its interpreter MUST also be 3.12.
-# A previous run on 3.13/3.14 would have left a poisoned venv — refuse to reuse it
-# so the contributor cannot silently end up with a broken venv via re-running this script.
-if [ -d .venv ]; then
-    VENV_MM="$(.venv/bin/python -c 'import sys;print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo unknown)"
-    if [ "$VENV_MM" != "3.12" ]; then
-        echo "❌ Existing .venv was created from Python $VENV_MM but this project requires 3.12."
-        echo "   Recreate it: rm -rf .venv && bash scripts/bootstrap.sh"
-        exit 1
+RULES_VENV_DIR="$PROJECT_ROOT/.venv-rules"
+FINLYNQ_VENV_DIR="$PROJECT_ROOT/.venv-finlynq"
+RULES_VENV_PY="$RULES_VENV_DIR/bin/python"
+FINLYNQ_VENV_PY="$FINLYNQ_VENV_DIR/bin/python"
+
+ensure_venv() {
+  local venv_dir="$1"
+  local venv_py="$2"
+  local label="$3"
+  if [ -d "$venv_dir" ]; then
+    local venv_mm
+    venv_mm="$($venv_py -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo unknown)"
+    if [ "$venv_mm" != "3.12" ]; then
+      echo "❌ $label environment at $venv_dir uses Python $venv_mm; recreate it with Python 3.12."
+      exit 1
     fi
-    echo "-> Found existing .venv on Python $VENV_MM. (delete with \`rm -rf .venv\` to recreate)"
-else
-    echo "-> Creating .venv at project root using $PYTHON_BIN (Python $PY_MAJOR_MINOR)"
-    "$PYTHON_BIN" -m venv .venv
-fi
-echo "-> Upgrading pip/wheel/setuptools inside .venv"
-.venv/bin/python -m pip install --upgrade pip wheel setuptools
-echo "-> Installing services/rules-service/requirements.txt into .venv"
-.venv/bin/pip install -r services/rules-service/requirements.txt
-echo "-> Installing services/finlynq/requirements.txt into .venv (parser + categorizer deps)"
-# Finlynq's parser/categorizer suite depends on pdfplumber / pytesseract /
-# pandas / ofxparse / openpyxl / xlrd / reportlab / Pillow. Installing
-# them here prevents start.sh from re-installing on every run.
-.venv/bin/pip install -r services/finlynq/requirements.txt
-echo "-> Running rules-service tests (pytest discovers tests/ via pytest.ini pythonpath = .)"
-# cd into rules-service so pytest auto-discovers pytest.ini and pythonpath = .
-# injects the rules-service dir into sys.path; explicit --rootdir from project
-# root misses this.
-( cd services/rules-service && ../../.venv/bin/python -m pytest -q )
-echo "-> Running finlynq tests (parser/categorizer suite; pytest.ini pythonpath = .)"
-# Same trick: cd into services/finlynq so its pytest.ini injects the
-# Finlynq app/ dir into sys.path for the flat `from app.main import app`
-# imports used in tests/*.
-( cd services/finlynq && ../../.venv/bin/python -m pytest -q )
+    echo "→ Reusing $label environment: $venv_dir (Python $venv_mm)"
+  else
+    echo "→ Creating $label environment: $venv_dir (Python 3.12)"
+    "$PYTHON_BIN" -m venv "$venv_dir"
+  fi
+}
 
-# 4. Build and Run Services
-echo ""
 echo "========================================="
-echo "✅ Phase 0 Setup Complete."
-echo "To work locally:"
-echo "  source .venv/bin/activate             # activate Python venv"
-echo "  cd ui && rm -rf .next && npm run dev  # start the dashboard"
-echo "To build and start all services (Docker):"
-echo "  docker compose up --build"
+echo "🐍 Atlas isolated Python environment setup"
 echo "========================================="
+ensure_venv "$RULES_VENV_DIR" "$RULES_VENV_PY" "Rules Service"
+ensure_venv "$FINLYNQ_VENV_DIR" "$FINLYNQ_VENV_PY" "Finlynq"
+
+if [ "${UPGRADE_PACKAGING_TOOLS:-0}" = "1" ]; then
+  echo "→ Upgrading packaging tools in both isolated environments"
+  "$RULES_VENV_PY" -m pip install --upgrade pip wheel setuptools
+  "$FINLYNQ_VENV_PY" -m pip install --upgrade pip wheel setuptools
+else
+  echo "→ Keeping installed packaging tools (set UPGRADE_PACKAGING_TOOLS=1 to upgrade them)"
+fi
+
+echo "→ Installing Rules Service pins only into .venv-rules"
+"$RULES_VENV_PY" -m pip install -r services/rules-service/requirements.txt
+echo "→ Installing Finlynq pins only into .venv-finlynq"
+"$FINLYNQ_VENV_PY" -m pip install -r services/finlynq/requirements.txt
+
+if [ "${RUN_SERVICE_TESTS:-1}" = "1" ]; then
+  echo "→ Running Rules Service tests with .venv-rules"
+  (cd services/rules-service && "$RULES_VENV_PY" -m pytest -q)
+  echo "→ Running Finlynq tests with .venv-finlynq"
+  (cd services/finlynq && "$FINLYNQ_VENV_PY" -m pytest -q)
+else
+  echo "→ RUN_SERVICE_TESTS=0: skipping service tests"
+fi
+
+echo "✅ Atlas environments are ready."
+echo "   Rules Service: .venv-rules/bin/python"
+echo "   Finlynq:       .venv-finlynq/bin/python"

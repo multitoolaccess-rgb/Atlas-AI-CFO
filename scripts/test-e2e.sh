@@ -26,7 +26,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 UI_DIR="$PROJECT_ROOT/ui"
 RULES_DIR="$PROJECT_ROOT/services/rules-service"
-VENV_PY="$PROJECT_ROOT/.venv/bin/python"
+RULES_VENV_PY="$PROJECT_ROOT/.venv-rules/bin/python"
 BACKEND_LOG="/tmp/finance-copilot-e2e-backend.log"
 BACKEND_PID=""
 STARTED_BACKEND=0
@@ -50,8 +50,8 @@ echo "=========================================="
 echo ""
 
 # ---- Sanity checks ----
-if [ ! -x "$VENV_PY" ]; then
-  echo "❌  $VENV_PY missing. Run: bash scripts/bootstrap.sh"
+if [ ! -x "$RULES_VENV_PY" ]; then
+  echo "❌  Rules Service environment missing: $RULES_VENV_PY. Run: bash scripts/bootstrap.sh"
   exit 1
 fi
 if [ ! -d "$UI_DIR/node_modules/@playwright/test" ]; then
@@ -66,7 +66,7 @@ start_backend() {
   DATABASE_URL='sqlite:///./finance.db' \
   JWT_SECRET='dev-jwt-secret-for-tests-only-32chars-min' \
   LOCAL_USER='alex' \
-    "$VENV_PY" -m uvicorn app.main:app --host 0.0.0.0 --port 8000 \
+    "$RULES_VENV_PY" -m uvicorn app.main:app --host 0.0.0.0 --port 8000 \
       > "$BACKEND_LOG" 2>&1 &
   BACKEND_PID=$!
   STARTED_BACKEND=1

@@ -26,7 +26,7 @@ earlier round's mistake):
     parsers. Don't pass it.
 
 Run via:
-    .venv/bin/python -m pytest tests/test_services_import_parser_real.py -v
+    .venv-finlynq/bin/python -m pytest tests/test_services_import_parser_real.py -v
 
 or via the consolidated runner:
     bash scripts/test-all.sh

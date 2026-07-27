@@ -122,101 +122,18 @@ def test_start_sh_status_block_pid_aligned_to_same_byte_offset(start_sh_path: Pa
     )
 
 
-# ---------- #2 probe-then-skip pip ----------------------------------------
+# ---------- isolated service environments ---------------------------------
 
 
-def test_start_sh_finlynq_deps_block_uses_probe_then_install(start_sh_path: Path) -> None:
-    """Polished Finlynq-deps block must run an import probe FIRST; pip install only on probe miss.
-
-    A naive regression (running pip unconditionally) wastes 2-5s of
-    network IO on every cold start; this test catches the regression
-    and points future contributors at the probe-then-install pattern.
-
-    Round-7 wave-8 fix: rewritten to anchor on absolute positions via
-    two specific shape regex, instead of fragile section-capture + offset
-    arithmetic. The previous version captured content between the hr
-    header and the closest ``# -----`` divider, then asserted on
-    substring offsets -- but a venv-missing error message in start.sh
-    (containing ``pip install`` text in a printf diagnostic) was
-    being matched as if it were the real pip fallback, inverting the
-    offset check. Switching to anchored shape detection is robust
-    against future polish that may add diagnostic messages referencing
-    ``pip install``.
-    """
+def test_start_sh_uses_service_specific_interpreters(start_sh_path: Path) -> None:
+    """Finlynq and Rules Service must never share a Python environment."""
     text = start_sh_path.read_text(encoding="utf-8")
-
-    # The probe invocation MUST use the project's venv interpreter
-    # (``"$VENV_PY"`` literal shell variable) and the ``-c`` flag -- a
-    # bare ``python -c`` probe fails in production because ``python`` on
-    # PATH may not be the venv interpreter.
-    #
-    # The shape regex does NOT use ``\\b`` between ``-c`` and the next
-    # char because ``-`` is a non-word character; ``(?:^|\\s|-c)``
-    # accepts the actual bash-arg context.
-    probe_match = re.search(r'"\$VENV_PY"\s+-c\s+"', text)
-    assert probe_match, (
-        'Finlynq-deps block is missing the `"$VENV_PY" -c "..."` probe. '
-        "Polish #2 requires the probe BEFORE the pip fallback. "
-        'If start.sh was refactored, restore the `"$VENV_PY" -c "` shape '
-        "OR update this test."
-    )
-
-    # The pip fallback MUST come AFTER the probe invocation. Anchor on
-    # ``pip install ... -r ...`` (the ``-r`` flag distinguishes it from
-    # prose mentions like the venv-missing diagnostic).
-    after_probe = text[probe_match.end():]
-    pip_match = re.search(r"pip\s+install\b[^|;&]*?-r\s", after_probe)
-    assert pip_match, (
-        "Finlynq-deps block is missing the `pip install ... -r ...` fallback. "
-        "It must come AFTER the probe invocation. The shape `pip install ... "
-        "-r ...` is anchored to distinguish the real fallback from prose "
-        "mentions of `pip install` in error messages."
-    )
-
-
-def test_start_sh_finlynq_probe_set_derived_from_requirements_txt(
-    start_sh_path: Path,
-) -> None:
-    """Polish #2 correctness lock-down.
-
-    The probe Python script MUST consult ``finlynq/requirements.txt``
-    when deciding whether to skip the pip install. A hand-maintained
-    ``import fastapi, httpx, ...`` allowlist silently regresses when
-    a new dep ships in requirements.txt (round-7 reviewer #1 found
-    exactly this bug -- ``uvicorn`` / ``pydantic-settings`` /
-    ``python-jose[cryptography]`` / ``Pillow`` / ``ofxparse`` / ``xlrd``
-    / ``reportlab`` were missing from the v1 probe list, so a fresh
-    clone would probe-pass + skip pip + fail at uvicorn cold boot).
-
-    Catches the regression at test-time instead of forcing a fresh-clone
-    + cold-boot to rediscover the bug.
-    """
-    text = start_sh_path.read_text(encoding="utf-8")
-    probe_match = re.search(
-        r'"\$VENV_PY"\s+-c\s+"(.+?)"\s*2>/dev/null',
-        text,
-        re.DOTALL,
-    )
-    assert probe_match, (
-        "Could not locate the Finlynq-deps `python -c \"...\"` probe "
-        "block. Polish #2 requires a probe before the pip install fallback."
-    )
-    probe_src = probe_match.group(1)
-    assert "requirements.txt" in probe_src, (
-        "Finlynq-deps probe Python script MUST open "
-        "finlynq/requirements.txt to derive the install set. A static "
-        "`import fastapi, httpx, ...` allowlist regresses silently when a "
-        "new dep lands in finlynq/requirements.txt - round-7 reviewer #1 "
-        "surfaced uvicorn / pydantic-settings / python-jose[cryptography] "
-        "/ Pillow / ofxparse / xlrd / reportlab missing from the v1 probe."
-    )
-    # The probe must use importlib.metadata (Python-stdlib installed-package
-    # liveness) - not actually `import <lib>`, since `python-jose[cryptography]`
-    # etc. have heavy native deps that we don't want to materialize for a check.
-    assert "importlib" in probe_src, (
-        "Finlynq-deps probe must check installed-package liveness via "
-        "`importlib.metadata.version()` or equivalent - not `import <lib>`."
-    )
+    assert 'RULES_VENV_PY="$PROJECT_ROOT/.venv-rules/bin/python"' in text
+    assert 'FINLYNQ_VENV_PY="$PROJECT_ROOT/.venv-finlynq/bin/python"' in text
+    assert 'nohup "$FINLYNQ_VENV_PY" -m uvicorn app.main:app' in text
+    assert '"$RULES_VENV_PY" -m alembic upgrade head' in text
+    assert 'nohup "$RULES_VENV_PY" -m uvicorn app.main:app' in text
+    assert 'pip install -r "$FQ_DIR/requirements.txt"' not in text
 
 
 # ---------- #1 cleanup-on-gate-failure ------------------------------------

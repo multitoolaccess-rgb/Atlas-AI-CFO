@@ -37,7 +37,8 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UI_DIR="$PROJECT_ROOT/ui"
 BE_DIR="$PROJECT_ROOT/services/rules-service"
 FQ_DIR="$PROJECT_ROOT/services/finlynq"
-VENV_PY="$PROJECT_ROOT/.venv/bin/python"
+RULES_VENV_PY="$PROJECT_ROOT/.venv-rules/bin/python"
+FINLYNQ_VENV_PY="$PROJECT_ROOT/.venv-finlynq/bin/python"
 NEXT_BIN="$UI_DIR/node_modules/.bin/next"
 RUN_DIR="$PROJECT_ROOT/.run"
 LOG_BE="$RUN_DIR/backend.log"
@@ -235,57 +236,17 @@ fi
 export DATABASE_URL="sqlite:///$BE_DIR/finance.db"
 note "DATABASE_URL : $DATABASE_URL (shared between Finlynq + Rules)"
 
-# ----- ensure Finlynq parser deps are installed in .venv ------------------
-# ``services/rules-service/requirements.txt`` already installs fastapi,
-# uvicorn, pydantic, httpx (the common surface Finlynq shares). The
-# Phase-F3 lift pulled in pdfplumber / pandas / pytesseract / openpyxl
-# for Finlynq's parse_router — those live in
-# services/finlynq/requirements.txt and need a one-time ``pip install``
-# on a fresh clone.
-#
-# Polish #2: PROBE-THEN-SKIP. The probe set is DERIVED from
-# finlynq/requirements.txt at probe time — NOT a hand-maintained import
-# list. A static `import fastapi, httpx, ...` allowlist silently regresses
-# when a new dep ships in requirements.txt (round-7 reviewer #1 surfaced
-# uvicorn/pydantic-settings/python-jose/Pillow/ofxparse/xlrd/reportlab
-# missing from a hand-maintained list — a fresh clone would probe-pass
-# + skip pip + fail at uvicorn cold boot). Reading the requirements file
-# at probe time keeps the probe and pip-install target in lockstep.
-hr "🔧 Ensuring Finlynq parser deps are installed"
-if [ ! -x "$VENV_PY" ]; then
-  printf '  ✗ missing venv at %s — create it: python -m venv .venv && .venv/bin/pip install -r services/rules-service/requirements.txt\n' "$VENV_PY"
+# ----- Python environment gate ------------------------------------------
+hr "🐍 Checking isolated Python environments"
+if [ ! -x "$RULES_VENV_PY" ]; then
+  printf '  ✗ Rules Service environment missing: %s\n' "$RULES_VENV_PY"
+  printf '    Run: bash scripts/bootstrap.sh\n'
   exit 1
 fi
-if [ -f "$FQ_DIR/requirements.txt" ]; then
-  if "$VENV_PY" -c "
-import importlib.metadata as md, re, sys
-miss = []
-try:
-    with open('$FQ_DIR/requirements.txt', encoding='utf-8') as fp:
-        for line in fp:
-            line = line.split('#', 1)[0].strip()
-            if not line or line.startswith('-'): continue
-            # Strip specifiers + extras: ``python-jose[cryptography]==3.3.0``
-            # -> ``python-jose``; ``-r foo.txt`` -> ``foo.txt`` (skip via the
-            # ``-`` check above).
-            pkg = re.split(r'[=<>!~;\[ ]', line, 1)[0].strip()
-            if not pkg: continue
-            try: md.version(pkg)
-            except md.PackageNotFoundError: miss.append(pkg)
-except FileNotFoundError:
-    sys.exit(1)
-sys.exit(0 if not miss else 1)
-" 2>/dev/null; then
-    note "finlynq deps : every requirements.txt package already importable — skipping pip install"
-  else
-    if ! "$VENV_PY" -m pip install -q -r "$FQ_DIR/requirements.txt" 2>"$LOG_PIP"; then
-      printf '  ✗ pip install failed for Finlynq requirements — see %s\n' "$LOG_PIP"
-      # cleanup-started-pids is a no-op here (none launched yet) but
-      # keep the exit clean. Operator must run bootstrap.sh.
-      exit 1
-    fi
-    note "finlynq deps : installed (was missing one or more)"
-  fi
+if [ ! -x "$FINLYNQ_VENV_PY" ]; then
+  printf '  ✗ Finlynq environment missing: %s\n' "$FINLYNQ_VENV_PY"
+  printf '    Run: bash scripts/bootstrap.sh\n'
+  exit 1
 fi
 
 # ----- Finlynq :8001 -------------------------------------------------------
@@ -303,7 +264,7 @@ fi
 # listener.
 hr "🚀 Starting Finlynq   (uvicorn → :8001, --reload)"
 cd "$FQ_DIR"
-nohup "$VENV_PY" -m uvicorn app.main:app --host 127.0.0.1 --port 8001 \
+nohup "$FINLYNQ_VENV_PY" -m uvicorn app.main:app --host 127.0.0.1 --port 8001 \
   --reload \
   > "$LOG_FQ" 2>&1 &
 echo $! > "$PID_FQ"
@@ -324,7 +285,7 @@ note "log  : $LOG_FQ"
 # The bootstrap path ALSO calls this (see scripts/bootstrap.sh) so
 # `bash scripts/bootstrap.sh && bash start.sh` is idempotent end-to-end.
 hr "🔧 Applying alembic migrations"
-if ! ( cd "$BE_DIR" && "$VENV_PY" -m alembic upgrade head 2>&1 | tee -a "$LOG_BE" ); then
+if ! ( cd "$BE_DIR" && "$RULES_VENV_PY" -m alembic upgrade head 2>&1 | tee -a "$LOG_BE" ); then
   printf '  ✗ alembic upgrade head failed — see %s\n' "$LOG_BE"
   cleanup_started_pids
   exit 1
@@ -345,7 +306,7 @@ note "alembic : $BE_DIR at head"
 # process layout.
 hr "🚀 Starting Rules    (uvicorn → :8000, --reload)"
 cd "$BE_DIR"
-nohup "$VENV_PY" -m uvicorn app.main:app --host 127.0.0.1 --port 8000 \
+nohup "$RULES_VENV_PY" -m uvicorn app.main:app --host 127.0.0.1 --port 8000 \
   --reload \
   > "$LOG_BE" 2>&1 &
 echo $! > "$PID_BE"

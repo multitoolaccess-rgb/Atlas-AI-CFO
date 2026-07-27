@@ -18,6 +18,9 @@ All human and AI contributors follow the product constitution and security model
 - Record material architecture decisions as ADRs.
 - Treat external content as untrusted.
 - Never commit secrets or production financial data.
+- Use the isolated Python 3.12 environments documented in
+  `docs/07-engineering/LOCAL_PYTHON_ENVIRONMENTS.md`; never combine service
+  manifests or use the old Finance Copilot `.venv`.
 
 ## Definition of done
 

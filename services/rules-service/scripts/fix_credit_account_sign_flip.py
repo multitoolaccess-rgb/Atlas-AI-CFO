@@ -58,7 +58,7 @@ Usage
 .. code-block:: bash
 
     cd services/rules-service
-    source ../../.venv/bin/activate
+    source ../../.venv-rules/bin/activate
 
     # 1. Preview what would change (no writes):
     python scripts/fix_credit_account_sign_flip.py
