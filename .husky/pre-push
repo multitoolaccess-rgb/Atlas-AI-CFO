@@ -1,0 +1,228 @@
+#!/usr/bin/env sh
+# .husky/pre-push
+#
+# Global timeout wrapper: the outer invocation immediately re-invokes the
+# hook under `timeout` (Linux) or `gtimeout` (macOS coreutils) so the
+# pre-push suite can never hang indefinitely. Stdin is passed through
+# untouched, so the inner invocation still receives the git ref lines.
+#
+# Configure with: PRE_PUSH_TIMEOUT_SECONDS (default 300)
+#
+PRE_PUSH_TIMEOUT_SECONDS="${PRE_PUSH_TIMEOUT_SECONDS:-300}"
+if [ -z "${PRE_PUSH_TIMEOUT_WRAPPER_ACTIVE:-}" ]; then
+  PRE_PUSH_TIMEOUT_WRAPPER_ACTIVE=1
+  export PRE_PUSH_TIMEOUT_WRAPPER_ACTIVE
+
+  timeout_cmd=""
+  if command -v timeout >/dev/null 2>&1; then
+    timeout_cmd="timeout"
+  elif command -v gtimeout >/dev/null 2>&1; then
+    timeout_cmd="gtimeout"
+  fi
+
+  if [ -n "$timeout_cmd" ]; then
+    "$timeout_cmd" "$PRE_PUSH_TIMEOUT_SECONDS" "$0" "$@"
+    rc=$?
+  else
+    "$0" "$@"
+    rc=$?
+  fi
+
+  if [ "$rc" -eq 124 ]; then
+    echo ""
+    echo "❌ Pre-push timeout: the test suite exceeded ${PRE_PUSH_TIMEOUT_SECONDS}s."
+    echo "   Push aborted to prevent an indefinite hang."
+    echo "   Run with PRE_PUSH_BLOCK_ON_FAILURE=0 or git push --no-verify to bypass."
+  fi
+  exit "$rc"
+fi
+
+# Smart pre-push hook: reads the pre-push stdin to learn which refs are
+# being pushed, computes the diff for each, and only runs the test
+# steps affected by the changed files. Trades a faster inner loop for
+# some script complexity.
+#
+# Decision matrix (see the categorize loop below for the exact regexes):
+#
+#   changed files           → runs
+#   ─────────────────────────────────────────────────────────
+#   services/         only  →  backend pytest
+#   ui/               only  →  vitest + tsc + Playwright
+#   neither                 →  (nothing — exit 0; only docs / agents /
+#                             designs / standalone md changed)
+#   scripts/, .husky/, .github/, package*.json, tsconfig*.json,
+#   vitest/playwright/postcss/tailwind/next config files,
+#   or any .env*            →  full suite (safety net)
+#
+# Env knobs:
+#   SKIP_TESTS=1        — bypass the hook entirely (current behavior)
+#   FORCE_ALL_TESTS=1   — bypass the smart logic, run full suite
+#                          (useful when the diff can't be computed:
+#                           shallow clone, lost base, etc.)
+#   PRE_PUSH_BLOCK_ON_FAILURE=1
+#                       — fail the push if tests fail (default is to warn
+#                         and allow the push to proceed).
+#   SKIP_BACKEND=1, SKIP_VITEST=1, SKIP_TYPECHECK=1, SKIP_PLAYWRIGHT=1
+#                       — also honored; the smart mode may set these
+#                          based on the diff, but the user can override
+#                          at the call site if needed.
+#
+# To bypass the hook entirely (including the smart logic):
+#   git push --no-verify
+#   SKIP_TESTS=1 git push
+#
+# Pre-push stdin contract: one line per ref being pushed, format
+#   <local_ref> <local_sha> <remote_ref> <remote_sha>
+# Git blocks until the hook drains the pipe.
+
+SCRIPT_DIR="$(cd "$(dirname -- "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+ZERO_OID="0000000000000000000000000000000000000000"
+
+# ---- Bypass hooks (in priority order) ----
+if [ "${SKIP_TESTS:-0}" = "1" ]; then
+  echo "⚠️  SKIP_TESTS=1 — skipping pre-push test suite (do not commit this state)."
+  exit 0
+fi
+if [ "${FORCE_ALL_TESTS:-0}" = "1" ]; then
+  echo "=========================================="
+  echo "🧠  Smart pre-push analysis (FORCE_ALL_TESTS=1)"
+  echo "=========================================="
+  echo "💡  FORCE_ALL_TESTS=1 — running full suite."
+  bash "$PROJECT_ROOT/scripts/test.sh"
+  exit $?
+fi
+
+# ---- 1) Aggregate all changed files across all refs being pushed ----
+FALLBACK=0
+FILES=""
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # Ref deletion: nothing to test locally
+  if [ "$local_sha" = "$ZERO_OID" ]; then
+    continue
+  fi
+
+  # New branch (first push): diff against the root commit
+  if [ "$remote_sha" = "$ZERO_OID" ]; then
+    BASE_SHA="$(git rev-list --max-parents=0 HEAD 2>/dev/null | tail -n 1)"
+    if [ -z "$BASE_SHA" ]; then
+      FALLBACK=1
+      break
+    fi
+  else
+    BASE_SHA="$remote_sha"
+  fi
+
+  # Accumulate the file list. If `git diff` fails (shallow clone, lost
+  # base, garbage SHA in the test), fall back to the full suite — never
+  # silently skip tests we can't be sure about.
+  if ! DIFF="$(git diff --name-only "$BASE_SHA" "$local_sha" 2>/dev/null)"; then
+    FALLBACK=1
+    break
+  fi
+  FILES="$FILES
+$DIFF"
+done
+
+# If the push was only ref-deletions (no FILES accumulated), exit clean.
+if [ -z "$(printf '%s' "$FILES" | sed '/^[[:space:]]*$/d')" ] && [ "$FALLBACK" = "0" ]; then
+  echo "⏭  pre-push: only ref deletions in this push; nothing to test."
+  exit 0
+fi
+
+echo "=========================================="
+echo "🧠  Smart pre-push analysis"
+echo "=========================================="
+
+# ---- 2) Fallback: if anything went wrong, run the full suite ----
+if [ "$FALLBACK" = "1" ]; then
+  echo "💡  Could not determine the diff cleanly (shallow clone? lost base? bad SHA?)."
+  echo "    Falling back to the full suite to be safe."
+  bash "$PROJECT_ROOT/scripts/test.sh"
+  exit $?
+fi
+
+# ---- 3) Classify the changed files ----
+run_backend=0
+run_frontend=0
+run_all=0
+
+# unique-ify before iterating (a single push can touch the same file in
+# multiple commits; we only need to categorize it once).
+UNIQUE_FILES="$(printf '%s' "$FILES" | sed '/^[[:space:]]*$/d' | sort -u)"
+
+for file in $UNIQUE_FILES; do
+  # Config / safety-net files: ANY change here triggers the full suite
+  # because the test runner itself depends on them.
+  if printf '%s' "$file" | grep -Eq '^(\.husky/|scripts/|\.github/|package(-lock)?\.json|tsconfig.*\.json|.*/tsconfig.*\.json|.*/\.config\.[jt]s|.*/playwright\.config\.ts|.*/vitest\.config\.ts|.*/postcss\.config\.[jt]s|.*/tailwind\.config\.ts|.*/next\.config\.js|\.env(\..*)?$)'; then
+    run_all=1
+    break
+  elif printf '%s' "$file" | grep -q '^services/'; then
+    run_backend=1
+  elif printf '%s' "$file" | grep -q '^ui/'; then
+    run_frontend=1
+  fi
+done
+
+# ---- 4) If config-affecting file was touched, run all ----
+if [ "$run_all" = "1" ]; then
+  echo "💡  Config / runner-affecting file changed — running full suite."
+  echo "    (scripts/, .husky/, .github/, package*.json, tsconfig*, vitest/"
+  echo "     playwright/postcss/tailwind/next config, .env*)"
+  run_backend=1
+  run_frontend=1
+fi
+
+# ---- 5) Honor user-supplied SKIP_* knobs (override the smart decisions
+#         in the call site if the user explicitly asked to skip). ----
+# SKIP_BACKEND and SKIP_VITEST need to flip our smart-decision flags so
+# the export block below agrees. SKIP_TYPECHECK and SKIP_PLAYWRIGHT are
+# per-step toggles: they are already in the caller's env, so we just
+# pass them through to scripts/test.sh unchanged (the `:` no-op below
+# is intentional — it documents the override without doing anything).
+[ "${SKIP_BACKEND:-0}" = "1" ] && run_backend=0
+[ "${SKIP_VITEST:-0}" = "1" ] && run_frontend=0  # vitest+tsc+playwright are a unit
+[ "${SKIP_TYPECHECK:-0}" = "1" ] && :  # pass-through to scripts/test.sh
+[ "${SKIP_PLAYWRIGHT:-0}" = "1" ] && :  # pass-through to scripts/test.sh
+
+# ---- 6) Map decisions to SKIP_* env vars for scripts/test.sh ----
+if [ "$run_backend" = "0" ]; then
+  echo "⏭  Backend pytest skipped (no services/ changes)"
+  export SKIP_BACKEND=1
+fi
+
+if [ "$run_frontend" = "0" ]; then
+  echo "⏭  Frontend test suite skipped (no ui/ changes)"
+  export SKIP_VITEST=1
+  export SKIP_TYPECHECK=1
+  export SKIP_PLAYWRIGHT=1
+else
+  # Frontend is in scope; honor per-step overrides if the user set them
+  if [ "${SKIP_TYPECHECK:-0}" = "1" ]; then
+    echo "⏭  Frontend typecheck skipped (SKIP_TYPECHECK=1)"
+  fi
+  # Skip Playwright by default in pre-push — E2E tests are too slow and
+  # environment-sensitive for a synchronous git hook. Run them in CI or manually.
+  export SKIP_PLAYWRIGHT="${SKIP_PLAYWRIGHT:-1}"
+  if [ "${SKIP_PLAYWRIGHT}" = "1" ]; then
+    echo "⏭  Playwright skipped by default in pre-push (set SKIP_PLAYWRIGHT=0 to run)"
+  fi
+fi
+
+# ---- 7) Run the test suite (honoring whatever SKIP_* is now set) ----
+bash "$PROJECT_ROOT/scripts/test.sh"
+TEST_RC=$?
+
+if [ "$TEST_RC" -ne 0 ]; then
+  echo ""
+  echo "⚠️  Pre-push tests failed (rc=$TEST_RC)."
+  if [ "${PRE_PUSH_BLOCK_ON_FAILURE:-0}" = "1" ]; then
+    echo "   PRE_PUSH_BLOCK_ON_FAILURE=1 — blocking the push."
+    exit "$TEST_RC"
+  fi
+  echo "   The push is still allowed. Set PRE_PUSH_BLOCK_ON_FAILURE=1 to block on failures."
+fi
+
+exit 0

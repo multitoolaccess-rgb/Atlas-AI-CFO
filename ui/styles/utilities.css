@@ -1,0 +1,379 @@
+/* =================================================================
+   UTILITIES — Atlas Financial Intelligence Platform
+   Custom utility classes that extend Tailwind's @layer utilities.
+   Components and pages reference these directly (e.g. `.headline-md`).
+   Imported by globals.css.
+   ================================================================= */
+
+/* -----------------------------------------------------------------
+   Visibility
+   ----------------------------------------------------------------- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* -----------------------------------------------------------------
+   Line clamp / truncate helpers
+   ----------------------------------------------------------------- */
+
+.truncate-lines-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.truncate-lines-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.truncate-lines-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* -----------------------------------------------------------------
+   Flex / grid shortcuts
+   ----------------------------------------------------------------- */
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-col-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.grid-auto {
+  display: grid;
+  gap: var(--space-4);
+  grid-auto-columns: max-content;
+  grid-auto-rows: max-content;
+}
+
+/* -----------------------------------------------------------------
+   Interaction utilities
+   ----------------------------------------------------------------- */
+
+.transform-hover {
+  transition: transform var(--duration-fast) var(--easing-ease-out);
+}
+
+.transform-hover:hover {
+  transform: scale(1.05);
+}
+
+/* -----------------------------------------------------------------
+   Accessibility focus-ring shorthand
+   ----------------------------------------------------------------- */
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+/* SVG focus ring for SankeyFlow keyboard navigation.
+   Each node <g> contains a hidden .sankey-focus-ring rect
+   that becomes visible on :focus-visible. */
+g:focus-visible > .sankey-focus-ring {
+  stroke: var(--primary-500);
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+
+/* -----------------------------------------------------------------
+   Typography utilities — Display
+   ----------------------------------------------------------------- */
+
+.display-lg {
+  font-size: var(--display-lg-size);
+  line-height: var(--display-lg-line);
+  font-weight: var(--display-lg-weight);
+  letter-spacing: -0.02em;
+}
+
+.display-md {
+  font-size: var(--display-md-size);
+  line-height: var(--display-md-line);
+  font-weight: var(--display-md-weight);
+  letter-spacing: -0.01em;
+}
+
+/* -----------------------------------------------------------------
+   Typography utilities — Headline
+   ----------------------------------------------------------------- */
+
+.headline-xl {
+  font-size: var(--headline-xl-size);
+  line-height: var(--headline-xl-line);
+  font-weight: var(--headline-xl-weight);
+}
+
+.headline-lg {
+  font-size: var(--headline-lg-size);
+  line-height: var(--headline-lg-line);
+  font-weight: var(--headline-lg-weight);
+}
+
+.headline-md {
+  font-size: var(--headline-md-size);
+  line-height: var(--headline-md-line);
+  font-weight: var(--headline-md-weight);
+}
+
+.headline-sm {
+  font-size: var(--headline-sm-size);
+  line-height: var(--headline-sm-line);
+  font-weight: var(--headline-sm-weight);
+}
+
+/* -----------------------------------------------------------------
+   Typography utilities — Title
+   ----------------------------------------------------------------- */
+
+.title-lg {
+  font-size: var(--title-lg-size);
+  line-height: var(--title-lg-line);
+  font-weight: var(--title-lg-weight);
+}
+
+.title-md {
+  font-size: var(--title-md-size);
+  line-height: var(--title-md-line);
+  font-weight: var(--title-md-weight);
+}
+
+.title-sm {
+  font-size: var(--title-sm-size);
+  line-height: var(--title-sm-line);
+  font-weight: var(--title-sm-weight);
+}
+
+/* -----------------------------------------------------------------
+   Typography utilities — Body
+   ----------------------------------------------------------------- */
+
+.body-lg {
+  font-size: var(--body-lg-size);
+  line-height: var(--body-lg-line);
+  font-weight: var(--body-lg-weight);
+}
+
+.body-md {
+  font-size: var(--body-md-size);
+  line-height: var(--body-md-line);
+  font-weight: var(--body-md-weight);
+}
+
+.body-sm {
+  font-size: var(--body-sm-size);
+  line-height: var(--body-sm-line);
+  font-weight: var(--body-sm-weight);
+}
+
+/* -----------------------------------------------------------------
+   Typography utilities — Label
+   ----------------------------------------------------------------- */
+
+.label-lg {
+  font-size: var(--label-lg-size);
+  line-height: var(--label-lg-line);
+  font-weight: var(--label-lg-weight);
+  letter-spacing: var(--label-lg-spacing);
+  text-transform: uppercase;
+}
+
+.label-md {
+  font-size: var(--label-md-size);
+  line-height: var(--label-md-line);
+  font-weight: var(--label-md-weight);
+  letter-spacing: var(--label-md-spacing);
+  text-transform: uppercase;
+}
+
+.label-sm {
+  font-size: var(--label-sm-size);
+  line-height: var(--label-sm-line);
+  font-weight: var(--label-sm-weight);
+  letter-spacing: var(--label-sm-spacing);
+  text-transform: uppercase;
+}
+
+/* -----------------------------------------------------------------
+   Typography utilities — Numeric (financial data)
+   ----------------------------------------------------------------- */
+
+.numeric-lg {
+  font-family: var(--font-mono);
+  font-size: var(--numeric-lg-size);
+  line-height: var(--numeric-lg-line);
+  font-weight: var(--numeric-lg-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+.numeric-md {
+  font-family: var(--font-mono);
+  font-size: var(--numeric-md-size);
+  line-height: var(--numeric-md-line);
+  font-weight: var(--numeric-md-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+.numeric-sm {
+  font-family: var(--font-mono);
+  font-size: var(--numeric-sm-size);
+  line-height: var(--numeric-sm-line);
+  font-weight: var(--numeric-sm-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+/* -----------------------------------------------------------------
+   Metadata
+   ----------------------------------------------------------------- */
+
+.meta {
+  font-size: var(--meta-size);
+  line-height: var(--meta-line);
+  font-weight: var(--meta-weight);
+  color: var(--text-tertiary);
+}
+
+/* -----------------------------------------------------------------
+   Signal-semantic text colors (finance vocabulary)
+   Used by metrics, trend indicators, recommendation cards, etc.
+   ----------------------------------------------------------------- */
+
+.text-positive { color: var(--signal-positive); }
+.text-negative { color: var(--signal-negative); }
+.text-warning  { color: var(--signal-warning); }
+.text-neutral  { color: var(--signal-neutral); }
+.text-critical { color: var(--signal-critical); }
+
+/* -----------------------------------------------------------------
+   Signal-semantic backgrounds
+   ----------------------------------------------------------------- */
+
+.bg-positive    { background-color: var(--signal-positive-bg); }
+.bg-negative    { background-color: var(--signal-negative-bg); }
+.bg-warning     { background-color: var(--signal-warning-bg); }
+.bg-neutral     { background-color: var(--signal-neutral-bg); }
+.bg-critical    { background-color: var(--signal-critical-bg); }
+.bg-recommended { background-color: var(--signal-recommended-bg); }
+
+/* -----------------------------------------------------------------
+   Glass surface — frosted-glass card pattern used by Recent Activity,
+   SecondaryInsights, and the GlassSurface base component.
+   ----------------------------------------------------------------- */
+
+.glass-surface {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  transition: border-color var(--duration-fast) var(--easing-ease-out);
+}
+
+.glass-surface:hover {
+  border-color: var(--primary-500);
+}
+
+/* Glass surface dark mode — .dark class only (no @media query) */
+.dark .glass-surface {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--slate-300);
+  border-radius: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+.dark .glass-surface:hover {
+  border-color: var(--primary-500);
+  box-shadow: none;
+}
+
+/* -----------------------------------------------------------------
+   fc-range — Money Flow Simulator slider thumbs.
+   Hoisted out of the component's <style jsx> block (MoneyFlowSimulator.tsx)
+   into global utilities because inline <style jsx> requires the
+   ``styled-jsx`` package which is NOT installed in this project.
+   Without this fix, the dynamic chunk for MoneyFlowSimulator fails
+   to compile / mount, the dev server logs "Fast Refresh had to
+   perform a full reload due to a runtime error," and any test
+   waiting for `[data-testid="simulator-card"]` times out — cascading
+   into the rest of the dashboard selectors.
+   ----------------------------------------------------------------- */
+
+.fc-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    var(--accent-electric) 0%,
+    var(--accent-cyan) 100%
+  );
+  outline: none;
+  cursor: pointer;
+}
+.fc-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: var(--bg-primary);
+  border: 2px solid var(--accent-electric);
+  cursor: pointer;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-electric) 18%, transparent);
+  transition: box-shadow 150ms ease;
+}
+.fc-range::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent-electric) 28%, transparent);
+}
+.fc-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: var(--bg-primary);
+  border: 2px solid var(--accent-electric);
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fc-range::-webkit-slider-thumb {
+    transition: none;
+  }
+}

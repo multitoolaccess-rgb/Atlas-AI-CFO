@@ -1,0 +1,64 @@
+version: "3.9"
+
+# Phase F7.C — Finlynq canonical store is now a required dependency of
+# rules-service. The `depends_on` graph below ensures `docker compose up`
+# waits for Finlynq's `/health` to return 200 BEFORE rules-service's
+# router starts accepting traffic; this prevents the F4 forwarders from
+# hitting a cold-start 502 on first request.
+
+services:
+  rules-service:
+    build:
+      context: ./services/rules-service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      # Inside the compose network rules-service reaches Finlynq via the
+      # service name, NOT localhost (localhost = the rules-service container).
+      FINLYNQ_BASE_URL: "http://finlynq:8001"
+      DATABASE_URL: "sqlite:////data/finance.db"
+      JWT_SECRET: "${JWT_SECRET:-dev-secret-change-in-production}"
+      LOCAL_USER: "alex"
+      ENVIRONMENT: "development"
+    volumes:
+      - finance_db:/data
+    depends_on:
+      finlynq:
+        condition: service_healthy
+
+  # Phase F1 — Finlynq canonical source-of-truth service.
+  # Listens on host port 8001 (matches .env's FINLYNQ_URL); inside Docker
+  # the listener binds API_PORT=8001 from services/finlynq/.env.example.
+  # Phase F4 ships real implementations for /parse/upload, /categorize,
+  # /categories; Phase F5 will ship /state and /state/summary.
+  finlynq:
+    build:
+      context: ./services/finlynq
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: "sqlite:////data/finance.db"
+      JWT_SECRET: "${JWT_SECRET:-dev-secret-change-in-production}"
+      LOCAL_USER: "alex"
+      ENVIRONMENT: "development"
+      API_PORT: "8001"
+    volumes:
+      - finance_db:/data
+    # F7.C healthcheck — `docker compose up` waits for /health=200 before
+    # rules-service begins accepting traffic. Without this, the F4
+    # forwarders race Finlynq's startup and ship a 502 to the FE.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8001/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+# Shared volume — both services bind to the SAME SQLite file per the
+# Phase-F2 / F4 shared-DB wiring decision (Finlynq canonical,
+# rules-service just reads through the forwarder — but the same DB
+# is authoritative in case the forwarder is bypassed for migrations).
+volumes:
+  finance_db:

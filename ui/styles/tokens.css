@@ -1,0 +1,480 @@
+/* =================================================================
+   DESIGN TOKENS — Atlas Financial Intelligence Platform
+   Single source of truth for all design tokens.
+   Imported by globals.css. Components reference these via var(--token).
+
+   Phase 1 — UI/UX 2030 Redesign
+   Dark-first futuristic fintech palette with first-class light mode.
+   ================================================================= */
+
+:root {
+  /* ================================================================
+     1. COLOR PALETTE — Light Mode (Default)
+     ================================================================ */
+
+  /* Neutrals — Cool space paper: blue-tinted grays for a premium,
+     low-warmth light mode that pairs with the dark space theme. */
+  --slate-50:  #f8f9ff;
+  --slate-100: #eef0fa;
+  --slate-200: #d9ddf0;
+  --slate-300: #b8bdda;
+  --slate-400: #8b92b9;
+  --slate-500: #6b7096;
+  --slate-600: #4b5175;
+  --slate-700: #2a3055;
+  --slate-800: #1a1f3a;
+  --slate-900: #0a0c18;
+
+  /* Primary — Electric Blue (intelligence, trust, action) */
+  --primary-50:  #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
+
+  /* Success — Emerald Wealth (prosperity / growth) */
+  --success-50:  #ecfdf5;
+  --success-100: #d1fae5;
+  --success-200: #a7f3d0;
+  --success-300: #6ee7b7;
+  --success-400: #34d399;
+  --success-500: #10b981;
+  --success-600: #059669;
+  --success-700: #047857;
+  --success-800: #065f46;
+  --success-900: #064e3b;
+
+  /* Warning — Amber (caution / volatility) */
+  --warning-50:  #fffbeb;
+  --warning-100: #fef3c7;
+  --warning-200: #fde68a;
+  --warning-300: #fcd34d;
+  --warning-400: #fbbf24;
+  --warning-500: #f59e0b;
+  --warning-600: #d97706;
+  --warning-700: #b45309;
+  --warning-800: #92400e;
+  --warning-900: #78350f;
+
+  /* Danger — Rose (losses / critical) */
+  --danger-50:  #fff5f7;
+  --danger-100: #ffe4e8;
+  --danger-200: #ffc5ce;
+  --danger-300: #ff9db3;
+  --danger-400: #f43f5e;
+  --danger-500: #e11d48;
+  --danger-600: #be123c;
+  --danger-700: #9f1239;
+  --danger-800: #881337;
+  --danger-900: #4c0519;
+
+  /* Info — Cyan Glow (information / AI signal) */
+  --info-50:  #ecfeff;
+  --info-100: #cffafe;
+  --info-200: #a5f3fc;
+  --info-300: #67e8f9;
+  --info-400: #22d3ee;
+  --info-500: #06b6d4;
+  --info-600: #0891b2;
+  --info-700: #0e7490;
+  --info-800: #155e75;
+  --info-900: #164e63;
+
+  /* Accent palette — futuristic fintech signal colors */
+  --accent-electric: #3b82f6;
+  --accent-cyan:     #22d3ee;
+  --accent-emerald:  #10b981;
+  --accent-violet:   #8b5cf6;
+  --accent-gold:     #f59e0b;
+  --accent-rose:     #f43f5e;
+
+  /* Glow accents — used for shadows, borders, and ambient effects */
+  --glow-primary:  rgba(59, 130, 246, 0.5);
+  --glow-cyan:     rgba(34, 211, 238, 0.5);
+  --glow-emerald:  rgba(16, 185, 129, 0.5);
+  --glow-violet:   rgba(139, 92, 246, 0.5);
+  --glow-gold:     rgba(245, 158, 11, 0.5);
+  --glow-rose:     rgba(244, 63, 94, 0.5);
+
+  /* Semantic text colors */
+  --text-primary:    var(--slate-900);
+  --text-secondary:  var(--slate-600);
+  --text-tertiary:   var(--slate-500);
+  --text-disabled:   var(--slate-400);
+  --text-on-brand:   #ffffff;
+
+  /* Secondary color — split per-theme so dark mode keeps the cyan
+     glow identity while light mode gets a readable dark-gray. */
+  --secondary-color: var(--slate-600);
+
+  /* Semantic backgrounds — cool space paper substrate */
+  --bg-primary:   var(--slate-50);
+  --bg-secondary: var(--slate-100);
+  --bg-tertiary:  var(--slate-200);
+  --bg-overlay:   rgba(3, 4, 10, 0.5);
+
+  /* Semantic interactive — Phase 1 audit: bumped to primary-600 so
+     white-on-primary button text clears WCAG AA (5.17:1 vs 3.68:1
+     on primary-500). Hover/active shift up the ramp accordingly. */
+  --interactive-primary:   var(--primary-600);
+  --interactive-hover:     var(--primary-700);
+  --interactive-active:    var(--primary-800);
+  --interactive-disabled:  var(--slate-400);
+
+  /* Interactive success — Phase 1 audit: success-500 (#10b981) gives
+     only 2.54:1 with white (FAIL). Bumped to success-700 (#047857,
+     5.48:1 AA) so white-on-success buttons pass. This restores the
+     contrast the old #059669 success-500 had before the Atlas swap. */
+  --interactive-success:   var(--success-700);
+  --interactive-success-hover:   var(--success-800);
+  --interactive-success-active:  var(--success-900);
+
+  /* Borders — subtle cool borders */
+  --border-color:  var(--slate-300);
+  --border-subtle: var(--slate-200);
+  --divider-color: var(--slate-300);
+
+  /* Outline tokens — unified source for Tailwind outline-* utilities. */
+  --outline-color: #76777d;
+  --outline-variant: #c6c6cd;
+
+  /* Semantic role tokens — unified source for Tailwind utility classes. */
+  --error-color: #ba1a1a;
+  --error-container-color: #ffdad6;
+  --secondary-container-color: #006f64;
+  --on-primary-color: #ffffff;
+  --on-primary-container-color: #3f465c;
+  --on-primary-fixed-color: #3f465c;
+  --surface-color: #f8f9ff;
+
+  /* Finance Semantic Colors (gains/losses/warnings/critical/AI signal) */
+  --signal-positive:        var(--success-600);
+  --signal-positive-bg:     var(--success-50);
+  --signal-positive-border: var(--success-200);
+
+  --signal-negative:        var(--danger-500);
+  --signal-negative-bg:     var(--danger-50);
+  --signal-negative-border: var(--danger-200);
+
+  --signal-neutral:         var(--slate-500);
+  --signal-neutral-bg:      var(--slate-100);
+  --signal-neutral-border:  var(--slate-300);
+
+  --signal-warning:         var(--warning-500);
+  --signal-warning-bg:      var(--warning-50);
+  --signal-warning-border:  var(--warning-200);
+
+  --signal-critical:        var(--danger-600);
+  --signal-critical-bg:     var(--danger-100);
+  --signal-critical-border: var(--danger-400);
+
+  --signal-recommended:        var(--primary-500);
+  --signal-recommended-bg:     var(--primary-50);
+  --signal-recommended-border: var(--primary-200);
+
+  /* ================================================================
+     2. TYPOGRAPHY — Fonts & Scale
+     ================================================================ */
+
+  /* Font variables are injected by next/font/google on <body> via
+     CSS custom properties (--font-primary, --font-mono). See ui/lib/fonts.ts.
+     Fallback stacks are defined there; do NOT redefine them here. */
+
+  /* Display — Hero, page titles */
+  --display-hero-size:   4rem;
+  --display-hero-line:   1.1;
+  --display-hero-weight: 700;
+  --display-lg-size:    2.5rem;
+  --display-lg-line:    1.2;
+  --display-lg-weight:  700;
+  --display-md-size:    2rem;
+  --display-md-line:    1.3;
+  --display-md-weight:  700;
+
+  /* Headline — Section titles */
+  --headline-xl-size:   1.75rem;
+  --headline-xl-line:   1.4;
+  --headline-xl-weight: 700;
+  --headline-lg-size:   1.5rem;
+  --headline-lg-line:   1.4;
+  --headline-lg-weight: 700;
+  --headline-md-size:   1.25rem;
+  --headline-md-line:   1.5;
+  --headline-md-weight: 600;
+  --headline-sm-size:   1.125rem;
+  --headline-sm-line:   1.5;
+  --headline-sm-weight: 600;
+
+  /* Title — Component titles */
+  --title-lg-size:    1rem;
+  --title-lg-line:    1.5;
+  --title-lg-weight:  600;
+  --title-md-size:    0.938rem;
+  --title-md-line:    1.5;
+  --title-md-weight:  600;
+  --title-sm-size:    0.875rem;
+  --title-sm-line:    1.43;
+  --title-sm-weight:  600;
+
+  /* Body — Main content */
+  --body-lg-size:    1rem;
+  --body-lg-line:    1.5;
+  --body-lg-weight:  400;
+  --body-md-size:    0.938rem;
+  --body-md-line:    1.5;
+  --body-md-weight:  400;
+  --body-sm-size:    0.875rem;
+  --body-sm-line:    1.43;
+  --body-sm-weight:  400;
+
+  /* Label — UI labels */
+  --label-lg-size:     0.875rem;
+  --label-lg-line:     1.43;
+  --label-lg-weight:   600;
+  --label-lg-spacing:  0.02em;
+  --label-md-size:     0.75rem;
+  --label-md-line:     1.33;
+  --label-md-weight:   600;
+  --label-md-spacing:  0.04em;
+  --label-sm-size:     0.688rem;
+  --label-sm-line:     1.27;
+  --label-sm-weight:   600;
+  --label-sm-spacing:  0.05em;
+
+  /* Metadata — Timestamps, secondary info */
+  --meta-size:   0.8125rem;
+  --meta-line:   1.38;
+  --meta-weight: 400;
+
+  /* Numeric — Financial data */
+  --numeric-lg-size:   1.5rem;
+  --numeric-lg-line:   1.4;
+  --numeric-lg-weight: 600;
+  --numeric-md-size:   1rem;
+  --numeric-md-line:   1.5;
+  --numeric-md-weight: 600;
+  --numeric-sm-size:   0.875rem;
+  --numeric-sm-line:   1.43;
+  --numeric-sm-weight: 500;
+
+  /* ================================================================
+     3. SPACING SCALE (8px base unit)
+     ================================================================ */
+
+  --space-0:  0px;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  28px;
+  --space-8:  32px;
+  --space-9:  36px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+
+  /* Semantic spacing */
+  --padding-compact:   var(--space-4);
+  --padding-default:   var(--space-6);
+  --padding-large:     var(--space-8);
+  --gap-tight:         var(--space-2);
+  --gap-default:       var(--space-4);
+  --gap-loose:         var(--space-6);
+  --gap-extra:         var(--space-8);
+
+  /* ================================================================
+     4. BORDER RADIUS — Premium subtle rounding
+     ================================================================ */
+
+  --radius-xs:   2px;
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   8px;
+  --radius-xl:   12px;
+  --radius-full: 9999px;
+
+  /* ================================================================
+     5. SHADOWS — Subtle depth + ambient glow
+   ================================================================ */
+
+  --shadow-none: none;
+  --shadow-1: 0 1px 2px rgba(3, 4, 10, 0.08);
+  --shadow-2: 0 4px 6px rgba(3, 4, 10, 0.10);
+  --shadow-3: 0 8px 16px rgba(3, 4, 10, 0.12);
+  --shadow-4: 0 12px 24px rgba(3, 4, 10, 0.14);
+  --shadow-5: 0 24px 48px rgba(3, 4, 10, 0.16);
+
+  /* ================================================================
+     6. TRANSITIONS & ANIMATION
+   ================================================================ */
+
+  --duration-fast:    150ms;
+  --duration-normal:  300ms;
+  --duration-slow:    500ms;
+  --easing-ease-out:    cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-ease-in-out: cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+/* =================================================================
+   DARK MODE — Class-based via DarkModeToggle
+   The .dark class on <html> is the SINGLE source of truth for dark mode.
+   Tailwind darkMode: 'class' + these CSS variable overrides both
+   activate on the same .dark class, eliminating the race condition
+   where @media (prefers-color-scheme: dark) flipped variables before
+   the .dark class was added by React hydration.
+   ================================================================= */
+
+/* Tailwind `.dark` class — single source of truth for dark mode. */
+.dark {
+  color-scheme: dark;
+
+  /* Deep Space — Atlas dark mode substrate */
+  --slate-50:  #03040a;
+  --slate-100: #0a0c18;
+  --slate-200: #11142a;
+  --slate-300: #1a1e3a;
+  --slate-400: #252a4d;
+  --slate-500: #4b5175;
+  --slate-600: #8b92b9;
+  --slate-700: #c5cbe6;
+  --slate-800: #e0e3ff;
+  --slate-900: #f0f2ff;
+
+  /* Primary — Electric Blue glow */
+  --primary-50:  #0f172a;
+  --primary-100: #172554;
+  --primary-200: #1e3a8a;
+  --primary-300: #1d4ed8;
+  --primary-400: #2563eb;
+  --primary-500: #3b82f6;
+  --primary-600: #60a5fa;
+  --primary-700: #93c5fd;
+  --primary-800: #bfdbfe;
+  --primary-900: #dbeafe;
+
+  /* Success — Emerald glow */
+  --success-50:  #022c22;
+  --success-100: #064e3b;
+  --success-200: #065f46;
+  --success-300: #047857;
+  --success-400: #059669;
+  --success-500: #10b981;
+  --success-600: #34d399;
+  --success-700: #6ee7b7;
+  --success-800: #a7f3d0;
+  --success-900: #d1fae5;
+
+  /* Warning — Amber glow */
+  --warning-50:  #78350f;
+  --warning-100: #92400e;
+  --warning-200: #b45309;
+  --warning-300: #d97706;
+  --warning-400: #f59e0b;
+  --warning-500: #fbbf24;
+  --warning-600: #fcd34d;
+  --warning-700: #fde68a;
+  --warning-800: #fef3c7;
+  --warning-900: #fffbeb;
+
+  /* Danger — Rose glow */
+  --danger-50:  #4c0519;
+  --danger-100: #881337;
+  --danger-200: #9f1239;
+  --danger-300: #be123c;
+  --danger-400: #e11d48;
+  --danger-500: #f43f5e;
+  --danger-600: #fb7185;
+  --danger-700: #fda4af;
+  --danger-800: #ffe4e8;
+  --danger-900: #fff5f7;
+
+  /* Info — Cyan glow */
+  --info-50:  #164e63;
+  --info-100: #155e75;
+  --info-200: #0e7490;
+  --info-300: #0891b2;
+  --info-400: #06b6d4;
+  --info-500: #22d3ee;
+  --info-600: #67e8f9;
+  --info-700: #a5f3fc;
+  --info-800: #cffafe;
+  --info-900: #ecfeff;
+
+  /* Accent palette — dark mode glow variants */
+  --accent-electric: #60a5fa;
+  --accent-cyan:     #67e8f9;
+  --accent-emerald:  #34d399;
+  --accent-violet:   #a78bfa;
+  --accent-gold:     #fcd34d;
+  --accent-rose:     #fb7185;
+
+  /* Glow accents — stronger in dark mode */
+  --glow-primary:  rgba(96, 165, 250, 0.6);
+  --glow-cyan:     rgba(103, 232, 249, 0.6);
+  --glow-emerald:  rgba(52, 211, 153, 0.6);
+  --glow-violet:   rgba(167, 139, 250, 0.6);
+  --glow-gold:     rgba(252, 211, 77, 0.6);
+  --glow-rose:     rgba(251, 113, 133, 0.6);
+
+  /* Semantic text — light on dark */
+  --text-primary:   var(--slate-900);
+  --text-secondary: var(--slate-700);
+  --text-tertiary:  var(--slate-600);
+  --text-disabled:  var(--slate-500);
+
+  /* Secondary color — cyan glow in dark mode */
+  --secondary-color: #6df5e1;
+
+  /* Borders — subtle space borders */
+  --border-color:  var(--slate-400);
+  --border-subtle: var(--slate-300);
+
+  /* Backgrounds */
+  --bg-primary:   var(--slate-50);
+  --bg-secondary: var(--slate-100);
+  --bg-tertiary:  var(--slate-200);
+  --bg-overlay:   rgba(3, 4, 10, 0.7);    /* Interactive — mirror the prefers-color-scheme dark block so
+       manual toggle via DarkModeToggle matches system preference. */
+    --interactive-primary: var(--primary-400);
+    --interactive-hover:   var(--primary-300);
+    --interactive-active:  var(--primary-200);
+
+  /* Shadows — ambient glow on dark surfaces */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-3: 0 8px 20px rgba(0, 0, 0, 0.55);
+  --shadow-4: 0 12px 32px rgba(0, 0, 0, 0.6);
+  --shadow-5: 0 24px 56px rgba(0, 0, 0, 0.65);
+
+  /* Outline tokens — dark mode overrides */
+  --outline-color: #a0a0a0;
+  --outline-variant: #3a3a3a;
+
+  /* Semantic role tokens — dark mode overrides */
+  --error-color: #ff6b8a;
+  --error-container-color: #3a0008;
+  --secondary-container-color: #004d44;
+  --on-primary-color: #0a0805;
+  --on-primary-container-color: #b0d4ff;
+  --on-primary-fixed-color: #b0d4ff;
+  --surface-color: #11142a;
+
+  /* Sidebar — deep space cyan palette */
+  --sidebar-bg:            #0a0c18;
+  --sidebar-hover:         rgba(96, 165, 250, 0.08);
+  --sidebar-active:        rgba(96, 165, 250, 0.14);
+  --sidebar-text-active:   #f0f2ff;
+  --sidebar-text-inactive: #8b92b9;
+  --sidebar-brand:         #60a5fa;
+}

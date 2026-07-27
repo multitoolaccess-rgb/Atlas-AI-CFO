@@ -1,0 +1,421 @@
+/* =================================================================
+   ANIMATIONS — Atlas Financial Intelligence Platform
+   Keyframes + animation utility classes used across components.
+   Imported by globals.css.
+   Phase 1 — UI/UX 2030 Redesign: added Atlas glow & ambient motion.
+   ================================================================= */
+
+/* -----------------------------------------------------------------
+   Keyframe Definitions
+   ----------------------------------------------------------------- */
+
+@keyframes slideUp {
+  from {
+    transform: translateY(1rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-1rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-1rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(1rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+/* -----------------------------------------------------------------
+   Atlas glow & ambient motion
+   ----------------------------------------------------------------- */
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--glow-primary);
+  }
+  50% {
+    box-shadow: 0 0 16px 4px var(--glow-primary);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes energy-flow {
+  0% {
+    stroke-dashoffset: 1000;
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.4;
+  }
+}
+
+@keyframes aura {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+/* -----------------------------------------------------------------
+   Animation utility classes
+   Use these to declare motion intent on any element. The keyframes
+   above define the actual transforms.
+
+   Naming follows Tailwind utility convention (animate-*).
+   ----------------------------------------------------------------- */
+
+.animate-slideUp {
+  animation: slideUp 250ms var(--easing-ease-out) both;
+}
+
+.animate-slideDown {
+  animation: slideDown 250ms var(--easing-ease-out) both;
+}
+
+.animate-slideInLeft {
+  animation: slideInLeft 250ms var(--easing-ease-out) both;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 250ms var(--easing-ease-out) both;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 150ms var(--easing-ease-out) both;
+}
+
+.animate-fadeOut {
+  animation: fadeOut var(--duration-fast) var(--easing-ease-out) both;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 300ms var(--easing-ease-out) both;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s var(--easing-ease-in-out) infinite;
+}
+
+.animate-glow-pulse {
+  /* NOTE: animating box-shadow is GPU-expensive; use sparingly and only
+     on small/focused elements. Prefer `animate-aura` for large areas. */
+  animation: glow-pulse 2s var(--easing-ease-in-out) infinite;
+}
+
+.animate-float {
+  animation: float 4s var(--easing-ease-in-out) infinite;
+}
+
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradient-shift 6s var(--easing-ease-in-out) infinite;
+}
+
+.animate-energy-flow {
+  animation: energy-flow 2s linear infinite;
+}
+
+.animate-aura {
+  animation: aura 3s var(--easing-ease-in-out) infinite;
+}
+
+/* -----------------------------------------------------------------
+   PHASE 3 — Intent-bearing motion utilities
+   -----------------------------------------------------------------
+   Motion should reinforce INTENT, not fire as a blanket uniform
+   reveal on every section. These utilities opt into specific
+   behaviors and are picked deliberately by the components that
+   need them (not the default for every card).
+   ----------------------------------------------------------------- */
+
+.fade-in-only {
+  animation: fadeIn 400ms var(--easing-ease-out) both;
+}
+
+/* Hero display clamp — caps at 6rem per the premium-display ceiling. */
+.display-hero {
+  font-size: clamp(2.5rem, 1.5rem + 3vw, 4rem);
+  line-height: var(--display-hero-line, 1.1);
+  font-weight: var(--display-hero-weight, 700);
+  letter-spacing: -0.025em;
+}
+.dark .display-hero {
+  letter-spacing: -0.02em;
+}
+
+/* Sankey link energy-on-hover is deferred to a follow-up: wiring it
+   cleanly requires a custom Recharts <Link> renderer that assigns
+   the className to each rendered path, plus a sibling <circle>
+   that walks along the path via the energy-flow keyframe. Until
+   then the marker behavior is "fade in on entrance" only, which
+   is what the existing .sankey-link keyframe already provides. */
+.sankey-link {
+  transition: stroke-width var(--duration-fast) var(--easing-ease-out);
+}
+.sankey-link:hover {
+  stroke-width: 2.5;
+  cursor: pointer;
+}
+
+/* -----------------------------------------------------------------
+   Section entrance animations
+   Triggered by AnimatedSection via IntersectionObserver.
+   Default state is hidden; the `data-animate="true"` attribute
+   applies the active animation with configurable delay/duration.
+   ----------------------------------------------------------------- */
+
+.animate-section-fadeIn,
+.animate-section-slideUp,
+.animate-section-slideDown,
+.animate-section-slideInLeft,
+.animate-section-slideInRight,
+.animate-section-scaleIn {
+  opacity: 0;
+  animation-fill-mode: both;
+  animation-play-state: paused;
+}
+
+.animate-section-fadeIn[data-animate="true"] {
+  animation-name: fadeIn;
+  animation-duration: var(--animation-duration, 500ms);
+  animation-delay: var(--animation-delay, 0ms);
+  animation-play-state: running;
+}
+
+.animate-section-slideUp[data-animate="true"] {
+  animation-name: slideUp;
+  animation-duration: var(--animation-duration, 500ms);
+  animation-delay: var(--animation-delay, 0ms);
+  animation-play-state: running;
+}
+
+.animate-section-slideDown[data-animate="true"] {
+  animation-name: slideDown;
+  animation-duration: var(--animation-duration, 500ms);
+  animation-delay: var(--animation-delay, 0ms);
+  animation-play-state: running;
+}
+
+.animate-section-slideInLeft[data-animate="true"] {
+  animation-name: slideInLeft;
+  animation-duration: var(--animation-duration, 500ms);
+  animation-delay: var(--animation-delay, 0ms);
+  animation-play-state: running;
+}
+
+.animate-section-slideInRight[data-animate="true"] {
+  animation-name: slideInRight;
+  animation-duration: var(--animation-duration, 500ms);
+  animation-delay: var(--animation-delay, 0ms);
+  animation-play-state: running;
+}
+
+.animate-section-scaleIn[data-animate="true"] {
+  animation-name: scaleIn;
+  animation-duration: var(--animation-duration, 500ms);
+  animation-delay: var(--animation-delay, 0ms);
+  animation-play-state: running;
+}
+
+/* Staggered children — explicit .stagger-item children inherit a cumulative delay */
+.stagger-children > .stagger-item {
+  opacity: 0;
+  animation-name: slideUp;
+  animation-duration: var(--animation-duration, 500ms);
+  animation-fill-mode: both;
+  animation-play-state: paused;
+}
+
+.stagger-children[data-animate="true"] > .stagger-item:nth-child(1) { animation-delay: calc(var(--animation-delay, 0ms) + var(--stagger-delay, 75ms) * 0); animation-play-state: running; }
+.stagger-children[data-animate="true"] > .stagger-item:nth-child(2) { animation-delay: calc(var(--animation-delay, 0ms) + var(--stagger-delay, 75ms) * 1); animation-play-state: running; }
+.stagger-children[data-animate="true"] > .stagger-item:nth-child(3) { animation-delay: calc(var(--animation-delay, 0ms) + var(--stagger-delay, 75ms) * 2); animation-play-state: running; }
+.stagger-children[data-animate="true"] > .stagger-item:nth-child(4) { animation-delay: calc(var(--animation-delay, 0ms) + var(--stagger-delay, 75ms) * 3); animation-play-state: running; }
+.stagger-children[data-animate="true"] > .stagger-item:nth-child(5) { animation-delay: calc(var(--animation-delay, 0ms) + var(--stagger-delay, 75ms) * 4); animation-play-state: running; }
+.stagger-children[data-animate="true"] > .stagger-item:nth-child(6) { animation-delay: calc(var(--animation-delay, 0ms) + var(--stagger-delay, 75ms) * 5); animation-play-state: running; }
+.stagger-children[data-animate="true"] > .stagger-item:nth-child(7) { animation-delay: calc(var(--animation-delay, 0ms) + var(--stagger-delay, 75ms) * 6); animation-play-state: running; }
+.stagger-children[data-animate="true"] > .stagger-item:nth-child(8) { animation-delay: calc(var(--animation-delay, 0ms) + var(--stagger-delay, 75ms) * 7); animation-play-state: running; }
+.stagger-children[data-animate="true"] > .stagger-item:nth-child(9) { animation-delay: calc(var(--animation-delay, 0ms) + var(--stagger-delay, 75ms) * 8); animation-play-state: running; }
+.stagger-children[data-animate="true"] > .stagger-item:nth-child(10) { animation-delay: calc(var(--animation-delay, 0ms) + var(--stagger-delay, 75ms) * 9); animation-play-state: running; }
+
+/* -----------------------------------------------------------------
+   Micro-interactions
+   ----------------------------------------------------------------- */
+
+/* -----------------------------------------------------------------
+   Micro-interaction utilities
+   -----------------------------------------------------------------
+   Global patterns (e.g. every .card or .btn-primary) define these
+   transitions inline in globals.css to keep a single source of truth.
+   One-off components can copy the same property block if needed. */
+
+/* -----------------------------------------------------------------
+   Sankey storytelling animations
+   ----------------------------------------------------------------- */
+
+/* Link draw-on: the path starts fully dashed (offset = 100) and
+   animates to visible (offset = 0). pathLength="100" on the path
+   makes the dash length independent of actual geometry. */
+.sankey-link {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: sankeyDraw 1.2s var(--easing-ease-out) forwards;
+  animation-delay: var(--sankey-delay, 0ms);
+}
+
+@keyframes sankeyDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Energy-flow particle that travels along a link path.
+   The particle is a small circle with a glow; motion is handled by
+   SMIL <animateMotion>, but this class provides the visual style. */
+.sankey-particle {
+  fill: var(--primary-400);
+  filter: drop-shadow(0 0 3px var(--glow-primary));
+  opacity: 0.8;
+}
+
+/* -----------------------------------------------------------------
+   Skeleton + shimmer
+   Loading-state patterns for async data fetching.
+   ----------------------------------------------------------------- */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--slate-200) 0%,
+    var(--slate-100) 50%,
+    var(--slate-200) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+.dark .skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--slate-200) 0%,
+    var(--slate-300) 50%,
+    var(--slate-200) 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* -----------------------------------------------------------------
+   Reduced-motion override (WCAG)
+   Users who prefer reduced motion get nearly-instant transitions.
+   ----------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

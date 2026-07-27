@@ -1,0 +1,75 @@
+# Secrets and environment-specific configuration
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Runtime financial data and local databases
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+*.sqlite-shm
+*.sqlite-wal
+uploads/
+uploaded-statements/
+transaction-exports/
+.run/
+
+# Logs, caches, temporary, and backup files
+*.log
+*.pid
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+.tmp-*/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyright_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Dependencies and Python environments
+node_modules/
+**/node_modules/
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Build and test output
+.next/
+**/.next/
+ui/out/
+dist/
+build/
+coverage/
+ui/coverage/
+ui/playwright-report/
+ui/test-results/
+*.tsbuildinfo
+.swc/
+
+# Editor and operating-system metadata
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Local agent/tool state from migration sources
+.agents/
+.claude/
+.codex/
+graphify-out/cache/

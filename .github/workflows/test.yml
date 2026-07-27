@@ -1,0 +1,159 @@
+# .github/workflows/test.yml
+#
+# Canonical CI for Finance Copilot. Two-job matrix that delegates to
+# scripts/test.sh:
+#
+#   cheap  — runs on every PR push. ~1-2 min. Skips Playwright
+#            (SKIP_PLAYWRIGHT=1) for fast feedback.
+#   heavy  — runs on push to main, nightly schedule, and manual dispatch.
+#            Full suite including Playwright. ~3-5 min.
+#
+# Both jobs:
+#   - checkout -> setup Python 3.12 + .venv -> install JS deps
+#     -> bash scripts/test.sh
+# The heavy job additionally installs Playwright chromium with system
+# deps before running the full suite.
+#
+# Postgres is NOT started in CI: scripts/test.sh falls back to the
+# SQLite path from services/rules-service/.env when :5433 is down.
+# That's intentional — keeps CI fast and dependency-free.
+
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Nightly at 06:00 UTC — catches regressions across the day
+    - cron: '0 6 * * *'
+
+# Cancel in-progress runs when a new commit lands on the same PR/branch
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ----- CHEAP: PR feedback in <2 min, no browser -----
+  cheap:
+    name: cheap (lint + unit, no browser)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SKIP_PLAYWRIGHT: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'ui/package-lock.json'
+
+      - name: Install Python deps (project-root .venv)
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip wheel setuptools
+          .venv/bin/pip install -r services/rules-service/requirements.txt
+
+      - name: Install JS deps (npm ci)
+        working-directory: ui
+        run: npm ci
+
+      - name: Run test suite (SKIP_PLAYWRIGHT=1)
+        run: bash scripts/test.sh
+
+      - name: Upload vitest coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-cheap
+          path: ui/coverage/
+          retention-days: 7
+
+  # ----- HEAVY: full suite including Playwright -----
+  heavy:
+    name: heavy (full + Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Skip on PRs (cheap is enough there); run on push to main, nightly,
+    # and manual dispatch.
+    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'ui/package-lock.json'
+
+      - name: Install Python deps
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip wheel setuptools
+          .venv/bin/pip install -r services/rules-service/requirements.txt
+
+      - name: Install JS deps (npm ci)
+        working-directory: ui
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ hashFiles('ui/package-lock.json') }}
+
+      - name: Install Playwright chromium (with system deps)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        working-directory: ui
+        run: npx playwright install --with-deps chromium
+
+      - name: Production build (catches PostCSS / Tailwind config regressions)
+        # scripts/check-build.sh runs tsc --noEmit + next build. The
+        # next build is what catches the silent postcss.config.ts
+        # failure mode that tsc alone would miss (see the docstring
+        # at the top of check-build.sh). scripts/test.sh only runs
+        # tsc, so this CI step is the only place next build runs
+        # server-side.
+        run: bash scripts/check-build.sh
+
+      - name: Run full test suite
+        run: bash scripts/test.sh
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: ui/playwright-report/
+          retention-days: 14
+
+      - name: Upload vitest coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-heavy
+          path: ui/coverage/
+          retention-days: 7

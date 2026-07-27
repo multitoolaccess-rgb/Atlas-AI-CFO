@@ -1,0 +1,29 @@
+# services/finlynq/requirements.txt
+#
+# Pin against the same versions rules-service uses so a single project-root
+# `.venv` (created by `bash scripts/bootstrap.sh`) can run BOTH services.
+# Phase F1 ships only the HTTP shell; Phase F3 will ADD pdfplumber/pytesseract/
+# pandas/ofxparse/openpyxl when the import_parser + categorizer lifts land.
+
+fastapi==0.111.0
+uvicorn==0.30.1
+pydantic==2.7.4
+pydantic-settings==2.3.4
+python-jose[cryptography]==3.3.0
+httpx==0.27.0
+pytest==8.2.2
+
+# Phase F3 lift — the import_parser + ocr_parser + ofx_parser
+# modules lifted from rules-service need these runtime deps.
+# Pin against the same versions rules-service uses so a single
+# project-root `.venv` (created by `bash scripts/bootstrap.sh`)
+# can run BOTH services.
+pandas==2.2.2
+pdfplumber==0.10.3
+pypdf==4.2.0
+pytesseract==0.3.10
+Pillow==11.0.0
+ofxparse==0.21
+openpyxl==3.1.5
+xlrd==2.0.1
+reportlab==5.0.0

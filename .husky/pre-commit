@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+# .husky/pre-commit
+#
+# Git pre-commit hook. Delegates to scripts/check-build.sh which runs
+#   npx tsc --noEmit && npx next build
+#
+# Enable locally (one-time, per repo):
+#     git config core.hooksPath .husky
+#
+# To bypass (e.g. WIP commit), use:
+#     git commit --no-verify
+
+# Resolve the script directory relative to this hook file so it works
+# no matter what the working tree's cwd is when the hook fires.
+SCRIPT_DIR="$(cd "$(dirname -- "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+bash "$PROJECT_ROOT/scripts/check-build.sh"

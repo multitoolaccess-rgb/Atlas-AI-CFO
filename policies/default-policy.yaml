@@ -1,0 +1,11 @@
+targetAllocation:
+  us_equity: 0.60
+  intl_equity: 0.20
+  bond: 0.10
+  cash: 0.10
+rebalanceThresholdPct: 5
+idleCashThresholdPct: 0.05
+goal:
+  id: primary_long_term
+  targetValue: 15000000
+  targetDate: 2046-01-01

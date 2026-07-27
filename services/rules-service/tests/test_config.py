@@ -1,0 +1,98 @@
+"""Hermetic tests for ``app.config.Settings``.
+
+Minimal coverage of three contracts the lifted module must obey:
+
+- Defaults are usable without any env (developer drop-in). The ``_env_file=None``
+  arg disables the ``.env`` file so tests never depend on host state.
+- Environment overrides win over defaults — her test of merge-plan §10 surface.
+- ``case_sensitive=False`` (from ``pydantic_settings``) means env keys in any
+  capitalisation map to the same field.
+"""
+import pytest
+
+from app.config import Settings
+
+
+def test_default_settings_when_no_env(monkeypatch):
+    """Wipe known env keys; constructed ``Settings()`` returns documented defaults."""
+    for k in (
+        "DATABASE_URL",
+        "JWT_SECRET",
+        "ENVIRONMENT",
+        "APP_NAME",
+        "APP_VERSION",
+        "LOCAL_USER",
+        "JWT_ALGORITHM",
+        "JWT_EXPIRATION_HOURS",
+        "API_HOST",
+        "API_PORT",
+        "PLAID_CLIENT_ID",
+        "PLAID_SECRET",
+        "PLAID_ENV",
+    ):
+        monkeypatch.delenv(k, raising=False)
+
+    s = Settings(_env_file=None)
+
+    assert s.database_url == "postgresql://wealthiq:wealthiq@localhost:5432/wealthiq"
+    assert s.environment == "development"
+    assert s.app_name == "Finance Copilot"
+    assert s.app_version == "0.1.0"
+    assert s.local_user == "alex"            # §10 decision 4
+    assert s.jwt_algorithm == "HS256"
+    assert s.jwt_expiration_hours == 24
+
+
+def test_env_overrides_win(monkeypatch):
+    """``DATABASE_URL`` + ``LOCAL_USER`` env overrides are honoured."""
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg2://u:p@h:5433/d")
+    monkeypatch.setenv("LOCAL_USER", "casey")
+    monkeypatch.setenv("JWT_SECRET", "rotated")
+
+    s = Settings(_env_file=None)
+
+    assert s.database_url == "postgresql+psycopg2://u:p@h:5433/d"
+    assert s.local_user == "casey"
+    assert s.jwt_secret == "rotated"
+
+
+def test_case_insensitive_env(monkeypatch):
+    """Mixed-case env keys map to the same field (case_sensitive=False)."""
+    monkeypatch.setenv("Database_URL", "from-caps")
+    monkeypatch.setenv("jwt_SECRET", "secret-from-caps")
+
+    s = Settings(_env_file=None)
+
+    assert s.database_url == "from-caps"
+    assert s.jwt_secret == "secret-from-caps"
+
+
+def test_module_level_settings_is_a_settings_instance():
+    """``from app.config import settings`` is the singleton used at runtime."""
+    from app.config import settings
+
+    assert isinstance(settings, Settings)
+    assert settings.app_name == "Finance Copilot"
+
+
+def test_production_environment_refuses_dev_default_jwt_secret(monkeypatch):
+    """Hardening raised by Phase 2 code-review: a production deploy with the
+    dev-default ``jwt_secret`` must raise, not silently ship a forge-any-token cookie."""
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    # Strip JWT_SECRET so the model's dev-default ('dev-secret-change-in-production')
+    # kicks in — that's the value the hardening validator must reject.
+    monkeypatch.delenv("JWT_SECRET", raising=False)
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError) as exc:
+        Settings(_env_file=None)
+    assert "JWT_SECRET" in str(exc.value)
+
+
+def test_production_environment_accepts_explicit_jwt_secret(monkeypatch):
+    """Production deploy WITH an explicit ``JWT_SECRET`` succeeds."""
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("JWT_SECRET", "from-explicit-env-override")
+    s = Settings(_env_file=None)
+    assert s.environment == "production"
+    assert s.jwt_secret == "from-explicit-env-override"

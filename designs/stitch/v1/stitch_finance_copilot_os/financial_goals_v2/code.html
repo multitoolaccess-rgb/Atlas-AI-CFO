@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        .glass-edge {
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .ambient-shadow {
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.04);
+        }
+        .surface-gradient {
+            background: linear-gradient(180deg, #ffffff 0%, #f8f9ff 100%);
+        }
+        .recessed-input {
+            background-color: #f1f5f9;
+        }
+        .recessed-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+            border-color: #76777d;
+        }
+        /* Custom scrollbar for clean UI */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e5eeff; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #dce9ff; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface": "#f8f9ff",
+                      "surface-container-low": "#eff4ff",
+                      "error": "#ba1a1a",
+                      "tertiary": "#000000",
+                      "primary-container": "#131b2e",
+                      "on-primary-fixed-variant": "#3f465c",
+                      "surface-container": "#e5eeff",
+                      "on-surface-variant": "#45464d",
+                      "tertiary-fixed": "#e0e3e5",
+                      "secondary-container": "#6df5e1",
+                      "outline": "#76777d",
+                      "tertiary-fixed-dim": "#c4c7c9",
+                      "on-tertiary-fixed": "#191c1e",
+                      "on-background": "#0b1c30",
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-surface": "#0b1c30",
+                      "surface-dim": "#cbdbf5",
+                      "primary-fixed": "#dae2fd",
+                      "primary-fixed-dim": "#bec6e0",
+                      "surface-container-high": "#dce9ff",
+                      "on-tertiary-fixed-variant": "#444749",
+                      "on-primary": "#ffffff",
+                      "surface-bright": "#f8f9ff",
+                      "error-container": "#ffdad6",
+                      "secondary-fixed": "#71f8e4",
+                      "on-secondary-container": "#006f64",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-tint": "#565e74",
+                      "inverse-primary": "#bec6e0",
+                      "on-tertiary-container": "#818486",
+                      "outline-variant": "#c6c6cd",
+                      "secondary-fixed-dim": "#4fdbc8",
+                      "on-secondary-fixed": "#00201c",
+                      "background": "#f8f9ff",
+                      "secondary": "#006b5f",
+                      "surface-container-highest": "#d3e4fe",
+                      "on-tertiary": "#ffffff",
+                      "surface-variant": "#d3e4fe",
+                      "on-primary-container": "#7c839b",
+                      "on-primary-fixed": "#131b2e",
+                      "on-error": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "inverse-surface": "#213145",
+                      "tertiary-container": "#191c1e",
+                      "on-secondary-fixed-variant": "#005048",
+                      "primary": "#000000",
+                      "on-secondary": "#ffffff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "card-gap": "20px",
+                      "unit": "4px",
+                      "stack-tight": "8px",
+                      "container-padding": "32px",
+                      "gutter": "24px",
+                      "stack-loose": "16px"
+              },
+              "fontFamily": {
+                      "headline-lg": ["Inter"],
+                      "body-sm": ["Inter"],
+                      "label-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "headline-xl": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-lg": ["24px", {"lineHeight": "1.25", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "body-sm": ["12px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "400"}],
+                      "label-md": ["12px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                      "body-lg": ["15px", {"lineHeight": "1.5", "letterSpacing": "0em", "fontWeight": "400"}],
+                      "label-sm": ["11px", {"lineHeight": "1", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                      "body-md": ["13px", {"lineHeight": "1.5", "letterSpacing": "0em", "fontWeight": "400"}],
+                      "headline-md": ["18px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "headline-xl": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-body-md overflow-x-hidden">
+<!-- Side Navigation Shell -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest flex flex-col p-6 border-r border-outline-variant/30 z-50">
+<div class="mb-10">
+<h1 class="text-headline-lg font-headline-lg font-bold text-on-background">CashFlix</h1>
+<p class="text-label-sm text-on-surface-variant">Financial Copilot</p>
+</div>
+<nav class="flex-1 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container rounded-lg transition-all group" href="#">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary">dashboard</span>
+<span class="font-label-md text-label-md">Overview</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container rounded-lg transition-all group" href="#">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary">account_balance_wallet</span>
+<span class="font-label-md text-label-md">Portfolio</span>
+</a>
+<!-- Active State: Goals -->
+<a class="flex items-center gap-3 px-4 py-3 bg-surface-container-high text-on-surface rounded-lg font-bold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">track_changes</span>
+<span class="font-label-md text-label-md">Goals</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container rounded-lg transition-all group" href="#">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary">auto_awesome</span>
+<span class="font-label-md text-label-md">Recommendations</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container rounded-lg transition-all group" href="#">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary">account_balance</span>
+<span class="font-label-md text-label-md">Accounts</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container rounded-lg transition-all group" href="#">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary">history</span>
+<span class="font-label-md text-label-md">Activity</span>
+</a>
+</nav>
+<div class="mt-auto flex flex-col gap-1 pt-6 border-t border-outline-variant/20">
+<button class="w-full bg-primary text-on-primary py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 mb-4 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[18px]">smart_toy</span>
+                Ask Assistant
+            </button>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-all text-label-md" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-all text-label-md" href="#">
+<span class="material-symbols-outlined text-[20px]">help</span>
+                Help Center
+            </a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 min-h-screen">
+<!-- Top App Bar -->
+<header class="flex justify-between items-center w-full px-8 py-4 sticky top-0 z-40 bg-background/80 backdrop-blur-md">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full pl-10 pr-4 py-2 recessed-input border-none rounded-full text-body-md focus:ring-0" placeholder="Search goals, milestones..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors">
+<span class="material-symbols-outlined">smart_toy</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a smiling young male executive in a well-lit modern office setting. The person has a friendly expression, captured with a shallow depth of field that softly blurs the architectural background. The overall tone is high-end, clean, and optimistic, matching a premium financial technology interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB33wC9WW0aamfLx-KaZ9UkuEQL4IXVFkfcmS5LB04JvmtTTrJnkIAdqAhnh84Pic-yiEs3wF5G3hQaPPzYcgkjVptFNy-j20sKC3auDSDC2dyrKY-KbLQTnezXbhFx8p_-XLTALvn1CXEfWZl4iWU7vkfLuW5ktuT9aU3t6dcWXk5VXTE6lWFSEPLGs5ciSFXxKPNtx7VqJeUAZfWzFXnj6lhYChnTN_fouAnUVbSEftVUfQEYZzW44tNOiIUGF-0aF-oK83-f7q8"/>
+</div>
+</div>
+</header>
+<section class="p-8">
+<!-- Hero Header -->
+<div class="flex justify-between items-end mb-8">
+<div>
+<h2 class="font-headline-xl text-headline-xl text-on-surface">Financial Goals</h2>
+<p class="text-body-lg text-on-surface-variant mt-2">Tracking 8 active objectives across your portfolio.</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-4 py-2 border border-outline-variant text-on-surface rounded-xl font-bold hover:bg-surface-container transition-all">
+<span class="material-symbols-outlined text-[20px]">filter_list</span>
+                        Filter
+                    </button>
+<button class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-xl font-bold hover:opacity-90 transition-all">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                        New Goal
+                    </button>
+</div>
+</div>
+<!-- Bento Grid of Goals -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- Goal Card 1: Main High Priority -->
+<div class="surface-gradient ambient-shadow rounded-[24px] p-6 glass-edge xl:col-span-2">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-primary-container flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-[28px]">home</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Beach House Fund</h3>
+<p class="text-label-sm text-on-surface-variant">Primary Real Estate Goal</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-headline-md text-headline-md">$420,000</p>
+<p class="text-label-sm text-secondary font-bold">70% Reached</p>
+</div>
+</div>
+<!-- Linear-esque Trajectory Chart -->
+<div class="h-48 w-full mb-6 relative group">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 400 100">
+<!-- Background Path -->
+<path d="M0,80 Q50,75 100,70 T200,60 T300,30 T400,10" fill="none" stroke="rgba(0,107,95,0.05)" stroke-linecap="round" stroke-width="8"></path>
+<!-- Projected Path (Dashed) -->
+<path d="M280,35 Q340,25 400,10" fill="none" stroke="#76777d" stroke-dasharray="4 4" stroke-width="2"></path>
+<!-- Actual Path -->
+<path class="transition-all duration-1000" d="M0,80 Q50,75 100,70 T200,60 T280,35" fill="none" stroke="url(#gradient-teal)" stroke-linecap="round" stroke-width="3"></path>
+<!-- Milestones -->
+<circle cx="100" cy="70" fill="#006b5f" r="3"></circle>
+<circle cx="200" cy="60" fill="#006b5f" r="3"></circle>
+<circle class="animate-pulse" cx="280" cy="35" fill="#006b5f" r="5"></circle>
+<defs>
+<lineargradient id="gradient-teal" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" style="stop-color:#006b5f;stop-opacity:0.2"></stop>
+<stop offset="100%" style="stop-color:#006b5f;stop-opacity:1"></stop>
+</lineargradient>
+</defs>
+</svg>
+<div class="absolute top-0 right-0 bg-surface-container px-3 py-1 rounded-full text-label-sm flex items-center gap-2">
+<span class="w-2 h-2 bg-secondary rounded-full"></span>
+                            On Track to Aug 2025
+                        </div>
+</div>
+<div class="grid grid-cols-3 gap-4 border-t border-outline-variant/20 pt-6">
+<div>
+<p class="text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Monthly</p>
+<p class="font-bold text-on-surface">$2,450</p>
+</div>
+<div>
+<p class="text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Target</p>
+<p class="font-bold text-on-surface">$600,000</p>
+</div>
+<div class="text-right">
+<button class="text-secondary font-bold text-label-md flex items-center gap-1 ml-auto hover:underline">
+                                Details <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Goal Card 2: Retirement (Dense) -->
+<div class="surface-gradient ambient-shadow rounded-[24px] p-6 glass-edge">
+<div class="flex justify-between mb-4">
+<div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined">person_celebrate</span>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1">Early Retirement</h3>
+<p class="text-body-sm text-on-surface-variant mb-6">Target age: 55</p>
+<div class="mb-6">
+<div class="flex justify-between text-label-md mb-2">
+<span>$1.2M Saved</span>
+<span class="text-on-surface-variant">48%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[48%] rounded-full"></div>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-xl p-4 flex items-center justify-between">
+<div>
+<p class="text-label-sm text-on-surface-variant">Last Contribution</p>
+<p class="font-bold">+$5,000</p>
+</div>
+<span class="material-symbols-outlined text-secondary">trending_up</span>
+</div>
+</div>
+<!-- Goal Card 3: Education (Dense) -->
+<div class="surface-gradient ambient-shadow rounded-[24px] p-6 glass-edge">
+<div class="flex justify-between mb-4">
+<div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined">school</span>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1">Kids' College</h3>
+<p class="text-body-sm text-on-surface-variant mb-6">529 Plan Active</p>
+<div class="mb-6">
+<div class="flex justify-between text-label-md mb-2">
+<span>$85k Saved</span>
+<span class="text-on-surface-variant">32%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[32%] rounded-full"></div>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-xl p-4 flex items-center justify-between">
+<div>
+<p class="text-label-sm text-on-surface-variant">Est. Completion</p>
+<p class="font-bold">2032</p>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">schedule</span>
+</div>
+</div>
+<!-- Goal Card 4: Tesla Model S (Compact) -->
+<div class="surface-gradient ambient-shadow rounded-[24px] p-6 glass-edge">
+<div class="flex justify-between mb-4">
+<div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined">directions_car</span>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1">Tesla Model S</h3>
+<div class="flex items-center gap-2 mb-4">
+<span class="px-2 py-0.5 bg-secondary-container text-on-secondary-container text-label-sm rounded font-bold">New</span>
+<p class="text-body-sm text-on-surface-variant">Auto Savings</p>
+</div>
+<div class="mb-4">
+<p class="text-headline-md font-bold text-on-surface">$12,400 <span class="text-body-sm text-on-surface-variant font-normal">/ $90,000</span></p>
+</div>
+<div class="flex -space-x-2">
+<div class="h-6 w-6 rounded-full border-2 border-white bg-surface-container overflow-hidden">
+<img class="h-full w-full object-cover" data-alt="A portrait of a confident female entrepreneur in her thirties, looking directly at the camera with a calm and determined expression. The lighting is soft and professional, highlighting her polished appearance. The scene is set in a light-filled studio with subtle architectural shadows, reflecting a sense of modern luxury and financial success." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCPTzvY0yALcMr5sed75WE1ZBaZ7DLJ3f9TTbVjowJeDdoUnVOQJLd9SoBMo1fbJEx5HWdhcOskNPcg-R9IRvNmWanEZAddJG_az0AeGXxfmo55hzBWGrJ31s7O8NRWsII7E6Uha9BasFmfz0PinRrXoyWUzvuobw-496fM0kyKVutK3Gafp4v1sgExGOsEABmBZPABlkhiI6g4B8ehUdtZqlph-yYzarlVpk1lw-v_9jpJP4kJlvJLEjgkwV8D1Upzyp-WMzcQmU"/>
+</div>
+<div class="h-6 w-6 rounded-full border-2 border-white bg-primary text-[10px] flex items-center justify-center text-on-primary font-bold">
+                            +1
+                        </div>
+</div>
+</div>
+<!-- Goal Card 5: Emergency Fund -->
+<div class="surface-gradient ambient-shadow rounded-[24px] p-6 glass-edge flex flex-col">
+<div class="flex justify-between mb-2">
+<h3 class="font-headline-md text-headline-md text-on-surface">Emergency Fund</h3>
+<span class="material-symbols-outlined text-secondary">verified</span>
+</div>
+<p class="text-body-sm text-on-surface-variant mb-6">6 Months of Expenses</p>
+<div class="mt-auto">
+<div class="flex justify-between items-end">
+<div>
+<p class="text-label-sm text-on-surface-variant">Fully Funded</p>
+<p class="text-headline-md font-bold text-on-surface">$50,000</p>
+</div>
+<div class="h-12 w-24">
+<!-- Small sparkline -->
+<svg class="w-full h-full" viewbox="0 0 100 40">
+<path d="M0,35 L10,32 L20,34 L30,30 L40,31 L50,25 L60,28 L70,20 L80,22 L90,15 L100,10" fill="none" stroke="#006b5f" stroke-linecap="round" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+</div>
+</div>
+<!-- Goal Card 6: Small Goal / Milestone Add -->
+<div class="border-2 border-dashed border-outline-variant rounded-[24px] p-6 flex flex-col items-center justify-center text-center group hover:bg-surface-container transition-all cursor-pointer">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[32px]">add_task</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface-variant">Add Milestone</h3>
+<p class="text-body-sm text-on-surface-variant mt-1">Break your goals into smaller wins</p>
+</div>
+</div>
+<!-- Goal Analysis Section -->
+<div class="mt-12">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary">analytics</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Goal Health Index</h3>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+<!-- Progress Stats -->
+<div class="surface-gradient ambient-shadow rounded-[24px] p-6 glass-edge flex flex-col justify-between">
+<p class="text-label-sm text-on-surface-variant uppercase tracking-widest font-bold">Total Allocated</p>
+<p class="text-headline-xl font-bold mt-2">$2,140,500</p>
+<div class="mt-4 flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+<span class="text-label-md">+12.4% vs last year</span>
+</div>
+</div>
+<div class="surface-gradient ambient-shadow rounded-[24px] p-6 glass-edge flex flex-col justify-between">
+<p class="text-label-sm text-on-surface-variant uppercase tracking-widest font-bold">Contribution Velocity</p>
+<p class="text-headline-xl font-bold mt-2">$14,200<span class="text-body-sm text-on-surface-variant font-normal">/mo</span></p>
+<div class="mt-4 flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined text-[16px]">speed</span>
+<span class="text-label-md">Optimal Pace</span>
+</div>
+</div>
+<div class="surface-gradient ambient-shadow rounded-[24px] p-6 glass-edge lg:col-span-2 flex items-center gap-8">
+<div class="relative w-32 h-32 flex-shrink-0">
+<svg class="w-full h-full -rotate-90" viewbox="0 0 36 36">
+<circle class="stroke-surface-container" cx="18" cy="18" fill="none" r="16" stroke-width="3"></circle>
+<circle class="stroke-primary" cx="18" cy="18" fill="none" r="16" stroke-dasharray="100" stroke-dashoffset="15" stroke-linecap="round" stroke-width="3"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-headline-md font-bold">85%</span>
+</div>
+</div>
+<div>
+<h4 class="font-headline-md text-headline-md mb-2">Portfolio Synergy</h4>
+<p class="text-body-md text-on-surface-variant">Your goals are 85% optimized for current market trends. AI suggests reallocating 5% from Emergency Fund to Portfolio Growth.</p>
+<button class="mt-4 text-primary font-bold text-label-md hover:underline flex items-center gap-1">
+                                View Optimization Strategy <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Action Button (FAB) -->
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-50">
+<span class="material-symbols-outlined text-[28px]">chat_bubble</span>
+</button>
+<script>
+        // Simple micro-interaction for chart entrance
+        window.addEventListener('DOMContentLoaded', () => {
+            const paths = document.querySelectorAll('path');
+            paths.forEach(path => {
+                if (path.getAttribute('stroke') === 'url(#gradient-teal)') {
+                    const length = path.getTotalLength();
+                    path.style.strokeDasharray = length;
+                    path.style.strokeDashoffset = length;
+                    setTimeout(() => {
+                        path.style.transition = 'stroke-dashoffset 2s ease-out';
+                        path.style.strokeDashoffset = '0';
+                    }, 500);
+                }
+            });
+        });
+    </script>
+</body></html>

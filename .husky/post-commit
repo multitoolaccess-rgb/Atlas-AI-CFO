@@ -1,0 +1,41 @@
+#!/usr/bin/env sh
+# .husky/post-commit
+#
+# Auto-push to GitHub after every local commit.
+# Enable locally (one-time, per repo):
+#     git config core.hooksPath .husky
+#
+# To bypass (e.g. WIP commit), use:
+#     git commit --no-verify
+
+SCRIPT_DIR="$(cd "$(dirname -- "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+cd "$PROJECT_ROOT"
+
+# Skip if the user disabled auto-push
+if [ "${SKIP_AUTO_PUSH:-0}" = "1" ]; then
+  echo "⚠️  SKIP_AUTO_PUSH=1 — skipping auto-push."
+  exit 0
+fi
+
+# Only push if the GitHub remote exists
+if ! git remote | grep -q "^github$"; then
+  echo "ℹ️  No 'github' remote found — skipping auto-push."
+  exit 0
+fi
+
+# Avoid pushing during rebase, merge, or detached HEAD
+BRANCH=$(git branch --show-current 2>/dev/null || true)
+if [ -z "$BRANCH" ]; then
+  echo "ℹ️  Detached HEAD or rebase in progress — skipping auto-push."
+  exit 0
+fi
+
+# Push the current branch to GitHub and set upstream
+if git push -u github "$BRANCH"; then
+  echo "🚀 Auto-pushed to GitHub (branch: $BRANCH)."
+else
+  echo "⚠️  Auto-push to GitHub failed. Run manually: git push -u github $BRANCH"
+  exit 1
+fi

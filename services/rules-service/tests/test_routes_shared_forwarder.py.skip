@@ -1,0 +1,512 @@
+"""Phase F2 #2 regression test — locks the drift-safe envelope bucket split.
+
+The bug this locks away: BEFORE Phase F2 #2, the dashboard forwarder
+relayed Finlynq 4xx verbatim. A Finlynq JWT_SECRET drift returned 401
+verbatim, which the FE's classifyError classified as
+"session-expired" → "Your session expired. Click Retry…". The
+forwarder contract is now: 401/403 → OUR 502 (downstream drift);
+400/409/422/429 → verbatim (user-fixable); any other upstream class
+follows the documented mapping.
+
+A future refactor of ``app.routes.shared.forward_to_finlynq`` (e.g.
+someone "simplifying" the bucket constants, swapping the if/else for a
+table, or inlining per-route envelopes) silently regresses the
+"Session expired" flash. This test is the regression guard.
+
+Test design notes:
+  * Single ``mock_finlynq`` fixture installs an ``httpx.MockTransport``
+    so the helper's inline ``httpx.AsyncClient`` request is captured
+    deterministically; 10+ tests reuse it instead of inlining the
+    same monkeypatch boilerplate.
+  * Cookie plumbing tests assert the cookie travels through the
+    wire (``request.headers["cookie"]``) so a future regression that
+    drops the ``cookies=`` kwarg is caught at the unit level.
+  * ``asyncio.run`` is used (not manual ``new_event_loop()``) so
+    pytest's loop state doesn't leak across tests.
+"""
+
+import asyncio
+import os
+
+import httpx
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+# Pin ENVIRONMENT/JWT_SECRET BEFORE importing app modules so the
+# pydantic-settings prod-refusal validator doesn't trip on a test
+# runtime. Mirrors the conftest pattern in
+# ``tests/test_routes_imports_real.py``.
+os.environ.setdefault("ENVIRONMENT", "development")
+os.environ.setdefault("JWT_SECRET", "test-secret-phase-f2-2")
+
+from app.routes.shared import (  # noqa: E402
+    forward_to_finlynq,
+    resolve_fc_token,
+    DRIFT_SAFE_4XX_AUTH,
+    DRIFT_SAFE_4XX_USER,
+    _drift_safe_4xx_mapping,
+)
+
+
+# ---------------------------------------------------------------------
+# Pure-function unit tests for `resolve_fc_token`
+# ---------------------------------------------------------------------
+
+class TestResolveFcToken:
+    """Lock the cookie-vs-Bearer fallback contract.
+
+    The user's persistent 502 banner was caused by the FE sending
+    ``Authorization: Bearer <token>`` from localStorage while the
+    forwarders only read the ``fc_session`` cookie. This helper
+    extracts the token from either source; these tests pin the
+    priority and edge cases.
+    """
+
+    def test_cookie_takes_priority_over_bearer(self) -> None:
+        """When both cookie and Bearer header are present, the cookie
+        wins (matches historical forwarder behavior)."""
+        result = resolve_fc_token(
+            fc_session="cookie-token",
+            authorization="Bearer header-token",
+        )
+        assert result == "cookie-token"
+
+    def test_bearer_fallback_when_cookie_absent(self) -> None:
+        """THE fix: Bearer header is used when cookie is None."""
+        result = resolve_fc_token(
+            fc_session=None,
+            authorization="Bearer some-jwt-token-here",
+        )
+        assert result == "some-jwt-token-here"
+
+    def test_bearer_fallback_when_cookie_empty_string(self) -> None:
+        """Empty cookie string is falsy → falls back to Bearer."""
+        result = resolve_fc_token(
+            fc_session="",
+            authorization="Bearer fallback-token",
+        )
+        assert result == "fallback-token"
+
+    def test_returns_none_when_both_absent(self) -> None:
+        """No cookie, no header → None (anonymous request)."""
+        result = resolve_fc_token(fc_session=None, authorization=None)
+        assert result is None
+
+    def test_returns_none_when_bearer_empty(self) -> None:
+        """``Authorization: Bearer `` (no token) → None."""
+        result = resolve_fc_token(fc_session=None, authorization="Bearer ")
+        assert result is None
+
+    def test_ignores_non_bearer_auth_header(self) -> None:
+        """``Authorization: Basic xyz`` is not a Bearer token → ignored."""
+        result = resolve_fc_token(
+            fc_session=None,
+            authorization="Basic dXNlcjpwYXNz",
+        )
+        assert result is None
+
+    def test_case_insensitive_bearer_prefix(self) -> None:
+        """``bearer`` (lowercase) should also match — HTTP headers are
+        case-insensitive per RFC 7230."""
+        result = resolve_fc_token(
+            fc_session=None,
+            authorization="bearer lowercase-token",
+        )
+        assert result == "lowercase-token"
+
+    def test_bearer_token_stripped(self) -> None:
+        """Leading/trailing whitespace in the token is stripped."""
+        result = resolve_fc_token(
+            fc_session=None,
+            authorization="Bearer   padded-token  ",
+        )
+        assert result == "padded-token"
+
+
+# ---------------------------------------------------------------------
+# Pure-function unit tests for `_drift_safe_4xx_mapping`
+# ---------------------------------------------------------------------
+
+class TestBucketSplit:
+    """Lock the bucket split itself. A future refactor cannot
+    silently regress ``_drift_safe_4xx_mapping``."""
+
+    @pytest.mark.parametrize("status", [401, 403])
+    def test_auth_class_4xx_always_maps_to_502(self, status: int) -> None:
+        """Auth-class 4xx (401, 403) = downstream config drift.
+        The ONLY fix that prevents the "Session expired" flash."""
+        assert _drift_safe_4xx_mapping(status) == 502
+
+    @pytest.mark.parametrize("status", [400, 409, 422, 429])
+    def test_user_class_4xx_verbatim(self, status: int) -> None:
+        """User-fixable 4xx → verbatim, NOT 502. Pinning the inverse
+        case ensures a future "all 4xx → 502" simplification
+        doesn't hide actionable Finlynq errors."""
+        assert _drift_safe_4xx_mapping(status) == status
+
+    @pytest.mark.parametrize("status", [404, 405, 410, 418, 451])
+    def test_unknown_4xx_returns_none_lets_caller_verbatim(self, status: int) -> None:
+        """Unknown 4xx → caller forwards verbatim. The function
+        returns None so the caller can branch."""
+        assert _drift_safe_4xx_mapping(status) is None
+
+    def test_constants_are_frozenset(self) -> None:
+        """Immutable for cross-test stability. ``frozenset`` is the
+        declared type; this assertion surfaces as a test failure
+        rather than a silent bit-rot."""
+        assert isinstance(DRIFT_SAFE_4XX_AUTH, frozenset)
+        assert isinstance(DRIFT_SAFE_4XX_USER, frozenset)
+
+    def test_buckets_are_disjoint(self) -> None:
+        """Auth and user buckets MUST be disjoint or the F2 #2
+        envelope is ambiguous."""
+        assert DRIFT_SAFE_4XX_AUTH.isdisjoint(DRIFT_SAFE_4XX_USER)
+
+
+# ---------------------------------------------------------------------
+# Integration tests for `forward_to_finlynq` via httpx.MockTransport
+# ---------------------------------------------------------------------
+
+# Stub FastAPI app exposing one route that mirrors the helper's
+# return shape so we can assert on the wire shape the FE would see.
+# The route takes NO query params — the upstream status lives entirely
+# in the mock transport so a future refactor of the test surface
+# doesn't double-bookkeep the param.
+stub_app = FastAPI()
+
+
+@stub_app.get("/probe")
+async def probe_handler():
+    result = await forward_to_finlynq("GET", "/state/summary")
+    return {
+        "status_code": result["status_code"],
+        "detail": result["detail"],
+        "body_provided": result["body"] is not None,
+    }
+
+
+# Per-test ``TestClient`` — fixture-injected so each test gets a
+# fresh client (TestClient holds per-instance httpx state; sharing
+# it across tests is brittle under record-redirect handling).
+@pytest.fixture
+def client():
+    return TestClient(stub_app)
+
+
+@pytest.fixture
+def mock_finlynq(monkeypatch):
+    """Install an ``httpx.MockTransport`` into
+    ``httpx.AsyncClient.request`` so the helper's inline ``httpx`` call
+    is captured deterministically.
+
+    Returns an ``install`` callable:
+      ``install(status_code=200)``
+        → mock fakes a 200 from Finlynq with a JSON body.
+      ``install(raise_exc=httpx.TimeoutException)``
+        → mock simulates a network failure; the helper's try/except
+        translates to 502.
+      ``install(custom=callable)``
+        → caller-supplied transport (e.g. capture cookie header).
+    Yields the ``install`` callable; tests pull the captured mock
+    via either the call return value or the ``install`` closure's
+    stateful list.
+    """
+
+    installed: list = []
+
+    def install(
+        status_code: int | None = 200,
+        *,
+        raise_exc: type[httpx.HTTPError] | None = None,
+        custom: "callable | None" = None,
+        read_timeout: bool = False,
+    ):
+        if custom is not None:
+            transport_callable = custom
+            mock_holder = {"custom": custom}
+        elif raise_exc is not None:
+            def _raise(request: httpx.Request) -> httpx.Response:
+                raise raise_exc("simulated failure")
+
+            transport_callable = _raise
+            mock_holder = {"raise": raise_exc}
+        else:
+            class _Mock:
+                def __init__(self, status_code: int = 200):
+                    self.status_code = status_code
+                    self.last_request_url: str | None = None
+
+                def __call__(self, request: httpx.Request) -> httpx.Response:
+                    self.last_request_url = str(request.url)
+                    return httpx.Response(
+                        status_code=self.status_code,
+                        json={"detail": f"finlynq-echo-{self.status_code}"},
+                    )
+
+            mock = _Mock(status_code=status_code or 200)
+            transport_callable = mock
+            mock_holder = {"mock": mock}
+        if read_timeout:
+            # Force the read_timeout semantics explicitly: simulates a
+            # network hang past the timeout budget.
+            def _hung(request: httpx.Request) -> httpx.Response:
+                raise httpx.TimeoutException("read timed out")
+
+            transport_callable = _hung
+            mock_holder["read_timeout"] = True
+
+        transport = httpx.MockTransport(transport_callable)
+
+        # ``_patched`` MUST be ``async def`` even though the body
+        # itself is synchronous, because the helper does
+        # ``r = await client.request(...)`` — Python's ``await``
+        # requires its target to be an awaitable (coroutine /
+        # Future / Task). If we monkeypatched ``AsyncClient.request``
+        # to a plain sync function returning ``Response``, then
+        # ``await <Response>`` would raise
+        # ``TypeError: object Response can't be used in 'await'
+        # expression``. Wrapping the sync body in ``async def`` so
+        # the call site gets a real coroutine — ``await`` then runs
+        # the body and reads the ``Response`` return value.
+        #
+        # ``transport.handle_request(...)`` is the SYNC variant of
+        # ``MockTransport.handle_async_request``; the latter is async
+        # and returns a coroutine without awaiting, which is the
+        # exact bug the previous round tripped on.
+        async def _patched(self_client, method, url, **kw):
+            return transport.handle_request(httpx.Request(method, url, **kw))
+
+        monkeypatch.setattr(httpx.AsyncClient, "request", _patched)
+        installed.append(mock_holder)
+        return mock_holder
+
+    yield install
+
+
+class TestForwarderEnvelope:
+    """Integration tests — exercise ``forward_to_finlynq`` through a
+    real HTTP cycle. Each scenario pins one bucket."""
+
+    def test_dashboard_2xx_returns_2xx_with_body(
+        self, client, mock_finlynq
+    ) -> None:
+        """Happy path: 200 from Finlynq → 200 to FE with body, no
+        downstream map needed."""
+        mock = mock_finlynq(status_code=200)["mock"]
+        result = client.get("/probe")
+        assert result.status_code == 200
+        body = result.json()
+        assert body["status_code"] == 200
+        assert body["detail"] == ""
+        assert body["body_provided"] is True
+        assert mock.last_request_url is not None
+        assert mock.last_request_url.endswith("/state/summary")
+
+    def test_dashboard_drift_class_401_maps_to_502(
+        self, client, mock_finlynq
+    ) -> None:
+        """THE bug regression: Finlynq 401 → OUR 502. If this flips
+        back to 401 verbatim, the FE classifier renders
+        "session-expired" → "Your session expired…". Pin firmly."""
+        mock_finlynq(status_code=401)
+        result = client.get("/probe")
+        body = result.json()
+        assert body["status_code"] == 502
+        assert "downstream" in body["detail"].lower()
+
+    def test_dashboard_drift_class_403_maps_to_502(
+        self, client, mock_finlynq
+    ) -> None:
+        mock_finlynq(status_code=403)
+        result = client.get("/probe")
+        body = result.json()
+        assert body["status_code"] == 502
+
+    def test_dashboard_user_class_409_maps_to_409_verbatim(
+        self, client, mock_finlynq
+    ) -> None:
+        """User-fixable 4xx (409 conflict → duplicate row) should
+        pass through with the upstream detail so the FE shows the
+        actionable message rather than a generic drift banner."""
+        mock_finlynq(status_code=409)
+        result = client.get("/probe")
+        body = result.json()
+        assert body["status_code"] == 409
+        assert "finlynq-echo-409" in body["detail"]
+
+    @pytest.mark.parametrize("status", [400, 422, 429])
+    def test_user_class_4xx_verbatim(
+        self, client, mock_finlynq, status: int
+    ) -> None:
+        mock_finlynq(status_code=status)
+        result = client.get("/probe")
+        body = result.json()
+        assert body["status_code"] == status
+
+    def test_unknown_4xx_verbatim(self, client, mock_finlynq) -> None:
+        mock_finlynq(status_code=418)
+        result = client.get("/probe")
+        body = result.json()
+        assert body["status_code"] == 418
+
+    def test_5xx_maps_to_502_bad_gateway(self, client, mock_finlynq) -> None:
+        mock_finlynq(status_code=500)
+        result = client.get("/probe")
+        body = result.json()
+        assert body["status_code"] == 502
+
+    def test_3xx_redirect_maps_to_502(self, client, mock_finlynq) -> None:
+        mock_finlynq(status_code=302)
+        result = client.get("/probe")
+        body = result.json()
+        assert body["status_code"] == 502
+
+    def test_2xx_non_json_body_maps_to_502(
+        self, client, mock_finlynq
+    ) -> None:
+        """Finlynq cold-start might return ``pong`` text rather than
+        a JSON object — translate to 502 so the FE never sees the
+        raw upstream body."""
+
+        def _non_json(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                status_code=200,
+                content=b"pong",
+                headers={"content-type": "text/plain"},
+            )
+
+        mock_finlynq(custom=_non_json)
+        result = client.get("/probe")
+        body = result.json()
+        assert body["status_code"] == 502
+        assert "not JSON" in body["detail"]
+
+    def test_network_timeout_maps_to_502(
+        self, client, mock_finlynq
+    ) -> None:
+        """A slow / unreachable Finlynq raising ``TimeoutException``
+        must NOT leak as a 500 via the global Exception handler.
+        Without the Phase F2 #2 network guard, this is exactly the
+        failure mode the user sees as "The server hit an error" —
+        defeating the friendly banner."""
+
+        def _hung(request: httpx.Request) -> httpx.Response:
+            raise httpx.TimeoutException("read timed out")
+
+        mock_finlynq(custom=_hung)
+        result = client.get("/probe")
+        body = result.json()
+        assert body["status_code"] == 502
+        assert "timed out" in body["detail"].lower()
+
+    def test_network_connect_error_maps_to_502(
+        self, client, mock_finlynq
+    ) -> None:
+        def _refused(request: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("connection refused")
+
+        mock_finlynq(custom=_refused)
+        result = client.get("/probe")
+        body = result.json()
+        assert body["status_code"] == 502
+        assert "unreachable" in body["detail"].lower()
+
+
+# ---------------------------------------------------------------------
+# Cookie plumbing — the cross-service auth wire
+# ---------------------------------------------------------------------
+
+class TestForwarderCookiePlumbing:
+    """The cookie is the cross-service auth wire. If this plumbing
+    breaks (e.g. a future refactor drops the ``cookies=`` kwarg), the
+    Session expired flash re-emerges on every call. Playwright e2e
+    is the live-stack assertion; these tests catch the regression
+    at the unit level."""
+
+    def test_fc_session_cookie_travels_through_the_wire(
+        self, mock_finlynq
+    ) -> None:
+        """Capture the outbound request headers and assert the
+        ``fc_session=test-...`` cookie is present. Catches a future
+        regression that drops the cookies= kwarg."""
+
+        captured: dict = {}
+
+        def _capture(request: httpx.Request) -> httpx.Response:
+            captured["cookie_header"] = request.headers.get("cookie", "")
+            captured["url"] = str(request.url)
+            return httpx.Response(status_code=200, json={"ok": True})
+
+        mock_finlynq(custom=_capture)
+        result = asyncio.run(
+            forward_to_finlynq(
+                "GET", "/state/summary",
+                fc_session="test-cookie-value-1234",
+            )
+        )
+        assert result["status_code"] == 200
+        assert "fc_session=test-cookie-value-1234" in captured["cookie_header"], (
+            "fc_session cookie was not forwarded; the cross-service "
+            "auth wire is broken and the Session expired flash will "
+            "re-emerge on every call"
+        )
+        assert captured["url"].endswith("/state/summary")
+
+    def test_authorization_bearer_header_forwarded_as_cookie(
+        self, mock_finlynq
+    ) -> None:
+        """THE fix regression: when only ``authorization`` is provided
+        (no ``fc_session`` cookie), the Bearer token is extracted and
+        forwarded as the ``fc_session`` cookie to Finlynq. Catches
+        the exact bug that caused the persistent 502 banner."""
+
+        captured: dict = {}
+
+        def _capture(request: httpx.Request) -> httpx.Response:
+            captured["cookie_header"] = request.headers.get("cookie", "")
+            return httpx.Response(status_code=200, json={"ok": True})
+
+        mock_finlynq(custom=_capture)
+        result = asyncio.run(
+            forward_to_finlynq(
+                "GET", "/state/summary",
+                fc_session=None,
+                authorization="Bearer my-jwt-from-localstorage",
+            )
+        )
+        assert result["status_code"] == 200
+        assert "fc_session=my-jwt-from-localstorage" in captured["cookie_header"], (
+            "Authorization: Bearer token was not forwarded as fc_session "
+            "cookie; the user's 502 banner will reappear."
+        )
+
+    def test_no_cookie_kwargs_when_both_absent(
+        self, mock_finlynq
+    ) -> None:
+        """When ``fc_session`` is None the helper MUST pass exactly
+        ``cookies=None`` so the upstream sees an anonymous request —
+        a stale cookie from a prior mount shouldn't ride a logout
+        call."""
+        called_with: dict = {}
+
+        async def _capture(self_client, method, url, **kw):
+            called_with.update(kw)
+            return httpx.Response(status_code=200, json={"ok": True})
+
+        # Direct monkeypatch of ``httpx.AsyncClient.request`` (no
+        # MockTransport) so we read the kwargs the helper actually
+        # sent. The ``raw_kwargs`` mapping captures every kwarg the
+        # helper passed; ``cookies=`` is the only one we assert on.
+        import pytest as _pytest
+        _pytest.MonkeyPatch().setattr(httpx.AsyncClient, "request", _capture)
+
+        result = asyncio.run(
+            forward_to_finlynq(
+                "GET", "/state/summary",
+                fc_session=None,
+                authorization=None,
+            )
+        )
+        assert called_with.get("cookies") is None
+        assert result["status_code"] == 200

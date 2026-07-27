@@ -1,0 +1,509 @@
+{
+  "schema_version": "atlas-projection-fixtures/v1",
+  "model_version": "atlas-monthly-scenarios/v1",
+  "money": {
+    "currency": "USD",
+    "precision": "0.01",
+    "rounding": "ROUND_HALF_EVEN"
+  },
+  "cases": [
+    {
+      "id": "zero-current-balance",
+      "tags": ["valid", "zero-current-balance"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "0",
+        "monthly_contribution": "100",
+        "horizon_months": 12,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0.02",
+          "base": "0.05",
+          "optimistic": "0.08"
+        }
+      },
+      "expected": {
+        "scenario_ending_balances": {
+          "conservative": "1211.06",
+          "base": "1227.89",
+          "optimistic": "1244.99"
+        }
+      }
+    },
+    {
+      "id": "zero-monthly-contribution",
+      "tags": ["valid", "zero-monthly-contribution"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "10000",
+        "monthly_contribution": "0",
+        "horizon_months": 12,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0.02",
+          "base": "0.05",
+          "optimistic": "0.08"
+        }
+      },
+      "expected": {
+        "scenario_ending_balances": {
+          "conservative": "10201.84",
+          "base": "10511.62",
+          "optimistic": "10830.00"
+        }
+      }
+    },
+    {
+      "id": "positive-monthly-contribution",
+      "tags": ["valid", "positive-monthly-contribution", "scenario-returns"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "10000",
+        "monthly_contribution": "500",
+        "horizon_months": 12,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0.02",
+          "base": "0.05",
+          "optimistic": "0.08"
+        }
+      },
+      "expected": {
+        "scenario_ending_balances": {
+          "conservative": "16257.15",
+          "base": "16651.05",
+          "optimistic": "17054.96"
+        }
+      }
+    },
+    {
+      "id": "positive-contribution-with-inflation",
+      "tags": ["valid", "positive-monthly-contribution", "nonzero-inflation"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "10000",
+        "monthly_contribution": "500",
+        "horizon_months": 12,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0.02",
+        "annual_return_rates": {
+          "conservative": "0.02",
+          "base": "0.05",
+          "optimistic": "0.08"
+        }
+      },
+      "expected": {
+        "scenario_ending_balances": {
+          "conservative": "16000.00",
+          "base": "16379.66",
+          "optimistic": "16768.79"
+        }
+      }
+    },
+    {
+      "id": "negative-monthly-cash-flow",
+      "tags": ["valid", "negative-monthly-cash-flow"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "10000",
+        "monthly_contribution": "-500",
+        "horizon_months": 12,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0.02",
+          "base": "0.05",
+          "optimistic": "0.08"
+        }
+      },
+      "expected": {
+        "scenario_ending_balances": {
+          "conservative": "4146.54",
+          "base": "4372.19",
+          "optimistic": "4605.03"
+        }
+      }
+    },
+    {
+      "id": "zero-return",
+      "tags": ["valid", "zero-return", "legacy-parity"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "1000",
+        "monthly_contribution": "100",
+        "horizon_months": 12,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0",
+          "base": "0",
+          "optimistic": "0"
+        }
+      },
+      "expected": {
+        "scenario_ending_balances": {
+          "conservative": "2200.00",
+          "base": "2200.00",
+          "optimistic": "2200.00"
+        }
+      }
+    },
+    {
+      "id": "one-month-horizon",
+      "tags": ["valid", "one-month-horizon"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "1000",
+        "monthly_contribution": "100",
+        "horizon_months": 1,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0.02",
+          "base": "0.05",
+          "optimistic": "0.08"
+        }
+      },
+      "expected": {
+        "scenario_ending_balances": {
+          "conservative": "1101.67",
+          "base": "1104.17",
+          "optimistic": "1106.67"
+        }
+      }
+    },
+    {
+      "id": "target-date-derived-horizon",
+      "tags": ["valid", "target-date-derived-horizon"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "1000",
+        "monthly_contribution": "100",
+        "target_date": "2026-07-31",
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0.02",
+          "base": "0.05",
+          "optimistic": "0.08"
+        }
+      },
+      "expected": {
+        "horizon_months": 1,
+        "scenario_ending_balances": {
+          "conservative": "1101.67",
+          "base": "1104.17",
+          "optimistic": "1106.67"
+        }
+      }
+    },
+    {
+      "id": "multi-year-horizon",
+      "tags": ["valid", "multi-year-horizon"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "250000",
+        "monthly_contribution": "2000",
+        "horizon_months": 120,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0.03",
+          "base": "0.06",
+          "optimistic": "0.09"
+        }
+      },
+      "expected": {
+        "scenario_ending_balances": {
+          "conservative": "616821.22",
+          "base": "782607.88",
+          "optimistic": "999867.82"
+        }
+      }
+    },
+    {
+      "id": "rounding-below-half-cent",
+      "tags": ["valid", "currency-rounding-boundary"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "0",
+        "monthly_contribution": "0.004",
+        "horizon_months": 1,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0",
+          "base": "0",
+          "optimistic": "0"
+        }
+      },
+      "expected": {
+        "scenario_ending_balances": {
+          "conservative": "0.00",
+          "base": "0.00",
+          "optimistic": "0.00"
+        }
+      }
+    },
+    {
+      "id": "rounding-half-even-down",
+      "tags": ["valid", "currency-rounding-boundary"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "0",
+        "monthly_contribution": "0.005",
+        "horizon_months": 1,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0",
+          "base": "0",
+          "optimistic": "0"
+        }
+      },
+      "expected": {
+        "scenario_ending_balances": {
+          "conservative": "0.00",
+          "base": "0.00",
+          "optimistic": "0.00"
+        }
+      }
+    },
+    {
+      "id": "rounding-half-even-up",
+      "tags": ["valid", "currency-rounding-boundary"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "0",
+        "monthly_contribution": "0.015",
+        "horizon_months": 1,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0",
+          "base": "0",
+          "optimistic": "0"
+        }
+      },
+      "expected": {
+        "scenario_ending_balances": {
+          "conservative": "0.02",
+          "base": "0.02",
+          "optimistic": "0.02"
+        }
+      }
+    },
+    {
+      "id": "very-large-target-value",
+      "tags": ["valid", "very-large-target-value"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "999999999999.99",
+        "monthly_contribution": "1000000",
+        "target_amount": "100000000000000.00",
+        "horizon_months": 360,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0.02",
+          "base": "0.05",
+          "optimistic": "0.08"
+        }
+      },
+      "expected": {
+        "scenario_ending_balances": {
+          "conservative": "1821701704624.17",
+          "base": "4468576572641.45",
+          "optimistic": "10937220017204.39"
+        }
+      }
+    },
+    {
+      "id": "invalid-target-date",
+      "tags": ["invalid", "invalid-target-date"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "1000",
+        "monthly_contribution": "100",
+        "target_date": "2026-02-30",
+        "calculation_date": "2026-01-01",
+        "data_as_of": "2025-12-31",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0.02",
+          "base": "0.05",
+          "optimistic": "0.08"
+        }
+      },
+      "expected_error": "invalid_target_date"
+    },
+    {
+      "id": "conflicting-target-date-and-horizon",
+      "tags": ["invalid", "conflicting-target-date-and-horizon"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "1000",
+        "monthly_contribution": "100",
+        "horizon_months": 12,
+        "target_date": "2026-07-31",
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0.02",
+          "base": "0.05",
+          "optimistic": "0.08"
+        }
+      },
+      "expected_error": "conflicting_horizon"
+    },
+    {
+      "id": "unsupported-currency",
+      "tags": ["invalid", "unsupported-currency"],
+      "input": {
+        "currency": "EUR",
+        "current_balance": "1000",
+        "monthly_contribution": "100",
+        "horizon_months": 12,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0.02",
+          "base": "0.05",
+          "optimistic": "0.08"
+        }
+      },
+      "expected_error": "unsupported_currency"
+    },
+    {
+      "id": "missing-currency",
+      "tags": ["invalid", "missing-currency"],
+      "input": {
+        "current_balance": "1000",
+        "monthly_contribution": "100",
+        "horizon_months": 12,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0.02",
+          "base": "0.05",
+          "optimistic": "0.08"
+        }
+      },
+      "expected_error": "missing_currency"
+    },
+    {
+      "id": "missing-financial-input",
+      "tags": ["invalid", "missing-financial-input"],
+      "input": {
+        "currency": "USD",
+        "monthly_contribution": "100",
+        "horizon_months": 12,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-07-25",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0.02",
+          "base": "0.05",
+          "optimistic": "0.08"
+        }
+      },
+      "expected_error": "missing_financial_input"
+    },
+    {
+      "id": "missing-data-freshness",
+      "tags": ["invalid", "missing-financial-input", "missing-data-freshness"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "1000",
+        "monthly_contribution": "100",
+        "horizon_months": 12,
+        "calculation_date": "2026-07-26",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0.02",
+          "base": "0.05",
+          "optimistic": "0.08"
+        }
+      },
+      "expected_error": "missing_data_freshness"
+    },
+    {
+      "id": "stale-financial-input",
+      "tags": ["invalid", "stale-financial-input"],
+      "input": {
+        "currency": "USD",
+        "current_balance": "1000",
+        "monthly_contribution": "100",
+        "horizon_months": 12,
+        "calculation_date": "2026-07-26",
+        "data_as_of": "2026-05-01",
+        "max_data_age_days": 30,
+        "contribution_timing": "end_of_month",
+        "annual_inflation_rate": "0",
+        "annual_return_rates": {
+          "conservative": "0.02",
+          "base": "0.05",
+          "optimistic": "0.08"
+        }
+      },
+      "expected_error": "stale_financial_input"
+    }
+  ]
+}

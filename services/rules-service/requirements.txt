@@ -1,0 +1,78 @@
+# services/rules-service/requirements.txt
+#
+# Phase 2 merge — see docs/wealthiq-merge-plan.md §4 (Reuse Map) and §7 (Build List).
+#
+# Sources reconciled:
+#   legacy Finance Copilot rules-service requirements
+#     (was: 5-line stub — fastapi 0.111.0 / uvicorn 0.30.1 / requests 2.32.3 / pydantic 2.7.4 / pytest 8.2.2)
+#   legacy WealthIQ backend requirements
+#     (24-line stack — FastAPI 0.104.1 / SQLAlchemy / Plaid / statement import pipeline)
+#
+# Resolution notes:
+#   - pydantic:    lifted 2.7.4 → 2.13.4 (wealthiq's pin; newer, fewer Rust-rebuild risks on Python 3.12)
+#   - sqlalchemy:  lifted from unpinned → >=2.0.24 (compatible with Alembic 1.13.x)
+#   - fastapi:     lifted 0.111.0 → 0.104.1 (wealthiq's pin; aligns with upstream deps)
+#   - uvicorn:     lifted 0.30.1 → 0.24.0 (wealthiq's pin; `uvicorn[standard]` adds watchgod/websockets)
+#   - requests:    dropped (unused — wealthiq uses httpx for outbound API calls; ruff'd unused)
+#   - pytest:      kept rules-service 8.2.2 (newer than wealthiq's 7.4.3; pytest-asyncio wheel matrix matches)
+#
+# Install: `bash scripts/bootstrap.sh` runs pip install against this file in a Python 3.12 venv.
+
+# --- FastAPI core ---
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# --- Data validation / settings ---
+pydantic==2.13.4
+pydantic-settings==2.14.1
+pydantic[email]
+email-validator
+
+# --- Database ---
+sqlalchemy>=2.0.24
+psycopg2-binary==2.9.12
+alembic==1.13.1
+
+# --- Config / env ---
+python-dotenv==1.0.0
+
+# --- Auth (single-user JWT-cookie per §10 decision 4) ---
+# NOTE: passlib[bcrypt] dropped (Phase 2 code-review) — app/auth.py is JWT-cookie only,
+# no password hashing. Re-add in Phase 6 if a login route lands.
+python-jose[cryptography]==3.3.0
+
+# --- Testing ---
+pytest==8.2.2
+pytest-asyncio==0.21.1
+httpx==0.25.1
+cachetools==7.1.4
+
+# --- Statement import pipeline (Phase 4-5; lifted for forward parity) ---
+pytesseract==0.3.10
+Pillow==11.0.0
+pdfplumber==0.10.3
+pypdf==4.2.0
+pandas==2.2.2
+openpyxl==3.1.5
+xlrd==2.0.1
+
+# --- Plaid (canonical ingest per §10 decision 1; lifts in Phase 7) ---
+plaid-python==27.0.0
+
+# Phase 8: reportlab for OCR image-PDF test fixtures (closes the last skipped pytest)
+reportlab==5.0.0
+
+# Phase 18 — categorizer v2 (fuzzy-merchant safety net + per-user alias learning).
+# ``thefuzz`` ships with rapidfuzz (C extension) under the hood so each
+# extractOne call is sub-millisecond on a 2019 MacBook Air CPU. The
+# ``python-Levenshtein`` dep is the canonical C-Accelerator that thefuzz
+# imports first; without it the library falls back to a much slower
+# Python implementation. Both pins are the latest 0.x release as of the
+# categorizer-ship date and the python-Levenshtein pin keeps it from
+# silently upgrading to a 1.0 major.
+thefuzz==0.20.0
+python-Levenshtein==0.25.0
+
+# Phase 2 — policy YAML parsing for /api/evaluate rule engine
+PyYAML>=6.0,<7.0

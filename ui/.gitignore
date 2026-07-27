@@ -1,0 +1,2 @@
+# Symlink for ESLint plugin resolution (created by setup)
+node_modules/eslint-plugin-local-rules

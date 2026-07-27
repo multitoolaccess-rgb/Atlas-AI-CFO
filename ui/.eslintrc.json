@@ -1,0 +1,15 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "plugins": ["local-rules"],
+  "rules": {
+    "local-rules/no-semantic-dark-overrides": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["**/__tests__/**", "**/*.test.*", "**/*.spec.*"],
+      "rules": {
+        "local-rules/no-semantic-dark-overrides": "off"
+      }
+    }
+  ]
+}
