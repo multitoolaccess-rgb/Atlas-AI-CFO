@@ -159,7 +159,7 @@ def write_csv_sets() -> None:
     f_synthetic = FINLYNQ / "sample_statements_synthetic"
     write_csv(f_synthetic / "atlas_test_summary_checking.csv", checking_rows(8))
     write_csv(f_synthetic / "atlas_test_summary_savings.csv", [["Date", "Description", "Amount"], ["06/01/2026", "ATLAS SYNTHETIC SAVINGS", "100.00"]])
-    write_csv(f_synthetic / "atlas_test_brokerage_activity.csv", [["Activity Date", "Process Date", "Settle Date", "Instrument", "Description", "Trans Code", "Quantity", "Price", "Amount"], ["06/01/2026", "06/02/2026", "06/03/2026", "ATLS", "ATLAS SYNTHETIC MULTILINE DESCRIPTION", "Buy", "1", "10.00", "-10.00"]])
+    write_csv(f_synthetic / "atlas_test_brokerage_activity.csv", [["Activity Date", "Process Date", "Settle Date", "Instrument", "Description", "Trans Code", "Quantity", "Price", "Amount"], ["06/01/2026", "06/02/2026", "06/03/2026", "ATLAS_TEST_EQUITY", "ATLAS SYNTHETIC MULTILINE DESCRIPTION", "Buy", "1", "10.00", "-10.00"]])
 
 
 def write_pdf_sets() -> None:

@@ -55,7 +55,7 @@
       "institution": "Atlas Test Bank",
       "path": "services/finlynq/tests/fixtures/sample_statements_synthetic/atlas_test_brokerage_activity.csv",
       "person": "Test Household Alpha",
-      "sha256": "ae45207e620ca1e181f13196f470bb49994568fc954e65b56d6cd93b9f3fed20",
+      "sha256": "239a8b2b3df1d7d3d8728f4ecec527211104b2c402a11a730ab6fc3f33a885c9",
       "tests": [
         "Finlynq wide activity CSV structural contract"
       ]
