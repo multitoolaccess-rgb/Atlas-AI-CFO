@@ -5,10 +5,10 @@
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Review and approve the Phase 1 forecast-persistence architecture and implementation sequence; production implementation has not started.
-- Last updated: 2026-07-27T04:54:29Z
+- Last updated: 2026-07-27T04:56:25Z
 
 ## Active work
-- work-p1-forecast-persistence-planning: Plan immutable forecast persistence and versioned read APIs (in_progress)
+- work-p1-forecast-persistence-planning: Plan immutable forecast persistence and versioned read APIs (in_review)
 
 ## Blockers
 - None
@@ -39,10 +39,12 @@
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
 - 8baa1c2: Service environment isolation
 - d001e64: Merged synthetic fixture restoration #1
+- b987147: Phase 1 immutable forecast persistence planning #4
 - Test test-p0-rules: Rules Service — 579 passed, 10 skipped, 1 xfailed
 - Test test-p0-finlynq: Finlynq — 93 passed
 - Test test-p0-frontend: Frontend — 496 passed
 - Test test-p0-typescript: TypeScript check — passed
+- Test test-p1-planning-status: Phase 1 planning governance — 5 passed; status and deterministic render checks passed
 
 ## Next bounded task
 - next-p1-plan-review: Review ADR-006 and the Phase 1 plan, resolve the three open architecture questions, and explicitly authorize only the contract-test implementation slice.
