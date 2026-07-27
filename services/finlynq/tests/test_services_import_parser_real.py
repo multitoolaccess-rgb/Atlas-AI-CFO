@@ -1,7 +1,8 @@
-"""End-to-end import-parser tests against real-world bank statements.
+"""End-to-end import-parser tests against deterministic Atlas fixtures.
 
-The synthetic fixtures (.csv + .pdf in ``../fixtures/sample_statements_synthetic/``) come
-are independently generated and synthetic. They exercise the
+The synthetic CSV and PDF fixtures in ``../fixtures/sample_statements_synthetic/``
+are independently generated. They preserve representative parser structures and
+edge cases without customer, production, or legacy statement data. They exercise the
 public parser API directly and guarantee that any future regression
 (a breaking regex change, a PDF column-numbering shift, a synonym
 map regression, a NaT-date slip-through, etc.) shows up here before
@@ -71,9 +72,8 @@ def test_atlas_checking_summary_totals_at_top():
     rather than after the rows. The CSV parser's pre-scan must skip
     past them or it would create four fake transactions.
 
-    Row-count contract is intentionally LOOSE (>= 5) — a future
-    BoA checking statement export with fewer than 50 transactions
-    should NOT fail this test. The ``summary_labels`` leak check
+    Row-count contract is intentionally LOOSE (>= 5) — a smaller synthetic
+    checking fixture should NOT fail this test. The ``summary_labels`` leak check
     below is the real regression guard."""
     upload = _upload("atlas_test_summary_checking.csv")
     records = parse_csv_transactions(upload)

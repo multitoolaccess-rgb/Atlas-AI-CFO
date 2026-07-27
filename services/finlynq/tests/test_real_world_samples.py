@@ -1,11 +1,12 @@
-"""Phase 10 — real-world sample statement parser tests.
+"""Phase 10 — deterministic synthetic statement parser tests.
 
-Locks the Phase 10 parser fixes against the 5 bank statements the user
-shipped under ``tests/fixtures/sample_statements/``. Each test asserts
-the parser contract that protects users from real-world data loss:
+Locks the Phase 10 parser fixes against generated Atlas fixtures under
+``tests/fixtures/sample_statements/``. Each test preserves representative
+statement structures and parser edge cases without customer, production, or
+legacy statement data:
 
 - ``check_checking_stmt_csv_skips_summary_section_and_preserves_parity``:
-  Wells Fargo checking.csv has a 5-row summary block
+  The synthetic checking CSV has a 5-row summary block
   (``Description,,Summary Amt.``) BEFORE the actual register header
   (``Date,Description,Amount,Running Bal.``). Phase 10's
   :func:`_find_csv_header_index` pre-scans the first 50 rows and
@@ -13,21 +14,20 @@ the parser contract that protects users from real-world data loss:
   misalign. Without the fix, schema-validate raised
   ``Missing: date, amount``.
 - ``test_savings_stmt_csv_split_amount_parses_via_credit_debit_pair``:
-  Wells Fargo savings.csv uses ``Date,Particulars,Withdrawals,Deposits``.
+  The synthetic savings CSV uses ``Date,Particulars,Withdrawals,Deposits``.
   Phase 10 routes ``withdrawals`` -> ``debit`` and ``deposits`` ->
   ``credit`` so the per-row loop computes ``amount = deposit - withdrawal``
   (deposits positive, withdrawals negative).
-- ``test_credit_card_year_end_summary_extracts``: The BofA / Credi
-  year-end summary PDF MUST extract the canonical transaction list
+- ``test_credit_card_year_end_summary_extracts``: The synthetic year-end
+  summary PDF MUST extract the representative transaction list
   (>= 200 records: ``MM/DD/YY <merchant> <CITY>, <ST> <amount>[CR]``).
   Phase 10.1b REMOVED the ``year-end summary``-keyword auto-reject that
-  silently zeroed this file in Phase 10 (the user's two screenshots
-  showing "0 transactions" came from that reject firing — it was the
-  wrong default).
-- ``test_fidelity_pdf_preview_returns_pdf_record_count``: Fidelity
-  quarterly statements are preview-only today (the heuristic patterns
-  don't yet cover Fidelity's "Activity By Fund" layout); we lock the
-  preview contract so the UI never silently misreports.
+  silently zeroed this layout in Phase 10; the regression guard keeps that
+  parser behavior covered.
+- ``test_fidelity_pdf_preview_returns_pdf_record_count``: The synthetic
+  retirement layout is preview-only today (the heuristic patterns don't yet
+  cover its ``Activity By Fund`` structure); we lock the preview contract so
+  the UI never silently misreports.
 - ``test_individual_statement_pdf_preview_returns_pdf_record_count``:
   Same lock for the individual bank statement sample — preview works,
   persist currently returns 0 because the heuristic patterns need
@@ -36,7 +36,7 @@ the parser contract that protects users from real-world data loss:
   mistreats the file as e.g. a year-end summary would be caught.
 - ``test_year_end_marker_never_false_positives_on_year_to_date``:
   Phase 10's year-end regex MUST NOT match ``year-to-date`` because
-  Fidelity statements include YTD columns legitimately. Lock the
+  the synthetic retirement layout includes YTD columns legitimately. Lock the
   anti-false-positive contract.
 - ``test_csv_summary_skip_returns_zero_for_csv_without_register_header``:
   Phase 10's header scanner is graceful when no register header is
@@ -63,7 +63,7 @@ def _upload(name: str, body: bytes) -> UploadFile:
 
 
 def test_checking_stmt_csv_skips_summary_section_and_preserves_parity():
-    """Wells Fargo checking.csv: a 5-row summary-section preamble is
+    """Synthetic checking CSV: a 5-row summary-section preamble is
     silently skipped so the register header on row 6 becomes the
     parsed schema, and preview.record_count strictly equals
     len(persist).
@@ -82,7 +82,7 @@ def test_checking_stmt_csv_skips_summary_section_and_preserves_parity():
     # Sanity bound: the file is large enough that we expect >= 100
     # transactions after the summary block is skipped, AND we expect
     # the schema validation to have found date+amount+description
-    # ALL on row 6 (the canonical Wells Fargo header).
+    # ALL on row 6 (the synthetic register header).
     assert pre["record_count"] >= 100
     # Equivalence: persist records all carry the canonical shape.
     assert all(r.get("transaction_date") is not None for r in recs)
@@ -90,7 +90,7 @@ def test_checking_stmt_csv_skips_summary_section_and_preserves_parity():
 
 
 def test_savings_stmt_csv_split_amount_parses_via_credit_debit_pair():
-    """Wells Fargo savings.csv uses ``Date,Particulars,Withdrawals,Deposits``
+    """Synthetic savings CSV uses ``Date,Particulars,Withdrawals,Deposits``
     (split-amount). The phase 10 fix routes ``withdrawals`` -> ``debit``
     and ``deposits`` -> ``credit``. Per-row loop computes
     ``amount = deposits - withdrawals``: deposits positive, withdrawals
@@ -116,11 +116,11 @@ def test_savings_stmt_csv_split_amount_parses_via_credit_debit_pair():
 
 
 def test_credit_card_year_end_summary_extracts():
-    """Phase 10.1b: the Bank of America / Credi ``YYYY year-end
-    summary of credit card transactions`` PDF is THE canonical
-    user-importable payment ledger — it contains ~200 lines of
-    ``MM/DD/YY <merchant> <CITY>, <ST> <amount>[CR]`` that the user
-    EXPECTS the importer to extract. The previous Phase 10 logic
+    """Phase 10.1b: the synthetic ``YYYY year-end
+    summary of credit card transactions`` PDF is a representative
+    parser fixture — it contains ~200 generated lines of
+    ``MM/DD/YY <merchant> <synthetic location>, <ST> <amount>[CR]`` that the
+    importer must extract. The previous Phase 10 logic
     auto-rejected this PDF on the ``year-end summary`` keyword;
     Phase 10.1b removed that reject and added
     :data:`CREDI_YEAR_END_RE` so the layout now extracts.
@@ -159,10 +159,10 @@ def test_credit_card_year_end_summary_extracts():
     # Phase 10.1b main contract: the file MUST extract ≥ 200
     # transactions (down from the previous Phase 10 contract of
     # forced 0). An empty list here means the auto-reject slipped
-    # back in OR the regex doesn't match the BofA layout — both
+    # back in OR the regex doesn't match the synthetic layout — both
     # regressions must be caught loudly.
     assert len(recs) >= 200, (
-        f"BofA year-end summary should extract ≥ 200 transactions; "
+        f"synthetic year-end summary should extract ≥ 200 transactions; "
         f"got {len(recs)}. Check that _YEAR_END_RE auto-reject was "
         f"removed AND CREDI_YEAR_END_RE is wired into "
         f"extract_pdf_transactions."
@@ -192,20 +192,19 @@ def test_credit_card_year_end_summary_extracts():
     # negative record means the CR-suffix branch regressed.
     cr_rows = [r for r in recs if r["amount"] < 0]
     assert len(cr_rows) >= 10, (
-        f"expected ≥ 10 credit/refund rows (the Credi file ships "
+        f"expected ≥ 10 credit/refund rows (the synthetic fixture ships "
         f"several ``<amount>CR`` lines per category page); got "
         f"{len(cr_rows)} negatives"
     )
 
 
 def test_fidelity_401k_extracts_period_rollups():
-    """Phase 10.1c — Fidelity NetBenefits ``Statement Details`` PDF
-    MUST extract the per-quarter ``Account Activity By Fund``
-    pivot-table period totals as real transactions instead of
-    returning 0 (the original "preview-only" contract was wrong —
-    the user's two screenshots showed "0 transactions saved" for
-    this exact PDF, and the file ships 3 quarter-level cash-flow
-    rows the user explicitly wants tracked).
+    """Phase 10.1c — the synthetic retirement ``Statement Details`` PDF
+    MUST extract the per-quarter ``Account Activity By Fund`` pivot-table
+    period totals as representative transactions instead of returning 0.
+
+    The fixture deliberately provides three generated quarter-level cash-flow
+    rows to preserve this parser contract without private statement data.
 
     Locks the new contract:
 
@@ -227,9 +226,8 @@ def test_fidelity_401k_extracts_period_rollups():
        consumer (UI + CSV export) can flag this as synthesized
        period-level data, not per-paycheck line items.
     6. The ``_YEAR_END_RE`` reject DOES NOT fire on this file
-       (Fidelity statements include ``Year-to-Date`` columns
-       legitimately; the regex must not false-positive on
-       them).
+       (the synthetic retirement layout includes ``Year-to-Date`` columns;
+       the regex must not false-positive on them).
     7. Page 1's prose ``Employee Contributions $9,988.62`` /
        ``Employer Contributions $8,739.88`` / ``Dividends
        $1,906.90`` lines are NOT extracted (the section gate
@@ -265,7 +263,7 @@ def test_fidelity_401k_extracts_period_rollups():
     for expected in (9_988.62, 8_739.88, 1_906.90):
         assert expected in amount_set, (
             f"missing period total {expected} from the "
-            f"Fidelity 401k rollup; got {sorted(amount_set)}"
+            f"synthetic retirement rollup; got {sorted(amount_set)}"
         )
 
     # Sign convention: contributions + dividends are all POSITIVE
@@ -303,12 +301,12 @@ def test_fidelity_401k_extracts_period_rollups():
         f"{recs[0]['description']!r}"
     )
 
-    # Year-end reject stays out of Fidelity's ``Year-to-Date``
+    # Year-end reject stays out of the synthetic layout's ``Year-to-Date``
     # columns (the ant-false-positive contract).
     assert _YEAR_END_RE.search("Year-to-Date") is None
 
-    # Phase 34 — the 401k warning message should explain that Fidelity
-    # 401k PDFs provide period summaries, not individual transactions.
+    # Phase 34 — the 401k warning message should explain that synthetic
+    # retirement PDFs provide period summaries, not individual transactions.
     from app.services.import_parser import parse_uploaded_statement
     from fastapi import UploadFile
     import io
@@ -351,7 +349,7 @@ def test_fidelity_401k_section_state_transitions():
     ) is not None  # whitespace-tolerant
 
     # Negative: prose sections that look similar but aren't the
-    # NetBenefits pivot table.
+    # synthetic retirement pivot table.
     assert _FIDELITY_401K_ACTIVITY_HEADER_RE.match(
         "Your Account Summary"
     ) is None
@@ -421,10 +419,10 @@ def test_fidelity_401k_section_state_transitions():
 
 
 def test_individual_statement_pdf_preview_returns_pdf_record_count():
-    """Fidelity brokerage statement — the Phase 10.1 fix added
+    """Synthetic brokerage statement — the Phase 10.1 fix added
     :data:`FIDELITY_GENERAL_RE` + :data:`FIDELITY_TWO_DATE_RE` plus
     statement-year harvesting and continuation-line support, so the
-    brokerage statement's per-section activity lines now extract real
+    brokerage statement's per-section activity lines now extract representative
     transactions instead of returning 0.
 
     Locks:
@@ -433,13 +431,11 @@ def test_individual_statement_pdf_preview_returns_pdf_record_count():
        statement (Securities Bought/Sold + Dividends + Deposits +
        Taxes Withheld + Core Fund Activity + HSA sections + Debit
        Card).
-    2. Spot-check that some well-known rows land on the asserted
-       amounts/dates — page 8 page's ``ALPHABET INC CAP STK CL A
-       (You Bought)`` for ``-$199.84``, page 9's NVIDIA dividend for
-       ``+$1.59``, page 19's debit-card ``WWW.PROVID* PROVIDENCE`` for
-       ``-$50.00``.
-    3. CUSIPs (``02079K305``, ``78462F103``, ``46625H100``) MUST NOT
-       leak into descriptions — they're stripped by the canonical
+    2. Spot-check that representative synthetic rows land on asserted
+       amounts/dates: an equity purchase, dividend, and reserved-example
+       domain debit-card transaction.
+    3. CUSIP-shaped identifiers MUST NOT leak into descriptions — they're
+       stripped by the canonical
        9-char ``\\d{6}[A-Z0-9]{2}\\d`` shape in
        :func:`_extract_fidelity_security`.
     4. The statement-year MUST be harvested from the ``April 1, 2026
@@ -455,7 +451,7 @@ def test_individual_statement_pdf_preview_returns_pdf_record_count():
     assert pre["file_type"] == "pdf"
     assert pre["record_count"] > 0  # text IS extracted
     assert isinstance(recs, list)
-    # Lock the real extraction contract — was 0 before the Phase 10.1
+    # Lock the representative extraction contract — was 0 before the Phase 10.1
     # fix; now ≥ 60 because Securities, Dividends, Deposits, Core
     # Fund Activity, HSA activity, and Debit Card all surface.
     assert len(recs) >= 60, (
@@ -504,12 +500,8 @@ def test_individual_statement_pdf_preview_returns_pdf_record_count():
     #   parser prepends ``statement_year=2026`` (harvested from the
     #   page-6 ``April 1, 2026 - April 30, 2026`` header) so these
     #   land in 2026.
-    # - The Bond & CD section (page 12) emits full ``MM/DD/YYYY``
-    #   with the user's actual lot-purchase dates, including
-    #   PRIOR-YEAR rows (``02/21/2024 18RUT24G``,
-    #   ``02/18/2025 18RUT25G``). These dates are LEGITIMATE history
-    #   of the user's bond purchases and MUST be preserved verbatim
-    #   — they would otherwise be silently overwritten to 2026.
+    # - Synthetic full-date rows may preserve earlier fixture years. Those
+    #   deterministic dates must not be silently overwritten to 2026.
     #
     # The year assertion therefore blocks ONLY future-dated records
     # (year > 2026), which catches the regressions that actually
@@ -519,8 +511,8 @@ def test_individual_statement_pdf_preview_returns_pdf_record_count():
     #   - off-by-one rollovers from a mis-incremented year.
     #
     # Prior versions of this assert used ``year != 2026`` — that was
-    # too strict and would fire on the genuine 2024/2025 bond rows
-    # above. The relaxed ``year > 2026`` captures only future-dated
+    # too strict and would fire on the synthetic prior-year rows above.
+    # The relaxed ``year > 2026`` captures only future-dated
     # exceptions. DO NOT tighten back without a separate bond-row
     # registry lock.
     future_year = [r for r in recs if r["transaction_date"].year > 2026]
@@ -542,7 +534,7 @@ def test_inline_table_header_skip():
 
     Locks the positive case (skip these headers) AND a negative case
     (do NOT skip a transaction row that only mentions one of those
-    words incidentally — e.g. ``ALPHABET INC … Reinvestment …``).
+    words incidentally — e.g. ``ATLAS TEST EQUITY … Reinvestment …``).
     """
     from app.services.import_parser import _INLINE_TABLE_HEADER_RE
 
@@ -567,13 +559,13 @@ def test_inline_table_header_skip():
 
 def test_year_end_marker_never_false_positives_on_year_to_date():
     """Phase 10's year-end reject regex MUST NOT flag legitimate
-    "year-to-date" markers that appear in quarterly Fidelity statements.
+    "year-to-date" markers that appear in synthetic quarterly layouts.
     Lock the anti-false-positive contract directly on the regex.
     """
     from app.services.import_parser import _YEAR_END_RE
 
     assert _YEAR_END_RE.search("Year-to-Date") is None, (
-        "year-to-date text in a Fidelity quarterly statement must not "
+        "year-to-date text in a synthetic quarterly layout must not "
         "trigger the year-end reject"
     )
     assert _YEAR_END_RE.search("YTD Performance") is None
@@ -587,8 +579,8 @@ def test_year_end_marker_never_false_positives_on_year_to_date():
 def test_csv_summary_skip_returns_zero_for_csv_without_register_header():
     """If a CSV has no register header in the first 50 rows, the
     :func:`_find_csv_header_index` helper MUST gracefully return 0
-    (no skiprows) so the legacy path runs unchanged. The user's
-    "Missing: date, amount" 400 still surfaces; we don't silently mask
+    (no skiprows) so the fallback path runs unchanged. The
+    "Missing: date, amount" validation error still surfaces; we don't silently mask
     it with a 0-count preview.
     """
     from app.services.import_parser import _find_csv_header_index
