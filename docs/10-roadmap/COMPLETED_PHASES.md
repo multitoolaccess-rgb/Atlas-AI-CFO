@@ -8,9 +8,9 @@ criteria are complete.
 - Completion date: 2026-07-26
 - Final commit: `d001e646c6e2cf0b91b5b6866d047ed1271f6c70`
 - Merged PRs: #1 synthetic financial fixtures and clean-runner CI
-- Test evidence: Rules Service `579 passed, 10 skipped, 1 xfailed`; Finlynq
-  `93 passed`; frontend `496 passed`; TypeScript check passed; Phase 0
-  projection tests `13 passed`; cross-service tests `4 passed`.
+- Test evidence: hosted CI green; Rules Service `579 passed, 10 skipped, 1
+  xfailed`; Finlynq `93 passed`; frontend `496 passed`; TypeScript check
+  passed.
 - ADRs: ADR-005
 - Known limitations: repository-wide frontend lint debt, deferred Monte Carlo
   model, transitional tenancy, and legacy product terminology remain tracked.

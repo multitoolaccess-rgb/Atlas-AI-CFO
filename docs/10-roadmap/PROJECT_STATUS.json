@@ -22,12 +22,11 @@
     {"id": "phase-4", "name": "Decision journal", "status": "not_started", "exit_criteria": [{"id": "ec-p4-decision-history", "description": "Decision history, alternatives, outcomes, permissions, auditability, and recovery are tested.", "complete": false}]}
   ],
   "completed_work": [
-    {"id": "work-p0-projection-foundation", "title": "Phase 0 projection foundation", "status": "complete", "phase_id": "phase-0", "commit": "c73fbcd", "pr": null, "tests": ["13 projection tests", "shared fixtures", "TypeScript parity"]},
-    {"id": "work-p0-atlas-migration", "title": "Safe Atlas import and publication", "status": "complete", "phase_id": "phase-0", "commit": "c0f5287", "pr": null, "tests": ["migration safety scan", "baseline validation"]},
+    {"id": "work-p0-atlas-baseline", "title": "Atlas baseline from validated Finance Copilot foundation", "status": "complete", "phase_id": "phase-0", "commit": "c0f5287", "pr": null, "tests": ["verified repository baseline"]},
     {"id": "work-p0-environment-isolation", "title": "Isolated service Python environments", "status": "complete", "phase_id": "phase-0", "commit": "8baa1c2", "pr": null, "tests": ["Rules Service suite", "Finlynq suite"]},
     {"id": "work-p0-synthetic-fixtures", "title": "Approved synthetic financial fixtures", "status": "complete", "phase_id": "phase-0", "commit": "d001e64", "pr": "#1", "tests": ["Rules 579 passed, 10 skipped, 1 xfailed", "Finlynq 93 passed", "frontend 496 passed", "CI green"]}
   ],
-  "commit_pr_evidence": [{"commit": "c73fbcd", "description": "Authoritative imported Phase 0 source state"}, {"commit": "c0f5287", "description": "Atlas baseline initialization"}, {"commit": "8baa1c2", "description": "Service environment isolation"}, {"commit": "d001e64", "pr": "#1", "description": "Merged synthetic fixtures and CI"}],
-  "test_evidence": [{"id": "test-p0-projections", "result": "13 passed", "scope": "Phase 0 projections"}, {"id": "test-p0-rules", "result": "579 passed, 10 skipped, 1 xfailed", "scope": "Rules Service CI"}, {"id": "test-p0-finlynq", "result": "93 passed", "scope": "Finlynq CI"}, {"id": "test-p0-frontend", "result": "496 passed; typecheck passed", "scope": "Frontend CI"}, {"id": "test-p0-cross-service", "result": "4 passed", "scope": "Cross-service"}],
+  "commit_pr_evidence": [{"commit": "c0f5287", "description": "Atlas baseline initialization from the validated Finance Copilot foundation"}, {"commit": "8baa1c2", "description": "Service environment isolation"}, {"commit": "d001e64", "pr": "#1", "description": "Merged synthetic fixture restoration"}],
+  "test_evidence": [{"id": "test-p0-rules", "result": "579 passed, 10 skipped, 1 xfailed", "scope": "Rules Service"}, {"id": "test-p0-finlynq", "result": "93 passed", "scope": "Finlynq"}, {"id": "test-p0-frontend", "result": "496 passed", "scope": "Frontend"}, {"id": "test-p0-typescript", "result": "passed", "scope": "TypeScript check"}],
   "next_bounded_task": {"id": "next-phase-1-authorization", "description": "Review and explicitly authorize a bounded Phase 1 forecast-persistence planning task; do not implement Phase 1 automatically.", "phase_id": "phase-1"}
 }

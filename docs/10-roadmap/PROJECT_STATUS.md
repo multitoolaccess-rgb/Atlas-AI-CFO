@@ -29,21 +29,18 @@
 - risk-service-dependency-separation [high/high, mitigated]: Rules Service and Finlynq require separate FastAPI-pinned environments.
 
 ## Recently completed work
-- work-p0-projection-foundation: Phase 0 projection foundation — commit c73fbcd, PR None
-- work-p0-atlas-migration: Safe Atlas import and publication — commit c0f5287, PR None
+- work-p0-atlas-baseline: Atlas baseline from validated Finance Copilot foundation — commit c0f5287, PR None
 - work-p0-environment-isolation: Isolated service Python environments — commit 8baa1c2, PR None
 - work-p0-synthetic-fixtures: Approved synthetic financial fixtures — commit d001e64, PR #1
 
 ## Evidence
-- c73fbcd: Authoritative imported Phase 0 source state
-- c0f5287: Atlas baseline initialization
+- c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
 - 8baa1c2: Service environment isolation
-- d001e64: Merged synthetic fixtures and CI #1
-- Test test-p0-projections: Phase 0 projections — 13 passed
-- Test test-p0-rules: Rules Service CI — 579 passed, 10 skipped, 1 xfailed
-- Test test-p0-finlynq: Finlynq CI — 93 passed
-- Test test-p0-frontend: Frontend CI — 496 passed; typecheck passed
-- Test test-p0-cross-service: Cross-service — 4 passed
+- d001e64: Merged synthetic fixture restoration #1
+- Test test-p0-rules: Rules Service — 579 passed, 10 skipped, 1 xfailed
+- Test test-p0-finlynq: Finlynq — 93 passed
+- Test test-p0-frontend: Frontend — 496 passed
+- Test test-p0-typescript: TypeScript check — passed
 
 ## Next bounded task
 - next-phase-1-authorization: Review and explicitly authorize a bounded Phase 1 forecast-persistence planning task; do not implement Phase 1 automatically.
