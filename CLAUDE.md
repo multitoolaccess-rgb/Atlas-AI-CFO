@@ -17,3 +17,5 @@ Read `docs/00-product-vision/ATLAS_MASTER_PRODUCT_SPEC.md` first, then the relev
    Finance Copilot `.venv`; see `docs/07-engineering/LOCAL_PYTHON_ENVIRONMENTS.md`.
 
 Before implementation, identify affected documents and acceptance criteria. After implementation, report tests, assumptions, risks, and unresolved decisions.
+
+Use the project-local `atlas-project-tracker` skill for governed delivery work; see `docs/10-roadmap/PROJECT_STATUS.json` for current status.

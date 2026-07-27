@@ -1,0 +1,4 @@
+interface:
+  display_name: "Atlas Project Tracker"
+  short_description: "Track Atlas phase delivery evidence"
+  default_prompt: "Use $atlas-project-tracker to update Atlas project status for this scoped task."

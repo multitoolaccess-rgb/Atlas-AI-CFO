@@ -72,6 +72,10 @@ Thumbs.db
 
 # Local agent/tool state from migration sources
 .agents/
+!.agents/
+!.agents/skills/
+!.agents/skills/atlas-project-tracker/
+!.agents/skills/atlas-project-tracker/**
 .claude/
 .codex/
 graphify-out/cache/
