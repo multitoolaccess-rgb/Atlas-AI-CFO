@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0.0",
+  "last_updated": "2026-07-26T21:27:28Z",
+  "current_phase_id": "phase-1",
+  "overall_status": "planned",
+  "current_objective": "Maintain the validated Atlas foundation; Phase 1 has not started.",
+  "active_work": [],
+  "blockers": [],
+  "risks": [
+    {"id": "risk-frontend-lint-debt", "description": "Repository-wide frontend lint debt remains outside Phase 0 scope.", "severity": "medium", "likelihood": "high", "mitigation": "Keep targeted lint and CI checks; schedule bounded cleanup separately.", "owner": "engineering", "status": "open", "related": "CI and import report"},
+    {"id": "risk-monte-carlo-deferred", "description": "Monte Carlo probability model is intentionally deferred.", "severity": "medium", "likelihood": "medium", "mitigation": "Preserve deterministic projections; authorize probability work separately.", "owner": "product-architecture", "status": "open", "related": "ADR-005"},
+    {"id": "risk-transitional-tenancy", "description": "User-scoped tenancy remains transitional.", "severity": "high", "likelihood": "medium", "mitigation": "Require authorization and isolation tests before expansion.", "owner": "security", "status": "open", "related": "architecture/security docs"},
+    {"id": "risk-legacy-product-names", "description": "Legacy Finance Copilot, WealthIQ, CashFlix, and Finlynq names remain.", "severity": "low", "likelihood": "high", "mitigation": "Track bounded terminology cleanup; avoid broad rename during delivery work.", "owner": "engineering", "status": "open", "related": "import report"},
+    {"id": "risk-fixture-compatibility-names", "description": "Synthetic fixture directories retain compatibility-oriented names.", "severity": "low", "likelihood": "medium", "mitigation": "Keep synthetic labels and manifest; rename only in a dedicated compatibility change.", "owner": "quality", "status": "open", "related": "PR #1"},
+    {"id": "risk-service-dependency-separation", "description": "Rules Service and Finlynq require separate FastAPI-pinned environments.", "severity": "high", "likelihood": "high", "mitigation": "Use isolated environments and provision both in CI.", "owner": "engineering", "status": "mitigated", "related": "8baa1c2, PR #1"}
+  ],
+  "phases": [
+    {"id": "phase-0", "name": "Projection foundation and Atlas baseline", "status": "complete", "exit_criteria": [{"id": "ec-p0-projections", "description": "ADR-005, Decimal projection authority, fixtures, parity documentation, and tests are complete.", "complete": true}, {"id": "ec-p0-migration", "description": "Finance Copilot foundation was safely imported, Atlas was published, and source protection was maintained.", "complete": true}, {"id": "ec-p0-environments", "description": "Rules Service and Finlynq use isolated Python 3.12 environments with matching CI setup.", "complete": true}, {"id": "ec-p0-fixtures", "description": "Synthetic statement fixtures were reviewed, merged, and validated in CI.", "complete": true}]},
+    {"id": "phase-1", "name": "Forecast persistence", "status": "not_started", "exit_criteria": [{"id": "ec-p1-versioned-forecasts", "description": "Versioned persisted forecasts and migrations are authorized and complete.", "complete": false}, {"id": "ec-p1-safety", "description": "Authorization, audit evidence, tests, and rollback path are complete.", "complete": false}]},
+    {"id": "phase-2", "name": "Forecast UI migration", "status": "not_started", "exit_criteria": [{"id": "ec-p2-persisted-ui", "description": "UI uses persisted forecasts with explainability, accessibility, and parity coverage.", "complete": false}]},
+    {"id": "phase-3", "name": "Goal-linked recommendations", "status": "not_started", "exit_criteria": [{"id": "ec-p3-recommendation-contract", "description": "Recommendations link goals, evidence, risks, confidence, approvals, and evaluation.", "complete": false}]},
+    {"id": "phase-4", "name": "Decision journal", "status": "not_started", "exit_criteria": [{"id": "ec-p4-decision-history", "description": "Decision history, alternatives, outcomes, permissions, auditability, and recovery are tested.", "complete": false}]}
+  ],
+  "completed_work": [
+    {"id": "work-p0-projection-foundation", "title": "Phase 0 projection foundation", "status": "complete", "phase_id": "phase-0", "commit": "c73fbcd", "pr": null, "tests": ["13 projection tests", "shared fixtures", "TypeScript parity"]},
+    {"id": "work-p0-atlas-migration", "title": "Safe Atlas import and publication", "status": "complete", "phase_id": "phase-0", "commit": "c0f5287", "pr": null, "tests": ["migration safety scan", "baseline validation"]},
+    {"id": "work-p0-environment-isolation", "title": "Isolated service Python environments", "status": "complete", "phase_id": "phase-0", "commit": "8baa1c2", "pr": null, "tests": ["Rules Service suite", "Finlynq suite"]},
+    {"id": "work-p0-synthetic-fixtures", "title": "Approved synthetic financial fixtures", "status": "complete", "phase_id": "phase-0", "commit": "d001e64", "pr": "#1", "tests": ["Rules 579 passed, 10 skipped, 1 xfailed", "Finlynq 93 passed", "frontend 496 passed", "CI green"]}
+  ],
+  "commit_pr_evidence": [{"commit": "c73fbcd", "description": "Authoritative imported Phase 0 source state"}, {"commit": "c0f5287", "description": "Atlas baseline initialization"}, {"commit": "8baa1c2", "description": "Service environment isolation"}, {"commit": "d001e64", "pr": "#1", "description": "Merged synthetic fixtures and CI"}],
+  "test_evidence": [{"id": "test-p0-projections", "result": "13 passed", "scope": "Phase 0 projections"}, {"id": "test-p0-rules", "result": "579 passed, 10 skipped, 1 xfailed", "scope": "Rules Service CI"}, {"id": "test-p0-finlynq", "result": "93 passed", "scope": "Finlynq CI"}, {"id": "test-p0-frontend", "result": "496 passed; typecheck passed", "scope": "Frontend CI"}, {"id": "test-p0-cross-service", "result": "4 passed", "scope": "Cross-service"}],
+  "next_bounded_task": {"id": "next-phase-1-authorization", "description": "Review and explicitly authorize a bounded Phase 1 forecast-persistence planning task; do not implement Phase 1 automatically.", "phase_id": "phase-1"}
+}

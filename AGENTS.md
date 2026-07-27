@@ -12,6 +12,8 @@ All human and AI contributors follow the product constitution and security model
 
 ## Change discipline
 
+For every implementation, migration, test-restoration, security, architecture, or phase task, use the project-local `atlas-project-tracker` skill. Run its start workflow before changes and completion workflow before committing. Documentation-only typo fixes and read-only reviews may use its check workflow only.
+
 - Keep changes scoped and reversible.
 - Do not bypass financial validation or approval gates.
 - Preserve history and data provenance.

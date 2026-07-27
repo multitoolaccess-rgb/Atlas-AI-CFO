@@ -1,0 +1,25 @@
+name: project-governance
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test project status utility
+        run: python3 -m unittest tests/test_atlas_project_status.py
+      - name: Validate project status
+        run: python3 scripts/atlas_project_status.py check
+      - name: Detect generated status drift
+        run: python3 scripts/atlas_project_status.py render --check
