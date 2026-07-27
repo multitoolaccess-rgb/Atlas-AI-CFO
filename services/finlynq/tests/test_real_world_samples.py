@@ -70,9 +70,9 @@ def test_checking_stmt_csv_skips_summary_section_and_preserves_parity():
     """
     from app.services.import_parser import parse_csv_file, parse_csv_transactions
 
-    body = (FIXTURES / "checking_stmt.csv").read_bytes()
-    pre = parse_csv_file(_upload("checking_stmt.csv", body))
-    recs = parse_csv_transactions(_upload("checking_stmt.csv", body))
+    body = (FIXTURES / "atlas_test_checking.csv").read_bytes()
+    pre = parse_csv_file(_upload("atlas_test_checking.csv", body))
+    recs = parse_csv_transactions(_upload("atlas_test_checking.csv", body))
 
     # Phase 9 preview/persist parity.
     assert pre["file_type"] == "csv"
@@ -98,9 +98,9 @@ def test_savings_stmt_csv_split_amount_parses_via_credit_debit_pair():
     """
     from app.services.import_parser import parse_csv_file, parse_csv_transactions
 
-    body = (FIXTURES / "savings_stmt.csv").read_bytes()
-    pre = parse_csv_file(_upload("savings_stmt.csv", body))
-    recs = parse_csv_transactions(_upload("savings_stmt.csv", body))
+    body = (FIXTURES / "atlas_test_savings.csv").read_bytes()
+    pre = parse_csv_file(_upload("atlas_test_savings.csv", body))
+    recs = parse_csv_transactions(_upload("atlas_test_savings.csv", body))
 
     assert pre["file_type"] == "csv"
     assert pre["record_count"] == len(recs)
@@ -131,12 +131,13 @@ def test_credit_card_year_end_summary_extracts():
       regression).
     - saved_transactions >= 200 (the Credi file ships 200+ dated
       rows across 8 category pages).
-    - The ``99.50CR`` / ``27.81CR`` credit/refund suffix flips the
+    - The ``321.09CR`` / ``654.32CR`` credit/refund suffix flips the
       amount to a NEGATIVE value so refunds surface as outflow
       reductions (matches credit-card sign convention where sales
       are + and credits are -).
-    - Spot-checked signed synthetic amounts (``1.00``, ``2.00``,
-      ``99.50`` -> -99.50, ``5.00``) are present in the persist path —
+    - Spot-checked signed synthetic amounts (``1,234.56``,
+      ``2,345.67``, ``456.78``, ``321.09`` -> -321.09) are present in
+      the persist path —
       catches a regex-quantifier or amount-token regression.
     - Calibration: the running total MUST match a well-known
       sub-category sum (e.g. ``$3,479.96`` for the page-3 Food
@@ -148,9 +149,9 @@ def test_credit_card_year_end_summary_extracts():
 
     # Two distinct calls so we mirror the route's preview/persist
     # split (parity assertion below).
-    body = (FIXTURES / "credi_YearEndSummary_2026.pdf").read_bytes()
-    pre = parse_pdf_file(_upload("credi_YearEndSummary_2026.pdf", body))
-    recs = parse_pdf_transactions(_upload("credi_YearEndSummary_2026.pdf", body))
+    body = (FIXTURES / "atlas_test_credit_year_end_2026.pdf").read_bytes()
+    pre = parse_pdf_file(_upload("atlas_test_credit_year_end_2026.pdf", body))
+    recs = parse_pdf_transactions(_upload("atlas_test_credit_year_end_2026.pdf", body))
 
     assert pre["file_type"] == "pdf"
     assert pre["record_count"] > 0  # text DID render to preview
@@ -169,7 +170,7 @@ def test_credit_card_year_end_summary_extracts():
 
     # Spot-check signed amounts (positive purchases).
     amounts_two_dec = sorted({round(r["amount"], 2) for r in recs})
-    for expected in (1.00, 2.00, 5.00, 99.50, 27.81):
+    for expected in (1_234.56, 2_345.67, 456.78, 321.09, 654.32):
         # We check both signs because some references appear as a
         # purchase AND an inverse credit/refund in the same file.
         assert expected in amounts_two_dec or -expected in amounts_two_dec, (
@@ -177,9 +178,17 @@ def test_credit_card_year_end_summary_extracts():
             f"{[round(r['amount'], 2) for r in recs[:5]]}"
         )
 
+    # The previous malformed synthetic layout produced these trivial values
+    # by matching transaction identifiers instead of currency amounts. Keep
+    # this explicit regression guard alongside the nontrivial assertions.
+    assert not {1.00, 2.00, 5.00}.issubset(amounts_two_dec), (
+        f"parser captured transaction identifiers instead of currency: "
+        f"{amounts_two_dec[:10]}"
+    )
+
     # Spot-check sign-flip for ``CR`` rows: refunds MUST be
-    # negative. A row with raw amount ``99.50`` and CR suffix MUST
-    # land as ``-99.50`` in the persist path; the absence of any
+    # negative. A row with raw amount ``321.09`` and CR suffix MUST
+    # land as ``-321.09`` in the persist path; the absence of any
     # negative record means the CR-suffix branch regressed.
     cr_rows = [r for r in recs if r["amount"] < 0]
     assert len(cr_rows) >= 10, (
@@ -233,14 +242,12 @@ def test_fidelity_401k_extracts_period_rollups():
         parse_pdf_transactions,
     )
 
-    body = (
-        FIXTURES / "Fidelity NetBenefits - Statement Details.pdf"
-    ).read_bytes()
+    body = (FIXTURES / "atlas_test_retirement_statement.pdf").read_bytes()
     pre = parse_pdf_file(_upload(
-        "Fidelity NetBenefits - Statement Details.pdf", body,
+        "atlas_test_retirement_statement.pdf", body,
     ))
     recs = parse_pdf_transactions(_upload(
-        "Fidelity NetBenefits - Statement Details.pdf", body,
+        "atlas_test_retirement_statement.pdf", body,
     ))
 
     assert pre["file_type"] == "pdf"
@@ -306,10 +313,10 @@ def test_fidelity_401k_extracts_period_rollups():
     from fastapi import UploadFile
     import io
     body2 = (
-        FIXTURES / "Fidelity NetBenefits - Statement Details.pdf"
+        FIXTURES / "atlas_test_retirement_statement.pdf"
     ).read_bytes()
     result = parse_uploaded_statement(UploadFile(
-        filename="Fidelity NetBenefits - Statement Details.pdf",
+        filename="atlas_test_retirement_statement.pdf",
         file=io.BytesIO(body2),
     ))
     warnings = result.get("warnings", [])
@@ -441,9 +448,9 @@ def test_individual_statement_pdf_preview_returns_pdf_record_count():
     """
     from app.services.import_parser import parse_pdf_file, parse_pdf_transactions
 
-    body = (FIXTURES / "individual_Statement4302026.pdf").read_bytes()
-    pre = parse_pdf_file(_upload("individual_Statement4302026.pdf", body))
-    recs = parse_pdf_transactions(_upload("individual_Statement4302026.pdf", body))
+    body = (FIXTURES / "atlas_test_brokerage_statement.pdf").read_bytes()
+    pre = parse_pdf_file(_upload("atlas_test_brokerage_statement.pdf", body))
+    recs = parse_pdf_transactions(_upload("atlas_test_brokerage_statement.pdf", body))
 
     assert pre["file_type"] == "pdf"
     assert pre["record_count"] > 0  # text IS extracted
@@ -457,26 +464,26 @@ def test_individual_statement_pdf_preview_returns_pdf_record_count():
 
     # Spot-check known transactions.
     by_desc = {round(r["amount"], 2): r["description"] for r in recs}
-    # Page 8: 04/08 ALPHABET INC CAP STK CL A — purchased for -$199.84
+    # Synthetic equity purchase remains a representative brokerage row.
     assert any(
         -199.84 == round(r["amount"], 2)
-        and "ALPHABET" in r["description"].upper()
+        and "ATLAS TEST EQUITY A" in r["description"].upper()
         and "(YOU BOUGHT)" in r["description"].upper()
         for r in recs
-    ), f"missing -199.84 Alphabet You Bought; got {[r['amount'] for r in recs[:5]]}"
-    # Page 9: 04/01 NVIDIA CORPORATION COM — Dividend Received for +$1.59
+    ), f"missing -199.84 Atlas Test Equity A purchase; got {[r['amount'] for r in recs[:5]]}"
+    # Synthetic dividend row remains a representative brokerage row.
     assert any(
         1.59 == round(r["amount"], 2)
-        and "NVIDIA" in r["description"].upper()
+        and "ATLAS TEST EQUITY B" in r["description"].upper()
         and "DIVIDEND RECEIVED" in r["description"].upper()
         for r in recs
-    ), "missing +$1.59 NVIDIA Dividend Received"
-    # Page 19: 04/09 04/09 WWW.PROVID* PROVIDENCE — debit card -$50.00
+    ), "missing +$1.59 Atlas Test Equity B dividend"
+    # Reserved-example-domain debit-card row.
     assert any(
         -50.00 == round(r["amount"], 2)
-        and "PROVID" in r["description"].upper()
+        and "MERCHANT.EXAMPLE" in r["description"].upper()
         for r in recs
-    ), "missing -$50.00 debit card transaction on page 19"
+    ), "missing -$50.00 merchant.example debit-card transaction"
 
     # CUSIP quality. The 9-char canonical CUSIP shape MUST NOT
     # surface in the persist-path descriptions.
@@ -551,7 +558,7 @@ def test_inline_table_header_skip():
     # Negative case — transaction rows mentioning ONE column word
     # but not two MUST NOT be mis-classified as a header.
     assert _INLINE_TABLE_HEADER_RE.search(
-        "ALPHABET INC CAP STK CL A You Bought 0.658 $303.71500 - -$199.84"
+        "ATLAS TEST EQUITY A You Bought 0.658 $303.71500 - -$199.84"
     ) is None
     # And the bare ``Quantity`` header (single-word) isn't skipped
     # by the inline detector — that path is the SECTION_HEADER_RE's job.

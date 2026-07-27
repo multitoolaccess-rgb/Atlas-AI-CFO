@@ -3,40 +3,9 @@
     {
       "format": "pdf",
       "institution": "Atlas Test Bank",
-      "path": "services/finlynq/tests/fixtures/sample_statements/Fidelity NetBenefits - Statement Details.pdf",
+      "path": "services/finlynq/tests/fixtures/sample_statements/atlas_test_brokerage_statement.pdf",
       "person": "Test Household Alpha",
-      "sha256": "0a499f624cf7fecb7d21478c01e93c9207bf4b2b424f583d89905b78543ba98a",
-      "tests": [
-        "Finlynq 401k period rollup extraction"
-      ]
-    },
-    {
-      "format": "csv",
-      "institution": "Atlas Test Bank",
-      "path": "services/finlynq/tests/fixtures/sample_statements/checking_stmt.csv",
-      "person": "Test Household Alpha",
-      "sha256": "da073a7adc4242e97ef2d87e96d09ade85961704cc49b90897adb10724f7e25c",
-      "tests": [
-        "Rules CSV import, categorizer, finance-query integration",
-        "Finlynq summary-preamble parity"
-      ]
-    },
-    {
-      "format": "pdf",
-      "institution": "Atlas Test Bank",
-      "path": "services/finlynq/tests/fixtures/sample_statements/credi_YearEndSummary_2026.pdf",
-      "person": "Test Household Alpha",
-      "sha256": "013c6a8751fc36d556124762578dea699d1bf22ea1c7dd3a4dea65c5d9be993b",
-      "tests": [
-        "Finlynq Credi text-layer PDF extraction"
-      ]
-    },
-    {
-      "format": "pdf",
-      "institution": "Atlas Test Bank",
-      "path": "services/finlynq/tests/fixtures/sample_statements/individual_Statement4302026.pdf",
-      "person": "Test Household Alpha",
-      "sha256": "96470bc6d9a8ef80bf58b64abdd2c8197bbf274c1135d21a37ec98fcd32fc40b",
+      "sha256": "bb0cd643ad39f200fd06788ba1f3f80a0f83220d4dae5ae682073c2c451acf38",
       "tests": [
         "Finlynq brokerage text-layer extraction"
       ]
@@ -44,38 +13,107 @@
     {
       "format": "csv",
       "institution": "Atlas Test Bank",
-      "path": "services/finlynq/tests/fixtures/sample_statements/savings_stmt.csv",
+      "path": "services/finlynq/tests/fixtures/sample_statements/atlas_test_checking.csv",
+      "person": "Test Household Alpha",
+      "sha256": "9500e0278dcf1f256713ae89aa06705bf94fa9cc7d813a1bb26a25ae4f4547ec",
+      "tests": [
+        "Finlynq summary-preamble parity"
+      ]
+    },
+    {
+      "format": "pdf",
+      "institution": "Atlas Test Bank",
+      "path": "services/finlynq/tests/fixtures/sample_statements/atlas_test_credit_year_end_2026.pdf",
+      "person": "Test Household Alpha",
+      "sha256": "7f5981470377f7bd1d52ae38efa1a5788e79a3bed1d2ced29a56f40eefec4e81",
+      "tests": [
+        "Finlynq synthetic credit year-end PDF extraction"
+      ]
+    },
+    {
+      "format": "pdf",
+      "institution": "Atlas Test Bank",
+      "path": "services/finlynq/tests/fixtures/sample_statements/atlas_test_retirement_statement.pdf",
+      "person": "Test Household Alpha",
+      "sha256": "0a499f624cf7fecb7d21478c01e93c9207bf4b2b424f583d89905b78543ba98a",
+      "tests": [
+        "Finlynq retirement period rollup extraction"
+      ]
+    },
+    {
+      "format": "csv",
+      "institution": "Atlas Test Bank",
+      "path": "services/finlynq/tests/fixtures/sample_statements/atlas_test_savings.csv",
       "person": "Test Household Alpha",
       "sha256": "de364847d360c628130584a6a7f800deac882202b7f123c61fdd31fae392596a",
       "tests": [
-        "Rules finance-query integration",
         "Finlynq split debit/credit parsing"
       ]
     },
     {
       "format": "csv",
       "institution": "Atlas Test Bank",
-      "path": "services/finlynq/tests/fixtures/sample_statements_real/bofa_checking_stmt.csv",
+      "path": "services/finlynq/tests/fixtures/sample_statements_synthetic/atlas_test_brokerage_activity.csv",
       "person": "Test Household Alpha",
-      "sha256": "fc7962e8c0783ea4dfbff4c779a570b1405c55d8e2a7c9a1cd59c687e4ec04ec",
+      "sha256": "ae45207e620ca1e181f13196f470bb49994568fc954e65b56d6cd93b9f3fed20",
       "tests": [
-        "Finlynq top-summary suppression"
+        "Finlynq wide activity CSV structural contract"
       ]
     },
     {
       "format": "pdf",
       "institution": "Atlas Test Bank",
-      "path": "services/finlynq/tests/fixtures/sample_statements_real/bofa_credi_YearEndSummary_2026.pdf",
+      "path": "services/finlynq/tests/fixtures/sample_statements_synthetic/atlas_test_credit_year_end_copy.pdf",
       "person": "Test Household Alpha",
-      "sha256": "013c6a8751fc36d556124762578dea699d1bf22ea1c7dd3a4dea65c5d9be993b",
+      "sha256": "7f5981470377f7bd1d52ae38efa1a5788e79a3bed1d2ced29a56f40eefec4e81",
       "tests": [
-        "Finlynq parser-real PDF structural contract"
+        "Finlynq parser synthetic PDF structural contract"
+      ]
+    },
+    {
+      "format": "pdf",
+      "institution": "Atlas Test Bank",
+      "path": "services/finlynq/tests/fixtures/sample_statements_synthetic/atlas_test_empty_brokerage.pdf",
+      "person": "Test Household Alpha",
+      "sha256": "4d8ba3ab4d285d4c12937c54121a30fa3d35bf1f28958d2ea32fa8e69b856d19",
+      "tests": [
+        "Finlynq best-effort PDF no-garbage contract"
+      ]
+    },
+    {
+      "format": "pdf",
+      "institution": "Atlas Test Bank",
+      "path": "services/finlynq/tests/fixtures/sample_statements_synthetic/atlas_test_empty_checking.pdf",
+      "person": "Test Household Alpha",
+      "sha256": "4d8ba3ab4d285d4c12937c54121a30fa3d35bf1f28958d2ea32fa8e69b856d19",
+      "tests": [
+        "Finlynq best-effort PDF no-garbage contract"
+      ]
+    },
+    {
+      "format": "pdf",
+      "institution": "Atlas Test Bank",
+      "path": "services/finlynq/tests/fixtures/sample_statements_synthetic/atlas_test_empty_credit.pdf",
+      "person": "Test Household Alpha",
+      "sha256": "4d8ba3ab4d285d4c12937c54121a30fa3d35bf1f28958d2ea32fa8e69b856d19",
+      "tests": [
+        "Finlynq best-effort PDF no-garbage contract"
       ]
     },
     {
       "format": "csv",
       "institution": "Atlas Test Bank",
-      "path": "services/finlynq/tests/fixtures/sample_statements_real/bofa_savings_stmt.csv",
+      "path": "services/finlynq/tests/fixtures/sample_statements_synthetic/atlas_test_summary_checking.csv",
+      "person": "Test Household Alpha",
+      "sha256": "8352214d258fd7764acb5f4f6c6cd7942b167176bb70c2ea3285723eca578d1e",
+      "tests": [
+        "Finlynq top-summary suppression"
+      ]
+    },
+    {
+      "format": "csv",
+      "institution": "Atlas Test Bank",
+      "path": "services/finlynq/tests/fixtures/sample_statements_synthetic/atlas_test_summary_savings.csv",
       "person": "Test Household Alpha",
       "sha256": "201ce370b045fefcd3f827a3159b16924e1e937b05797fb902b9d869d5b01659",
       "tests": [
@@ -83,43 +121,13 @@
       ]
     },
     {
-      "format": "pdf",
-      "institution": "Atlas Test Bank",
-      "path": "services/finlynq/tests/fixtures/sample_statements_real/chase-checking-stmt.pdf",
-      "person": "Test Household Alpha",
-      "sha256": "4d8ba3ab4d285d4c12937c54121a30fa3d35bf1f28958d2ea32fa8e69b856d19",
-      "tests": [
-        "Finlynq best-effort PDF no-garbage contract"
-      ]
-    },
-    {
-      "format": "pdf",
-      "institution": "Atlas Test Bank",
-      "path": "services/finlynq/tests/fixtures/sample_statements_real/chase-credit-stmt.pdf",
-      "person": "Test Household Alpha",
-      "sha256": "4d8ba3ab4d285d4c12937c54121a30fa3d35bf1f28958d2ea32fa8e69b856d19",
-      "tests": [
-        "Finlynq best-effort PDF no-garbage contract"
-      ]
-    },
-    {
-      "format": "pdf",
-      "institution": "Atlas Test Bank",
-      "path": "services/finlynq/tests/fixtures/sample_statements_real/robinhood-statement.pdf",
-      "person": "Test Household Alpha",
-      "sha256": "4d8ba3ab4d285d4c12937c54121a30fa3d35bf1f28958d2ea32fa8e69b856d19",
-      "tests": [
-        "Finlynq best-effort PDF no-garbage contract"
-      ]
-    },
-    {
       "format": "csv",
       "institution": "Atlas Test Bank",
-      "path": "services/finlynq/tests/fixtures/sample_statements_real/robinhood-transactions.csv",
+      "path": "services/rules-service/tests/fixtures/atlas_test_credit_card.csv",
       "person": "Test Household Alpha",
-      "sha256": "ae45207e620ca1e181f13196f470bb49994568fc954e65b56d6cd93b9f3fed20",
+      "sha256": "1e3547b3cb847ce179b2a9ca0787f5b2987c77365123e3216223569506431162",
       "tests": [
-        "Finlynq wide activity CSV structural contract"
+        "Rules dual debit/credit dashboard import"
       ]
     },
     {
@@ -130,16 +138,6 @@
       "sha256": "7568dc0d8272a5c52b323f0a60f57abad160c83977c0e520594218f97c34ed5f",
       "tests": [
         "Rules malformed-schema rejection path"
-      ]
-    },
-    {
-      "format": "csv",
-      "institution": "Atlas Test Bank",
-      "path": "services/rules-service/tests/fixtures/citi_credit_card.csv",
-      "person": "Test Household Alpha",
-      "sha256": "1e3547b3cb847ce179b2a9ca0787f5b2987c77365123e3216223569506431162",
-      "tests": [
-        "Rules dual debit/credit dashboard import"
       ]
     },
     {
@@ -157,7 +155,7 @@
       "institution": "Atlas Test Bank",
       "path": "services/rules-service/tests/fixtures/sample-bank-statement.csv",
       "person": "Test Household Alpha",
-      "sha256": "9aea7d4240e27af3c34e6d28b9b07b26554b15ab2501cf6eddc30cd1253e4299",
+      "sha256": "0e19aac12122105aff066d4e40a327c873395f5d8b06e31fdbbdb2eafe4e0d1b",
       "tests": [
         "Rules CSV parser normalization and preview"
       ]
@@ -187,10 +185,9 @@
       "institution": "Atlas Test Bank",
       "path": "services/rules-service/tests/fixtures/sample_statements/checking_stmt.csv",
       "person": "Test Household Alpha",
-      "sha256": "9daff956a2c221aa7b479421dd68e5c31880ad9f0fc3dd5f8d59264e6c6c826e",
+      "sha256": "de9cd3520f133e08e183e8f1e474f84e5ffe3d75210ba3e36cb6be1a81e7eab1",
       "tests": [
-        "Rules CSV import, categorizer, finance-query integration",
-        "Finlynq summary-preamble parity"
+        "Rules CSV import, categorizer, finance-query integration"
       ]
     },
     {
@@ -210,14 +207,13 @@
       "person": "Test Household Alpha",
       "sha256": "a4fdc58b579277fecdd3963a6bc4081f19ff51b6c7bd0ca53ba62825be0c5d14",
       "tests": [
-        "Rules finance-query integration",
-        "Finlynq split debit/credit parsing"
+        "Rules finance-query integration"
       ]
     },
     {
       "format": "csv",
       "institution": "Atlas Test Bank",
-      "path": "services/rules-service/tests/fixtures/sample_statements_real/chase_checking_3100.csv",
+      "path": "services/rules-service/tests/fixtures/sample_statements_synthetic/atlas_test_checking_trailing_columns.csv",
       "person": "Test Household Alpha",
       "sha256": "86d763a6f821692c168a9d5ff760f0aac9cc3ea3c27b51e69b17a2251e2ec710",
       "tests": [
@@ -227,7 +223,7 @@
     {
       "format": "csv",
       "institution": "Atlas Test Bank",
-      "path": "services/rules-service/tests/fixtures/sample_statements_real/chase_credit_3407_activity.csv",
+      "path": "services/rules-service/tests/fixtures/sample_statements_synthetic/atlas_test_credit_activity.csv",
       "person": "Test Household Alpha",
       "sha256": "89b20f32053961ebb957468a70ca7315ed695acd5f0d6ff0719516b84473dd40",
       "tests": [

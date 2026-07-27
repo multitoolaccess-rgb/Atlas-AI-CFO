@@ -674,8 +674,8 @@ def test_upload_respects_pre_tagged_category_on_other_batches(
 CHASE_FIXTURE_PATH = os.path.join(
     os.path.dirname(__file__),
     "fixtures",
-    "sample_statements_real",
-    "chase_checking_3100.csv",
+    "sample_statements_synthetic",
+    "atlas_test_checking_trailing_columns.csv",
 )
 
 
@@ -697,7 +697,7 @@ def test_read_csv_dataframe_tolerates_chase_trailing_comma():
 
     csv_body = open(CHASE_FIXTURE_PATH, "rb").read()
     upload = UploadFile(
-        filename="chase_checking_3100.csv",
+        filename="atlas_test_checking_trailing_columns.csv",
         file=BytesIO(csv_body),
     )
 
@@ -776,7 +776,7 @@ def test_parse_csv_file_chase_trailing_comma_does_not_zero_records(
         "/api/imports/upload",
         files={
             "file": (
-                "chase_checking_3100.csv",
+                "atlas_test_checking_trailing_columns.csv",
                 io.BytesIO(csv_body),
                 "text/csv",
             ),
@@ -804,7 +804,7 @@ def test_parse_csv_file_chase_trailing_comma_does_not_zero_records(
     # table, not just in the response envelope.
     batch = (
         db_session.query(ImportBatch)
-        .filter(ImportBatch.filename == "chase_checking_3100.csv")
+        .filter(ImportBatch.filename == "atlas_test_checking_trailing_columns.csv")
         .one()
     )
     txns = (
@@ -1160,8 +1160,8 @@ def test_upload_uses_user_documents_and_assigns_real_categories(
 CHASE_CREDIT_FIXTURE_PATH = os.path.join(
     os.path.dirname(__file__),
     "fixtures",
-    "sample_statements_real",
-    "chase_credit_3407_activity.csv",
+    "sample_statements_synthetic",
+    "atlas_test_credit_activity.csv",
 )
 
 
@@ -1482,7 +1482,7 @@ def test_parse_csv_transactions_chase_credit_extracts_merchant_from_description(
         "/api/imports/upload",
         files={
             "file": (
-                "chase_credit_3407_activity.csv",
+                "atlas_test_credit_activity.csv",
                 io.BytesIO(csv_body),
                 "text/csv",
             ),
@@ -1505,7 +1505,7 @@ def test_parse_csv_transactions_chase_credit_extracts_merchant_from_description(
     # row.
     batch = (
         db_session.query(ImportBatch)
-        .filter(ImportBatch.filename == "chase_credit_3407_activity.csv")
+        .filter(ImportBatch.filename == "atlas_test_credit_activity.csv")
         .one()
     )
     txns = (
@@ -1862,7 +1862,7 @@ def test_upload_chase_credit_csv_deactivates_orphan_imported_statements(
     The user said in June 2026: ``when i imported the credit chase
     transaction it creates 2 accounts, the imported statements
     account is back again``. This test reproduces their exact flow
-    using the ``chase_credit_3407_activity.csv`` fixture (created in
+    using the ``atlas_test_credit_activity.csv`` fixture (created in
     Phase 50 for the merchant-promotion bug).
 
     SETUP: deterministic clean slate — bulk-delete any leftover
@@ -1905,7 +1905,7 @@ def test_upload_chase_credit_csv_deactivates_orphan_imported_statements(
         "/api/imports/upload",
         files={
             "file": (
-                "chase_credit_3407_activity.csv",
+                "atlas_test_credit_activity.csv",
                 io.BytesIO(csv_body),
                 "text/csv",
             ),
@@ -1934,9 +1934,9 @@ def test_upload_chase_credit_csv_deactivates_orphan_imported_statements(
         f"(the bug: 2 active accounts including the orphan)"
     )
     csv_named = active_accts[0]
-    assert csv_named.account_name == "Chase_Credit_3407_Activity", (
+    assert csv_named.account_name == "Atlas_Test_Credit_Activity", (
         f"the single active account must be the CSV-derived "
-        f"``Chase_Credit_3407_Activity``; got {csv_named.account_name!r}"
+        f"``Atlas_Test_Credit_Activity``; got {csv_named.account_name!r}"
     )
 
     # The orphan exists in DB but is deactivated.
@@ -1987,7 +1987,7 @@ def test_upload_chase_credit_csv_deactivates_orphan_imported_statements(
     batch_row = (
         db_session.query(ImportBatch)
         .filter(
-            ImportBatch.filename == "chase_credit_3407_activity.csv"
+            ImportBatch.filename == "atlas_test_credit_activity.csv"
         )
         .one()
     )

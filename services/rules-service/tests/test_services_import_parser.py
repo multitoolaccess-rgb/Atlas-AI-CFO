@@ -92,9 +92,9 @@ def test_parse_csv_transactions_returns_5_normalized_records():
             assert row["credit"] >= 0, f"credit must be unsigned positive; got {row['credit']}"
 
     first = rows[0]
-    assert first["description"] == "Coffee shop"
+    assert first["description"] == "Atlas test coffee"
     assert first["amount"] == pytest.approx(-4.50, abs=1e-6)
-    assert first["merchant_name"] == "Blue Bottle Coffee"
+    assert first["merchant_name"] == "Test Merchant Alpha"
     assert first["is_pending"] is False
 
 
@@ -965,4 +965,3 @@ def test_parse_csv_persists_all_edge_case_amount_shapes_via_fixture():
     assert "Just paren" not in desc_to_amount
     assert "All-whitespace amount" not in desc_to_amount
     assert "Double paren negative" not in desc_to_amount
-

@@ -506,7 +506,7 @@ def test_citi_dual_column_csv_upload_end_to_end(
     layer (parser, route, balance recompute, dashboard formula)
     surfaces here, not as a silent "balance is wrong" complaint.
 
-    Fixture shape (citi_credit_card.csv):
+    Fixture shape (atlas_test_credit_card.csv):
       Status,Date,Description,Debit,Credit
       Cleared,06/19/2026,BURRITOS...,10.68,
       Cleared,06/18/2026,WA DOL LIC & REG...,116.39,
@@ -535,7 +535,7 @@ def test_citi_dual_column_csv_upload_end_to_end(
     # Load the fixture from disk so the test exercises the same
     # wire shape the FE sends (multipart/form-data with a file upload).
     fixture_path = (
-        Path(__file__).parent / "fixtures" / "citi_credit_card.csv"
+        Path(__file__).parent / "fixtures" / "atlas_test_credit_card.csv"
     )
     assert fixture_path.exists(), (
         f"Test fixture missing: {fixture_path} — required for the "
@@ -560,7 +560,7 @@ def test_citi_dual_column_csv_upload_end_to_end(
     # — the test exercises the full chain).
     r = client.post(
         "/api/imports/upload",
-        files={"file": ("citi_credit_card.csv", csv_bytes, "text/csv")},
+        files={"file": ("atlas_test_credit_card.csv", csv_bytes, "text/csv")},
     )
     assert r.status_code == 200, (
         f"Upload failed: {r.status_code} {r.text} — parser may have "
