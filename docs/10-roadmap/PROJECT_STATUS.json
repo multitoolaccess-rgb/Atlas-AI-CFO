@@ -2,7 +2,7 @@
   "active_work": [
     {
       "branch": "codex/phase-1-forecast-persistence-plan",
-      "commit": "6e485ea",
+      "commit": "a818665",
       "id": "work-p1-forecast-persistence-planning",
       "issue": "#3",
       "objective": "Define the bounded, documentation-only Phase 1 persistence and read-API implementation plan, including the trusted adapter-only generation boundary.",
@@ -20,7 +20,7 @@
         "deterministic render check: passed",
         "git diff check: passed",
         "resolved-decision documentation audit: passed",
-        "trusted generation-boundary documentation audit: passed"
+        "trusted generation-boundary documentation audit (a818665): passed"
       ],
       "title": "Plan immutable forecast persistence and versioned read APIs"
     }
@@ -48,6 +48,11 @@
     {
       "commit": "6e485ea",
       "description": "Resolved Phase 1 canonical-envelope, validation, and retention planning decisions",
+      "pr": "#4"
+    },
+    {
+      "commit": "a818665",
+      "description": "Enforced the trusted adapter-only forecast generation boundary",
       "pr": "#4"
     }
   ],
@@ -92,7 +97,7 @@
   ],
   "current_objective": "Review the resolved Phase 1 forecast-persistence decisions and trusted adapter-only generation boundary in PR #4; production implementation remains unauthorized.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-28T03:11:02Z",
+  "last_updated": "2026-07-28T03:15:36Z",
   "next_bounded_task": {
     "description": "Review the revised ADR-006 and plan in PR #4, then explicitly authorize only the canonical-envelope and contract-test implementation slice, including strict request-boundary tests; do not begin schema, migration, route, or UI work.",
     "id": "next-p1-plan-review",
