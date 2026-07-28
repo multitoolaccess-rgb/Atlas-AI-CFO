@@ -34,6 +34,7 @@ Phase 1 adds no Finlynq table reads and no production UI consumer.
 | `goal_id` | FK to `goals.id`, indexed, restrictive delete |
 | `forecast_kind` | `goal_projection` in Phase 1 |
 | `currency` | Uppercase ISO 4217; `USD` only in Phase 1 |
+| `lifecycle_state` | Mutable identity-level state; `active` only in Phase 1 |
 | `latest_version_number` | Mutable optimistic-concurrency pointer |
 | `created_at`, `updated_at` | UTC timestamps |
 
@@ -71,7 +72,45 @@ Constraints:
 - immutable version update/delete guards.
 
 Snapshot money is a canonical fixed-scale decimal string. Queryable money uses
-`Numeric(38, 2, asdecimal=True)`. No `Float` enters the new model or schemas.
+`Numeric(38, 2, asdecimal=True)`. Rates, inflation, and other fractional
+assumptions remain unrounded canonical Decimal strings in versioned snapshots;
+they must not use a scale-2 monetary column. A later queryable fractional field
+requires `NUMERIC(38, 18)` or a separately reviewed higher-scale contract. No
+`Float` enters the new model or schemas.
+
+`forecast_versions` contains immutable reasoning. Any future lifecycle state
+belongs on the stable `forecasts` row or a separate lifecycle table; it never
+rewrites a historical version.
+
+## Canonical projection-state envelope
+
+The explicit adapter boundary is `atlas-projection-state/v1`:
+
+```text
+Finlynq canonical state -> typed adapter -> Rules Service forecast service
+```
+
+Finlynq owns ingestion and canonical financial state. The adapter owns
+normalization into the envelope. Rules Service owns forecast calculation and
+persistence. Rules Service must not query Finlynq database tables directly.
+
+The versioned, bounded envelope contains:
+
+- `schema_version` and canonicalization/hash metadata;
+- transitional `user_id` and `goal_id`;
+- UTC `as_of_timestamp` and explicit uppercase currency;
+- typed current-value components and contribution/investable-cash-flow inputs,
+  with canonical Decimal strings;
+- freshness policy and observed age;
+- bounded source-system identifiers, stable record/aggregate identifiers,
+  timestamps, counts, and hashes;
+- missing-data indicator codes; and
+- deterministic confidence or reconciliation-state enums when available.
+
+It excludes raw statements, raw transaction payloads, uploaded files,
+credentials, unbounded free-form source data, and unnecessary personal
+information. A source-state hash covers normalized components and provenance;
+the forecast stores only that hash and the bounded references.
 
 ## API contracts
 
@@ -119,11 +158,16 @@ forecast response links the latest version but never overwrites history.
 ## Canonical hashing procedure
 
 1. Convert source money to validated `Decimal`; convert legacy goal floats
-   with `Decimal(str(value))` and record that provenance limitation.
-2. Quantize persisted money with `ROUND_HALF_EVEN`.
+   with `Decimal(str(value))`, record `source_representation: "float"`, and
+   set `precision_restored: false`. This conversion cannot restore Float
+   precision already lost.
+2. Preserve canonical unrounded Decimal strings needed for calculation and
+   hashing; quantize only persisted/display monetary outputs with
+   `ROUND_HALF_EVEN`.
 3. Normalize currency, dates, contribution timing, assumptions, freshness,
    source references, and goal ID.
-4. Serialize Decimal values as canonical strings and dates as ISO strings.
+4. Serialize Decimal values as canonical strings, dates as ISO date strings,
+   and instants as timezone-aware UTC RFC 3339 strings with a `Z` suffix.
 5. Serialize JSON with sorted keys, UTF-8, and compact separators.
 6. Hash the bytes with SHA-256.
 7. Store `hash_schema_version` beside the digest.
@@ -131,7 +175,26 @@ forecast response links the latest version but never overwrites history.
 Changing calculation or model version creates a new version even when the
 input-state hash is unchanged.
 
+The output snapshot stores the target-status boolean with its unrounded
+canonical decision operands. API and UI display formatting must never recompute
+or alter target status. Fixtures include Float-to-canonical-string and
+rounding-boundary cases proving those constraints.
+
 ## Exact implementation sequence
+
+### 0. Canonical envelope contract
+
+**Create:**
+
+- `services/rules-service/app/forecasts/canonical_state.py`
+- `services/rules-service/tests/test_canonical_projection_state.py`
+
+Define typed `atlas-projection-state/v1` dataclasses or Pydantic models and a
+narrow adapter protocol. Validate bounded component kinds, UTC timestamps,
+currency, Decimal strings, freshness, provenance references, missing-data
+codes, and deterministic reconciliation state. Reject raw payload fields and
+unknown unbounded source data. The test fixture must prove Rules Service can
+calculate from the envelope without a Finlynq database query.
 
 ### 1. Contract tests and canonical snapshot fixtures
 
@@ -144,7 +207,8 @@ input-state hash is unchanged.
 Define fixed UUIDs, timestamps, Decimal strings, canonical JSON, SHA-256
 digests, API error envelopes, ETags, pagination ordering, freshness, and
 provenance cases. Include large values, half-even boundaries, stale inputs,
-idempotent replay, conflicting keys, and cross-user access.
+idempotent replay, conflicting keys, cross-user access, legacy
+Float-to-canonical-string inputs, and target-status rounding boundaries.
 
 ### 2. Models and migration
 
@@ -242,7 +306,28 @@ or financial inputs.
 Define shadow comparison counters for generated/not-persisted, idempotent
 reuse, conflicts, validation failures, stale inputs, and read errors.
 
-### 8. Verification and rollout gate
+### 8. Bounded pre-enable operator validation
+
+**Create:**
+
+- `services/rules-service/app/forecasts/shadow_validate.py`
+- `services/rules-service/tests/test_forecast_shadow_validate.py`
+- operator documentation for `shadow_validate`
+
+Implement only the explicitly invoked command:
+
+`python -m app.forecasts.shadow_validate --user-id <id> --goal-id <id> --limit 1 --dry-run`
+
+Require one user and one goal, require `--limit 1`, invoke the canonical-state
+adapter, calculate/compare a proposed forecast, and emit structured output.
+Default to dry-run; never enable, bypass, or override feature flags. Output may
+contain identifiers, version metadata, hashes, freshness/comparison outcomes,
+flag state, correlation ID, and duration, but never raw financial values,
+snapshots, statements, credentials, or tokens. Do not invoke it during reads
+or schedule/background it. Any non-dry persistence behavior requires a later
+authorization after the relevant flag is enabled.
+
+### 9. Verification and rollout gate
 
 Run, in order:
 
@@ -255,11 +340,13 @@ Run, in order:
 7. security review of user scoping, errors, logs, and snapshot minimization;
 8. schema/API review for Decimal strings, currency, freshness, and provenance;
 9. feature flags off on a clean database;
-10. shadow comparison using synthetic data only.
+10. bounded operator validation using synthetic data only.
 
 Rollout proceeds only when deterministic replay, cross-user isolation,
 immutability, Decimal round-trip, and conflict tests pass. Phase 2 UI work
 requires a separate authorization after Phase 1 exit criteria are complete.
+External multi-user production enablement remains blocked until a retention and
+user-deletion policy is approved.
 
 ## Phase 1 exit criteria
 
@@ -271,7 +358,10 @@ requires a separate authorization after Phase 1 exit criteria are complete.
 - Idempotent generation and optimistic concurrency behavior pass.
 - All forecast reads are user-scoped and versioned.
 - Freshness/provenance snapshots are complete and minimized.
-- Flags default off; shadow and rollback evidence are documented.
+- Flags default off; bounded operator validation and rollback evidence are
+  documented.
+- External multi-user production enablement is blocked pending an approved
+  retention and user-deletion policy.
 - Complete Rules Service and cross-service suites pass.
 - No UI, recommendation, decision-journal, household, or probability behavior
   changed.
@@ -280,22 +370,31 @@ requires a separate authorization after Phase 1 exit criteria are complete.
 
 | Risk | Mitigation |
 | --- | --- |
-| Existing `Goal.target_amount` is `Float` | Convert through `Decimal(str(...))`, snapshot the limitation, and plan canonical goal-money migration separately. |
+| Existing `Goal.target_amount` is `Float` | Convert through `Decimal(str(...))`, record the Float source representation and non-restored precision, add boundary fixtures, and plan canonical goal-money migration separately. |
 | SQLite and PostgreSQL differ in numeric/locking behavior | Add cross-dialect Decimal round-trip and concurrency tests; use unique constraints as final arbiter. |
 | App-only immutability could regress | Add database guards and tests that direct update/delete fail. |
 | Hash changes could create silent duplicates | Version canonicalization and use golden digest fixtures. |
 | Idempotency races could allocate duplicate versions | Lock identity row where supported, enforce uniqueness, and re-read after conflicts. |
 | Provenance snapshots could copy excessive financial data | Store source references, timestamps, and hashes—not raw transactions or statements. |
 | Transitional user scope could be mistaken for household tenancy | Keep explicit `user_id`, cross-user tests, and no household naming/backfill. |
-| Append-only growth has no approved purge policy | Retain history and block destructive downgrade until policy and export controls exist. |
+| Append-only growth has no approved purge policy | Retain history, add no purge or cascade, block external multi-user production enablement, and defer deletion policy approval. |
 
-## Unresolved questions
+## Resolved planning decisions
 
-1. Approve the canonical state/provenance envelope provided to Rules Service
-   without direct Finlynq table access.
-2. Choose synchronous request-path shadowing or a bounded operator command for
-   pre-enable validation.
-3. Define the later retention and user-deletion policy for immutable forecasts.
+1. Finlynq provides canonical financial state through the typed,
+   versioned `atlas-projection-state/v1` adapter envelope; Rules Service never
+   reads Finlynq tables directly.
+2. Pre-enable comparison uses the bounded, explicitly invoked
+   `shadow_validate` operator command in dry-run mode. It is not synchronous,
+   scheduled, or invoked by read requests.
+3. Forecast history is provisionally retained during development and default-off
+   validation. It has no purge/cascade path, and external multi-user production
+   enablement is blocked until retention and user-deletion policy is approved.
 
-These questions block implementation authorization, not this planning PR.
+## Deferred decisions
 
+- Permanent retention, legal hold, account deletion, backup deletion, and
+  household migration policy.
+- Scheduled or background validation after bounded operator validation proves
+  safe and useful.
+- A reviewed canonical Goal Decimal migration.

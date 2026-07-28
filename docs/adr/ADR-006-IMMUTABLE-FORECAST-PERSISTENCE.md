@@ -38,6 +38,12 @@ use restrictive deletion semantics so history cannot disappear implicitly.
 Phase 1 supports one goal per forecast. Multi-goal forecasts require a later
 ADR because they change calculation and conflict semantics.
 
+`forecasts.lifecycle_state` is a mutable lifecycle field on the stable identity
+row (initially `active` only). It is deliberately separate from the immutable
+reasoning, assumptions, outputs, and provenance in `forecast_versions`. Phase
+1 supplies no lifecycle mutation route; later lifecycle behavior must not
+rewrite a version row.
+
 ### Immutable versions
 
 Each calculation creates a `forecast_version` beneath the stable forecast.
@@ -70,8 +76,18 @@ money.
 
 The legacy goal `Float` is not silently rewritten in this phase. Its value is
 converted with `Decimal(str(value))`, validated, quantized, and recorded in
-the immutable input snapshot. The precision limitation is an explicit risk
-until a separately reviewed canonical-goal money migration occurs.
+the immutable input snapshot with `source_representation: "float"`,
+`conversion: "Decimal(str(value))"`, and `precision_restored: false`.
+Conversion cannot restore precision that the legacy Float already lost, and
+Phase 1 must not present a Float-derived amount as exact. Contract fixtures
+must cover Float-to-canonical-string boundary cases. A canonical Goal Decimal
+migration remains a separate reviewed change.
+
+Rates, inflation, and other fractional assumptions are not stored in
+`NUMERIC(38, 2)`. Their authoritative representation is an unrounded canonical
+Decimal string in the immutable assumption and input snapshots. If a later
+queryable fractional column is justified, it must use `NUMERIC(38, 18)` or a
+reviewed higher scale, with an explicit precision contract.
 
 ### Versioned snapshots and calculation identity
 
@@ -93,6 +109,20 @@ Snapshots are deterministic canonical JSON: UTF-8, sorted keys, no
 insignificant whitespace, ISO dates/timestamps, and Decimal values encoded as
 canonical strings. They do not contain raw transactions, uploaded statements,
 credentials, or tokens.
+
+All instants in snapshots, APIs, and observability use timezone-aware UTC
+RFC 3339 timestamps with a `Z` suffix. Date-only projection inputs retain
+their documented date semantics and are not silently converted to local-time
+instants. Hashing uses the canonical unrounded Decimal strings required to
+reproduce a calculation; output or display rounding is not an input to the
+hash.
+
+The persisted target-status decision is sourced from an explicit unrounded
+decision basis in the calculation result and is stored with its canonical
+Decimal operands. A UI or API display amount must never recompute or alter
+that boolean after rounding. The Phase 1 contract tests must include a
+rounding-boundary case that proves the displayed value cannot change the
+stored target status.
 
 ### Input-state hashing and idempotent generation
 
@@ -123,6 +153,34 @@ source update timestamp, and a source-state hash.
 Rules Service receives explicit canonical state. It does not query
 Finlynq-owned tables directly. Provenance references describe inputs without
 copying user statements or transaction histories into forecast rows.
+
+### Canonical projection-state envelope
+
+Finlynq owns ingestion and canonical financial state. A typed adapter or
+application-service boundary produces `atlas-projection-state/v1`; Rules
+Service consumes that envelope and owns forecast calculation and persistence.
+The adapter is the only sanctioned bridge between the services for Phase 1.
+This contract prevents Rules Service from coupling to Finlynq database tables.
+
+The envelope has these bounded fields:
+
+- `schema_version` and `canonicalization` metadata, including canonical JSON
+  and hash-algorithm versions;
+- transitional `user_id` and `goal_id` identifiers;
+- `as_of_timestamp` in UTC and a three-letter explicit currency;
+- typed `current_value_components`, each with a bounded component kind,
+  canonical Decimal amount string, source reference, and observed timestamp;
+- typed contribution or investable-cash-flow inputs needed by the projection;
+- freshness policy and observed age;
+- bounded provenance references containing source-system identifier, stable
+  record or aggregate identifier, timestamp, count, and hash;
+- missing-data indicator codes; and
+- deterministic confidence or reconciliation state enums when available.
+
+It excludes raw statements, raw transactions, uploaded files, credentials,
+unbounded free-form source payloads, and unnecessary personal information. A
+source-state hash covers the bounded provenance and normalized components;
+Rules Service stores that hash and references, not the source records.
 
 ### Transitional ownership and authorization
 
@@ -175,6 +233,30 @@ PostgreSQL uses row locking. SQLite uses a short write transaction plus unique
 constraints and conflict retry. A unique-race loser re-reads the winning row;
 it returns that row if idempotent, otherwise HTTP 409.
 
+### Pre-enable shadow validation
+
+Phase 1 uses an explicitly invoked, bounded operator command rather than
+synchronous request-path shadowing. The planned command is:
+
+`python -m app.forecasts.shadow_validate --user-id <id> --goal-id <id> --limit 1 --dry-run`
+
+It requires one explicitly scoped user and goal, requires an explicit limit no
+greater than one in Phase 1, invokes the canonical-state adapter, generates a
+proposed forecast, and compares it with the selected reference when supplied.
+`--dry-run` is the default and produces no persistence. The command never
+enables, overrides, or bypasses default-off persistence flags; a non-dry write
+mode is unavailable until separately authorized and the relevant flag is
+enabled.
+
+Its structured observability output contains only stable user/goal/forecast
+identifiers, adapter and snapshot schema versions, source-state and
+input-state hashes, calculation/model versions, freshness outcome, comparison
+outcome, flag state, correlation ID, and elapsed time. It excludes raw
+financial payloads, money values, statements, credentials, and tokens. It is
+not invoked by a read request and adds no user-facing latency. Scheduled or
+background validation is deferred until this bounded validation has succeeded
+and is separately approved.
+
 ### Migration, retention, and rollback
 
 One Phase 1 Alembic revision follows `Q5h1i2j3k4l5` and creates the forecast
@@ -188,9 +270,16 @@ Schema downgrade is permitted only when the forecast tables are empty or an
 approved export and deletion procedure has run. Downgrade removes immutability
 guards, then the version table, then the forecast table.
 
-Forecast versions have no Phase 1 purge endpoint or cascade delete. They are
-retained until an approved retention/deletion policy supplies authorization,
-audit, export, and legal requirements.
+Forecast versions are retained immutably during development and default-off
+validation. Phase 1 has no user-facing purge endpoint, no administrative
+deletion behavior in the contract-test slice, and no cascade that can silently
+remove a historical version. The schema retains user/subject scope so a future
+approved deletion process can locate all applicable forecasts.
+
+This is a provisional rollout gate, not a permanent retention policy:
+persistence must not be enabled for external multi-user production use until
+retention and user-deletion policy is approved. Legal hold, account deletion,
+backup deletion, and household migration remain deferred decisions.
 
 ### Feature flags and rollout
 
@@ -199,10 +288,11 @@ Two server-side flags default off:
 - `ATLAS_FORECAST_PERSISTENCE_ENABLED`
 - `ATLAS_FORECAST_READ_API_ENABLED`
 
-Rollout order is migration with both flags off, internal shadow generation and
-comparison, read API enablement for authorized test users, persistence
+Rollout order is migration with both flags off, explicitly invoked bounded
+operator validation, read API enablement for authorized test users, persistence
 enablement, and measured expansion. The production UI does not consume these
-routes in Phase 1. Rollback first disables generation and then reads.
+routes in Phase 1. Rollback first disables generation and then reads. External
+multi-user production enablement is blocked by the provisional retention gate.
 
 ## Consequences
 
@@ -212,7 +302,7 @@ routes in Phase 1. Rollback first disables generation and then reads.
 - SQLite/PostgreSQL Decimal and concurrency behavior need explicit parity
   tests.
 - The existing goal `Float` can limit source precision even though persisted
-  forecast snapshots never use floats.
+  forecast snapshots never use floats or claim to restore that precision.
 - ADR-005's forecast schema/API deferral is resolved by this ADR when accepted;
   all other ADR-005 deferrals remain.
 
@@ -227,12 +317,10 @@ routes in Phase 1. Rollback first disables generation and then reads.
 - Dependency modernization
 - Legacy product-name cleanup
 
-## Unresolved questions for implementation review
+## Deferred decisions
 
-1. What is the approved canonical source-state contract supplied by Finlynq or
-   an aggregation boundary, given that direct table reads are prohibited?
-2. Should shadow generation be synchronous in the request path or invoked by a
-   bounded operator command before API generation is enabled?
-3. What production retention and user-deletion policy will ultimately govern
-   immutable forecast history?
-
+- A permanent retention, legal-hold, account-deletion, backup-deletion, and
+  household-migration policy.
+- Any scheduled or background shadow-validation design after bounded operator
+  validation succeeds.
+- A reviewed canonical Goal Decimal migration.

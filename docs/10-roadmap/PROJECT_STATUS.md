@@ -4,8 +4,8 @@
 
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Review and approve the Phase 1 forecast-persistence architecture and implementation sequence; production implementation has not started.
-- Last updated: 2026-07-27T04:56:25Z
+- Current objective: Review the resolved Phase 1 forecast-persistence decisions in PR #4; production implementation remains unauthorized.
+- Last updated: 2026-07-28T02:51:30Z
 
 ## Active work
 - work-p1-forecast-persistence-planning: Plan immutable forecast persistence and versioned read APIs (in_review)
@@ -29,6 +29,7 @@
 - risk-service-dependency-separation [high/high, mitigated]: Rules Service and Finlynq require separate FastAPI-pinned environments.
 - risk-p1-legacy-goal-float [high/medium, open]: The existing Goal.target_amount Float can lose source precision before Phase 1 snapshot normalization.
 - risk-p1-dialect-parity [high/medium, open]: SQLite and PostgreSQL differ in exact numeric storage and concurrency semantics for immutable forecast versions.
+- risk-p1-retention-rollout-gate [high/medium, open]: No approved retention or user-deletion policy exists for immutable forecast history.
 
 ## Recently completed work
 - work-p0-atlas-baseline: Atlas baseline from validated Finance Copilot foundation — commit c0f5287, PR None
@@ -47,6 +48,6 @@
 - Test test-p1-planning-status: Phase 1 planning governance — 5 passed; status and deterministic render checks passed
 
 ## Next bounded task
-- next-p1-plan-review: Review ADR-006 and the Phase 1 plan, resolve the three open architecture questions, and explicitly authorize only the contract-test implementation slice.
+- next-p1-plan-review: Review the revised ADR-006 and plan in PR #4, then explicitly authorize only the canonical-envelope and contract-test implementation slice; do not begin schema, migration, route, or UI work.
 
 Do not begin the next phase or task automatically.
