@@ -1,28 +1,25 @@
 {
   "active_work": [
     {
-      "branch": "codex/phase-1-forecast-persistence-plan",
-      "commit": "a818665",
-      "id": "work-p1-forecast-persistence-planning",
+      "branch": "codex/phase-1-canonical-state-contract",
+      "id": "work-p1-canonical-state-contract",
       "issue": "#3",
-      "objective": "Define the bounded, documentation-only Phase 1 persistence and read-API implementation plan, including the trusted adapter-only generation boundary.",
+      "objective": "Implement only the bounded canonical envelope, trusted adapter contract, strict client-control boundary, and deterministic hashing tests; exclude persistence and routes.",
       "paths": [
-        "docs/adr",
-        "docs/superpowers/plans",
+        "services/rules-service/app/forecasts",
+        "services/rules-service/tests/test_canonical_projection_state.py",
+        "services/rules-service/tests/test_forecast_contract.py",
+        "services/rules-service/tests/test_forecast_hashing.py",
+        "services/rules-service/tests/fixtures/atlas_forecast_snapshots_v1.json",
         "docs/10-roadmap"
       ],
       "phase_id": "phase-1",
-      "pr": "#4",
-      "status": "in_review",
+      "risk_tier": "high",
+      "status": "in_progress",
       "tests": [
-        "project-status unit tests: 5 passed",
-        "project status check: passed",
-        "deterministic render check: passed",
-        "git diff check: passed",
-        "resolved-decision documentation audit: passed",
-        "trusted generation-boundary documentation audit (a818665): passed"
+        "contract, Rules Service, Finlynq, cross-service, and Phase 0 projection validation required"
       ],
-      "title": "Plan immutable forecast persistence and versioned read APIs"
+      "title": "Implement canonical projection-state contract test slice"
     }
   ],
   "blockers": [],
@@ -93,11 +90,31 @@
         "CI green"
       ],
       "title": "Approved synthetic financial fixtures"
+    },
+    {
+      "branch": "codex/phase-1-forecast-persistence-plan",
+      "commit": "a818665",
+      "id": "work-p1-forecast-persistence-planning",
+      "issue": "#3",
+      "objective": "Define the bounded, documentation-only Phase 1 persistence and read-API implementation plan, including the trusted adapter-only generation boundary.",
+      "paths": [
+        "docs/adr",
+        "docs/superpowers/plans",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-1",
+      "pr": "#4",
+      "review_evidence": "Independent planning review approved; PR #4 merged.",
+      "status": "complete",
+      "tests": [
+        "project-status validation and deterministic render passed"
+      ],
+      "title": "Plan immutable forecast persistence and versioned read APIs"
     }
   ],
   "current_objective": "Review the resolved Phase 1 forecast-persistence decisions and trusted adapter-only generation boundary in PR #4; production implementation remains unauthorized.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-28T03:15:36Z",
+  "last_updated": "2026-07-28T04:42:09Z",
   "next_bounded_task": {
     "description": "Review the revised ADR-006 and plan in PR #4, then explicitly authorize only the canonical-envelope and contract-test implementation slice, including strict request-boundary tests; do not begin schema, migration, route, or UI work.",
     "id": "next-p1-plan-review",
