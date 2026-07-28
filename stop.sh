@@ -1,6 +1,6 @@
 #!/bin/bash
-# Finance Copilot - Stop Wrapper
-# --------------------------------
+# Atlas - Stop Wrapper
+# --------------------
 # Companion to ``start.sh``. Reads ``.run/{be.pid,fe.pid}``, sends
 # SIGTERM to the process tree (so ``next dev``'s listener child is
 # also reaped via a child-walk), waits ``$STOP_GRACE_SECONDS``
@@ -24,6 +24,28 @@ set -u  # do NOT use -e: graceful_kill has its own error semantics
 
 : "${STOP_GRACE_SECONDS:=5}"
 
+# Match start.sh exactly. Empty, privileged, nonnumeric, and duplicate ports
+# are rejected before this script reads a PID file or signals a process.
+ATLAS_UI_PORT="${ATLAS_UI_PORT-3333}"
+ATLAS_RULES_PORT="${ATLAS_RULES_PORT-8888}"
+ATLAS_FINLYNQ_PORT="${ATLAS_FINLYNQ_PORT-8889}"
+
+validate_port() {
+  local name=$1 value=$2
+  if [[ ! "$value" =~ ^[0-9]+$ ]] || [ "$value" -lt 1024 ] || [ "$value" -gt 65535 ]; then
+    printf '  ✗ %s must be a non-privileged numeric TCP port (1024-65535); got %q\n' "$name" "$value"
+    exit 2
+  fi
+}
+
+validate_port "ATLAS_UI_PORT" "$ATLAS_UI_PORT"
+validate_port "ATLAS_RULES_PORT" "$ATLAS_RULES_PORT"
+validate_port "ATLAS_FINLYNQ_PORT" "$ATLAS_FINLYNQ_PORT"
+if [ "$ATLAS_UI_PORT" = "$ATLAS_RULES_PORT" ] || [ "$ATLAS_UI_PORT" = "$ATLAS_FINLYNQ_PORT" ] || [ "$ATLAS_RULES_PORT" = "$ATLAS_FINLYNQ_PORT" ]; then
+  printf '  ✗ ATLAS_UI_PORT, ATLAS_RULES_PORT, and ATLAS_FINLYNQ_PORT must be distinct\n'
+  exit 2
+fi
+
 # ----- paths --------------------------------------------------------------
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUN_DIR="$PROJECT_ROOT/.run"
@@ -38,9 +60,10 @@ PID_FQ="$RUN_DIR/fq.pid"
 hr()   { printf '\n=== %s ===\n' "$1"; }
 note() { printf '  • %s\n' "$1"; }
 
-# Confirm a pidfile owner is actually part of this project before we
-# touch it. Same cmdline allow-list as ``start.sh::reap_port`` so an
-# orphan PID file can never accidentally target an unrelated process.
+# Confirm a pidfile owner is actually an Atlas development server before we
+# touch it. macOS process command lines omit the checkout/virtualenv path for
+# uvicorn and next-server children, so use the process CWD as the ownership
+# proof, then require an expected development-server command shape.
 project_pid_owner() {
   local pid=$1
   # Guard against [ -z ] missing AND pid=0 (``kill -0 0`` would signal
@@ -50,10 +73,12 @@ project_pid_owner() {
   # ``kill -0`` first: returns 1 if the pid is GONE (so we don't try
   # to inspect a process that's already dead).
   kill -0 "$pid" 2>/dev/null || return 1
-  local cmd
+  local cwd cmd
+  cwd=$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1)
+  case "$cwd" in "$PROJECT_ROOT"/*) ;; *) return 1 ;; esac
   cmd=$(ps -p "$pid" -o command= 2>/dev/null || true)
   case "$cmd" in
-    *finance-copilot*|*rules-service*|*uvicorn*|*next-server*|"next dev"*) return 0 ;;
+    *"-m uvicorn app.main:app"*|*next-server*|"next dev"*) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -147,7 +172,7 @@ graceful_kill() {
 }
 
 # ----- intro --------------------------------------------------------------
-hr "🛑 Finance Copilot — Stop"
+hr "🛑 Atlas — Stop"
 note "grace window  : ${STOP_GRACE_SECONDS}s (override with STOP_GRACE_SECONDS=N)"
 note "log dir       : $RUN_DIR"
 BE_PID=$(cat "$PID_BE" 2>/dev/null || true)
@@ -159,8 +184,8 @@ FQ_PID=$(cat "$PID_FQ" 2>/dev/null || true)
 
 # ----- terminate Finlynq, BE, then FE ------------------------------------
 # Symmetry with start.sh, which now launches THREE services (Finlynq
-# :8001 + Rules :8000 + Next dev :3000). Dropping FQ from stop.sh would
-# leave :8001 squatting on a stale pid file until the next start.sh's
+# configured Finlynq + Rules + Next dev ports). Dropping FQ from stop.sh would
+# leave its configured port squatting on a stale pid file until the next start.sh's
 # ``reap_port`` block clears it. Order is intentional: Finlynq first
 # (it owns the rules-service schema cache), then BE, then FE.
 graceful_kill "FQ" "$FQ_PID" || true
@@ -170,7 +195,7 @@ graceful_kill "FE" "$FE_PID" || true
 # ----- status block (mirrors start.sh) ------------------------------------
 hr "🛟 Status"
 # Verify the port-side state by checking real listeners. If something
-# else is squatting on :8000 / :3000, we surface it but do NOT kill it
+# else is squatting on a configured Atlas port, we surface it but do NOT kill it
 # (out of scope for stop.sh — start.sh::reap_port handles that).
 port_state() {
   local port=$1
@@ -181,12 +206,12 @@ port_state() {
   fi
 }
 # As probe for Finlynq's port too so the status block mirrors start.sh.
-fq_state=$(port_state 8001)
-be_state=$(port_state 8000)
-fe_state=$(port_state 3000)
-printf '  FQ (finlynq       :8001)  pid=%-6s  %s   log=%s\n' "${FQ_PID:-—}" "$fq_state" "$LOG_FQ"
-printf '  BE (rules-service :8000)  pid=%-6s  %s   log=%s\n' "${BE_PID:-—}" "$be_state" "$LOG_BE"
-printf '  FE (next dev      :3000)  pid=%-6s  %s   log=%s\n' "${FE_PID:-—}" "$fe_state" "$LOG_FE"
+fq_state=$(port_state "$ATLAS_FINLYNQ_PORT")
+be_state=$(port_state "$ATLAS_RULES_PORT")
+fe_state=$(port_state "$ATLAS_UI_PORT")
+printf '  FQ (finlynq       :%s)  pid=%-6s  %s   log=%s\n' "$ATLAS_FINLYNQ_PORT" "${FQ_PID:-—}" "$fq_state" "$LOG_FQ"
+printf '  BE (rules-service :%s)  pid=%-6s  %s   log=%s\n' "$ATLAS_RULES_PORT" "${BE_PID:-—}" "$be_state" "$LOG_BE"
+printf '  FE (next dev      :%s)  pid=%-6s  %s   log=%s\n' "$ATLAS_UI_PORT" "${FE_PID:-—}" "$fe_state" "$LOG_FE"
 printf '\n'
 printf '  🌐 Reload : ./start.sh\n'  printf '  📋 Tail   : tail -f %s %s %s\n' "$LOG_FQ" "$LOG_FE" "$LOG_BE"
 printf '  ⚠️  Note  : pidfiles are NOT removed — re-run ./start.sh to reuse them\n'

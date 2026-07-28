@@ -36,6 +36,7 @@ regression by staring at the live status block) is fragile.
 """
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -234,9 +235,9 @@ def test_start_sh_calls_cleanup_on_strict_gate_failure_branch(start_sh_path: Pat
         # ``--`` and ``-`` are non-word chars, so ``\b--port`` cannot match
         # in the middle of a line. ``(?:^|\s)`` accepts either start-of-line
         # OR whitespace before the flag, which is the actual bash-arg context.
-        ("FQ port 8001", r"(?:^|\s)--port\s+8001\b"),
-        ("BE port 8000", r"(?:^|\s)--port\s+8000\b"),
-        ("FE port 3000", r"(?:^|\s)-p\s+3000\b"),
+        ("FQ configured port", r'--port\s+"\$ATLAS_FINLYNQ_PORT"'),
+        ("BE configured port", r'--port\s+"\$ATLAS_RULES_PORT"'),
+        ("FE configured port", r'-p\s+"\$ATLAS_UI_PORT"'),
         ("pin file .run/fq.pid", r'PID_FQ="\$RUN_DIR/fq\.pid"'),
         ("pin file .run/be.pid", r'PID_BE="\$RUN_DIR/be\.pid"'),
         ("pin file .run/fe.pid", r'PID_FE="\$RUN_DIR/fe\.pid"'),
@@ -273,3 +274,74 @@ def test_start_sh_required_invariants_present(
         f"(pattern {pattern!r}). Either re-add the invariant or update "
         "this test if the design changed."
     )
+
+
+# ---------- Atlas local port profile --------------------------------------
+
+
+def test_start_sh_declares_atlas_port_defaults_and_wires_each_service(
+    start_sh_path: Path,
+) -> None:
+    """The default Atlas profile is isolated from Finance Copilot's ports."""
+    text = start_sh_path.read_text(encoding="utf-8")
+    assert 'ATLAS_UI_PORT="${ATLAS_UI_PORT-3333}"' in text
+    assert 'ATLAS_RULES_PORT="${ATLAS_RULES_PORT-8888}"' in text
+    assert 'ATLAS_FINLYNQ_PORT="${ATLAS_FINLYNQ_PORT-8889}"' in text
+    assert 'reap_port "$ATLAS_FINLYNQ_PORT"' in text
+    assert 'reap_port "$ATLAS_RULES_PORT"' in text
+    assert 'reap_port "$ATLAS_UI_PORT"' in text
+    assert 'FINLYNQ_BASE_URL="http://127.0.0.1:${ATLAS_FINLYNQ_PORT}"' in text
+    assert 'NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:${ATLAS_RULES_PORT}"' in text
+    assert 'http://127.0.0.1:${ATLAS_FINLYNQ_PORT}/health' in text
+    assert 'http://127.0.0.1:${ATLAS_RULES_PORT}/health' in text
+    assert 'http://127.0.0.1:${ATLAS_UI_PORT}/' in text
+
+
+def test_start_sh_uses_environment_values_at_every_port_boundary(start_sh_path: Path) -> None:
+    """A caller's valid port override flows to listeners, URLs, and probes."""
+    text = start_sh_path.read_text(encoding="utf-8")
+    for variable in ("ATLAS_UI_PORT", "ATLAS_RULES_PORT", "ATLAS_FINLYNQ_PORT"):
+        assert text.count(f'"${variable}"') >= 3, variable
+    assert 'lsof -ti:"$ATLAS_UI_PORT"' in text
+    assert 'lsof -a -p "$pid" -d cwd -Fn' in text
+    assert 'atlas_process_owner()' in text
+
+
+@pytest.mark.parametrize(
+    "name,value",
+    [
+        ("ATLAS_UI_PORT", ""),
+        ("ATLAS_UI_PORT", "not-a-port"),
+        ("ATLAS_RULES_PORT", "80"),
+        ("ATLAS_FINLYNQ_PORT", "65536"),
+    ],
+)
+def test_start_sh_rejects_invalid_port_values_before_startup(
+    start_sh_path: Path, name: str, value: str
+) -> None:
+    """Bad local port input fails before dependencies or listeners are touched."""
+    result = subprocess.run(
+        ["bash", str(start_sh_path)],
+        env={**os.environ, name: value},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert name in result.stdout
+    assert "non-privileged numeric TCP port" in result.stdout
+
+
+def test_start_sh_rejects_duplicate_configured_ports(start_sh_path: Path) -> None:
+    result = subprocess.run(
+        ["bash", str(start_sh_path)],
+        env={
+            **os.environ,
+            "ATLAS_UI_PORT": "4333",
+            "ATLAS_RULES_PORT": "4333",
+            "ATLAS_FINLYNQ_PORT": "4334",
+        },
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert "must be distinct" in result.stdout

@@ -48,8 +48,10 @@ class Settings(BaseSettings):
     jwt_expiration_hours: int = 24
 
     # API
-    api_host: str = "0.0.0.0"
-    api_port: int = 8001  # 8000 is rules-service; 3000 is the Next.js UI.
+    api_host: str = "127.0.0.1"
+    api_port: int = 8889
+    atlas_ui_port: int = 3333
+    cors_allow_origins: str = ""
 
     model_config = ConfigDict(
         extra="ignore",
@@ -73,6 +75,29 @@ class Settings(BaseSettings):
                 "default 'dev-secret-change-in-production' is rejected."
             )
         return self
+
+    def development_cors_origins(self) -> set[str]:
+        """Return legacy-compatible plus configured Atlas development origins."""
+        legacy_origins = {
+            "http://localhost:3000",
+            "http://localhost:8000",
+            "http://localhost:8001",
+            "http://localhost:3001",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:8000",
+            "http://127.0.0.1:8001",
+            "http://127.0.0.1:3001",
+        }
+        atlas_origins = {
+            f"http://localhost:{self.atlas_ui_port}",
+            f"http://127.0.0.1:{self.atlas_ui_port}",
+        }
+        configured_origins = {
+            origin.strip().rstrip("/")
+            for origin in self.cors_allow_origins.split(",")
+            if origin.strip()
+        }
+        return legacy_origins | atlas_origins | configured_origins
 
 
 settings = Settings()

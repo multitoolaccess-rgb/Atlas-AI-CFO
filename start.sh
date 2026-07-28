@@ -1,10 +1,10 @@
 #!/bin/bash
-# Finance Copilot - Dev Server Startup
-# ------------------------------------
+# Atlas - Dev Server Startup
+# --------------------------
 # Launches THREE services in the background:
-#   • Finlynq             on :8001 (canonical store; Phase F4 ship target)
-#   • Rules-service       on :8000 (auth + UI-facing routes; Phase 11 ship)
-#   • Next.js UI          on :3000
+#   • Finlynq             on :$ATLAS_FINLYNQ_PORT (default :8889)
+#   • Rules-service       on :$ATLAS_RULES_PORT (default :8888)
+#   • Next.js UI          on :$ATLAS_UI_PORT (default :3333)
 # then waits for each port to return 200, prints a final status block with
 # PIDs, HTTP codes, log paths.
 #
@@ -17,7 +17,7 @@
 #
 # Lifecycle:
 #   Re-running this script will reap any *this project's* stale
-#   listeners on :8001 / :8000 / :3000 and start fresh. It will NOT
+#   listeners on the configured Atlas ports and start fresh. It will NOT
 #   kill an unrelated process that happens to be on the same port.
 #
 # Stop:
@@ -31,6 +31,30 @@ set -u  # do NOT use -e: we want to continue past stale-listener cleanup
 # Per-service healthcheck budget (seconds). Defaults preserve the user's
 # 30s spec; slow boxes can lift these without editing the script.
 : "${START_FQ_TIMEOUT:=30}" "${START_BE_TIMEOUT:=30}" "${START_FE_TIMEOUT:=30}"
+
+# Atlas's default local profile deliberately avoids Finance Copilot's
+# historical 3000/8000/8001 ports, so both checkouts can run side by side.
+# Use ``-`` rather than ``:-``: an explicitly empty environment value is a
+# configuration error, not a request to silently fall back to a default.
+ATLAS_UI_PORT="${ATLAS_UI_PORT-3333}"
+ATLAS_RULES_PORT="${ATLAS_RULES_PORT-8888}"
+ATLAS_FINLYNQ_PORT="${ATLAS_FINLYNQ_PORT-8889}"
+
+validate_port() {
+  local name=$1 value=$2
+  if [[ ! "$value" =~ ^[0-9]+$ ]] || [ "$value" -lt 1024 ] || [ "$value" -gt 65535 ]; then
+    printf '  ✗ %s must be a non-privileged numeric TCP port (1024-65535); got %q\n' "$name" "$value"
+    exit 2
+  fi
+}
+
+validate_port "ATLAS_UI_PORT" "$ATLAS_UI_PORT"
+validate_port "ATLAS_RULES_PORT" "$ATLAS_RULES_PORT"
+validate_port "ATLAS_FINLYNQ_PORT" "$ATLAS_FINLYNQ_PORT"
+if [ "$ATLAS_UI_PORT" = "$ATLAS_RULES_PORT" ] || [ "$ATLAS_UI_PORT" = "$ATLAS_FINLYNQ_PORT" ] || [ "$ATLAS_RULES_PORT" = "$ATLAS_FINLYNQ_PORT" ]; then
+  printf '  ✗ ATLAS_UI_PORT, ATLAS_RULES_PORT, and ATLAS_FINLYNQ_PORT must be distinct\n'
+  exit 2
+fi
 
 # ----- paths --------------------------------------------------------------
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -96,10 +120,24 @@ wait_for_health() {
   return 1
 }
 
-# Reap HTTP listeners on the given port, but ONLY if the cmdline identifies
-# them as part of this project (finance-copilot / rules-service / finlynq /
-# uvicorn / next-server / "next dev"). Leaves listeners of unrelated
-# projects alone.
+# Confirm that a process is one of Atlas's development servers and its actual
+# working directory belongs to this checkout. ``ps`` omits the virtualenv and
+# checkout path for Python/Next child processes on macOS, so CWD is the durable
+# ownership proof; a name-only allow-list could target another project.
+atlas_process_owner() {
+  local pid=$1 cwd cmd
+  cwd=$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1)
+  case "$cwd" in "$PROJECT_ROOT"/*) ;; *) return 1 ;; esac
+  cmd=$(ps -p "$pid" -o command= 2>/dev/null || true)
+  case "$cmd" in
+    *"-m uvicorn app.main:app"*|*next-server*|"next dev"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Reap HTTP listeners on the given port, but ONLY if their process belongs to
+# this Atlas checkout. Leaves listeners of unrelated projects alone, even if
+# they happen to be another uvicorn or Next.js process.
 reap_port() {
   local port=$1
   local pids
@@ -108,20 +146,15 @@ reap_port() {
 
   local project_pid=
   for pid in $pids; do
-    local cmd
-    cmd=$(ps -p "$pid" -o command= 2>/dev/null || true)
-    case "$cmd" in
-      *finance-copilot*|*rules-service*|*finlynq*|*uvicorn*|*next-server*|"next dev"*)
-        project_pid=$pid
-        break
-        ;;
-    esac
+    if atlas_process_owner "$pid"; then
+      project_pid=$pid
+      break
+    fi
   done
 
   if [ -n "$project_pid" ]; then
-    printf '  ⚠️  port :%s busy w/ stale copilot pid=%s — killing\n' "$port" "$project_pid"
-    # shellcheck disable=SC2086
-    kill -9 $pids 2>/dev/null || true
+    printf '  ⚠️  port :%s busy w/ stale Atlas pid=%s — killing\n' "$port" "$project_pid"
+    kill -9 "$project_pid" 2>/dev/null || true
     sleep 1
   else
     printf '  ℹ️  port :%s has pid(s) %s — leaving alone (cmdline not this project)\n' "$port" "$pids"
@@ -168,11 +201,12 @@ cleanup_started_pids() {
 }
 
 # ----- intro --------------------------------------------------------------
-hr "Finance Copilot — Dev Server (Finlynq + Rules + UI)"
+hr "Atlas — Dev Server (Finlynq + Rules + UI)"
 note "root : $PROJECT_ROOT"
 note "ui   : $UI_DIR"
 note "be   : $BE_DIR"
 note "fq   : $FQ_DIR"
+note "ports: UI=$ATLAS_UI_PORT Rules=$ATLAS_RULES_PORT Finlynq=$ATLAS_FINLYNQ_PORT"
 
 # ----- frontend dependency gate ------------------------------------------
 if [ ! -d "$UI_DIR/node_modules" ]; then
@@ -193,12 +227,12 @@ hr "🧹 Cleaning Next.js cache"
 rm -rf "$UI_DIR/.next" "$UI_DIR/node_modules/.cache"
 
 # ----- reap any stale listeners left over from prior sessions --------------
-# Only :8001 / :8000 / :3000 are owned by this script. Other ports
-# (e.g. :8081) are skipped on purpose — see file header.
-hr "🧹 Reaping stale copilot listeners (if any)"
-reap_port 8001
-reap_port 8000
-reap_port 3000
+# Only configured Atlas ports are considered. The legacy Finance Copilot
+# 3000/8000/8001 profile is never touched by the Atlas defaults.
+hr "🧹 Reaping stale Atlas listeners (if any)"
+reap_port "$ATLAS_FINLYNQ_PORT"
+reap_port "$ATLAS_RULES_PORT"
+reap_port "$ATLAS_UI_PORT"
 
 # ----- shared JWT_SECRET between rules-service and Finlynq -----
 # Phase F2 cross-service invariant: the ``fc_session`` cookie minted by
@@ -235,6 +269,10 @@ fi
 # living in ``services/rules-service/finance.db``.
 export DATABASE_URL="sqlite:///$BE_DIR/finance.db"
 note "DATABASE_URL : $DATABASE_URL (shared between Finlynq + Rules)"
+export FINLYNQ_BASE_URL="http://127.0.0.1:${ATLAS_FINLYNQ_PORT}"
+export NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:${ATLAS_RULES_PORT}"
+note "FINLYNQ_BASE_URL : $FINLYNQ_BASE_URL"
+note "NEXT_PUBLIC_API_BASE_URL : $NEXT_PUBLIC_API_BASE_URL"
 
 # ----- Python environment gate ------------------------------------------
 hr "🐍 Checking isolated Python environments"
@@ -249,7 +287,7 @@ if [ ! -x "$FINLYNQ_VENV_PY" ]; then
   exit 1
 fi
 
-# ----- Finlynq :8001 -------------------------------------------------------
+# ----- Finlynq --------------------------------------------------------------
 # Canonical-store (Phase F4 ship target). The /health route is the readiness
 # probe. Base.metadata.create_all + seed_default_categories run on the
 # @app.on_event("startup") hook inside Finlynq's main.py so the first cold
@@ -262,9 +300,9 @@ fi
 # captures the watcher PID; ``stop.sh``'s ``kill_tree`` BFS walks the
 # uvicorn-reload parent/child tree so SIGTERM still reaches the
 # listener.
-hr "🚀 Starting Finlynq   (uvicorn → :8001, --reload)"
+hr "🚀 Starting Finlynq   (uvicorn → :$ATLAS_FINLYNQ_PORT, --reload)"
 cd "$FQ_DIR"
-nohup "$FINLYNQ_VENV_PY" -m uvicorn app.main:app --host 127.0.0.1 --port 8001 \
+nohup "$FINLYNQ_VENV_PY" -m uvicorn app.main:app --host 127.0.0.1 --port "$ATLAS_FINLYNQ_PORT" \
   --reload \
   > "$LOG_FQ" 2>&1 &
 echo $! > "$PID_FQ"
@@ -292,7 +330,7 @@ if ! ( cd "$BE_DIR" && "$RULES_VENV_PY" -m alembic upgrade head 2>&1 | tee -a "$
 fi
 note "alembic : $BE_DIR at head"
 
-# ----- backend :8000 ------------------------------------------------------
+# ----- backend -------------------------------------------------------------
 # ``--reload`` watches $BE_DIR (services/rules-service) for *.py changes and
 # rebinds the worker without a manual bounce. Without it, every route or
 # schema edit lands as "tests pass but the browser still shows stale data"
@@ -304,9 +342,9 @@ note "alembic : $BE_DIR at head"
 # ``kill_tree BFS`` walks the worker children so SIGTERM still reaches
 # the listener — verified compatible with the uvicorn-reload parent/child
 # process layout.
-hr "🚀 Starting Rules    (uvicorn → :8000, --reload)"
+hr "🚀 Starting Rules    (uvicorn → :$ATLAS_RULES_PORT, --reload)"
 cd "$BE_DIR"
-nohup "$RULES_VENV_PY" -m uvicorn app.main:app --host 127.0.0.1 --port 8000 \
+nohup "$RULES_VENV_PY" -m uvicorn app.main:app --host 127.0.0.1 --port "$ATLAS_RULES_PORT" \
   --reload \
   > "$LOG_BE" 2>&1 &
 echo $! > "$PID_BE"
@@ -315,10 +353,10 @@ STARTED_PIDS+=("$BE_PID")
 note "pid  : $BE_PID (uvicorn --reload watcher; worker is a child)"
 note "log  : $LOG_BE"
 
-# ----- frontend :3000 -----------------------------------------------------
-hr "🚀 Starting Frontend (next dev → :3000)"
+# ----- frontend ------------------------------------------------------------
+hr "🚀 Starting Frontend (next dev → :$ATLAS_UI_PORT)"
 cd "$UI_DIR"
-nohup "$NEXT_BIN" dev -p 3000 -H 127.0.0.1 \
+nohup "$NEXT_BIN" dev -p "$ATLAS_UI_PORT" -H 127.0.0.1 \
   > "$LOG_FE" 2>&1 &
 echo $! > "$PID_FE"
 FE_PID=$(cat "$PID_FE")
@@ -332,33 +370,33 @@ hr "🩽️ Healthcheck"
 # rcs are tracked so the status block can label which side timed out (and
 # so we don't claim "ready" next to an actual rc=1 exit).
 fq_health_rc=0; be_health_rc=0; fe_health_rc=0
-wait_for_health "http://localhost:8001/health" "Finlynq" "${START_FQ_TIMEOUT}" "$LOG_FQ" || fq_health_rc=$?
-wait_for_health "http://localhost:8000/health" "Rules"    "${START_BE_TIMEOUT}" "$LOG_BE" || be_health_rc=$?
-wait_for_health "http://localhost:3000/"        "UI"       "${START_FE_TIMEOUT}" "$LOG_FE" || fe_health_rc=$?
+wait_for_health "http://127.0.0.1:${ATLAS_FINLYNQ_PORT}/health" "Finlynq" "${START_FQ_TIMEOUT}" "$LOG_FQ" || fq_health_rc=$?
+wait_for_health "http://127.0.0.1:${ATLAS_RULES_PORT}/health"    "Rules"    "${START_BE_TIMEOUT}" "$LOG_BE" || be_health_rc=$?
+wait_for_health "http://127.0.0.1:${ATLAS_UI_PORT}/"               "UI"       "${START_FE_TIMEOUT}" "$LOG_FE" || fe_health_rc=$?
 health_rc=$((fq_health_rc | be_health_rc | fe_health_rc))
 
 # ----- resolve actual FE listener pid (next dev forks) --------------------
 # $! from nohup is the next dev wrapper, not necessarily the port-binding
 # child. Re-read the live listener so the Stop command below actually
 # tears down the right process.
-FE_LISTENER=$(lsof -ti:3000 2>/dev/null | head -1 | tr -d ' ' || true)
+FE_LISTENER=$(lsof -ti:"$ATLAS_UI_PORT" 2>/dev/null | head -1 | tr -d ' ' || true)
 if [ -n "$FE_LISTENER" ] && [ "$FE_LISTENER" != "$FE_PID" ]; then
   printf '  • next dev forked: wrapper pid=%s → listener pid=%s (recorded)\n' "$FE_PID" "$FE_LISTENER"
   echo "$FE_LISTENER" > "$PID_FE"
   FE_PID="$FE_LISTENER"
 elif [ -z "$FE_LISTENER" ]; then
-  # wait_for_port 3000 just returned 2xx a moment ago — if the listener
+  # The UI health probe just returned 2xx a moment ago — if the listener
   # is already gone, the FE crashed (OOM, watcher, etc.). Tell the user.
-  printf '  ⚠️  FE listener disappeared after wait (port :3000 free) — see %s\n' "$LOG_FE"
+  printf '  ⚠️  FE listener disappeared after wait (port :%s free) — see %s\n' "$ATLAS_UI_PORT" "$LOG_FE"
 fi
 
 # ----- final status block -------------------------------------------------
 hr "✨ Status"
 # Re-probe (fresh) so the block reflects the *current* HTTP code, not the
 # transient value seen during wait_for_port.
-FQ_HTTP=$(http_probe "http://localhost:8001/health")
-BE_HTTP=$(http_probe "http://localhost:8000/health")
-FE_HTTP=$(http_probe "http://localhost:3000/")
+FQ_HTTP=$(http_probe "http://127.0.0.1:${ATLAS_FINLYNQ_PORT}/health")
+BE_HTTP=$(http_probe "http://127.0.0.1:${ATLAS_RULES_PORT}/health")
+FE_HTTP=$(http_probe "http://127.0.0.1:${ATLAS_UI_PORT}/")
 fq_state='✓ up'; be_state='✓ up'; fe_state='✓ up'
 case "$FQ_HTTP" in 200) ;; *) fq_state='✗ not 200' ;; esac
 case "$BE_HTTP" in 200) ;; *) be_state='✗ not 200' ;; esac
@@ -368,17 +406,17 @@ case "$FE_HTTP" in 200) ;; *) fe_state='✗ not 200' ;; esac
 [ "$be_health_rc" -ne 0 ] && be_state='⏱ timeout'
 [ "$fe_health_rc" -ne 0 ] && fe_state='⏱ timeout'
 # Status block column widths (lock alignment across all 3 rows):
-#   "FQ (finlynq       :8001)" — "finlynq" + 7 spaces = 14 chars before :port
-#   "BE (rules-service :8000)" — "rules-service" + 1 space = 14 chars before :port
-#   "FE (next dev      :3000)" — "next dev" + 6 spaces = 14 chars before :port
+#   "FQ (finlynq       :port)" — "finlynq" + 7 spaces = 14 chars before :port
+#   "BE (rules-service :port)" — "rules-service" + 1 space = 14 chars before :port
+#   "FE (next dev      :port)" — "next dev" + 6 spaces = 14 chars before :port
 # Each row emits 2 spaces + code + " (" + name + spaces + ":port)  pid=" ; the
 # `pid=` column therefore lands at offset 30 for all three rows.
-printf '  FQ (finlynq       :8001)  pid=%s   HTTP=%s   %s   log=%s\n' "$FQ_PID" "$FQ_HTTP" "$fq_state" "$LOG_FQ"
-printf '  BE (rules-service :8000)  pid=%s   HTTP=%s   %s   log=%s\n' "$BE_PID" "$BE_HTTP" "$be_state" "$LOG_BE"
-printf '  FE (next dev      :3000)  pid=%s   HTTP=%s   %s   log=%s\n' "$FE_PID" "$FE_HTTP" "$fe_state" "$LOG_FE"
+printf '  FQ (finlynq       :%s)  pid=%s   HTTP=%s   %s   log=%s\n' "$ATLAS_FINLYNQ_PORT" "$FQ_PID" "$FQ_HTTP" "$fq_state" "$LOG_FQ"
+printf '  BE (rules-service :%s)  pid=%s   HTTP=%s   %s   log=%s\n' "$ATLAS_RULES_PORT" "$BE_PID" "$BE_HTTP" "$be_state" "$LOG_BE"
+printf '  FE (next dev      :%s)  pid=%s   HTTP=%s   %s   log=%s\n' "$ATLAS_UI_PORT" "$FE_PID" "$FE_HTTP" "$fe_state" "$LOG_FE"
 printf '\n'
-printf '  🌐 Open   : http://localhost:3000\n'
-printf '  🩺 Health : http://localhost:8001/health (HTTP %s)   http://localhost:8000/health (HTTP %s)\n' "$FQ_HTTP" "$BE_HTTP"
+printf '  🌐 Open   : http://127.0.0.1:%s\n' "$ATLAS_UI_PORT"
+printf '  🩺 Health : http://127.0.0.1:%s/health (HTTP %s)   http://127.0.0.1:%s/health (HTTP %s)\n' "$ATLAS_FINLYNQ_PORT" "$FQ_HTTP" "$ATLAS_RULES_PORT" "$BE_HTTP"
 printf '  📋 Tail   : tail -f %s %s %s\n' "$LOG_FQ" "$LOG_BE" "$LOG_FE"
 printf '  🛑 Stop   : kill %s %s %s\n' "$FQ_PID" "$BE_PID" "$FE_PID"
 printf '             (or just re-run ./start.sh — it will reap stale listeners)\n'

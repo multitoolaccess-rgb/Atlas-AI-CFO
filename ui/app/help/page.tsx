@@ -15,7 +15,7 @@ const FAQ = [
   },
   {
     q: 'Why does the Overview show "Network Error"?',
-    a: 'The frontend cannot reach the rules-service backend on :8000. Start it with: cd services/rules-service && ../../.venv-rules/bin/python -m uvicorn app.main:app. Once /health returns 200, the dashboard auto-recovers on the next page load (or click the Retry button on the error banner).',
+    a: 'The frontend cannot reach the Atlas rules-service backend on :8888. Start it with: bash start.sh. Once /health returns 200, the dashboard auto-recovers on the next page load (or click the Retry button on the error banner).',
   },
   {
     q: 'How is the 20-year projection calculated?',

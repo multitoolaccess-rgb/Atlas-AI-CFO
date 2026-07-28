@@ -138,18 +138,10 @@ app = FastAPI(
     ),
 )
 
-# CORS -- explicitly allow the Next.js dev server (3000) + the
-# rules-service itself (8000) + the wealthiq dev server (3001 for
-# legacy baseline). The :5173 from the Phase 3 lift was a Vite dev
-# port that the wealthiq project no longer uses (Phase 4 dropped it).
-ALLOWED_CORS_ORIGINS = {
-    "http://localhost:3000",
-    "http://localhost:8000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:8000",
-    "http://127.0.0.1:3001",
-}
+# CORS retains the legacy local origins while deriving Atlas's UI origins
+# from ``ATLAS_UI_PORT`` (3333 by default). See ``Settings`` for the bounded
+# optional ``CORS_ALLOW_ORIGINS`` development override.
+ALLOWED_CORS_ORIGINS = settings.development_cors_origins()
 
 app.add_middleware(
     CORSMiddleware,

@@ -100,7 +100,7 @@ async function checkBackend(): Promise<boolean> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 1500)
   try {
-    const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000')
+    const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8888')
       .replace('localhost', '127.0.0.1')
     const res = await fetch(`${baseUrl}/health`, {
       cache: 'no-store',

@@ -39,8 +39,14 @@ class Settings(BaseSettings):
     jwt_expiration_hours: int = 24
 
     # API
-    api_host: str = "0.0.0.0"
-    api_port: int = 8000
+    api_host: str = "127.0.0.1"
+    api_port: int = 8888
+
+    # Atlas's local profile runs beside the legacy Finance Copilot checkout.
+    # The startup script passes these ports explicitly; keeping their defaults
+    # here makes direct local uvicorn use follow the same loopback-only profile.
+    atlas_ui_port: int = 3333
+    cors_allow_origins: str = ""
 
     # Plaid (optional — canonical ingest path per §10 decision 1)
     plaid_client_id: Optional[str] = None
@@ -52,7 +58,7 @@ class Settings(BaseSettings):
     # upload to this URL and re-emits the response. Override via
     # env (``FINLYNQ_BASE_URL``) in CI / docker-compose where
     # Finlynq lives behind a hostname.
-    finlynq_base_url: str = "http://localhost:8001"
+    finlynq_base_url: str = "http://127.0.0.1:8889"
 
     # Phase 9 / Phase 39.2 — Finnhub free-tier API key for
     # ``GET /api/analyst-ratings/{ticker}`` and the
@@ -84,6 +90,32 @@ class Settings(BaseSettings):
                 "default 'dev-secret-change-in-production' is rejected."
             )
         return self
+
+    def development_cors_origins(self) -> set[str]:
+        """Return legacy-compatible plus configured Atlas development origins.
+
+        ``CORS_ALLOW_ORIGINS`` is a comma-separated escape hatch for a
+        deliberately configured local integration. ``ATLAS_UI_PORT`` controls
+        the normal Atlas UI origins; it is never inferred from a request.
+        """
+        legacy_origins = {
+            "http://localhost:3000",
+            "http://localhost:8000",
+            "http://localhost:3001",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:8000",
+            "http://127.0.0.1:3001",
+        }
+        atlas_origins = {
+            f"http://localhost:{self.atlas_ui_port}",
+            f"http://127.0.0.1:{self.atlas_ui_port}",
+        }
+        configured_origins = {
+            origin.strip().rstrip("/")
+            for origin in self.cors_allow_origins.split(",")
+            if origin.strip()
+        }
+        return legacy_origins | atlas_origins | configured_origins
 
 
 settings = Settings()

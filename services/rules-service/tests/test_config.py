@@ -26,6 +26,9 @@ def test_default_settings_when_no_env(monkeypatch):
         "JWT_EXPIRATION_HOURS",
         "API_HOST",
         "API_PORT",
+        "FINLYNQ_BASE_URL",
+        "ATLAS_UI_PORT",
+        "CORS_ALLOW_ORIGINS",
         "PLAID_CLIENT_ID",
         "PLAID_SECRET",
         "PLAID_ENV",
@@ -41,6 +44,9 @@ def test_default_settings_when_no_env(monkeypatch):
     assert s.local_user == "alex"            # §10 decision 4
     assert s.jwt_algorithm == "HS256"
     assert s.jwt_expiration_hours == 24
+    assert s.api_host == "127.0.0.1"
+    assert s.api_port == 8888
+    assert s.finlynq_base_url == "http://127.0.0.1:8889"
 
 
 def test_env_overrides_win(monkeypatch):
@@ -73,6 +79,20 @@ def test_module_level_settings_is_a_settings_instance():
 
     assert isinstance(settings, Settings)
     assert settings.app_name == "Finance Copilot"
+
+
+def test_development_cors_origins_include_atlas_and_legacy_origins(monkeypatch):
+    monkeypatch.setenv("ATLAS_UI_PORT", "4333")
+    monkeypatch.setenv("CORS_ALLOW_ORIGINS", "http://dev.example, http://127.0.0.1:4555/")
+    s = Settings(_env_file=None)
+
+    origins = s.development_cors_origins()
+    assert "http://localhost:4333" in origins
+    assert "http://127.0.0.1:4333" in origins
+    assert "http://localhost:3000" in origins  # legacy compatibility
+    assert "http://127.0.0.1:8000" in origins  # legacy compatibility
+    assert "http://dev.example" in origins
+    assert "http://127.0.0.1:4555" in origins
 
 
 def test_production_environment_refuses_dev_default_jwt_secret(monkeypatch):

@@ -56,6 +56,37 @@ bash start.sh
 `scripts/test-e2e.sh` choose the appropriate interpreter automatically and
 identify a missing environment with the exact bootstrap command.
 
+## Run Atlas beside Finance Copilot
+
+Atlas has a separate loopback-only local port profile, so it can run beside a
+legacy Finance Copilot checkout without replacing or stopping it.
+
+| Application | UI | Rules Service | Finlynq |
+| --- | --- | --- | --- |
+| Legacy Finance Copilot | http://localhost:3000 | http://localhost:8000 | http://localhost:8001 |
+| Atlas | http://localhost:3333 | http://localhost:8888 | http://localhost:8889 |
+
+From the Atlas repository root, start and stop the Atlas profile with:
+
+```bash
+bash start.sh
+bash stop.sh
+```
+
+The profile is controlled by `ATLAS_UI_PORT`, `ATLAS_RULES_PORT`, and
+`ATLAS_FINLYNQ_PORT`. All must be distinct non-privileged TCP ports. For an
+isolated alternate Atlas session, override all three consistently:
+
+```bash
+ATLAS_UI_PORT=4333 ATLAS_RULES_PORT=9888 ATLAS_FINLYNQ_PORT=9889 bash start.sh
+ATLAS_UI_PORT=4333 ATLAS_RULES_PORT=9888 ATLAS_FINLYNQ_PORT=9889 bash stop.sh
+```
+
+`start.sh` passes `FINLYNQ_BASE_URL=http://127.0.0.1:$ATLAS_FINLYNQ_PORT` to
+Rules Service and `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:$ATLAS_RULES_PORT`
+to Next.js. It only reaps listeners owned by this Atlas checkout on the
+configured ports; it does not touch the legacy profile's default ports.
+
 ## Troubleshooting and policy
 
 - Do not use the old Finance Copilot `.venv`; it is not part of Atlas.

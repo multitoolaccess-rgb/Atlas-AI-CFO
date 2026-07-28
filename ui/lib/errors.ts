@@ -29,8 +29,8 @@
  *   - 5xx    -> "The server hit an error. Please try again in a
  *               moment." (our own crash; operator intervention)
  *   - other  -> upstream detail
- *   - no res -> "Can't reach the backend. Start the rules-service on
- *               :8000 (bash scripts/start.sh)."
+ *   - no res -> "Can't reach the backend. Start Atlas Rules Service on
+ *               :8888 (bash start.sh)."
  */
 
 /** Coarse-grained category for auto-retry / telemetry hooks. */
@@ -127,7 +127,7 @@ export function classifyError(err: unknown): ClassifiedError {
   // No response object → real network failure (BE down, ECONNREFUSED, offline).
   return {
     message:
-      "Can't reach the backend. Make sure the rules-service is running on :8000 (cd services/rules-service && ../../.venv-rules/bin/python -m uvicorn app.main:app).",
+      "Can't reach the backend. Make sure Atlas Rules Service is running on :8888 (bash start.sh).",
     category: 'network',
     cause: err,
   }

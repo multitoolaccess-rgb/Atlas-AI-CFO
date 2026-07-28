@@ -44,16 +44,7 @@ from app.services.categorizer import seed_default_categories
 
 LOG = logging.getLogger("uvicorn.error")
 
-_ALLOWED_CORS_ORIGINS = {
-    "http://localhost:3000",
-    "http://localhost:8000",
-    "http://localhost:8001",
-    "http://localhost:3001",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:8000",
-    "http://127.0.0.1:8001",
-    "http://127.0.0.1:3001",
-}
+_ALLOWED_CORS_ORIGINS = settings.development_cors_origins()
 
 
 def _cors_json(request: Request, status_code: int, detail: str) -> JSONResponse:
