@@ -102,6 +102,36 @@ def test_envelope_requires_canonical_decimal_strings(
         CanonicalProjectionState.model_validate(envelope)
 
 
+def test_envelope_enforces_v1_decimal_precision_scale_and_encoded_length_bounds(
+    fixture_case: dict[str, object]
+) -> None:
+    envelope = json.loads(json.dumps(fixture_case["envelope"]))
+    envelope["current_value_components"][0]["amount"] = (
+        "12345678901234567890.123456789012345678"
+    )
+    assert (
+        CanonicalProjectionState.model_validate(envelope)
+        .current_value_components[0]
+        .amount
+        == "12345678901234567890.123456789012345678"
+    )
+    envelope["current_value_components"][0]["amount"] = (
+        "-12345678901234567890.123456789012345678"
+    )
+    assert CanonicalProjectionState.model_validate(envelope)
+
+    for amount in (
+        "123456789012345678901.123456789012345678",  # 39 digits
+        "0.1234567890123456789",  # scale 19
+        "-123456789012345678901.123456789012345678",  # length 41
+        "0." + ("0" * 10_000) + "1",  # reported overscale regression
+    ):
+        rejected = json.loads(json.dumps(fixture_case["envelope"]))
+        rejected["current_value_components"][0]["amount"] = amount
+        with pytest.raises(ValidationError, match="decimal"):
+            CanonicalProjectionState.model_validate(rejected)
+
+
 def test_envelope_requires_utc_timestamps_and_bounded_collections(
     fixture_case: dict[str, object]
 ) -> None:
@@ -170,6 +200,40 @@ def test_generation_control_body_is_empty_and_idempotency_key_is_bounded() -> No
         validate_idempotency_key("\n")
 
 
+def test_generation_control_body_rejects_client_assumption_and_driver_fields() -> None:
+    for field in ("assumptions", "assumption_profile", "projection_drivers"):
+        with pytest.raises(ValidationError):
+            parse_generation_control_body({field: "forged-value"})
+
+
+def test_generation_control_body_rejects_client_output_and_result_fields() -> None:
+    for field in (
+        "projection_output",
+        "scenario_outputs",
+        "target_status",
+        "probability",
+        "target_gap",
+    ):
+        with pytest.raises(ValidationError):
+            parse_generation_control_body({field: "forged-value"})
+
+
+def test_generation_control_body_rejects_client_authoritative_state_categories(
+) -> None:
+    for field in (
+        "financial_state",
+        "net_worth",
+        "balance_components",
+        "freshness_metadata",
+        "source_records",
+        "provenance_references",
+        "hash_schema_version",
+        "snapshot_schema_version",
+    ):
+        with pytest.raises(ValidationError):
+            parse_generation_control_body({field: "forged-value"})
+
+
 def test_authoritative_state_can_only_enter_through_trusted_adapter(
     fixture_case: dict[str, object]
 ) -> None:
@@ -206,7 +270,29 @@ def test_adapter_output_must_match_server_authorized_scope(
         ) -> CanonicalProjectionState:
             return CanonicalProjectionState.model_validate(forged)
 
-    with pytest.raises(CanonicalStateValidationError, match="authorized user"):
+    with pytest.raises(
+        CanonicalStateValidationError, match="authorized user"
+    ) as exc_info:
+        load_authoritative_projection_state(
+            adapter=MismatchedAdapter(),
+            server_user_id="atlas-test-user-alpha",
+            server_goal_id=101,
+        )
+    assert "atlas-test-user-beta" not in str(exc_info.value)
+
+
+def test_adapter_output_must_match_server_authorized_goal(
+    fixture_case: dict[str, object]
+) -> None:
+    forged = {**fixture_case["envelope"], "goal_id": 102}
+
+    class MismatchedAdapter(FinlynqProjectionStateAdapter):
+        def load_projection_state(
+            self, *, user_id: str, goal_id: int
+        ) -> CanonicalProjectionState:
+            return CanonicalProjectionState.model_validate(forged)
+
+    with pytest.raises(CanonicalStateValidationError, match="authorized goal"):
         load_authoritative_projection_state(
             adapter=MismatchedAdapter(),
             server_user_id="atlas-test-user-alpha",

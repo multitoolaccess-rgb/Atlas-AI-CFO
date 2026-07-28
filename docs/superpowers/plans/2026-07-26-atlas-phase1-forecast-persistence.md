@@ -112,6 +112,17 @@ credentials, unbounded free-form source data, and unnecessary personal
 information. A source-state hash covers normalized components and provenance;
 the forecast stores only that hash and the bounded references.
 
+For v1 component and contribution money strings, accept at most 38 digits
+excluding sign and decimal point, at most 18 fractional digits, and at most 40
+encoded characters. These are unrounded input/hash bounds; validation rejects
+rather than rounds or truncates. Fractional assumptions are not accepted by
+this envelope and retain their separate later-slice contract.
+
+No v1 envelope collection is order-meaningful. Canonicalization sorts
+current-value and contribution entries by `(kind, source_reference,
+observed_at)`, provenance by `(source_system, reference_id, observed_at)`,
+and missing-data codes lexically. Duplicate identity keys are rejected.
+
 ## API contracts
 
 ### Generate a version

@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN, ROUND_UP, localcontext
 
 import pytest
 
@@ -18,6 +19,11 @@ from app.forecasts.canonical_state import (
 
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "atlas_forecast_snapshots_v1.json"
+
+
+@pytest.fixture(scope="module")
+def fixture_case() -> dict[str, object]:
+    return json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))["cases"][0]
 
 
 def test_fixture_canonical_json_and_hash_are_deterministic() -> None:
@@ -43,16 +49,104 @@ def test_canonical_json_rejects_binary_floats_and_normalizes_decimal_values() ->
         canonical_json({"amount": 1234.56})
 
 
+@pytest.mark.parametrize("rounding", [ROUND_DOWN, ROUND_UP])
+def test_decimal_canonicalization_and_hashing_ignore_ambient_context(
+    fixture_case: dict[str, object], rounding: str
+) -> None:
+    exact = Decimal("12345678901234567890.123456789012345678")
+    expected_amount = "12345678901234567890.123456789012345678"
+    baseline = json.loads(json.dumps(fixture_case["envelope"]))
+    baseline["current_value_components"][0]["amount"] = expected_amount
+    expected_state = CanonicalProjectionState.model_validate(baseline)
+    expected_json = canonical_json({"amount": exact})
+    expected_hash = hash_input_state(expected_state)
+
+    with localcontext() as context:
+        context.prec = 5
+        context.rounding = rounding
+        actual_amount = canonical_decimal_string(exact)
+        actual_json = canonical_json({"amount": exact})
+        actual = json.loads(json.dumps(fixture_case["envelope"]))
+        actual["current_value_components"][0]["amount"] = actual_amount
+        actual_state = CanonicalProjectionState.model_validate(actual)
+
+    assert actual_amount == expected_amount
+    assert actual_json == expected_json
+    assert hash_input_state(actual_state) == expected_hash
+    assert hashlib.sha256(actual_json.encode("utf-8")).hexdigest() == hashlib.sha256(
+        expected_json.encode("utf-8")
+    ).hexdigest()
+
+
+def test_order_insensitive_envelope_collections_are_canonicalized(
+    fixture_case: dict[str, object]
+) -> None:
+    canonical = json.loads(json.dumps(fixture_case["envelope"]))
+    canonical["contribution_inputs"].append(
+        {
+            "kind": "monthly_investable_cash_flow",
+            "amount": "12.34",
+            "source_reference": "atlas-test-cash-flow-002",
+            "observed_at": "2026-07-01T12:00:00Z",
+        }
+    )
+    canonical["provenance"].append(
+        {
+            "source_system": "finlynq",
+            "reference_id": "atlas-test-aggregate-002",
+            "observed_at": "2026-07-01T12:00:00Z",
+            "record_count": 1,
+            "source_state_hash": (
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            ),
+        }
+    )
+    canonical["missing_data_codes"] = ["missing_cash_flow", "missing_investment"]
+    reversed_input = json.loads(json.dumps(canonical))
+    for key in (
+        "current_value_components",
+        "contribution_inputs",
+        "provenance",
+        "missing_data_codes",
+    ):
+        reversed_input[key].reverse()
+
+    first = CanonicalProjectionState.model_validate(canonical)
+    second = CanonicalProjectionState.model_validate(reversed_input)
+
+    assert first.hash_payload() == second.hash_payload()
+    assert canonical_json(first.hash_payload()) == canonical_json(second.hash_payload())
+    assert hash_input_state(first) == hash_input_state(second)
+
+
+def test_duplicate_order_insensitive_collection_identity_is_rejected(
+    fixture_case: dict[str, object]
+) -> None:
+    envelope = json.loads(json.dumps(fixture_case["envelope"]))
+    envelope["current_value_components"].append(
+        {**envelope["current_value_components"][0], "amount": "999.99"}
+    )
+
+    with pytest.raises(ValueError, match="duplicate"):
+        CanonicalProjectionState.model_validate(envelope)
+
+
+def test_validated_envelope_collections_are_immutable(
+    fixture_case: dict[str, object]
+) -> None:
+    state = CanonicalProjectionState.model_validate(fixture_case["envelope"])
+
+    with pytest.raises(AttributeError):
+        state.current_value_components.append(state.current_value_components[0])
+    with pytest.raises(AttributeError):
+        state.missing_data_codes.append("missing_cash_flow")
+
+
 def test_hash_changes_when_authoritative_state_changes() -> None:
     fixture = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
     envelope = CanonicalProjectionState.model_validate(fixture["cases"][0]["envelope"])
-    changed = envelope.model_copy(
-        update={
-            "current_value_components": [
-                envelope.current_value_components[0].model_copy(update={"amount": "1234.57"}),
-                envelope.current_value_components[1],
-            ]
-        }
-    )
+    changed_payload = envelope.model_dump(mode="json")
+    changed_payload["current_value_components"][0]["amount"] = "1234.57"
+    changed = CanonicalProjectionState.model_validate(changed_payload)
 
     assert hash_input_state(changed) != hash_input_state(envelope)

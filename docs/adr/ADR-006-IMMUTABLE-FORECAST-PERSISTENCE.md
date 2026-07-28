@@ -182,6 +182,21 @@ unbounded free-form source payloads, and unnecessary personal information. A
 source-state hash covers the bounded provenance and normalized components;
 Rules Service stores that hash and references, not the source records.
 
+For `atlas-projection-state/v1`, component and contribution money strings are
+unrounded canonical Decimal strings with at most 38 digits excluding sign and
+decimal point, at most 18 fractional digits, and at most 40 encoded
+characters (sign and decimal point included). These are input/hash bounds, not
+output display rounding: no value is rounded or truncated to fit. Fractional
+assumptions are not accepted in this v1 envelope; their distinct unrounded
+representation remains part of the later approved assumption-snapshot slice.
+
+All v1 envelope collections are order-insensitive and canonicalized before
+hashing. Current-value and contribution entries sort by `(kind,
+source_reference, observed_at)`; provenance entries sort by `(source_system,
+reference_id, observed_at)`; missing-data codes sort lexically. Duplicate
+identity keys are rejected rather than resolved arbitrarily. No v1 envelope
+collection has financial meaning in its input order.
+
 ### Transitional ownership and authorization
 
 Phase 1 retains `forecasts.user_id -> users.id`. Every generation and read
