@@ -12,6 +12,7 @@ import pytest
 from app.forecasts.canonical_state import (
     CanonicalProjectionState,
     CanonicalStateValidationError,
+    ContractValidationError,
     canonical_json,
     canonical_decimal_string,
     hash_input_state,
@@ -47,6 +48,47 @@ def test_canonical_json_rejects_binary_floats_and_normalizes_decimal_values() ->
     assert canonical_decimal_string(Decimal("0.00")) == "0"
     with pytest.raises(CanonicalStateValidationError, match="floating-point"):
         canonical_json({"amount": 1234.56})
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        Decimal("1E+1000"),
+        Decimal("1E+1000000"),
+        Decimal("1E-1000"),
+        Decimal("1E-1000000"),
+    ],
+)
+def test_direct_decimal_serialization_rejects_extreme_exponents_before_expansion(
+    value: Decimal,
+) -> None:
+    with pytest.raises(CanonicalStateValidationError, match="v1 decimal bounds"):
+        canonical_json({"amount": value})
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (Decimal("1E+24"), '{"amount":"1000000000000000000000000"}'),
+        (Decimal("-1E+24"), '{"amount":"-1000000000000000000000000"}'),
+        (Decimal("1E-18"), '{"amount":"0.000000000000000001"}'),
+        (Decimal("-1E-18"), '{"amount":"-0.000000000000000001"}'),
+    ],
+)
+def test_direct_decimal_serialization_accepts_exact_exponent_boundaries(
+    value: Decimal, expected: str
+) -> None:
+    assert canonical_json({"amount": value}) == expected
+
+
+@pytest.mark.parametrize(
+    "value", [Decimal("1E+25"), Decimal("-1E+25"), Decimal("1E-19"), Decimal("-1E-19")]
+)
+def test_direct_decimal_serialization_rejects_one_step_beyond_exponent_boundaries(
+    value: Decimal,
+) -> None:
+    with pytest.raises(CanonicalStateValidationError, match="v1 decimal bounds"):
+        canonical_json({"amount": value})
 
 
 @pytest.mark.parametrize("rounding", [ROUND_DOWN, ROUND_UP])
@@ -127,7 +169,7 @@ def test_duplicate_order_insensitive_collection_identity_is_rejected(
         {**envelope["current_value_components"][0], "amount": "999.99"}
     )
 
-    with pytest.raises(ValueError, match="duplicate"):
+    with pytest.raises(ContractValidationError):
         CanonicalProjectionState.model_validate(envelope)
 
 

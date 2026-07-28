@@ -71,12 +71,14 @@ Constraints:
 - positive version and data-age checks;
 - immutable version update/delete guards.
 
-Snapshot money is a canonical fixed-scale decimal string. Queryable money uses
-`Numeric(38, 2, asdecimal=True)`. Rates, inflation, and other fractional
-assumptions remain unrounded canonical Decimal strings in versioned snapshots;
-they must not use a scale-2 monetary column. A later queryable fractional field
-requires `NUMERIC(38, 18)` or a separately reviewed higher-scale contract. No
-`Float` enters the new model or schemas.
+Canonical input/hash envelope money is a bounded, exact, unrounded Decimal
+string; it is not a fixed-scale display contract. Queryable money uses
+`Numeric(38, 2, asdecimal=True)`, and output/display values use a fixed scale
+only where their later contract explicitly requires it. Rates, inflation, and
+other fractional assumptions remain unrounded canonical Decimal strings in
+versioned snapshots; they must not use a scale-2 monetary column. A later
+queryable fractional field requires `NUMERIC(38, 18)` or a separately reviewed
+higher-scale contract. No `Float` enters the new model or schemas.
 
 `forecast_versions` contains immutable reasoning. Any future lifecycle state
 belongs on the stable `forecasts` row or a separate lifecycle table; it never
@@ -111,12 +113,17 @@ It excludes raw statements, raw transaction payloads, uploaded files,
 credentials, unbounded free-form source data, and unnecessary personal
 information. A source-state hash covers normalized components and provenance;
 the forecast stores only that hash and the bounded references.
+Contract-boundary validation surfaces only sanitized field locations and stable
+error categories. Callers must not surface raw Pydantic validation errors,
+because their structured representations can retain rejected input values.
 
-For v1 component and contribution money strings, accept at most 38 digits
-excluding sign and decimal point, at most 18 fractional digits, and at most 40
-encoded characters. These are unrounded input/hash bounds; validation rejects
-rather than rounds or truncates. Fractional assumptions are not accepted by
-this envelope and retain their separate later-slice contract.
+For v1 component and contribution money strings, accept bounded, exact,
+unrounded canonical Decimal strings with at most 38 digits excluding sign and
+decimal point, at most 18 fractional digits, and at most 40 encoded
+characters. These are input/hash bounds, not persisted fixed-scale or display
+rounding; validation rejects rather than rounds or truncates. Fractional
+assumptions are not accepted by this envelope and retain their separate
+later-slice contract.
 
 No v1 envelope collection is order-meaningful. Canonicalization sorts
 current-value and contribution entries by `(kind, source_reference,

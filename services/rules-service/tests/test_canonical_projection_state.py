@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
 
 from app.forecasts.canonical_state import (
     CANONICAL_JSON_VERSION,
@@ -14,6 +13,7 @@ from app.forecasts.canonical_state import (
     PROJECTION_STATE_SCHEMA_VERSION,
     CanonicalProjectionState,
     CanonicalStateValidationError,
+    ContractValidationError,
     FinlynqProjectionStateAdapter,
     canonicalize_legacy_float_target,
     load_authoritative_projection_state,
@@ -67,7 +67,7 @@ def test_envelope_rejects_raw_or_unbounded_source_payloads(
 ) -> None:
     envelope = {**fixture_case["envelope"], **patch}
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ContractValidationError):
         CanonicalProjectionState.model_validate(envelope)
 
 
@@ -79,12 +79,90 @@ def test_envelope_rejects_nested_raw_payloads_and_unknown_component_fields(
         {"description": "Test Merchant Alpha"}
     ]
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ContractValidationError):
         CanonicalProjectionState.model_validate(envelope)
+
+
+@pytest.mark.parametrize(
+    "patch, marker",
+    [
+        ({"raw_statement": "ATLAS-SECRET-RAW-STATEMENT-001"}, "ATLAS-SECRET-RAW-STATEMENT-001"),
+        (
+            {"raw_transactions": [{"description": "ATLAS-SECRET-RAW-TXN-002"}]},
+            "ATLAS-SECRET-RAW-TXN-002",
+        ),
+        ({"credentials": "ATLAS-SECRET-CREDENTIAL-003"}, "ATLAS-SECRET-CREDENTIAL-003"),
+    ],
+)
+def test_contract_validation_errors_do_not_surface_rejected_raw_payloads(
+    fixture_case: dict[str, object], patch: dict[str, object], marker: str
+) -> None:
+    envelope = {**fixture_case["envelope"], **patch}
+
+    with pytest.raises(ContractValidationError) as exc_info:
+        CanonicalProjectionState.model_validate(envelope)
+
+    error = exc_info.value
+    representations = (str(error), repr(error), error.errors(), error.json())
+    assert all(marker not in str(representation) for representation in representations)
+    assert error.errors() == [{"loc": (next(iter(patch)),), "type": "extra_forbidden"}]
+
+
+def test_contract_validation_errors_redact_nested_rejected_payloads(
+    fixture_case: dict[str, object]
+) -> None:
+    marker = "ATLAS-SECRET-NESTED-RAW-PAYLOAD-004"
+    envelope = json.loads(json.dumps(fixture_case["envelope"]))
+    envelope["provenance"][0]["raw_transactions"] = [{"description": marker}]
+
+    with pytest.raises(ContractValidationError) as exc_info:
+        CanonicalProjectionState.model_validate(envelope)
+
+    error = exc_info.value
+    representations = (str(error), repr(error), error.errors(), error.json())
+    assert all(marker not in str(representation) for representation in representations)
+    assert {
+        "loc": ("provenance", 0, "raw_transactions"),
+        "type": "extra_forbidden",
+    } in error.errors()
+
+
+def test_direct_top_level_contract_construction_uses_safe_errors(
+    fixture_case: dict[str, object]
+) -> None:
+    marker = "ATLAS-SECRET-DIRECT-CONSTRUCTION-005"
+    envelope = {**fixture_case["envelope"], "raw_statement": marker}
+
+    with pytest.raises(ContractValidationError) as exc_info:
+        CanonicalProjectionState(**envelope)
+
+    error = exc_info.value
+    assert all(
+        marker not in str(representation)
+        for representation in (str(error), repr(error), error.errors(), error.json())
+    )
+    assert error.errors() == [{"loc": ("raw_statement",), "type": "extra_forbidden"}]
+
+
+def test_json_contract_validation_uses_safe_errors(
+    fixture_case: dict[str, object]
+) -> None:
+    marker = "ATLAS-SECRET-JSON-CONSTRUCTION-006"
+    envelope = {**fixture_case["envelope"], "raw_statement": marker}
+
+    with pytest.raises(ContractValidationError) as exc_info:
+        CanonicalProjectionState.model_validate_json(json.dumps(envelope))
+
+    error = exc_info.value
+    assert all(
+        marker not in str(representation)
+        for representation in (str(error), repr(error), error.errors(), error.json())
+    )
+    assert error.errors() == [{"loc": ("raw_statement",), "type": "extra_forbidden"}]
 
     envelope = json.loads(json.dumps(fixture_case["envelope"]))
     envelope["current_value_components"][0]["raw_statement_text"] = "not-allowed"
-    with pytest.raises(ValidationError):
+    with pytest.raises(ContractValidationError):
         CanonicalProjectionState.model_validate(envelope)
 
 
@@ -98,7 +176,7 @@ def test_envelope_requires_canonical_decimal_strings(
     envelope = json.loads(json.dumps(fixture_case["envelope"]))
     envelope["current_value_components"][0]["amount"] = amount
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ContractValidationError):
         CanonicalProjectionState.model_validate(envelope)
 
 
@@ -128,7 +206,7 @@ def test_envelope_enforces_v1_decimal_precision_scale_and_encoded_length_bounds(
     ):
         rejected = json.loads(json.dumps(fixture_case["envelope"]))
         rejected["current_value_components"][0]["amount"] = amount
-        with pytest.raises(ValidationError, match="decimal"):
+        with pytest.raises(ContractValidationError):
             CanonicalProjectionState.model_validate(rejected)
 
 
@@ -137,7 +215,7 @@ def test_envelope_requires_utc_timestamps_and_bounded_collections(
 ) -> None:
     envelope = json.loads(json.dumps(fixture_case["envelope"]))
     envelope["as_of_timestamp"] = "2026-07-01T12:00:00+01:00"
-    with pytest.raises(ValidationError):
+    with pytest.raises(ContractValidationError):
         CanonicalProjectionState.model_validate(envelope)
 
 
@@ -146,17 +224,17 @@ def test_envelope_does_not_coerce_identifier_or_count_types(
 ) -> None:
     envelope = json.loads(json.dumps(fixture_case["envelope"]))
     envelope["goal_id"] = "101"
-    with pytest.raises(ValidationError):
+    with pytest.raises(ContractValidationError):
         CanonicalProjectionState.model_validate(envelope)
 
     envelope = json.loads(json.dumps(fixture_case["envelope"]))
     envelope["provenance"][0]["record_count"] = True
-    with pytest.raises(ValidationError):
+    with pytest.raises(ContractValidationError):
         CanonicalProjectionState.model_validate(envelope)
 
     envelope = json.loads(json.dumps(fixture_case["envelope"]))
     envelope["missing_data_codes"] = ["missing_component"] * 17
-    with pytest.raises(ValidationError):
+    with pytest.raises(ContractValidationError):
         CanonicalProjectionState.model_validate(envelope)
 
 
@@ -193,7 +271,7 @@ def test_generation_control_body_is_empty_and_idempotency_key_is_bounded() -> No
         "model_version",
         "calculation_version",
     ):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ContractValidationError):
             parse_generation_control_body({client_owned_field: "forged-value"})
 
     with pytest.raises(CanonicalStateValidationError, match="Idempotency-Key"):
@@ -202,7 +280,7 @@ def test_generation_control_body_is_empty_and_idempotency_key_is_bounded() -> No
 
 def test_generation_control_body_rejects_client_assumption_and_driver_fields() -> None:
     for field in ("assumptions", "assumption_profile", "projection_drivers"):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ContractValidationError):
             parse_generation_control_body({field: "forged-value"})
 
 
@@ -214,7 +292,7 @@ def test_generation_control_body_rejects_client_output_and_result_fields() -> No
         "probability",
         "target_gap",
     ):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ContractValidationError):
             parse_generation_control_body({field: "forged-value"})
 
 
@@ -230,7 +308,7 @@ def test_generation_control_body_rejects_client_authoritative_state_categories(
         "hash_schema_version",
         "snapshot_schema_version",
     ):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ContractValidationError):
             parse_generation_control_body({field: "forged-value"})
 
 

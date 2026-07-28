@@ -12,11 +12,12 @@ import json
 import math
 import re
 from collections.abc import Mapping, Sequence
+from contextvars import ContextVar
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any, Callable, Literal, Protocol, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 
 PROJECTION_STATE_SCHEMA_VERSION = "atlas-projection-state/v1"
@@ -41,14 +42,68 @@ _UTC_RFC3339 = re.compile(
     r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,6})?Z$"
 )
 _CollectionItem = TypeVar("_CollectionItem")
+_MODEL_VALIDATION_IN_PROGRESS: ContextVar[bool] = ContextVar(
+    "atlas_contract_model_validation_in_progress", default=False
+)
 
 
 class CanonicalStateValidationError(ValueError):
     """Raised when server-owned canonical-state contract data is invalid."""
 
 
-def canonical_decimal_string(value: Decimal | str) -> str:
-    """Return the sole unrounded string form accepted by canonical snapshots."""
+class ContractValidationError(ValueError):
+    """Safe validation error for contract boundaries that may receive sensitive data.
+
+    Callers must surface this exception's ``str()``, ``repr()``, ``errors()``, or
+    ``json()`` representation rather than a raw Pydantic ``ValidationError``.
+    Each representation retains only the field location and stable Pydantic error
+    category; it deliberately omits rejected input values and free-form messages.
+    """
+
+    def __init__(self, errors: tuple[tuple[tuple[str | int, ...], str], ...]) -> None:
+        self._errors = errors
+        super().__init__(self._render())
+
+    @classmethod
+    def from_pydantic(cls, error: ValidationError) -> "ContractValidationError":
+        sanitized: list[tuple[tuple[str | int, ...], str]] = []
+        for detail in error.errors(include_url=False, include_context=False):
+            location = tuple(
+                part for part in detail.get("loc", ()) if isinstance(part, (str, int))
+            )
+            category = str(detail.get("type", "validation_error"))
+            sanitized.append((location, category))
+        return cls(tuple(sanitized))
+
+    def _render(self) -> str:
+        if not self._errors:
+            return "contract validation failed"
+        rendered = []
+        for location, category in self._errors:
+            path = ".".join(str(part) for part in location) or "input"
+            rendered.append(f"{path} [type={category}]")
+        return "contract validation failed: " + "; ".join(rendered)
+
+    def errors(self) -> list[dict[str, Any]]:
+        """Return location/category-only errors safe for contract responses."""
+
+        return [
+            {"loc": location, "type": category}
+            for location, category in self._errors
+        ]
+
+    def json(self) -> str:
+        """Return deterministic safe structured errors without rejected values."""
+
+        return json.dumps(
+            self.errors(), ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        )
+
+
+def _validated_decimal_parts(value: Decimal | str) -> tuple[
+    int, tuple[int, ...], int, int, int
+]:
+    """Validate Decimal v1 bounds arithmetically before any exponent expansion."""
 
     if isinstance(value, bool):
         raise CanonicalStateValidationError("decimal values must be strings or Decimal")
@@ -58,15 +113,52 @@ def canonical_decimal_string(value: Decimal | str) -> str:
         raise CanonicalStateValidationError("value must be a finite Decimal") from exc
     if not decimal_value.is_finite():
         raise CanonicalStateValidationError("value must be a finite Decimal")
+
     sign, digits, exponent = decimal_value.as_tuple()
-    if not any(digits):
+    first = next((index for index, digit in enumerate(digits) if digit), None)
+    if first is None:
+        return sign, (0,), 0, 0, 0
+    last = len(digits) - 1 - next(
+        index for index, digit in enumerate(reversed(digits)) if digit
+    )
+    significant_digits = last - first + 1
+    effective_exponent = exponent + (len(digits) - 1 - last)
+
+    if effective_exponent >= 0:
+        integral_digits = significant_digits + effective_exponent
+        fractional_scale = 0
+        total_digits = integral_digits
+    else:
+        fractional_scale = -effective_exponent
+        integral_digits = max(significant_digits + effective_exponent, 1)
+        total_digits = integral_digits + fractional_scale
+    encoded_length = (
+        (1 if sign else 0)
+        + integral_digits
+        + (1 + fractional_scale if fractional_scale else 0)
+    )
+    if (
+        total_digits > MAX_DECIMAL_TOTAL_DIGITS
+        or fractional_scale > MAX_DECIMAL_SCALE
+        or encoded_length > MAX_DECIMAL_ENCODED_LENGTH
+        or decimal_value.copy_abs() > MAX_ABSOLUTE_MONEY
+    ):
+        raise CanonicalStateValidationError("value exceeds v1 decimal bounds")
+    return sign, digits, first, last, effective_exponent
+
+
+def canonical_decimal_string(value: Decimal | str) -> str:
+    """Return the sole unrounded string form accepted by canonical snapshots."""
+
+    sign, digits, first, last, effective_exponent = _validated_decimal_parts(value)
+    if digits == (0,):
         return "0"
-    coefficient = "".join(str(digit) for digit in digits)
-    if exponent >= 0:
-        integral = coefficient + ("0" * exponent)
+    coefficient = "".join(str(digit) for digit in digits[first : last + 1])
+    if effective_exponent >= 0:
+        integral = coefficient + ("0" * effective_exponent)
         fractional = ""
     else:
-        decimal_point = len(coefficient) + exponent
+        decimal_point = len(coefficient) + effective_exponent
         if decimal_point > 0:
             integral = coefficient[:decimal_point]
             fractional = coefficient[decimal_point:]
@@ -147,7 +239,63 @@ def _coerce_json_array_to_tuple(value: Any) -> Any:
 
 
 class _StrictContractModel(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+    model_config = ConfigDict(
+        extra="forbid", frozen=True, strict=True, hide_input_in_errors=True
+    )
+
+    @classmethod
+    def model_validate(
+        cls,
+        obj: Any,
+        *,
+        strict: bool | None = None,
+        extra: Any = None,
+        from_attributes: bool | None = None,
+        context: Any = None,
+        by_alias: bool | None = None,
+        by_name: bool | None = None,
+    ) -> Any:
+        validation_token = _MODEL_VALIDATION_IN_PROGRESS.set(True)
+        try:
+            return super().model_validate(
+                obj,
+                strict=strict,
+                extra=extra,
+                from_attributes=from_attributes,
+                context=context,
+                by_alias=by_alias,
+                by_name=by_name,
+            )
+        except ValidationError as exc:
+            raise ContractValidationError.from_pydantic(exc) from None
+        finally:
+            _MODEL_VALIDATION_IN_PROGRESS.reset(validation_token)
+
+    @classmethod
+    def model_validate_json(
+        cls,
+        json_data: str | bytes | bytearray,
+        *,
+        strict: bool | None = None,
+        extra: Any = None,
+        context: Any = None,
+        by_alias: bool | None = None,
+        by_name: bool | None = None,
+    ) -> Any:
+        validation_token = _MODEL_VALIDATION_IN_PROGRESS.set(True)
+        try:
+            return super().model_validate_json(
+                json_data,
+                strict=strict,
+                extra=extra,
+                context=context,
+                by_alias=by_alias,
+                by_name=by_name,
+            )
+        except ValidationError as exc:
+            raise ContractValidationError.from_pydantic(exc) from None
+        finally:
+            _MODEL_VALIDATION_IN_PROGRESS.reset(validation_token)
 
 
 class CanonicalizationMetadata(_StrictContractModel):
@@ -235,6 +383,14 @@ class CanonicalProjectionState(_StrictContractModel):
     missing_data_codes: tuple[str, ...] = Field(max_length=MAX_MISSING_DATA_CODES)
     reconciliation_state: Literal["reconciled", "partial", "unavailable"]
 
+    def __init__(self, /, **data: Any) -> None:
+        try:
+            super().__init__(**data)
+        except ValidationError as exc:
+            if _MODEL_VALIDATION_IN_PROGRESS.get():
+                raise
+            raise ContractValidationError.from_pydantic(exc) from None
+
     _user_id = field_validator("user_id")(_validate_identifier)
     _as_of_timestamp = field_validator("as_of_timestamp")(_validate_utc_timestamp)
     _current_value_components_json = field_validator(
@@ -304,6 +460,14 @@ class CanonicalProjectionState(_StrictContractModel):
 
 class GenerationControlBody(_StrictContractModel):
     """Empty body contract; generation controls are bounded request headers only."""
+
+    def __init__(self, /, **data: Any) -> None:
+        try:
+            super().__init__(**data)
+        except ValidationError as exc:
+            if _MODEL_VALIDATION_IN_PROGRESS.get():
+                raise
+            raise ContractValidationError.from_pydantic(exc) from None
 
 
 class FinlynqProjectionStateAdapter(Protocol):
