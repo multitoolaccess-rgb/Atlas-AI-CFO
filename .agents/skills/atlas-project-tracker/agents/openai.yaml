@@ -1,4 +1,4 @@
 interface:
   display_name: "Atlas Project Tracker"
-  short_description: "Track Atlas phase delivery evidence"
-  default_prompt: "Use $atlas-project-tracker to update Atlas project status for this scoped task."
+  short_description: "Apply Atlas risk-based governance"
+  default_prompt: "Use $atlas-project-tracker to classify this Atlas task and record only material phase evidence."
