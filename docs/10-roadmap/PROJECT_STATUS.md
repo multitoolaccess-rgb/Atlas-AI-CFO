@@ -4,11 +4,11 @@
 
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Review the resolved Phase 1 forecast-persistence decisions and trusted adapter-only generation boundary in PR #4; production implementation remains unauthorized.
-- Last updated: 2026-07-28T04:42:09Z
+- Current objective: Independently review the bounded canonical projection-state contract in PR #6; forecast persistence, migrations, routes, and later Phase 1 slices remain unauthorized.
+- Last updated: 2026-07-28T04:50:17Z
 
 ## Active work
-- work-p1-canonical-state-contract: Implement canonical projection-state contract test slice (in_progress, high)
+- work-p1-canonical-state-contract: Implement canonical projection-state contract test slice (in_review, high)
 
 ## Blockers
 - None
@@ -52,6 +52,6 @@
 - Test test-p1-planning-status: Phase 1 planning governance — 5 passed; status, deterministic render, and trusted generation-boundary documentation checks passed
 
 ## Next bounded task
-- next-p1-plan-review: Review the revised ADR-006 and plan in PR #4, then explicitly authorize only the canonical-envelope and contract-test implementation slice, including strict request-boundary tests; do not begin schema, migration, route, or UI work.
+- next-p1-canonical-state-contract-review: Independently review PR #6 canonical projection-state contract; do not begin persistence, migrations, routes, or any later Phase 1 slice until it is approved.
 
 Do not begin the next phase or task automatically.
