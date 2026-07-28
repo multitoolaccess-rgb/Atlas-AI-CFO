@@ -2,7 +2,7 @@
   "active_work": [
     {
       "branch": "codex/phase-1-forecast-persistence-plan",
-      "commit": "b987147",
+      "commit": "6e485ea",
       "id": "work-p1-forecast-persistence-planning",
       "issue": "#3",
       "objective": "Define the bounded, documentation-only Phase 1 persistence and read-API implementation plan.",
@@ -18,7 +18,8 @@
         "project-status unit tests: 5 passed",
         "project status check: passed",
         "deterministic render check: passed",
-        "git diff check: passed"
+        "git diff check: passed",
+        "resolved-decision documentation audit: passed"
       ],
       "title": "Plan immutable forecast persistence and versioned read APIs"
     }
@@ -41,6 +42,11 @@
     {
       "commit": "b987147",
       "description": "Phase 1 immutable forecast persistence planning",
+      "pr": "#4"
+    },
+    {
+      "commit": "6e485ea",
+      "description": "Resolved Phase 1 canonical-envelope, validation, and retention planning decisions",
       "pr": "#4"
     }
   ],

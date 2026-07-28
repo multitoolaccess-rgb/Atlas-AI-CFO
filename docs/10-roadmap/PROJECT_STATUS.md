@@ -41,6 +41,7 @@
 - 8baa1c2: Service environment isolation
 - d001e64: Merged synthetic fixture restoration #1
 - b987147: Phase 1 immutable forecast persistence planning #4
+- 6e485ea: Resolved Phase 1 canonical-envelope, validation, and retention planning decisions #4
 - Test test-p0-rules: Rules Service — 579 passed, 10 skipped, 1 xfailed
 - Test test-p0-finlynq: Finlynq — 93 passed
 - Test test-p0-frontend: Frontend — 496 passed
