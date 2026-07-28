@@ -193,11 +193,54 @@ confirming another user's resource.
 documented as permanent household scope, and Phase 1 performs no household
 backfill or dual-read migration.
 
+### Trusted generation boundary
+
+The end-user generation route is `POST /api/v1/goals/{goal_id}/forecasts`.
+Its only sanctioned execution path is:
+
+```text
+authenticated request
+  -> server-derived user identity
+  -> server-loaded, user-authorized goal
+  -> trusted canonical-state adapter
+  -> atlas-projection-state/v1
+  -> deterministic projection
+  -> immutable forecast persistence
+```
+
+The route has no client-supplied financial-state request body in Phase 1. The
+only client control inputs are the required `Idempotency-Key` and the
+conditional `If-None-Match` or `If-Match` headers; the repository's established
+correlation header may be accepted solely for observability. `forecast_kind` is
+fixed as `goal_projection`. The server selects the approved, versioned
+assumption profile and records it in the immutable assumption snapshot.
+User-selected assumption profiles or field-level overrides are not accepted in
+Phase 1; a later reviewed contract must enumerate any allowed fields, bounds,
+canonicalization, and separate `user_selected_assumptions` snapshot before they
+can be introduced.
+
+Strict request validation rejects unknown JSON fields rather than ignoring
+them. In particular, a client cannot provide `user_id`, `household_id`,
+balances or net worth, financial-state-derived contributions, canonical
+snapshot content, account-derived currency, freshness timestamps, source
+identifiers, provenance, transaction or statement data, reconciliation state,
+an input-state hash, or model/calculation versions. The client neither supplies
+nor signs `atlas-projection-state/v1`.
+
+Authentication derives transitional user scope, and goal authorization occurs
+before the adapter is invoked; a missing or cross-user goal returns 404 without
+canonical-state retrieval. The trusted adapter obtains authoritative state from
+the sanctioned Finlynq boundary, creates the versioned envelope, and generates
+provenance only from server-side source references. Rules Service validates the
+envelope and freshness, then server code computes the input-state hash. No
+separate trusted service-generation API is introduced in Phase 1. The bounded
+`shadow_validate` command uses this same adapter path.
+
 ### API contract
 
 The bounded API surface is:
 
-- `POST /api/v1/goals/{goal_id}/forecasts:generate`
+- `POST /api/v1/goals/{goal_id}/forecasts`
 - `GET /api/v1/forecasts`
 - `GET /api/v1/forecasts/{forecast_id}`
 - `GET /api/v1/forecasts/{forecast_id}/versions`

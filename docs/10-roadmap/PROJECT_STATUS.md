@@ -4,8 +4,8 @@
 
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Review the resolved Phase 1 forecast-persistence decisions in PR #4; production implementation remains unauthorized.
-- Last updated: 2026-07-28T02:51:30Z
+- Current objective: Review the resolved Phase 1 forecast-persistence decisions and trusted adapter-only generation boundary in PR #4; production implementation remains unauthorized.
+- Last updated: 2026-07-28T03:11:02Z
 
 ## Active work
 - work-p1-forecast-persistence-planning: Plan immutable forecast persistence and versioned read APIs (in_review)
@@ -30,6 +30,7 @@
 - risk-p1-legacy-goal-float [high/medium, open]: The existing Goal.target_amount Float can lose source precision before Phase 1 snapshot normalization.
 - risk-p1-dialect-parity [high/medium, open]: SQLite and PostgreSQL differ in exact numeric storage and concurrency semantics for immutable forecast versions.
 - risk-p1-retention-rollout-gate [high/medium, open]: No approved retention or user-deletion policy exists for immutable forecast history.
+- risk-p1-trusted-generation-boundary [high/medium, open]: An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.
 
 ## Recently completed work
 - work-p0-atlas-baseline: Atlas baseline from validated Finance Copilot foundation — commit c0f5287, PR None
@@ -46,9 +47,9 @@
 - Test test-p0-finlynq: Finlynq — 93 passed
 - Test test-p0-frontend: Frontend — 496 passed
 - Test test-p0-typescript: TypeScript check — passed
-- Test test-p1-planning-status: Phase 1 planning governance — 5 passed; status and deterministic render checks passed
+- Test test-p1-planning-status: Phase 1 planning governance — 5 passed; status, deterministic render, and trusted generation-boundary documentation checks passed
 
 ## Next bounded task
-- next-p1-plan-review: Review the revised ADR-006 and plan in PR #4, then explicitly authorize only the canonical-envelope and contract-test implementation slice; do not begin schema, migration, route, or UI work.
+- next-p1-plan-review: Review the revised ADR-006 and plan in PR #4, then explicitly authorize only the canonical-envelope and contract-test implementation slice, including strict request-boundary tests; do not begin schema, migration, route, or UI work.
 
 Do not begin the next phase or task automatically.

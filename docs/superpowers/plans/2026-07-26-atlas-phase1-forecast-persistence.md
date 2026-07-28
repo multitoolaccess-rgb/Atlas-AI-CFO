@@ -116,7 +116,7 @@ the forecast stores only that hash and the bounded references.
 
 ### Generate a version
 
-`POST /api/v1/goals/{goal_id}/forecasts:generate`
+`POST /api/v1/goals/{goal_id}/forecasts`
 
 Required headers:
 
@@ -126,9 +126,30 @@ Required headers:
 - correlation ID using the repository's established request contract when
   available
 
-The request supplies explicit canonical-state inputs, assumptions, freshness,
-and provenance references. It cannot set ownership, IDs, version numbers,
-calculated outputs, or model versions. The server owns those fields.
+The end-user request has no client-supplied financial-state body in Phase 1.
+Its only control inputs are `Idempotency-Key`, the conditional header, and the
+repository's established correlation header when available. `forecast_kind` is
+fixed to `goal_projection`; the server selects the approved, versioned
+assumption profile. User-selected profiles and field-level assumption overrides
+are not accepted in Phase 1. A later reviewed contract must enumerate any
+allowed override fields, strict numeric bounds, server-side canonicalization,
+and a separate `user_selected_assumptions` snapshot before accepting them.
+
+Strict request validation rejects unknown JSON fields rather than silently
+ignoring them. The client cannot submit `user_id`, `household_id`, current
+balance or net worth, financial-state-derived contributions, canonical snapshot
+content, account-derived currency, freshness timestamps, source identifiers,
+provenance, transaction or statement data, reconciliation state, input-state
+hash, or model/calculation version. The client neither supplies nor signs an
+envelope.
+
+The server derives user scope from authentication, authorizes and loads the
+goal, then invokes the trusted adapter exactly once. The adapter obtains the
+authoritative canonical state through the sanctioned Finlynq boundary and
+creates `atlas-projection-state/v1`; Rules Service validates its schema and
+freshness, hashes it server-side, calculates, and persists. A cross-user or
+missing goal returns 404 before adapter invocation. No separate trusted
+service-generation API exists in Phase 1.
 
 Responses:
 
@@ -193,8 +214,11 @@ Define typed `atlas-projection-state/v1` dataclasses or Pydantic models and a
 narrow adapter protocol. Validate bounded component kinds, UTC timestamps,
 currency, Decimal strings, freshness, provenance references, missing-data
 codes, and deterministic reconciliation state. Reject raw payload fields and
-unknown unbounded source data. The test fixture must prove Rules Service can
-calculate from the envelope without a Finlynq database query.
+unknown unbounded source data. The adapter is invoked only after goal
+authorization, obtains authoritative canonical state through the sanctioned
+Finlynq boundary, and creates provenance from trusted server-side references.
+The test fixture must prove Rules Service can calculate from the envelope
+without a Finlynq database query.
 
 ### 1. Contract tests and canonical snapshot fixtures
 
@@ -209,6 +233,14 @@ digests, API error envelopes, ETags, pagination ordering, freshness, and
 provenance cases. Include large values, half-even boundaries, stale inputs,
 idempotent replay, conflicting keys, cross-user access, legacy
 Float-to-canonical-string inputs, and target-status rounding boundaries.
+
+Add request-boundary tests proving a client cannot submit balances, provenance,
+freshness timestamps, or another user identifier; unknown fields are rejected;
+and user-selected assumption overrides cannot change authoritative state.
+Route/service tests must prove a cross-user goal returns 404 before adapter
+invocation, a valid request invokes the adapter exactly once, adapter output
+supplies the hashed canonical state, and idempotent replay neither obtains nor
+persists a conflicting client snapshot.
 
 ### 2. Models and migration
 
@@ -251,13 +283,13 @@ requests converge and concurrent changed-state requests return a conflict.
 - `services/rules-service/app/forecasts/service.py`
 - `services/rules-service/tests/test_forecast_service.py`
 
-Normalize inputs, enforce USD/freshness, call the existing
+After the route authorizes and loads the goal, invoke the trusted adapter once,
+validate the returned envelope, enforce USD/freshness, call the existing
 `project_scenarios`, build immutable snapshots, and persist through the
 repository. Keep projection mathematics pure and unchanged. Reject generation
-while the persistence flag is disabled.
-
-The service receives explicit canonical state; it does not query
-Finlynq-owned tables.
+while the persistence flag is disabled. The service receives the adapter's
+explicit canonical state; it does not query Finlynq-owned tables or accept a
+client-provided envelope.
 
 ### 5. Pydantic API schemas
 
@@ -267,9 +299,13 @@ Finlynq-owned tables.
   otherwise the existing schema package
 - `services/rules-service/tests/test_forecast_schemas.py`
 
-Expose Decimal money as strings with documented patterns. Prevent request
-models from accepting owner IDs, version numbers, outputs, or model versions.
-Define stable errors, links, ETag, freshness, provenance, and cursor envelopes.
+Expose response Decimal money as strings with documented patterns. The Phase 1
+generation request model accepts no JSON financial-state fields and uses
+`extra="forbid"` or the framework-equivalent strict rejection. It must reject
+owner identifiers, balances, contributions, snapshots, freshness, provenance,
+source records, reconciliation state, input hashes, version numbers, outputs,
+and model/calculation versions. Define stable errors, links, ETag, freshness,
+provenance, and cursor envelopes.
 
 No dependency reorganization is required merely to split schemas.
 
@@ -285,10 +321,13 @@ No dependency reorganization is required merely to split schemas.
 - `services/rules-service/app/main.py`
 
 Register only the bounded `/api/v1` endpoints. Reuse `require_user` and
-`get_or_create_local_user`, and apply `user_id` to every repository query.
-Cover missing auth, wrong subject, cross-user 404, archived-goal history,
-idempotent replay, conditional generation, 409 envelopes, pagination, and
-flags. Add no PUT, PATCH, or DELETE route.
+`get_or_create_local_user`, derive scope server-side, authorize and load the
+goal before adapter invocation, and apply `user_id` to every repository query.
+Cover missing auth, wrong subject, cross-user 404 before adapter invocation,
+rejection of balances/provenance/freshness/user-ID/unknown request fields,
+single adapter invocation for a valid generation, archived-goal history,
+idempotent replay without a conflicting client snapshot, conditional generation,
+409 envelopes, pagination, and flags. Add no PUT, PATCH, or DELETE route.
 
 ### 7. Feature flags, rollout observability, and operator documentation
 

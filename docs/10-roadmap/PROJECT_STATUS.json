@@ -5,7 +5,7 @@
       "commit": "6e485ea",
       "id": "work-p1-forecast-persistence-planning",
       "issue": "#3",
-      "objective": "Define the bounded, documentation-only Phase 1 persistence and read-API implementation plan.",
+      "objective": "Define the bounded, documentation-only Phase 1 persistence and read-API implementation plan, including the trusted adapter-only generation boundary.",
       "paths": [
         "docs/adr",
         "docs/superpowers/plans",
@@ -19,7 +19,8 @@
         "project status check: passed",
         "deterministic render check: passed",
         "git diff check: passed",
-        "resolved-decision documentation audit: passed"
+        "resolved-decision documentation audit: passed",
+        "trusted generation-boundary documentation audit: passed"
       ],
       "title": "Plan immutable forecast persistence and versioned read APIs"
     }
@@ -89,11 +90,11 @@
       "title": "Approved synthetic financial fixtures"
     }
   ],
-  "current_objective": "Review the resolved Phase 1 forecast-persistence decisions in PR #4; production implementation remains unauthorized.",
+  "current_objective": "Review the resolved Phase 1 forecast-persistence decisions and trusted adapter-only generation boundary in PR #4; production implementation remains unauthorized.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-28T02:51:30Z",
+  "last_updated": "2026-07-28T03:11:02Z",
   "next_bounded_task": {
-    "description": "Review the revised ADR-006 and plan in PR #4, then explicitly authorize only the canonical-envelope and contract-test implementation slice; do not begin schema, migration, route, or UI work.",
+    "description": "Review the revised ADR-006 and plan in PR #4, then explicitly authorize only the canonical-envelope and contract-test implementation slice, including strict request-boundary tests; do not begin schema, migration, route, or UI work.",
     "id": "next-p1-plan-review",
     "phase_id": "phase-1"
   },
@@ -285,6 +286,16 @@
       "related": "ADR-006, issue #3, PR #4",
       "severity": "high",
       "status": "open"
+    },
+    {
+      "description": "An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.",
+      "id": "risk-p1-trusted-generation-boundary",
+      "likelihood": "medium",
+      "mitigation": "Accept no client financial-state fields, authorize the goal before one trusted adapter invocation, reject unknown fields, and require spoofing and adapter-order tests.",
+      "owner": "rules-service-security",
+      "related": "ADR-006, issue #3, PR #4",
+      "severity": "high",
+      "status": "open"
     }
   ],
   "schema_version": "1.0.0",
@@ -311,7 +322,7 @@
     },
     {
       "id": "test-p1-planning-status",
-      "result": "5 passed; status and deterministic render checks passed",
+      "result": "5 passed; status, deterministic render, and trusted generation-boundary documentation checks passed",
       "scope": "Phase 1 planning governance"
     }
   ]
