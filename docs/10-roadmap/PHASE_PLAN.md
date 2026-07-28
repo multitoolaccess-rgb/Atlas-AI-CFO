@@ -17,3 +17,14 @@ criteria before authorizing the next bounded task.
 Project-status consistency is enforced in pull-request CI, not by a blocking
 local hook, so agents can record legitimate work in progress without bypasses
 or duplicated checks.
+
+## Current Phase 1 planning
+
+- Tracking issue: #3
+- Proposed architecture: `docs/adr/ADR-006-IMMUTABLE-FORECAST-PERSISTENCE.md`
+- Bounded implementation sequence:
+  `docs/superpowers/plans/2026-07-26-atlas-phase1-forecast-persistence.md`
+
+Phase 1 production implementation has not started. The planning artifacts must
+be reviewed, their open questions resolved, and the first implementation slice
+explicitly authorized before code or schema changes begin.

@@ -107,10 +107,10 @@ contracts so the shared-database coupling can be reduced.
 
 ## Deferred decisions
 
-- Forecast and forecast-version schemas and APIs.
+- Forecast and forecast-version schemas and APIs. ADR-006 proposes the Phase 1
+  resolution; it remains deferred until ADR-006 is accepted.
 - Supported non-USD currencies and currency metadata source.
 - Additional contribution timings and irregular cash-flow schedules.
 - Monte Carlo assumptions and calibration.
 - Household schema and authorization policy.
 - Recommendation, decision, and append-only audit schemas.
-

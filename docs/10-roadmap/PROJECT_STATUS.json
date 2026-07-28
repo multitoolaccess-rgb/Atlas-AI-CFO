@@ -1,32 +1,334 @@
 {
-  "schema_version": "1.0.0",
-  "last_updated": "2026-07-26T21:27:28Z",
-  "current_phase_id": "phase-1",
-  "overall_status": "planned",
-  "current_objective": "Maintain the validated Atlas foundation; Phase 1 has not started.",
-  "active_work": [],
-  "blockers": [],
-  "risks": [
-    {"id": "risk-frontend-lint-debt", "description": "Repository-wide frontend lint debt remains outside Phase 0 scope.", "severity": "medium", "likelihood": "high", "mitigation": "Keep targeted lint and CI checks; schedule bounded cleanup separately.", "owner": "engineering", "status": "open", "related": "CI and import report"},
-    {"id": "risk-monte-carlo-deferred", "description": "Monte Carlo probability model is intentionally deferred.", "severity": "medium", "likelihood": "medium", "mitigation": "Preserve deterministic projections; authorize probability work separately.", "owner": "product-architecture", "status": "open", "related": "ADR-005"},
-    {"id": "risk-transitional-tenancy", "description": "User-scoped tenancy remains transitional.", "severity": "high", "likelihood": "medium", "mitigation": "Require authorization and isolation tests before expansion.", "owner": "security", "status": "open", "related": "architecture/security docs"},
-    {"id": "risk-legacy-product-names", "description": "Legacy Finance Copilot, WealthIQ, CashFlix, and Finlynq names remain.", "severity": "low", "likelihood": "high", "mitigation": "Track bounded terminology cleanup; avoid broad rename during delivery work.", "owner": "engineering", "status": "open", "related": "import report"},
-    {"id": "risk-fixture-compatibility-names", "description": "Synthetic fixture directories retain compatibility-oriented names.", "severity": "low", "likelihood": "medium", "mitigation": "Keep synthetic labels and manifest; rename only in a dedicated compatibility change.", "owner": "quality", "status": "open", "related": "PR #1"},
-    {"id": "risk-service-dependency-separation", "description": "Rules Service and Finlynq require separate FastAPI-pinned environments.", "severity": "high", "likelihood": "high", "mitigation": "Use isolated environments and provision both in CI.", "owner": "engineering", "status": "mitigated", "related": "8baa1c2, PR #1"}
+  "active_work": [
+    {
+      "branch": "codex/phase-1-forecast-persistence-plan",
+      "commit": "a818665",
+      "id": "work-p1-forecast-persistence-planning",
+      "issue": "#3",
+      "objective": "Define the bounded, documentation-only Phase 1 persistence and read-API implementation plan, including the trusted adapter-only generation boundary.",
+      "paths": [
+        "docs/adr",
+        "docs/superpowers/plans",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-1",
+      "pr": "#4",
+      "status": "in_review",
+      "tests": [
+        "project-status unit tests: 5 passed",
+        "project status check: passed",
+        "deterministic render check: passed",
+        "git diff check: passed",
+        "resolved-decision documentation audit: passed",
+        "trusted generation-boundary documentation audit (a818665): passed"
+      ],
+      "title": "Plan immutable forecast persistence and versioned read APIs"
+    }
   ],
-  "phases": [
-    {"id": "phase-0", "name": "Projection foundation and Atlas baseline", "status": "complete", "exit_criteria": [{"id": "ec-p0-projections", "description": "ADR-005, Decimal projection authority, fixtures, parity documentation, and tests are complete.", "complete": true}, {"id": "ec-p0-migration", "description": "Finance Copilot foundation was safely imported, Atlas was published, and source protection was maintained.", "complete": true}, {"id": "ec-p0-environments", "description": "Rules Service and Finlynq use isolated Python 3.12 environments with matching CI setup.", "complete": true}, {"id": "ec-p0-fixtures", "description": "Synthetic statement fixtures were reviewed, merged, and validated in CI.", "complete": true}]},
-    {"id": "phase-1", "name": "Forecast persistence", "status": "not_started", "exit_criteria": [{"id": "ec-p1-versioned-forecasts", "description": "Versioned persisted forecasts and migrations are authorized and complete.", "complete": false}, {"id": "ec-p1-safety", "description": "Authorization, audit evidence, tests, and rollback path are complete.", "complete": false}]},
-    {"id": "phase-2", "name": "Forecast UI migration", "status": "not_started", "exit_criteria": [{"id": "ec-p2-persisted-ui", "description": "UI uses persisted forecasts with explainability, accessibility, and parity coverage.", "complete": false}]},
-    {"id": "phase-3", "name": "Goal-linked recommendations", "status": "not_started", "exit_criteria": [{"id": "ec-p3-recommendation-contract", "description": "Recommendations link goals, evidence, risks, confidence, approvals, and evaluation.", "complete": false}]},
-    {"id": "phase-4", "name": "Decision journal", "status": "not_started", "exit_criteria": [{"id": "ec-p4-decision-history", "description": "Decision history, alternatives, outcomes, permissions, auditability, and recovery are tested.", "complete": false}]}
+  "blockers": [],
+  "commit_pr_evidence": [
+    {
+      "commit": "c0f5287",
+      "description": "Atlas baseline initialization from the validated Finance Copilot foundation"
+    },
+    {
+      "commit": "8baa1c2",
+      "description": "Service environment isolation"
+    },
+    {
+      "commit": "d001e64",
+      "description": "Merged synthetic fixture restoration",
+      "pr": "#1"
+    },
+    {
+      "commit": "b987147",
+      "description": "Phase 1 immutable forecast persistence planning",
+      "pr": "#4"
+    },
+    {
+      "commit": "6e485ea",
+      "description": "Resolved Phase 1 canonical-envelope, validation, and retention planning decisions",
+      "pr": "#4"
+    },
+    {
+      "commit": "a818665",
+      "description": "Enforced the trusted adapter-only forecast generation boundary",
+      "pr": "#4"
+    }
   ],
   "completed_work": [
-    {"id": "work-p0-atlas-baseline", "title": "Atlas baseline from validated Finance Copilot foundation", "status": "complete", "phase_id": "phase-0", "commit": "c0f5287", "pr": null, "tests": ["verified repository baseline"]},
-    {"id": "work-p0-environment-isolation", "title": "Isolated service Python environments", "status": "complete", "phase_id": "phase-0", "commit": "8baa1c2", "pr": null, "tests": ["Rules Service suite", "Finlynq suite"]},
-    {"id": "work-p0-synthetic-fixtures", "title": "Approved synthetic financial fixtures", "status": "complete", "phase_id": "phase-0", "commit": "d001e64", "pr": "#1", "tests": ["Rules 579 passed, 10 skipped, 1 xfailed", "Finlynq 93 passed", "frontend 496 passed", "CI green"]}
+    {
+      "commit": "c0f5287",
+      "id": "work-p0-atlas-baseline",
+      "phase_id": "phase-0",
+      "pr": null,
+      "status": "complete",
+      "tests": [
+        "verified repository baseline"
+      ],
+      "title": "Atlas baseline from validated Finance Copilot foundation"
+    },
+    {
+      "commit": "8baa1c2",
+      "id": "work-p0-environment-isolation",
+      "phase_id": "phase-0",
+      "pr": null,
+      "status": "complete",
+      "tests": [
+        "Rules Service suite",
+        "Finlynq suite"
+      ],
+      "title": "Isolated service Python environments"
+    },
+    {
+      "commit": "d001e64",
+      "id": "work-p0-synthetic-fixtures",
+      "phase_id": "phase-0",
+      "pr": "#1",
+      "status": "complete",
+      "tests": [
+        "Rules 579 passed, 10 skipped, 1 xfailed",
+        "Finlynq 93 passed",
+        "frontend 496 passed",
+        "CI green"
+      ],
+      "title": "Approved synthetic financial fixtures"
+    }
   ],
-  "commit_pr_evidence": [{"commit": "c0f5287", "description": "Atlas baseline initialization from the validated Finance Copilot foundation"}, {"commit": "8baa1c2", "description": "Service environment isolation"}, {"commit": "d001e64", "pr": "#1", "description": "Merged synthetic fixture restoration"}],
-  "test_evidence": [{"id": "test-p0-rules", "result": "579 passed, 10 skipped, 1 xfailed", "scope": "Rules Service"}, {"id": "test-p0-finlynq", "result": "93 passed", "scope": "Finlynq"}, {"id": "test-p0-frontend", "result": "496 passed", "scope": "Frontend"}, {"id": "test-p0-typescript", "result": "passed", "scope": "TypeScript check"}],
-  "next_bounded_task": {"id": "next-phase-1-authorization", "description": "Review and explicitly authorize a bounded Phase 1 forecast-persistence planning task; do not implement Phase 1 automatically.", "phase_id": "phase-1"}
+  "current_objective": "Review the resolved Phase 1 forecast-persistence decisions and trusted adapter-only generation boundary in PR #4; production implementation remains unauthorized.",
+  "current_phase_id": "phase-1",
+  "last_updated": "2026-07-28T03:15:36Z",
+  "next_bounded_task": {
+    "description": "Review the revised ADR-006 and plan in PR #4, then explicitly authorize only the canonical-envelope and contract-test implementation slice, including strict request-boundary tests; do not begin schema, migration, route, or UI work.",
+    "id": "next-p1-plan-review",
+    "phase_id": "phase-1"
+  },
+  "overall_status": "in_progress",
+  "phases": [
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "ADR-005, Decimal projection authority, fixtures, parity documentation, and tests are complete.",
+          "id": "ec-p0-projections"
+        },
+        {
+          "complete": true,
+          "description": "Finance Copilot foundation was safely imported, Atlas was published, and source protection was maintained.",
+          "id": "ec-p0-migration"
+        },
+        {
+          "complete": true,
+          "description": "Rules Service and Finlynq use isolated Python 3.12 environments with matching CI setup.",
+          "id": "ec-p0-environments"
+        },
+        {
+          "complete": true,
+          "description": "Synthetic statement fixtures were reviewed, merged, and validated in CI.",
+          "id": "ec-p0-fixtures"
+        }
+      ],
+      "id": "phase-0",
+      "name": "Projection foundation and Atlas baseline",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": false,
+          "description": "ADR-006 and the bounded implementation plan are reviewed and accepted.",
+          "id": "ec-p1-architecture"
+        },
+        {
+          "complete": false,
+          "description": "Stable forecast identity, immutable versions, Decimal snapshots, provenance, and additive migrations are complete.",
+          "id": "ec-p1-persistence"
+        },
+        {
+          "complete": false,
+          "description": "Idempotent generation, input-state hashing, optimistic concurrency, and stable 409 behavior are complete.",
+          "id": "ec-p1-generation"
+        },
+        {
+          "complete": false,
+          "description": "Versioned read APIs enforce transitional user scope and preserve historical versions.",
+          "id": "ec-p1-read-api"
+        },
+        {
+          "complete": false,
+          "description": "Migration rollback, retention, feature flags, security review, and required test evidence are complete.",
+          "id": "ec-p1-rollout-safety"
+        }
+      ],
+      "id": "phase-1",
+      "name": "Forecast persistence",
+      "status": "in_progress"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": false,
+          "description": "UI uses persisted forecasts with explainability, accessibility, and parity coverage.",
+          "id": "ec-p2-persisted-ui"
+        }
+      ],
+      "id": "phase-2",
+      "name": "Forecast UI migration",
+      "status": "not_started"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": false,
+          "description": "Recommendations link goals, evidence, risks, confidence, approvals, and evaluation.",
+          "id": "ec-p3-recommendation-contract"
+        }
+      ],
+      "id": "phase-3",
+      "name": "Goal-linked recommendations",
+      "status": "not_started"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": false,
+          "description": "Decision history, alternatives, outcomes, permissions, auditability, and recovery are tested.",
+          "id": "ec-p4-decision-history"
+        }
+      ],
+      "id": "phase-4",
+      "name": "Decision journal",
+      "status": "not_started"
+    }
+  ],
+  "risks": [
+    {
+      "description": "Repository-wide frontend lint debt remains outside Phase 0 scope.",
+      "id": "risk-frontend-lint-debt",
+      "likelihood": "high",
+      "mitigation": "Keep targeted lint and CI checks; schedule bounded cleanup separately.",
+      "owner": "engineering",
+      "related": "CI and import report",
+      "severity": "medium",
+      "status": "open"
+    },
+    {
+      "description": "Monte Carlo probability model is intentionally deferred.",
+      "id": "risk-monte-carlo-deferred",
+      "likelihood": "medium",
+      "mitigation": "Preserve deterministic projections; authorize probability work separately.",
+      "owner": "product-architecture",
+      "related": "ADR-005",
+      "severity": "medium",
+      "status": "open"
+    },
+    {
+      "description": "User-scoped tenancy remains transitional.",
+      "id": "risk-transitional-tenancy",
+      "likelihood": "medium",
+      "mitigation": "Require authorization and isolation tests before expansion.",
+      "owner": "security",
+      "related": "architecture/security docs",
+      "severity": "high",
+      "status": "open"
+    },
+    {
+      "description": "Legacy Finance Copilot, WealthIQ, CashFlix, and Finlynq names remain.",
+      "id": "risk-legacy-product-names",
+      "likelihood": "high",
+      "mitigation": "Track bounded terminology cleanup; avoid broad rename during delivery work.",
+      "owner": "engineering",
+      "related": "import report",
+      "severity": "low",
+      "status": "open"
+    },
+    {
+      "description": "Synthetic fixture directories retain compatibility-oriented names.",
+      "id": "risk-fixture-compatibility-names",
+      "likelihood": "medium",
+      "mitigation": "Keep synthetic labels and manifest; rename only in a dedicated compatibility change.",
+      "owner": "quality",
+      "related": "PR #1",
+      "severity": "low",
+      "status": "open"
+    },
+    {
+      "description": "Rules Service and Finlynq require separate FastAPI-pinned environments.",
+      "id": "risk-service-dependency-separation",
+      "likelihood": "high",
+      "mitigation": "Use isolated environments and provision both in CI.",
+      "owner": "engineering",
+      "related": "8baa1c2, PR #1",
+      "severity": "high",
+      "status": "mitigated"
+    },
+    {
+      "description": "The existing Goal.target_amount Float can lose source precision before Phase 1 snapshot normalization.",
+      "id": "risk-p1-legacy-goal-float",
+      "likelihood": "medium",
+      "mitigation": "Convert through Decimal(str(value)), record provenance, add boundary tests, and review canonical goal-money migration separately.",
+      "owner": "rules-service",
+      "related": "ADR-006, issue #3",
+      "severity": "high",
+      "status": "open"
+    },
+    {
+      "description": "SQLite and PostgreSQL differ in exact numeric storage and concurrency semantics for immutable forecast versions.",
+      "id": "risk-p1-dialect-parity",
+      "likelihood": "medium",
+      "mitigation": "Require Decimal round-trip, migration, locking, uniqueness-race, and rollback tests on both supported dialects before rollout.",
+      "owner": "rules-service",
+      "related": "ADR-006, issue #3",
+      "severity": "high",
+      "status": "open"
+    },
+    {
+      "description": "No approved retention or user-deletion policy exists for immutable forecast history.",
+      "id": "risk-p1-retention-rollout-gate",
+      "likelihood": "medium",
+      "mitigation": "Retain versions without purge or cascade, restrict default-off validation, and block external multi-user production enablement until policy approval.",
+      "owner": "product-security",
+      "related": "ADR-006, issue #3, PR #4",
+      "severity": "high",
+      "status": "open"
+    },
+    {
+      "description": "An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.",
+      "id": "risk-p1-trusted-generation-boundary",
+      "likelihood": "medium",
+      "mitigation": "Accept no client financial-state fields, authorize the goal before one trusted adapter invocation, reject unknown fields, and require spoofing and adapter-order tests.",
+      "owner": "rules-service-security",
+      "related": "ADR-006, issue #3, PR #4",
+      "severity": "high",
+      "status": "open"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "test_evidence": [
+    {
+      "id": "test-p0-rules",
+      "result": "579 passed, 10 skipped, 1 xfailed",
+      "scope": "Rules Service"
+    },
+    {
+      "id": "test-p0-finlynq",
+      "result": "93 passed",
+      "scope": "Finlynq"
+    },
+    {
+      "id": "test-p0-frontend",
+      "result": "496 passed",
+      "scope": "Frontend"
+    },
+    {
+      "id": "test-p0-typescript",
+      "result": "passed",
+      "scope": "TypeScript check"
+    },
+    {
+      "id": "test-p1-planning-status",
+      "result": "5 passed; status, deterministic render, and trusted generation-boundary documentation checks passed",
+      "scope": "Phase 1 planning governance"
+    }
+  ]
 }
