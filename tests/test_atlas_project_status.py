@@ -46,11 +46,32 @@ class ProjectStatusTests(unittest.TestCase):
         self.assertEqual(json.loads(self.status.read_text())["phases"][0]["status"], "in_progress")
         self.invoke("start", "--id", "work-2", "--title", "Two", "--phase", "phase-1", "--path", "services/rules-service/app", "--objective", "test", expect=1)
 
-    def test_review_and_completion_require_evidence(self):
-        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "docs", "--objective", "test")
-        self.invoke("review", "--id", "work-1", "--pr", "#7")
-        self.invoke("complete-work", "--id", "work-1", expect=1)
+    def test_low_risk_completion_requires_only_a_commit(self):
+        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "docs", "--objective", "test", "--risk-tier", "low")
+        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123")
+        completed = json.loads(self.status.read_text())["completed_work"][0]
+        self.assertEqual(completed["risk_tier"], "low")
+        self.assertFalse(completed["pr"])
+
+    def test_medium_risk_completion_allows_no_pr(self):
+        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "docs", "--objective", "test", "--risk-tier", "medium")
         self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--test", "1 passed")
+        completed = json.loads(self.status.read_text())["completed_work"][0]
+        self.assertEqual(completed["risk_tier"], "medium")
+        self.assertFalse(completed["pr"])
+
+    def test_high_risk_completion_requires_pr_and_review_evidence(self):
+        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
+        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--test", "1 passed", expect=1)
+        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--test", "1 passed", expect=1)
+        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", "independent review approved", "--test", "1 passed")
+
+    def test_check_workflow_does_not_mutate_status(self):
+        self.invoke("render")
+        before = self.status.read_bytes()
+        self.invoke("check")
+        self.invoke("render", "--check")
+        self.assertEqual(before, self.status.read_bytes())
 
     def test_phase_completion_rejects_incomplete_criteria(self):
         payload = json.loads(self.status.read_text())

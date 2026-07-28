@@ -18,4 +18,8 @@ Read `docs/00-product-vision/ATLAS_MASTER_PRODUCT_SPEC.md` first, then the relev
 
 Before implementation, identify affected documents and acceptance criteria. After implementation, report tests, assumptions, risks, and unresolved decisions.
 
-Use the project-local `atlas-project-tracker` skill for governed delivery work; see `docs/10-roadmap/PROJECT_STATUS.json` for current status.
+Use the project-local `atlas-project-tracker` risk tiers: low work is
+lightweight, medium work requires validation, and high-risk financial, schema,
+authorization, privacy, integration, or destructive work requires branch, PR,
+CI, independent review, and material status/risk evidence. See
+`docs/10-roadmap/PROJECT_STATUS.json` for current phase status.

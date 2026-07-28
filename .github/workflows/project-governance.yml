@@ -19,7 +19,9 @@ jobs:
           python-version: '3.12'
       - name: Test project status utility
         run: python3 -m unittest tests/test_atlas_project_status.py
-      - name: Validate project status
+      # This validates existing evidence when status is present; it does not
+      # require each pull request or commit to change project-status files.
+      - name: Validate risk-tier evidence and project status
         run: python3 scripts/atlas_project_status.py check
       - name: Detect generated status drift
         run: python3 scripts/atlas_project_status.py render --check

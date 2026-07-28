@@ -12,7 +12,12 @@ All human and AI contributors follow the product constitution and security model
 
 ## Change discipline
 
-For every implementation, migration, test-restoration, security, architecture, or phase task, use the project-local `atlas-project-tracker` skill. Run its start workflow before changes and completion workflow before committing. Documentation-only typo fixes and read-only reviews may use its check workflow only.
+Classify work with the project-local `atlas-project-tracker` skill: low-risk
+documentation and coverage-preserving test work may commit directly after
+checks; medium-risk work requires validation; high-risk financial, schema,
+authorization, privacy, integration, or destructive work requires a branch,
+PR, CI, independent review, and material status/risk evidence. Use its
+lightweight check workflow for typo fixes and read-only reviews.
 
 - Keep changes scoped and reversible.
 - Do not bypass financial validation or approval gates.

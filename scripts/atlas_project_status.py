@@ -16,6 +16,7 @@ MARKDOWN_PATH = ROOT / "docs/10-roadmap/PROJECT_STATUS.md"
 COMPLETED_PATH = ROOT / "docs/10-roadmap/COMPLETED_PHASES.md"
 WORK_STATUSES = {"planned", "in_progress", "blocked", "in_review", "complete", "cancelled"}
 PHASE_STATUSES = {"not_started", "in_progress", "blocked", "in_review", "complete"}
+RISK_TIERS = {"low", "medium", "high"}
 
 
 class StatusError(ValueError):
@@ -54,6 +55,15 @@ def ids(items: list[dict[str, Any]], label: str) -> None:
         raise StatusError(f"duplicate or missing {label} identifiers")
 
 
+def work_risk_tier(item: dict[str, Any]) -> str | None:
+    tier = item.get("risk_tier")
+    if tier is None:
+        return None
+    if tier not in RISK_TIERS:
+        raise StatusError(f"invalid risk tier for {item.get('id')}")
+    return tier
+
+
 def validate(status: dict[str, Any]) -> None:
     required = {"schema_version", "last_updated", "current_phase_id", "overall_status", "current_objective", "active_work", "blockers", "risks", "phases", "completed_work", "commit_pr_evidence", "test_evidence", "next_bounded_task"}
     missing = required - set(status)
@@ -84,12 +94,22 @@ def validate(status: dict[str, Any]) -> None:
     for work in all_work:
         if work.get("status") not in WORK_STATUSES or work.get("phase_id") not in phase_ids:
             raise StatusError(f"invalid work item: {work.get('id')}")
+        tier = work_risk_tier(work)
         if work["status"] in {"blocked", "cancelled"} and not work.get("reason"):
             raise StatusError(f"{work['id']} requires a reason")
         if work["status"] == "in_review" and not work.get("pr"):
             raise StatusError(f"{work['id']} in_review requires a PR")
-        if work["status"] == "complete" and not (work.get("commit") or work.get("pr")):
-            raise StatusError(f"{work['id']} complete requires commit or PR evidence")
+        if tier == "high" and work["status"] in {"in_progress", "in_review"} and not work.get("branch"):
+            raise StatusError(f"{work['id']} high-risk work requires a branch")
+        if work["status"] == "complete":
+            if tier == "low" and not work.get("commit"):
+                raise StatusError(f"{work['id']} low-risk completion requires commit evidence")
+            if tier == "medium" and (not work.get("commit") or not work.get("tests")):
+                raise StatusError(f"{work['id']} medium-risk completion requires commit and test evidence")
+            if tier == "high" and (not work.get("commit") or not work.get("pr") or not work.get("review_evidence") or not work.get("tests")):
+                raise StatusError(f"{work['id']} high-risk completion requires commit, PR, review, and test evidence")
+            if tier is None and not (work.get("commit") or work.get("pr")):
+                raise StatusError(f"{work['id']} complete requires commit or PR evidence")
     for phase in status["phases"]:
         if phase["status"] == "complete" and not all(item.get("complete") is True for item in phase["exit_criteria"]):
             raise StatusError(f"phase {phase['id']} is complete with incomplete exit criteria")
@@ -121,7 +141,7 @@ def render(status: dict[str, Any]) -> str:
         "",
         "## Active work",
     ]
-    lines += [f"- {item['id']}: {item['title']} ({item['status']})" for item in status["active_work"]] or ["- None"]
+    lines += [f"- {item['id']}: {item['title']} ({item['status']}{', ' + item['risk_tier'] if item.get('risk_tier') else ''})" for item in status["active_work"]] or ["- None"]
     lines += ["", "## Blockers"] + [f"- {item}" for item in status["blockers"] or ["None"]]
     lines += ["", "## Phase progress"]
     for item in status["phases"]:
@@ -163,7 +183,9 @@ def command_start(status: dict[str, Any], args: argparse.Namespace) -> None:
     if target_phase["status"] == "not_started":
         target_phase["status"] = "in_progress"
         status["overall_status"] = "in_progress"
-    status["active_work"].append({"id": args.id, "title": args.title, "status": "in_progress", "phase_id": args.phase, "paths": args.path, "objective": args.objective, "branch": args.branch, "issue": args.issue, "tests": args.test})
+    if args.risk_tier == "high" and not args.branch:
+        raise StatusError("high-risk work requires a branch")
+    status["active_work"].append({"id": args.id, "title": args.title, "status": "in_progress", "phase_id": args.phase, "paths": args.path, "objective": args.objective, "risk_tier": args.risk_tier, "branch": args.branch, "issue": args.issue, "tests": args.test})
 
 
 def work(status: dict[str, Any], work_id: str) -> dict[str, Any]:
@@ -179,10 +201,10 @@ def parser() -> argparse.ArgumentParser:
     for name in ("show", "check"):
         sub.add_parser(name)
     render_parser = sub.add_parser("render"); render_parser.add_argument("--check", action="store_true")
-    start = sub.add_parser("start"); start.add_argument("--id", required=True); start.add_argument("--title", required=True); start.add_argument("--phase", required=True); start.add_argument("--path", action="append", required=True); start.add_argument("--objective", required=True); start.add_argument("--branch", default=""); start.add_argument("--issue", default=""); start.add_argument("--test", action="append", default=[])
+    start = sub.add_parser("start"); start.add_argument("--id", required=True); start.add_argument("--title", required=True); start.add_argument("--phase", required=True); start.add_argument("--path", action="append", required=True); start.add_argument("--objective", required=True); start.add_argument("--risk-tier", choices=sorted(RISK_TIERS), default="medium"); start.add_argument("--branch", default=""); start.add_argument("--issue", default=""); start.add_argument("--test", action="append", default=[])
     block = sub.add_parser("block"); block.add_argument("--id", required=True); block.add_argument("--reason", required=True)
     review = sub.add_parser("review"); review.add_argument("--id", required=True); review.add_argument("--pr", required=True)
-    complete = sub.add_parser("complete-work"); complete.add_argument("--id", required=True); complete.add_argument("--commit"); complete.add_argument("--pr"); complete.add_argument("--test", action="append", default=[])
+    complete = sub.add_parser("complete-work"); complete.add_argument("--id", required=True); complete.add_argument("--commit"); complete.add_argument("--pr"); complete.add_argument("--review-evidence"); complete.add_argument("--test", action="append", default=[])
     complete_phase = sub.add_parser("complete-phase"); complete_phase.add_argument("--phase", required=True); complete_phase.add_argument("--commit", required=True); complete_phase.add_argument("--pr", action="append", default=[]); complete_phase.add_argument("--test", action="append", required=True); complete_phase.add_argument("--adr", action="append", required=True); complete_phase.add_argument("--limitation", action="append", required=True); complete_phase.add_argument("--next-task", required=True)
     add_risk = sub.add_parser("add-risk"); add_risk.add_argument("--id", required=True); add_risk.add_argument("--description", required=True); add_risk.add_argument("--severity", required=True); add_risk.add_argument("--likelihood", required=True); add_risk.add_argument("--mitigation", required=True); add_risk.add_argument("--owner", required=True); add_risk.add_argument("--related", default="")
     resolve = sub.add_parser("resolve-risk"); resolve.add_argument("--id", required=True); resolve.add_argument("--evidence", required=True)
@@ -201,8 +223,15 @@ def main() -> int:
         elif args.command == "block": item = work(status, args.id); item.update(status="blocked", reason=args.reason)
         elif args.command == "review": item = work(status, args.id); item.update(status="in_review", pr=args.pr)
         elif args.command == "complete-work":
-            if not (args.commit or args.pr): raise StatusError("complete work requires commit or PR evidence")
-            item = work(status, args.id); item.update(status="complete", commit=args.commit, pr=args.pr, tests=args.test); status["active_work"].remove(item); status["completed_work"].append(item)
+            item = work(status, args.id)
+            tier = work_risk_tier(item) or "medium"
+            if tier == "low" and not args.commit:
+                raise StatusError("low-risk completion requires commit evidence")
+            if tier == "medium" and (not args.commit or not args.test):
+                raise StatusError("medium-risk completion requires commit and test evidence")
+            if tier == "high" and (not args.commit or not args.pr or not args.review_evidence or not args.test):
+                raise StatusError("high-risk completion requires commit, PR, review, and test evidence")
+            item.update(status="complete", commit=args.commit, pr=args.pr, review_evidence=args.review_evidence, tests=args.test); status["active_work"].remove(item); status["completed_work"].append(item)
         elif args.command == "complete-phase":
             target = phase(status, args.phase)
             if target["status"] == "complete":
