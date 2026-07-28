@@ -29,8 +29,8 @@ needed. Medium-risk UI, internal refactoring, developer scripts, read-only
 endpoints, observability, and non-sensitive integrations should be validated;
 a branch is recommended and a PR is optional. High-risk financial logic,
 migrations, authentication, privacy, recommendations, financial integrations,
-money movement, autonomy, or destructive behavior requires a branch, PR, CI,
-independent review, and material status/risk evidence. Use
+money movement, autonomy, or destructive behavior requires a branch, PR,
+successful CI evidence, independent review, and material status/risk evidence. Use
 `atlas-project-tracker` for classification and status operations. Do not update
 project status for every prompt—only for phase milestones, material
 deliverables, blockers, significant risks, or next-task changes.

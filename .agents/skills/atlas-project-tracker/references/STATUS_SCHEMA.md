@@ -17,7 +17,19 @@ Evidence rules for tiered completed work:
 
 - Low: commit evidence; PR is optional.
 - Medium: commit and test evidence; PR is optional.
-- High: branch, commit, PR, independent `review_evidence`, and test evidence.
+- High: branch, commit, PR, independent `review_evidence`, test evidence, and
+  structured `ci_evidence`. `ci_evidence` is exactly:
+
+  ```json
+  {
+    "run_url": "https://github.com/OWNER/REPOSITORY/actions/runs/RUN_ID",
+    "check": "concrete check name (not a generic claim)",
+    "conclusion": "success"
+  }
+  ```
+
+  The run URL must identify a GitHub Actions run and the conclusion must be
+  `success`; empty or generic check claims such as `passed` are invalid.
 
 An in-review work item requires a PR; blocked or cancelled work requires a
 reason. Each phase has `exit_criteria`, with stable IDs and a `complete`

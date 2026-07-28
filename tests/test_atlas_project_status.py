@@ -52,6 +52,7 @@ class ProjectStatusTests(unittest.TestCase):
         completed = json.loads(self.status.read_text())["completed_work"][0]
         self.assertEqual(completed["risk_tier"], "low")
         self.assertFalse(completed["pr"])
+        self.assertNotIn("ci_evidence", completed)
 
     def test_medium_risk_completion_allows_no_pr(self):
         self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "docs", "--objective", "test", "--risk-tier", "medium")
@@ -59,12 +60,25 @@ class ProjectStatusTests(unittest.TestCase):
         completed = json.loads(self.status.read_text())["completed_work"][0]
         self.assertEqual(completed["risk_tier"], "medium")
         self.assertFalse(completed["pr"])
+        self.assertNotIn("ci_evidence", completed)
 
-    def test_high_risk_completion_requires_pr_and_review_evidence(self):
+    def test_high_risk_completion_requires_branch_pr_review_and_ci_evidence(self):
         self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
         self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--test", "1 passed", expect=1)
         self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--test", "1 passed", expect=1)
-        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", "independent review approved", "--test", "1 passed")
+        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", "independent review approved", "--test", "1 passed", expect=1)
+        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", "independent review approved", "--test", "1 passed", "--ci-run-url", "https://github.com/atlas/test/actions/runs/123", "--ci-check", "passed", expect=1)
+        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", "independent review approved", "--test", "1 passed", "--ci-run-url", "https://github.com/atlas/test/actions/runs/123", "--ci-check", "status")
+        completed = json.loads(self.status.read_text())["completed_work"][0]
+        self.assertEqual(completed["ci_evidence"]["conclusion"], "success")
+
+    def test_completed_high_risk_work_without_branch_is_rejected(self):
+        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
+        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", "independent review approved", "--test", "1 passed", "--ci-run-url", "https://github.com/atlas/test/actions/runs/123", "--ci-check", "status")
+        payload = json.loads(self.status.read_text())
+        payload["completed_work"][0].pop("branch")
+        self.status.write_text(json.dumps(payload), encoding="utf-8")
+        self.invoke("check", expect=1)
 
     def test_check_workflow_does_not_mutate_status(self):
         self.invoke("render")

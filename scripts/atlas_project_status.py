@@ -6,6 +6,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import re
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,8 @@ COMPLETED_PATH = ROOT / "docs/10-roadmap/COMPLETED_PHASES.md"
 WORK_STATUSES = {"planned", "in_progress", "blocked", "in_review", "complete", "cancelled"}
 PHASE_STATUSES = {"not_started", "in_progress", "blocked", "in_review", "complete"}
 RISK_TIERS = {"low", "medium", "high"}
+CI_RUN_URL = re.compile(r"^https://github\.com/[^/]+/[^/]+/actions/runs/[0-9]+(?:/job/[0-9]+)?$")
+GENERIC_CI_CHECK_NAMES = {"passed", "success", "successful", "green", "ok"}
 
 
 class StatusError(ValueError):
@@ -64,6 +67,24 @@ def work_risk_tier(item: dict[str, Any]) -> str | None:
     return tier
 
 
+def valid_ci_evidence(value: Any) -> bool:
+    """Accept only a concrete successful GitHub Actions check reference."""
+    if not isinstance(value, dict) or set(value) != {"run_url", "check", "conclusion"}:
+        return False
+    run_url = value["run_url"]
+    check = value["check"]
+    conclusion = value["conclusion"]
+    return (
+        isinstance(run_url, str)
+        and bool(CI_RUN_URL.fullmatch(run_url))
+        and isinstance(check, str)
+        and bool(check.strip())
+        and check.strip().lower() not in GENERIC_CI_CHECK_NAMES
+        and len(check) <= 160
+        and conclusion == "success"
+    )
+
+
 def validate(status: dict[str, Any]) -> None:
     required = {"schema_version", "last_updated", "current_phase_id", "overall_status", "current_objective", "active_work", "blockers", "risks", "phases", "completed_work", "commit_pr_evidence", "test_evidence", "next_bounded_task"}
     missing = required - set(status)
@@ -99,15 +120,17 @@ def validate(status: dict[str, Any]) -> None:
             raise StatusError(f"{work['id']} requires a reason")
         if work["status"] == "in_review" and not work.get("pr"):
             raise StatusError(f"{work['id']} in_review requires a PR")
-        if tier == "high" and work["status"] in {"in_progress", "in_review"} and not work.get("branch"):
+        if tier == "high" and (
+            not isinstance(work.get("branch"), str) or not work["branch"].strip()
+        ):
             raise StatusError(f"{work['id']} high-risk work requires a branch")
         if work["status"] == "complete":
             if tier == "low" and not work.get("commit"):
                 raise StatusError(f"{work['id']} low-risk completion requires commit evidence")
             if tier == "medium" and (not work.get("commit") or not work.get("tests")):
                 raise StatusError(f"{work['id']} medium-risk completion requires commit and test evidence")
-            if tier == "high" and (not work.get("commit") or not work.get("pr") or not work.get("review_evidence") or not work.get("tests")):
-                raise StatusError(f"{work['id']} high-risk completion requires commit, PR, review, and test evidence")
+            if tier == "high" and (not work.get("commit") or not work.get("pr") or not work.get("review_evidence") or not work.get("tests") or not valid_ci_evidence(work.get("ci_evidence"))):
+                raise StatusError(f"{work['id']} high-risk completion requires branch, commit, PR, review, test, and successful CI evidence")
             if tier is None and not (work.get("commit") or work.get("pr")):
                 raise StatusError(f"{work['id']} complete requires commit or PR evidence")
     for phase in status["phases"]:
@@ -204,7 +227,7 @@ def parser() -> argparse.ArgumentParser:
     start = sub.add_parser("start"); start.add_argument("--id", required=True); start.add_argument("--title", required=True); start.add_argument("--phase", required=True); start.add_argument("--path", action="append", required=True); start.add_argument("--objective", required=True); start.add_argument("--risk-tier", choices=sorted(RISK_TIERS), default="medium"); start.add_argument("--branch", default=""); start.add_argument("--issue", default=""); start.add_argument("--test", action="append", default=[])
     block = sub.add_parser("block"); block.add_argument("--id", required=True); block.add_argument("--reason", required=True)
     review = sub.add_parser("review"); review.add_argument("--id", required=True); review.add_argument("--pr", required=True)
-    complete = sub.add_parser("complete-work"); complete.add_argument("--id", required=True); complete.add_argument("--commit"); complete.add_argument("--pr"); complete.add_argument("--review-evidence"); complete.add_argument("--test", action="append", default=[])
+    complete = sub.add_parser("complete-work"); complete.add_argument("--id", required=True); complete.add_argument("--commit"); complete.add_argument("--pr"); complete.add_argument("--review-evidence"); complete.add_argument("--test", action="append", default=[]); complete.add_argument("--ci-run-url"); complete.add_argument("--ci-check")
     complete_phase = sub.add_parser("complete-phase"); complete_phase.add_argument("--phase", required=True); complete_phase.add_argument("--commit", required=True); complete_phase.add_argument("--pr", action="append", default=[]); complete_phase.add_argument("--test", action="append", required=True); complete_phase.add_argument("--adr", action="append", required=True); complete_phase.add_argument("--limitation", action="append", required=True); complete_phase.add_argument("--next-task", required=True)
     add_risk = sub.add_parser("add-risk"); add_risk.add_argument("--id", required=True); add_risk.add_argument("--description", required=True); add_risk.add_argument("--severity", required=True); add_risk.add_argument("--likelihood", required=True); add_risk.add_argument("--mitigation", required=True); add_risk.add_argument("--owner", required=True); add_risk.add_argument("--related", default="")
     resolve = sub.add_parser("resolve-risk"); resolve.add_argument("--id", required=True); resolve.add_argument("--evidence", required=True)
@@ -231,7 +254,21 @@ def main() -> int:
                 raise StatusError("medium-risk completion requires commit and test evidence")
             if tier == "high" and (not args.commit or not args.pr or not args.review_evidence or not args.test):
                 raise StatusError("high-risk completion requires commit, PR, review, and test evidence")
-            item.update(status="complete", commit=args.commit, pr=args.pr, review_evidence=args.review_evidence, tests=args.test); status["active_work"].remove(item); status["completed_work"].append(item)
+            ci_evidence = None
+            if args.ci_run_url is not None or args.ci_check is not None:
+                ci_evidence = {"run_url": args.ci_run_url, "check": args.ci_check, "conclusion": "success"}
+            if tier == "high" and not valid_ci_evidence(ci_evidence):
+                raise StatusError("high-risk completion requires a concrete successful CI run URL and check name")
+            completion = {
+                "status": "complete",
+                "commit": args.commit,
+                "pr": args.pr,
+                "review_evidence": args.review_evidence,
+                "tests": args.test,
+            }
+            if tier == "high":
+                completion["ci_evidence"] = ci_evidence
+            item.update(completion); status["active_work"].remove(item); status["completed_work"].append(item)
         elif args.command == "complete-phase":
             target = phase(status, args.phase)
             if target["status"] == "complete":

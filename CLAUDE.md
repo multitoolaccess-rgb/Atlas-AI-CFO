@@ -21,5 +21,5 @@ Before implementation, identify affected documents and acceptance criteria. Afte
 Use the project-local `atlas-project-tracker` risk tiers: low work is
 lightweight, medium work requires validation, and high-risk financial, schema,
 authorization, privacy, integration, or destructive work requires branch, PR,
-CI, independent review, and material status/risk evidence. See
+successful CI evidence, independent review, and material status/risk evidence. See
 `docs/10-roadmap/PROJECT_STATUS.json` for current phase status.

@@ -43,8 +43,8 @@ or lengthy logs in status files.
 
 1. Run scoped validation and review the diff.
 2. For tracked work, record evidence with `complete-work`: low requires a
-   commit; medium requires a commit and tests; high requires commit, PR, review,
-   and test evidence.
+   commit; medium requires a commit and tests; high requires branch, commit,
+   PR, independent review, tests, and a concrete successful CI run/check.
 3. Update risks, exit criteria, and next task only when they materially change.
 4. Run `render`, then `check` and `render --check` after a status mutation.
 5. Report the next bounded task. Do not begin it automatically.
