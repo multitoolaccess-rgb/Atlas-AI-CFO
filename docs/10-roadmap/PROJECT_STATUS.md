@@ -4,8 +4,8 @@
 
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Independently review the bounded canonical projection-state contract in PR #6; forecast persistence, migrations, routes, and later Phase 1 slices remain unauthorized.
-- Last updated: 2026-07-28T05:03:13Z
+- Current objective: Independently re-review the hardened canonical projection-state contract in PR #6; forecast persistence, migrations, routes, and later Phase 1 slices remain unauthorized.
+- Last updated: 2026-07-28T05:26:19Z
 
 ## Active work
 - work-p1-canonical-state-contract: Implement canonical projection-state contract test slice (in_review, high)
@@ -45,6 +45,7 @@
 - b987147: Phase 1 immutable forecast persistence planning #4
 - 6e485ea: Resolved Phase 1 canonical-envelope, validation, and retention planning decisions #4
 - a818665: Enforced the trusted adapter-only forecast generation boundary #4
+- a44e15d: Hardened canonical Decimal bounds and sanitized contract validation errors #6
 - Test test-p0-rules: Rules Service — 579 passed, 10 skipped, 1 xfailed
 - Test test-p0-finlynq: Finlynq — 93 passed
 - Test test-p0-frontend: Frontend — 496 passed
@@ -52,6 +53,6 @@
 - Test test-p1-planning-status: Phase 1 planning governance — 5 passed; status, deterministic render, and trusted generation-boundary documentation checks passed
 
 ## Next bounded task
-- next-p1-canonical-state-contract-review: Independently review PR #6 canonical projection-state contract; do not begin persistence, migrations, routes, or any later Phase 1 slice until it is approved.
+- next-p1-canonical-state-contract-review: Independently re-review the hardened PR #6 canonical projection-state contract; do not begin persistence, migrations, routes, or any later Phase 1 slice until it is approved.
 
 Do not begin the next phase or task automatically.
