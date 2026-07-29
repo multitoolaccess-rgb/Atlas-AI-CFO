@@ -67,6 +67,21 @@
       "commit": "f91de80",
       "description": "Detached raw validation exception state and bounded caller-facing contract-error locations",
       "pr": "#6"
+    },
+    {
+      "commit": "734d35e",
+      "description": "Made dashboard date-only ranges inclusive through a half-open next-day bound",
+      "pr": "#7"
+    },
+    {
+      "commit": "694ec81",
+      "description": "Restored bounded open-ended dashboard date ranges while retaining the half-open upper bound",
+      "pr": "#7"
+    },
+    {
+      "commit": "e2ebbb2",
+      "description": "Rejected dashboard date ranges whose exclusive next-day bound is unrepresentable",
+      "pr": "#7"
     }
   ],
   "completed_work": [
@@ -126,11 +141,42 @@
         "project-status validation and deterministic render passed"
       ],
       "title": "Plan immutable forecast persistence and versioned read APIs"
+    },
+    {
+      "branch": "codex/fix-inclusive-date-upper-bound",
+      "ci_evidence": {
+        "check": "cheap (lint + unit, no browser)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/30421096794"
+      },
+      "commit": "e2ebbb2",
+      "id": "work-dashboard-inclusive-date-upper-bound",
+      "issue": "",
+      "objective": "Remediate the pre-existing date-only upper-bound exclusion in dashboard financial reporting without changing Phase 1 forecast persistence scope.",
+      "paths": [
+        "services/rules-service/app/routes/dashboard.py",
+        "services/rules-service/tests/test_routes_atlas_phase2_endpoints.py"
+      ],
+      "phase_id": "phase-1",
+      "pr": "#7",
+      "review_evidence": "Fresh independent review at 17c8c0d: APPROVE; no findings.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Focused inclusive, open-range, and representable-upper-bound regressions: 7 passed",
+        "Dashboard endpoint suite: 37 passed",
+        "Rules Service suite: 592 passed, 10 skipped, 1 xfailed",
+        "Finlynq suite: 93 passed",
+        "Cross-service startup unit contracts: 19 passed",
+        "Tracker tests: 9 passed; status and deterministic render checks passed",
+        "Hosted status and cheap CI checks: passed"
+      ],
+      "title": "Fix inclusive date-only dashboard upper bound"
     }
   ],
   "current_objective": "Independently re-review the hardened canonical projection-state contract in PR #6; forecast persistence, migrations, routes, and later Phase 1 slices remain unauthorized.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-29T03:16:13Z",
+  "last_updated": "2026-07-29T04:10:00Z",
   "next_bounded_task": {
     "description": "Independently re-review the hardened PR #6 canonical projection-state contract; do not begin persistence, migrations, routes, or any later Phase 1 slice until it is approved.",
     "id": "next-p1-canonical-state-contract-review",

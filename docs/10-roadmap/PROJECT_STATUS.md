@@ -5,7 +5,7 @@
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Independently re-review the hardened canonical projection-state contract in PR #6; forecast persistence, migrations, routes, and later Phase 1 slices remain unauthorized.
-- Last updated: 2026-07-29T03:16:13Z
+- Last updated: 2026-07-29T04:10:00Z
 
 ## Active work
 - work-p1-canonical-state-contract: Implement canonical projection-state contract test slice (in_review, high)
@@ -37,6 +37,7 @@
 - work-p0-environment-isolation: Isolated service Python environments — commit 8baa1c2, PR None
 - work-p0-synthetic-fixtures: Approved synthetic financial fixtures — commit d001e64, PR #1
 - work-p1-forecast-persistence-planning: Plan immutable forecast persistence and versioned read APIs — commit a818665, PR #4
+- work-dashboard-inclusive-date-upper-bound: Fix inclusive date-only dashboard upper bound — commit e2ebbb2, PR #7
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -47,6 +48,9 @@
 - a818665: Enforced the trusted adapter-only forecast generation boundary #4
 - a44e15d: Hardened canonical Decimal bounds and sanitized contract validation errors #6
 - f91de80: Detached raw validation exception state and bounded caller-facing contract-error locations #6
+- 734d35e: Made dashboard date-only ranges inclusive through a half-open next-day bound #7
+- 694ec81: Restored bounded open-ended dashboard date ranges while retaining the half-open upper bound #7
+- e2ebbb2: Rejected dashboard date ranges whose exclusive next-day bound is unrepresentable #7
 - Test test-p0-rules: Rules Service — 579 passed, 10 skipped, 1 xfailed
 - Test test-p0-finlynq: Finlynq — 93 passed
 - Test test-p0-frontend: Frontend — 496 passed
