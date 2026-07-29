@@ -13,7 +13,8 @@ from app.database import register_sqlite_compat
 
 ROOT = Path(__file__).parent.parent
 PARENT = "Q5h1i2j3k4l5"
-REVISION = "R6f1g2h3i4j5"
+REVISION = "S7a1b2c3d4e5"
+ACCOUNT_CURRENCY_PARENT = "R6f1g2h3i4j5"
 
 
 def _config(url: str) -> Config:
@@ -156,3 +157,59 @@ def test_forecast_database_format_guards_reject_direct_invalid_values(monkeypatc
                 "calc": "c" * 128,
             }
             conn.execute(statement, boundary)
+
+
+def test_account_currency_migration_preserves_unknown_rows_and_enforces_evidence(monkeypatch):
+    """B0 adds nullable currency provenance without a historical backfill."""
+    with tempfile.TemporaryDirectory() as tmp:
+        url = f"sqlite:///{os.path.join(tmp, 'account_currency.db')}"
+        monkeypatch.setattr("app.config.settings.database_url", url)
+        cfg = _config(url)
+        command.upgrade(cfg, ACCOUNT_CURRENCY_PARENT)
+        engine = create_engine(url)
+        register_sqlite_compat(engine)
+        with engine.begin() as conn:
+            conn.execute(text("INSERT INTO users (id, local_user_sub, email, hashed_password) VALUES (1, 'currency-user', 'currency@example.com', 'x')"))
+            conn.execute(text("INSERT INTO family_members (id, user_id, name, color, is_archived, is_self) VALUES (1, 1, 'Self', '#000000', 0, 1)"))
+            conn.execute(text("INSERT INTO institutions (id, name) VALUES (1, 'Currency Test Institution')"))
+            conn.execute(text("INSERT INTO accounts (id, user_id, institution_id, family_member_id, account_name, account_type, current_balance, is_active) VALUES (1, 1, 1, 1, 'Currency Test Account', 'checking', 1, 1)"))
+            conn.execute(text("INSERT INTO goals (id, user_id, name, target_amount, priority, is_archived) VALUES (1, 1, 'Currency Test Goal', 1, 0, 0)"))
+        command.upgrade(cfg, "head")
+        with engine.begin() as conn:
+            row = conn.execute(text("SELECT currency_code, currency_source, currency_observed_at, currency_source_reference FROM accounts WHERE id = 1")).one()
+            assert row == (None, None, None, None)
+            for values in (
+                {"code": "usd", "source": "provider_reported", "reference": "provider-1"},
+                {"code": "USD", "source": "inferred", "reference": "provider-1"},
+                {"code": "USD", "source": "provider_reported", "reference": "Account Name"},
+            ):
+                with pytest.raises(Exception):
+                    conn.execute(text("UPDATE accounts SET currency_code=:code, currency_source=:source, currency_observed_at=CURRENT_TIMESTAMP, currency_source_reference=:reference WHERE id=1"), values)
+            conn.execute(text("UPDATE accounts SET currency_code='USD', currency_source='provider_reported', currency_observed_at=CURRENT_TIMESTAMP, currency_source_reference='provider-account-1' WHERE id=1"))
+            conn.execute(text("INSERT INTO goal_projection_configs (user_id, goal_id, projection_kind, currency_code, monthly_contribution, contribution_source_reference, contribution_observed_at) VALUES (1, 1, 'net_worth', 'USD', 1.23, 'plan-1', CURRENT_TIMESTAMP)"))
+            with pytest.raises(Exception):
+                conn.execute(text("UPDATE goal_projection_configs SET projection_kind='heuristic' WHERE goal_id=1"))
+        with pytest.raises(RuntimeError, match="projection config data exists"):
+            command.downgrade(cfg, ACCOUNT_CURRENCY_PARENT)
+
+
+def test_account_currency_migration_clean_downgrade_and_reupgrade(monkeypatch):
+    with tempfile.TemporaryDirectory() as tmp:
+        url = f"sqlite:///{os.path.join(tmp, 'account_currency_clean.db')}"
+        monkeypatch.setattr("app.config.settings.database_url", url)
+        cfg = _config(url)
+        command.upgrade(cfg, ACCOUNT_CURRENCY_PARENT)
+        command.upgrade(cfg, "head")
+        engine = create_engine(url)
+        assert "goal_projection_configs" in inspect(engine).get_table_names()
+        command.downgrade(cfg, ACCOUNT_CURRENCY_PARENT)
+        assert "goal_projection_configs" not in inspect(engine).get_table_names()
+        command.upgrade(cfg, "head")
+        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == REVISION
+
+
+def test_postgresql_currency_constraint_explicitly_rejects_partial_null_provenance():
+    """PostgreSQL CHECK treats NULL as passing unless the populated arm guards it."""
+    migration = (ROOT / "alembic/versions/S7a1b2c3d4e5_add_account_currency_provenance.py").read_text(encoding="utf-8")
+    assert "currency_code IS NOT NULL AND currency_source IS NOT NULL" in migration
+    assert "currency_observed_at IS NOT NULL AND currency_source_reference IS NOT NULL" in migration

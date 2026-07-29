@@ -41,3 +41,13 @@ Derived memory stores preferences, decisions, outcomes, and behavior patterns. I
 ## Principles
 
 Accuracy, provenance, security, minimization, transparency, user control, and deterministic calculations for material financial facts.
+
+## Account currency provenance
+
+Account currency is canonical source data, not a display preference. It is
+unknown unless provider metadata, structured statement metadata, or explicit
+user confirmation supplies an uppercase ISO code, bounded source reference,
+and observation timestamp. Legacy data is not backfilled from names, symbols,
+balances, transactions, files, locales, or defaults. Consumers that require a
+single currency must fail closed for unknown, mixed, stale, unsupported, or
+conflicting evidence.

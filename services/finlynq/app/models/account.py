@@ -36,6 +36,12 @@ class Account(Base):
     account_subtype = Column(String, nullable=True)
     current_balance = Column(Float, default=0.0)
     is_active = Column(Boolean, default=True)
+    # Phase 1 B0 — source-backed currency provenance.  No defaults or
+    # backfill: legacy account currency remains deliberately unknown.
+    currency_code = Column(String(3), nullable=True)
+    currency_source = Column(String(32), nullable=True)
+    currency_observed_at = Column(DateTime(timezone=True), nullable=True)
+    currency_source_reference = Column(String(128), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     last_sync = Column(DateTime(timezone=True), nullable=True)

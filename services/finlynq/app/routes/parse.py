@@ -29,6 +29,7 @@ from app.auth import require_user
 from app.database import get_db
 from app.models import Account, ImportBatch, Transaction
 from app.routes.shared import get_or_create_local_user
+from app.projection_state.currency import CurrencyEvidenceConflict, CurrencyEvidenceError, set_currency_evidence
 
 _logger = logging.getLogger(__name__)
 
@@ -105,6 +106,26 @@ async def upload_statement(
             .first()
         )
         if account:
+            declared_currency = result.get("declared_currency")
+            if declared_currency is not None:
+                try:
+                    set_currency_evidence(
+                        account,
+                        code=declared_currency,
+                        source="statement_declared",
+                        observed_at=datetime.now(timezone.utc),
+                        source_reference=f"statement-import:{account.id}",
+                    )
+                except CurrencyEvidenceConflict:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="account currency evidence conflicts; reconciliation required",
+                    ) from None
+                except CurrencyEvidenceError:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail="account currency evidence is unavailable",
+                    ) from None
             parsed_records = result.get("parsed_records", [])
             if parsed_records:
                 preview_json = json.dumps(

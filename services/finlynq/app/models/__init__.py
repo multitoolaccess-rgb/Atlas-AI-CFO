@@ -40,6 +40,7 @@ from app.models.account import Account
 from app.models.budget import Budget
 from app.models.category import Category
 from app.models.goal import Goal
+from app.models.goal_projection_config import GoalProjectionConfig
 from app.models.import_batch import ImportBatch
 from app.models.institution import Institution
 from app.models.transaction import Transaction
@@ -50,6 +51,7 @@ __all__ = [
     "Budget",
     "Category",
     "Goal",
+    "GoalProjectionConfig",
     "ImportBatch",
     "Institution",
     "Transaction",
