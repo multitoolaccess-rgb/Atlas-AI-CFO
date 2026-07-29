@@ -219,10 +219,14 @@ forecast response links the latest version but never overwrites history.
 Changing calculation or model version creates a new version even when the
 input-state hash is unchanged.
 
-The output snapshot stores the target-status boolean with its unrounded
-canonical decision operands. API and UI display formatting must never recompute
-or alter target status. Fixtures include Float-to-canonical-string and
-rounding-boundary cases proving those constraints.
+The output snapshot stores the target-status boolean with
+`atlas-target-decision/v1`: `unrounded_ending_balance` and
+`unrounded_target_amount`, compared by `greater_than_or_equal` for the `base`
+scenario. API and UI display formatting must never recompute or alter target
+status. The canonical input hash includes the validated
+`atlas-projection-assumptions/v1` snapshot and its schema identifier. Fixtures
+include Float-to-canonical-string and rounding-boundary cases proving those
+constraints.
 
 ## Exact implementation sequence
 

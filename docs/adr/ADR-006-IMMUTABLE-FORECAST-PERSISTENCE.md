@@ -125,18 +125,21 @@ hash.
 
 The persisted target-status decision is sourced from an explicit unrounded
 decision basis in the calculation result and is stored with its canonical
-Decimal operands. A UI or API display amount must never recompute or alter
-that boolean after rounding. The Phase 1 contract tests must include a
-rounding-boundary case that proves the displayed value cannot change the
-stored target status.
+Decimal operands: `unrounded_ending_balance` and
+`unrounded_target_amount`, compared by `greater_than_or_equal` for the `base`
+scenario. `atlas-target-decision/v1` records that basis and the resulting
+boolean. A UI or API display amount must never recompute or alter that boolean
+after rounding. The Phase 1 contract tests must include a rounding-boundary
+case that proves the displayed value cannot change the stored target status.
 
 ### Input-state hashing and idempotent generation
 
 `input_state_hash` is lowercase SHA-256 over the canonical normalized input,
-assumption, freshness, and provenance snapshot. Hash construction is versioned
-by `hash_schema_version`. Calculation and model versions are separate columns,
-so the same financial state under a new calculation or contract creates a new
-version.
+validated `atlas-projection-assumptions/v1` snapshot, freshness, and provenance
+snapshot. Hash construction is versioned by `hash_schema_version`; the
+assumption-schema identifier is included in its canonical bytes. Calculation
+and model versions are separate columns, so the same financial state under a
+new calculation or contract creates a new version.
 
 The database enforces uniqueness on:
 

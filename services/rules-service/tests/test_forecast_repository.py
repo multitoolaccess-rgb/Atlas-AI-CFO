@@ -21,7 +21,11 @@ from app.forecasts.repository import (
     IdempotencyConflict,
     StaleForecastVersion,
 )
-from app.forecasts.snapshots import build_forecast_snapshots
+from app.forecasts.snapshots import (
+    ASSUMPTION_SCHEMA_VERSION,
+    TARGET_DECISION_SCHEMA_VERSION,
+    build_forecast_snapshots,
+)
 from app.models import Goal, User
 
 
@@ -73,6 +77,7 @@ def _persist(repository: ForecastRepository, *, key: str = "atlas-test-key", sta
 def _assumptions() -> dict[str, object]:
     return {
         "assumption_profile": "atlas-test-default",
+        "assumption_schema_version": ASSUMPTION_SCHEMA_VERSION,
         "annual_return_rates": {
             "conservative": "0.02",
             "base": "0.04",
@@ -89,6 +94,14 @@ def _assumptions() -> dict[str, object]:
 def _output() -> dict[str, object]:
     return {
         "target_status": True,
+        "target_decision": {
+            "decision_schema_version": TARGET_DECISION_SCHEMA_VERSION,
+            "scenario": "base",
+            "comparison": "greater_than_or_equal",
+            "unrounded_ending_balance": "1000.0001",
+            "unrounded_target_amount": "1000",
+            "target_status": True,
+        },
         "drivers": {
             "current_balance": "1234.56",
             "monthly_contribution": "100",
@@ -137,6 +150,74 @@ def test_repository_replays_same_key_and_converges_same_state_with_new_key(sessi
     same_state = _persist(repository, key="atlas-test-key-2")
     assert replay.created is False and replay.version.id == first.version.id
     assert same_state.created is False and same_state.version.id == first.version.id
+
+
+def test_repository_assumption_changes_have_distinct_hash_and_version(session: Session) -> None:
+    repository = ForecastRepository(session)
+    first = _persist(repository)
+    changed_assumptions = _assumptions()
+    changed_assumptions["annual_return_rates"] = {
+        "optimistic": "0.06",
+        "base": "0.05",
+        "conservative": "0.02",
+    }
+    second = repository.persist(
+        user_id=1,
+        goal_id=1,
+        state=_state(),
+        idempotency_key="atlas-test-key-new-assumption",
+        model_version="atlas-model-v1",
+        calculation_version="phase0-projection-v1",
+        calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
+        assumption_snapshot=changed_assumptions,
+        output_snapshot=_output(),
+        ending_balance=Decimal("1234.56"),
+        target_gap=Decimal("-1.00"),
+    )
+    assert second.created is True
+    assert second.version.id != first.version.id
+    assert second.version.input_state_hash != first.version.input_state_hash
+
+    with pytest.raises(IdempotencyConflict):
+        repository.persist(
+            user_id=1,
+            goal_id=1,
+            state=_state(),
+            idempotency_key="atlas-test-key",
+            model_version="atlas-model-v1",
+            calculation_version="phase0-projection-v1",
+            calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
+            assumption_snapshot=changed_assumptions,
+            output_snapshot=_output(),
+            ending_balance=Decimal("1234.56"),
+            target_gap=Decimal("-1.00"),
+        )
+
+
+def test_repository_equivalent_reordered_assumptions_replay_same_hash(session: Session) -> None:
+    repository = ForecastRepository(session)
+    first = _persist(repository)
+    reordered = _assumptions()
+    reordered["annual_return_rates"] = {
+        "optimistic": "0.06",
+        "conservative": "0.02",
+        "base": "0.04",
+    }
+    replay = repository.persist(
+        user_id=1,
+        goal_id=1,
+        state=_state(),
+        idempotency_key="atlas-test-key-reordered-assumptions",
+        model_version="atlas-model-v1",
+        calculation_version="phase0-projection-v1",
+        calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
+        assumption_snapshot=reordered,
+        output_snapshot=_output(),
+        ending_balance=Decimal("1234.56"),
+        target_gap=Decimal("-1.00"),
+    )
+    assert replay.created is False
+    assert replay.version.id == first.version.id
 
 
 def test_repository_rejects_reused_key_for_different_state(session: Session) -> None:
@@ -268,6 +349,127 @@ def test_repository_rejects_raw_or_secret_snapshot_payloads(session: Session, fi
             assumption_snapshot={field: "SYNTHETIC-SECRET"}, output_snapshot=_output(),
             ending_balance=Decimal("1.00"), target_gap=Decimal("0.00"),
         )
+
+
+@pytest.mark.parametrize(
+    "assumptions",
+    [
+        {key: value for key, value in _assumptions().items() if key != "assumption_schema_version"},
+        {**_assumptions(), "assumption_schema_version": "atlas-projection-assumptions/v2"},
+        {**_assumptions(), "annual_inflation_rate": "1.0000000000000000001"},
+        {**_assumptions(), "annual_return_rates": {"base": "1E+1"}},
+    ],
+)
+def test_repository_rejects_invalid_or_unversioned_assumptions(
+    session: Session, assumptions: dict[str, object]
+) -> None:
+    with pytest.raises(ValueError, match="bounded projection contract"):
+        ForecastRepository(session).persist(
+            user_id=1,
+            goal_id=1,
+            state=_state(),
+            idempotency_key="atlas-test-key",
+            model_version="atlas-model-v1",
+            calculation_version="phase0-projection-v1",
+            calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
+            assumption_snapshot=assumptions,
+            output_snapshot=_output(),
+            ending_balance=Decimal("1.00"),
+            target_gap=Decimal("0.00"),
+        )
+
+
+@pytest.mark.parametrize(
+    "ending_balance,target_amount,status",
+    [
+        ("999.9999", "1000", False),
+        ("1000", "1000", True),
+        ("1000.0001", "1000", True),
+    ],
+)
+def test_repository_persists_unrounded_target_decision_boundary(
+    session: Session, ending_balance: str, target_amount: str, status: bool
+) -> None:
+    output = _output()
+    output["target_status"] = status
+    output["target_decision"] = {
+        "decision_schema_version": TARGET_DECISION_SCHEMA_VERSION,
+        "scenario": "base",
+        "comparison": "greater_than_or_equal",
+        "unrounded_ending_balance": ending_balance,
+        "unrounded_target_amount": target_amount,
+        "target_status": status,
+    }
+    output["scenarios"]["base"]["reaches_target"] = status
+    result = ForecastRepository(session).persist(
+        user_id=1,
+        goal_id=1,
+        state=_state(),
+        idempotency_key=f"atlas-test-boundary-{ending_balance}",
+        model_version="atlas-model-v1",
+        calculation_version="phase0-projection-v1",
+        calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
+        assumption_snapshot=_assumptions(),
+        output_snapshot=output,
+        ending_balance=Decimal("1000.00"),
+        target_gap=Decimal("0.00"),
+    )
+    persisted = json.loads(result.version.output_snapshot_json)
+    assert persisted["target_decision"]["unrounded_ending_balance"] == ending_balance
+    assert persisted["target_decision"]["target_status"] is status
+
+
+def test_rounded_display_cannot_override_unrounded_target_decision(session: Session) -> None:
+    output = _output()
+    output["target_status"] = False
+    output["target_decision"] = {
+        "decision_schema_version": TARGET_DECISION_SCHEMA_VERSION,
+        "scenario": "base",
+        "comparison": "greater_than_or_equal",
+        "unrounded_ending_balance": "999.9999",
+        "unrounded_target_amount": "1000",
+        "target_status": False,
+    }
+    output["scenarios"]["base"]["ending_balance"] = "1000"
+    output["scenarios"]["base"]["reaches_target"] = False
+    result = ForecastRepository(session).persist(
+        user_id=1,
+        goal_id=1,
+        state=_state(),
+        idempotency_key="atlas-test-rounded-display",
+        model_version="atlas-model-v1",
+        calculation_version="phase0-projection-v1",
+        calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
+        assumption_snapshot=_assumptions(),
+        output_snapshot=output,
+        ending_balance=Decimal("1000.00"),
+        target_gap=Decimal("0.00"),
+    )
+    persisted = json.loads(result.version.output_snapshot_json)
+    assert persisted["scenarios"]["base"]["ending_balance"] == "1000"
+    assert persisted["target_status"] is False
+
+
+def test_repository_rejects_missing_or_inconsistent_target_decision(session: Session) -> None:
+    missing = _output()
+    missing.pop("target_decision")
+    inconsistent = _output()
+    inconsistent["target_decision"]["target_status"] = False
+    for output in (missing, inconsistent):
+        with pytest.raises(ValueError, match="bounded projection contract"):
+            ForecastRepository(session).persist(
+                user_id=1,
+                goal_id=1,
+                state=_state(),
+                idempotency_key="atlas-test-decision-contract",
+                model_version="atlas-model-v1",
+                calculation_version="phase0-projection-v1",
+                calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
+                assumption_snapshot=_assumptions(),
+                output_snapshot=output,
+                ending_balance=Decimal("1.00"),
+                target_gap=Decimal("0.00"),
+            )
 
 
 @pytest.mark.parametrize(
