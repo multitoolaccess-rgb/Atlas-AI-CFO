@@ -14,15 +14,18 @@
         "docs/superpowers/plans"
       ],
       "phase_id": "phase-1",
+      "reason": "Blocked: Finlynq Account has no authoritative currency field. User.currency_preference defaults to USD but ADR-006 forbids inferring forecast currency from preferences; therefore active account balances cannot safely support an explicit USD projection envelope.",
       "risk_tier": "high",
-      "status": "in_progress",
+      "status": "blocked",
       "tests": [
         "Provider privacy, authorization, canonical-envelope, freshness, deterministic-hash, and no-fallback contract tests"
       ],
       "title": "Implement Finlynq canonical projection-state provider"
     }
   ],
-  "blockers": [],
+  "blockers": [
+    "B0 is blocked: Finlynq accounts have no authoritative currency, so active balances cannot be truthfully emitted as USD in atlas-projection-state/v1."
+  ],
   "commit_pr_evidence": [
     {
       "commit": "c0f5287",
@@ -270,12 +273,12 @@
       "title": "Implement immutable forecast repository transactions"
     }
   ],
-  "current_objective": "Phase 1 repository transactions are complete; B0 must establish the approved Finlynq-owned canonical projection-state provider before generation service work resumes.",
+  "current_objective": "Phase 1 repository transactions are complete; B0 is blocked pending an authoritative Finlynq account-currency source before the provider or generation service can proceed.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-29T16:53:35Z",
+  "last_updated": "2026-07-29T16:54:32Z",
   "next_bounded_task": {
-    "description": "Implement the Finlynq-owned canonical projection-state provider, then resume the blocked trusted generation application service; do not add HTTP routes.",
-    "id": "next-p1-finlynq-projection-provider",
+    "description": "Approve the authoritative Finlynq account-currency source and its bounded migration/ingestion policy; then resume B0 before the generation service.",
+    "id": "next-p1-account-currency-authority",
     "phase_id": "phase-1"
   },
   "overall_status": "in_progress",
@@ -474,6 +477,16 @@
       "mitigation": "Accept no client financial-state fields, authorize the goal before one trusted adapter invocation, reject unknown fields, and require spoofing and adapter-order tests.",
       "owner": "rules-service-security",
       "related": "ADR-006, issue #3, PR #4, PR #6 (trusted-boundary contract slice)",
+      "severity": "high",
+      "status": "open"
+    },
+    {
+      "description": "Finlynq active account balances have no authoritative currency attribute; a user preference/default cannot prove balances are USD for atlas-projection-state/v1.",
+      "id": "risk-p1-account-currency-authority",
+      "likelihood": "high",
+      "mitigation": "Add and independently review an authoritative account-currency source and migration/ingestion policy before enabling the B0 provider.",
+      "owner": "Finlynq domain owner",
+      "related": "B0 provider prerequisite; ADR-006 currency rule",
       "severity": "high",
       "status": "open"
     }
