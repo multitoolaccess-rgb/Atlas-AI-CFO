@@ -45,6 +45,7 @@ from app.models.assistant_message import AssistantMessage
 from app.models.holding import Holding
 # Phase 4 — recommendation approval workflow audit trail.
 from app.models.recommendation_log import RecommendationLog
+from app.models.forecast import Forecast, ForecastVersion
 
 __all__ = [
     "Budget",
@@ -62,4 +63,6 @@ __all__ = [
     "AssistantMessage",
     "Holding",
     "RecommendationLog",
+    "Forecast",
+    "ForecastVersion",
 ] 

@@ -4,8 +4,8 @@
 
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Await explicit authorization for the next bounded Phase 1 persistence slice; migrations, routes, and later Phase 1 work remain unauthorized.
-- Last updated: 2026-07-29T04:20:50Z
+- Current objective: Phase 1 forecast models and additive migration are complete; repository transactions remain the next bounded slice and require separate authorization.
+- Last updated: 2026-07-29T05:43:10Z
 
 ## Active work
 - None
@@ -33,11 +33,11 @@
 - risk-p1-trusted-generation-boundary [high/medium, open]: An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.
 
 ## Recently completed work
-- work-p0-environment-isolation: Isolated service Python environments — commit 8baa1c2, PR None
 - work-p0-synthetic-fixtures: Approved synthetic financial fixtures — commit d001e64, PR #1
 - work-p1-forecast-persistence-planning: Plan immutable forecast persistence and versioned read APIs — commit a818665, PR #4
 - work-dashboard-inclusive-date-upper-bound: Fix inclusive date-only dashboard upper bound — commit e2ebbb2, PR #7
 - work-p1-canonical-state-contract: Implement canonical projection-state contract test slice — commit f91de80, PR #6
+- work-p1-forecast-persistence-models: Implement immutable forecast persistence models and migration — commit 59b3baa, PR #8
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -46,6 +46,9 @@
 - b987147: Phase 1 immutable forecast persistence planning #4
 - 6e485ea: Resolved Phase 1 canonical-envelope, validation, and retention planning decisions #4
 - a818665: Enforced the trusted adapter-only forecast generation boundary #4
+- d85255f: Added immutable forecast persistence models and additive migration from Q5h1i2j3k4l5
+- 40517d2: Hardened forecast persistence UUID, SHA-256, and required-version database constraints #8
+- 57b8cb5: Prevented rollback from deleting persisted forecast identities and restricted version labels to printable ASCII #8
 - a44e15d: Hardened canonical Decimal bounds and sanitized contract validation errors #6
 - f91de80: Detached raw validation exception state and bounded caller-facing contract-error locations #6
 - 734d35e: Made dashboard date-only ranges inclusive through a half-open next-day bound #7
@@ -58,6 +61,6 @@
 - Test test-p1-planning-status: Phase 1 planning governance — 5 passed; status, deterministic render, and trusted generation-boundary documentation checks passed
 
 ## Next bounded task
-- next-p1-persistence-slice-authorization: Authorize and plan the next bounded Phase 1 persistence slice after reviewing merged canonical-contract evidence; do not begin implementation automatically.
+- next-p1-forecast-repository-transactions: Authorize the next bounded Phase 1 slice: repository transactions for immutable forecast versions; do not begin automatically.
 
 Do not begin the next phase or task automatically.

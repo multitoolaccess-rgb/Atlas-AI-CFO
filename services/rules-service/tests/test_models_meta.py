@@ -39,6 +39,9 @@ EXPECTED_TABLES = {
     "holdings",
     # Phase 4 — recommendation approval workflow audit trail.
     "recommendation_logs",
+    # Phase 1 — immutable forecast identity and version history.
+    "forecasts",
+    "forecast_versions",
 }
 
 
