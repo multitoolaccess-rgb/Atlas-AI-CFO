@@ -9,6 +9,7 @@ Tests cover:
 - Anomaly detection thresholds (insights)
 """
 
+import calendar
 from datetime import datetime, timedelta
 import pytest
 
@@ -21,12 +22,13 @@ def _seed_transaction(db_session, account_id: int, *,
                       amount: float,
                       category_name: str | None = None,
                       description: str = "Test",
-                      days_ago: int = 0):
+                      days_ago: int = 0,
+                      transaction_date: datetime | None = None):
     """Insert a single Transaction on the given account."""
     from app.models import Category as _Cat
     from app.models import Transaction as _T
 
-    txn_date = datetime.utcnow() - timedelta(days=days_ago)
+    txn_date = transaction_date or (datetime.utcnow() - timedelta(days=days_ago))
 
     category_id: int | None = None
     if category_name:
@@ -166,6 +168,49 @@ def test_income_breakdown_rejects_malformed_period(client, db_session) -> None:
     r = client.get("/api/dashboard/income-breakdown?period=bad")
     assert r.status_code == 400
 
+    r = client.get("/api/dashboard/income-breakdown?period=2026-99")
+    assert r.status_code == 400
+
+
+def test_income_breakdown_date_only_range_uses_same_inclusive_upper_bound(
+    client, db_session, make_account
+) -> None:
+    """The shared breakdown resolver includes the full date for income too."""
+    acct = make_account(account_name="Date Range Income")
+    db_session.add(acct)
+    db_session.commit()
+
+    _seed_transaction(
+        db_session,
+        acct.id,
+        amount=10.0,
+        category_name="Salary",
+        description="Start of selected day",
+        transaction_date=datetime(2026, 7, 15),
+    )
+    _seed_transaction(
+        db_session,
+        acct.id,
+        amount=20.0,
+        category_name="Salary",
+        description="End of selected day",
+        transaction_date=datetime(2026, 7, 15, 23, 59, 59, 999999),
+    )
+    _seed_transaction(
+        db_session,
+        acct.id,
+        amount=30.0,
+        category_name="Salary",
+        description="Next day midnight",
+        transaction_date=datetime(2026, 7, 16),
+    )
+
+    r = client.get(
+        "/api/dashboard/income-breakdown?from_date=2026-07-15&to_date=2026-07-15"
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["total_income"] == 30.0
+
 
 # -----------------------------------------------------------------------
 # /api/dashboard/expense-breakdown
@@ -246,24 +291,176 @@ def test_expense_breakdown_excludes_investment_accounts(client, db_session) -> N
     assert body["total_expenses"] == 0.0
 
 
-def test_expense_breakdown_accepts_from_date_to_date(client, db_session, make_account) -> None:
-    """Date range params work correctly."""
+def test_expense_breakdown_date_only_range_includes_entire_upper_bound_day(
+    client, db_session, make_account
+) -> None:
+    """Date-only ranges are [start-of-day, start-of-next-day)."""
     acct = make_account(account_name="Range Expense")
     db_session.add(acct)
     db_session.commit()
 
-    _seed_transaction(db_session, acct.id, amount=-100.0,
-                      category_name="Coffee", description="Latte", days_ago=1)
+    selected_day = datetime(2026, 7, 15)
+    _seed_transaction(
+        db_session,
+        acct.id,
+        amount=-10.0,
+        category_name="Coffee",
+        description="Start of selected day",
+        transaction_date=selected_day,
+    )
+    _seed_transaction(
+        db_session,
+        acct.id,
+        amount=-20.0,
+        category_name="Coffee",
+        description="End of selected day",
+        transaction_date=selected_day.replace(
+            hour=23, minute=59, second=59, microsecond=999999
+        ),
+    )
+    _seed_transaction(
+        db_session,
+        acct.id,
+        amount=-30.0,
+        category_name="Coffee",
+        description="Next day midnight",
+        transaction_date=datetime(2026, 7, 16),
+    )
+    _seed_transaction(
+        db_session,
+        acct.id,
+        amount=-40.0,
+        category_name="Coffee",
+        description="Before lower bound",
+        transaction_date=datetime(2026, 7, 14, 23, 59, 59, 999999),
+    )
 
-    now = datetime.utcnow()
-    from_date = f"{now.year:04d}-{now.month:02d}-01"
-    last_day = 28  # safe for all months
-    to_date = f"{now.year:04d}-{now.month:02d}-{last_day:02d}"
-
-    r = client.get(f"/api/dashboard/expense-breakdown?from_date={from_date}&to_date={to_date}")
+    r = client.get(
+        "/api/dashboard/expense-breakdown?from_date=2026-07-15&to_date=2026-07-15"
+    )
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["total_expenses"] > 0
+    assert body["period_start"] == "2026-07-15"
+    assert body["period_end"] == "2026-07-15"
+    assert body["total_expenses"] == 30.0
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "from_date=not-a-date&to_date=2026-07-15",
+        "from_date=2026-07-15&to_date=not-a-date",
+        "from_date=2026-07-16&to_date=2026-07-15",
+        "from_date=2026-07-15T00:00:00&to_date=2026-07-15",
+    ],
+)
+def test_expense_breakdown_rejects_invalid_or_reversed_date_only_ranges(
+    client, query: str
+) -> None:
+    """The breakdown contract accepts ISO calendar dates, never ambiguous instants."""
+    r = client.get(f"/api/dashboard/expense-breakdown?{query}")
+    assert r.status_code == 400
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "to_date=9999-12-31",
+        "from_date=9999-12-31&to_date=9999-12-31",
+        "period=9999-12",
+    ],
+)
+def test_expense_breakdown_rejects_ranges_without_an_exclusive_upper_instant(
+    client, query: str
+) -> None:
+    """The half-open upper bound must remain representable as a datetime."""
+    r = client.get(f"/api/dashboard/expense-breakdown?{query}")
+    assert r.status_code == 400
+    assert r.json()["detail"] == "to_date must allow an exclusive next-day bound"
+
+
+def test_expense_breakdown_from_date_only_uses_current_month_upper_bound(
+    client, db_session, make_account
+) -> None:
+    """A lone lower bound is inclusive through the existing month-end bound."""
+    now = datetime.utcnow()
+    month_start = datetime(now.year, now.month, 1)
+    month_end = datetime(now.year, now.month, calendar.monthrange(now.year, now.month)[1])
+    from_day = month_start + timedelta(days=min(14, month_end.day - 1))
+    acct = make_account(account_name="Open From Expense")
+    db_session.add(acct)
+    db_session.commit()
+
+    _seed_transaction(db_session, acct.id, amount=-10.0, category_name="Coffee",
+                      description="Before lower bound", transaction_date=from_day - timedelta(microseconds=1))
+    _seed_transaction(db_session, acct.id, amount=-20.0, category_name="Coffee",
+                      description="At lower bound", transaction_date=from_day)
+    _seed_transaction(db_session, acct.id, amount=-30.0, category_name="Coffee",
+                      description="Last month day", transaction_date=month_end.replace(hour=23, minute=59, second=59, microsecond=999999))
+    _seed_transaction(db_session, acct.id, amount=-40.0, category_name="Coffee",
+                      description="After default upper bound", transaction_date=month_end + timedelta(days=1))
+
+    r = client.get(f"/api/dashboard/expense-breakdown?from_date={from_day.date().isoformat()}")
+    assert r.status_code == 200, r.text
+    assert r.json()["total_expenses"] == 50.0
+
+
+def test_expense_breakdown_to_date_only_uses_current_month_lower_bound(
+    client, db_session, make_account
+) -> None:
+    """A lone upper bound includes its full day from the existing month start."""
+    now = datetime.utcnow()
+    month_start = datetime(now.year, now.month, 1)
+    to_day = month_start + timedelta(days=min(14, calendar.monthrange(now.year, now.month)[1] - 1))
+    acct = make_account(account_name="Open To Expense")
+    db_session.add(acct)
+    db_session.commit()
+
+    _seed_transaction(db_session, acct.id, amount=-10.0, category_name="Coffee",
+                      description="Month start", transaction_date=month_start)
+    _seed_transaction(db_session, acct.id, amount=-20.0, category_name="Coffee",
+                      description="Late upper day", transaction_date=to_day.replace(hour=23, minute=59, second=59, microsecond=999999))
+    _seed_transaction(db_session, acct.id, amount=-30.0, category_name="Coffee",
+                      description="Next day midnight", transaction_date=to_day + timedelta(days=1))
+    _seed_transaction(db_session, acct.id, amount=-40.0, category_name="Coffee",
+                      description="Before default lower bound", transaction_date=month_start - timedelta(microseconds=1))
+
+    r = client.get(f"/api/dashboard/expense-breakdown?to_date={to_day.date().isoformat()}")
+    assert r.status_code == 200, r.text
+    assert r.json()["total_expenses"] == 30.0
+
+
+def test_expense_breakdown_empty_date_range_uses_existing_default_period(
+    client, db_session, make_account
+) -> None:
+    """No date controls retain the bounded current-calendar-month behavior."""
+    now = datetime.utcnow()
+    month_start = datetime(now.year, now.month, 1)
+    acct = make_account(account_name="Default Range Expense")
+    db_session.add(acct)
+    db_session.commit()
+    _seed_transaction(db_session, acct.id, amount=-10.0, category_name="Coffee",
+                      description="Current month", transaction_date=month_start)
+    _seed_transaction(db_session, acct.id, amount=-20.0, category_name="Coffee",
+                      description="Prior month", transaction_date=month_start - timedelta(microseconds=1))
+
+    r = client.get("/api/dashboard/expense-breakdown")
+    assert r.status_code == 200, r.text
+    assert r.json()["total_expenses"] == 10.0
+
+
+@pytest.mark.parametrize("bound", ["from_date", "to_date"])
+def test_expense_breakdown_rejects_effectively_reversed_open_range(
+    client, bound: str
+) -> None:
+    """One-sided controls are validated after current-month defaults are applied."""
+    now = datetime.utcnow()
+    month_start = datetime(now.year, now.month, 1)
+    month_end = datetime(now.year, now.month, calendar.monthrange(now.year, now.month)[1])
+    value = (month_end + timedelta(days=1) if bound == "from_date" else month_start - timedelta(days=1))
+
+    r = client.get(f"/api/dashboard/expense-breakdown?{bound}={value.date().isoformat()}")
+    assert r.status_code == 400
 
 
 # -----------------------------------------------------------------------

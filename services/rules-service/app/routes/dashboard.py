@@ -35,6 +35,9 @@ categories, and analyst-ratings:
   Gateway (catches ``StateSummaryOut`` schema drift end-to-end).
 """
 
+import calendar
+from datetime import date, datetime, timedelta
+
 import httpx
 from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Query
 from sqlalchemy import case as sa_case, func
@@ -783,32 +786,92 @@ async def get_dashboard_breakdown(
 # Atlas Phase 2 — Income / Expense Breakdown endpoints
 # ---------------------------------------------------------------------------
 
+def _parse_calendar_date(value: str, *, parameter: str) -> date:
+    """Validate the date-only breakdown API contract without accepting instants."""
+
+    if len(value) != 10:
+        raise HTTPException(status_code=400, detail=f"{parameter} must be YYYY-MM-DD")
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=f"{parameter} must be YYYY-MM-DD") from exc
+    if parsed.isoformat() != value:
+        raise HTTPException(status_code=400, detail=f"{parameter} must be YYYY-MM-DD")
+    return parsed
+
+
+def _date_only_period_bounds(
+    period_start: date, period_end: date
+) -> tuple[str, str, datetime, datetime]:
+    """Return display labels and UTC-naive half-open DB bounds for calendar dates.
+
+    Transactions are stored using the service's existing ``datetime.utcnow()``
+    convention.  Comparing bound ``datetime`` values keeps SQLite and
+    PostgreSQL on the same timestamp comparison path while avoiding a fragile
+    ``23:59:59`` upper bound that would lose fractional-second transactions.
+    """
+
+    if period_end < period_start:
+        raise HTTPException(status_code=400, detail="to_date must not precede from_date")
+    if period_end == date.max:
+        raise HTTPException(
+            status_code=400,
+            detail="to_date must allow an exclusive next-day bound",
+        )
+    return (
+        period_start.isoformat(),
+        period_end.isoformat(),
+        datetime.combine(period_start, datetime.min.time()),
+        datetime.combine(period_end + timedelta(days=1), datetime.min.time()),
+    )
+
+
 def _resolve_period(
     from_date: str | None, to_date: str | None, period: str | None
-) -> tuple[str, str]:
-    """Resolve date range from query params. Returns (period_start, period_end)."""
-    if from_date and to_date:
-        return from_date[:10], to_date[:10]
+) -> tuple[str, str, datetime, datetime]:
+    """Resolve ISO calendar-date controls into display labels and [start, end) bounds."""
+
+    # Preserve the established precedence for a fully explicit range: an
+    # optional period selector has no effect when both calendar dates exist.
+    if from_date is not None and to_date is not None:
+        return _date_only_period_bounds(
+            _parse_calendar_date(from_date, parameter="from_date"),
+            _parse_calendar_date(to_date, parameter="to_date"),
+        )
+
+    # A one-sided control is bounded by the same selected/current-month range
+    # used when no explicit dates are supplied.  This maintains the historic
+    # bounded-query behavior while making the supplied date meaningful.
     if period:
         try:
+            if len(period) != 7 or period[4] != "-":
+                raise ValueError
             year, month = int(period[:4]), int(period[5:7])
+            default_start = date(year, month, 1)
         except (ValueError, IndexError):
             raise HTTPException(status_code=400, detail="Period must be YYYY-MM")
-        import calendar
         last_day = calendar.monthrange(year, month)[1]
-        return f"{year:04d}-{month:02d}-01", f"{year:04d}-{month:02d}-{last_day:02d}"
-    from datetime import datetime as dt
-    now = dt.utcnow()
-    import calendar
-    last_day = calendar.monthrange(now.year, now.month)[1]
-    return f"{now.year:04d}-{now.month:02d}-01", f"{now.year:04d}-{now.month:02d}-{last_day:02d}"
+        default_end = date(year, month, last_day)
+    else:
+        now = datetime.utcnow()
+        default_start = date(now.year, now.month, 1)
+        default_end = date(now.year, now.month, calendar.monthrange(now.year, now.month)[1])
+
+    return _date_only_period_bounds(
+        _parse_calendar_date(from_date, parameter="from_date")
+        if from_date is not None
+        else default_start,
+        _parse_calendar_date(to_date, parameter="to_date")
+        if to_date is not None
+        else default_end,
+    )
 
 
 def _build_breakdown(
     db: Session,
     user_id: int,
-    period_start: str,
-    period_end: str,
+    period_start: datetime,
+    period_end_exclusive: datetime,
     is_income: bool,
 ):
     """Shared aggregation for income/expense breakdown.
@@ -820,7 +883,7 @@ def _build_breakdown(
     filters = [
         Account.user_id == user_id,
         Transaction.transaction_date >= period_start,
-        Transaction.transaction_date <= period_end,
+        Transaction.transaction_date < period_end_exclusive,
     ]
     # Expense breakdown excludes investment account types (401k, IRA, HSA,
     # etc.) to match the existing /api/dashboard/breakdown convention.
@@ -919,9 +982,11 @@ async def get_income_breakdown(
 ) -> IncomeBreakdownResponse:
     """Income grouped by budget_group + category with monthly trend."""
     local_user = get_or_create_local_user(db, _current_user)
-    period_start, period_end = _resolve_period(from_date, to_date, period)
+    period_start, period_end, query_start, query_end_exclusive = _resolve_period(
+        from_date, to_date, period
+    )
     total, by_group, by_category, trend = _build_breakdown(
-        db, local_user.id, period_start, period_end, is_income=True
+        db, local_user.id, query_start, query_end_exclusive, is_income=True
     )
     return IncomeBreakdownResponse(
         period_start=period_start,
@@ -943,9 +1008,11 @@ async def get_expense_breakdown(
 ) -> ExpenseBreakdownResponse:
     """Expenses grouped by budget_group + category with monthly trend."""
     local_user = get_or_create_local_user(db, _current_user)
-    period_start, period_end = _resolve_period(from_date, to_date, period)
+    period_start, period_end, query_start, query_end_exclusive = _resolve_period(
+        from_date, to_date, period
+    )
     total, by_group, by_category, trend = _build_breakdown(
-        db, local_user.id, period_start, period_end, is_income=False
+        db, local_user.id, query_start, query_end_exclusive, is_income=False
     )
     return ExpenseBreakdownResponse(
         period_start=period_start,

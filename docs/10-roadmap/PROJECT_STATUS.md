@@ -5,7 +5,7 @@
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Review the resolved Phase 1 forecast-persistence decisions and trusted adapter-only generation boundary in PR #4; production implementation remains unauthorized.
-- Last updated: 2026-07-28T03:15:36Z
+- Last updated: 2026-07-29T04:06:45Z
 
 ## Active work
 - work-p1-forecast-persistence-planning: Plan immutable forecast persistence and versioned read APIs (in_review)
@@ -36,6 +36,7 @@
 - work-p0-atlas-baseline: Atlas baseline from validated Finance Copilot foundation — commit c0f5287, PR None
 - work-p0-environment-isolation: Isolated service Python environments — commit 8baa1c2, PR None
 - work-p0-synthetic-fixtures: Approved synthetic financial fixtures — commit d001e64, PR #1
+- work-dashboard-inclusive-date-upper-bound: Fix inclusive date-only dashboard upper bound — commit e2ebbb2, PR #7
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -44,6 +45,9 @@
 - b987147: Phase 1 immutable forecast persistence planning #4
 - 6e485ea: Resolved Phase 1 canonical-envelope, validation, and retention planning decisions #4
 - a818665: Enforced the trusted adapter-only forecast generation boundary #4
+- 734d35e: Made dashboard date-only ranges inclusive through a half-open next-day bound #7
+- 694ec81: Restored bounded open-ended dashboard date ranges while retaining the half-open upper bound #7
+- e2ebbb2: Rejected dashboard date ranges whose exclusive next-day bound is unrepresentable #7
 - Test test-p0-rules: Rules Service — 579 passed, 10 skipped, 1 xfailed
 - Test test-p0-finlynq: Finlynq — 93 passed
 - Test test-p0-frontend: Frontend — 496 passed
