@@ -90,16 +90,16 @@ def _create_format_guards() -> None:
               OR substr(NEW.id, 25, 12) GLOB '*[^0-9a-f]*'
               OR NEW.input_state_hash GLOB '*[^0-9a-f]*'
               OR NEW.idempotency_key_hash GLOB '*[^0-9a-f]*'
-              OR NEW.snapshot_schema_version != trim(NEW.snapshot_schema_version, ' ' || char(9) || char(10) || char(13))
-              OR NEW.hash_schema_version != trim(NEW.hash_schema_version, ' ' || char(9) || char(10) || char(13))
-              OR NEW.model_version != trim(NEW.model_version, ' ' || char(9) || char(10) || char(13))
-              OR NEW.calculation_version != trim(NEW.calculation_version, ' ' || char(9) || char(10) || char(13))
+              OR NEW.snapshot_schema_version GLOB '*[^!-~]*'
+              OR NEW.hash_schema_version GLOB '*[^!-~]*'
+              OR NEW.model_version GLOB '*[^!-~]*'
+              OR NEW.calculation_version GLOB '*[^!-~]*'
             BEGIN SELECT RAISE(ABORT, 'forecast version values must be canonical'); END""")
     elif bind.dialect.name == "postgresql":
         op.execute("""CREATE FUNCTION enforce_forecast_format() RETURNS trigger AS $$
             BEGIN IF NEW.id !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN RAISE EXCEPTION 'forecast id must be canonical lowercase UUID'; END IF; RETURN NEW; END; $$ LANGUAGE plpgsql""")
         op.execute("""CREATE FUNCTION enforce_forecast_version_format() RETURNS trigger AS $$
-            BEGIN IF NEW.id !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' OR NEW.input_state_hash !~ '^[0-9a-f]{64}$' OR NEW.idempotency_key_hash !~ '^[0-9a-f]{64}$' OR NEW.snapshot_schema_version <> btrim(NEW.snapshot_schema_version, E' \\t\\n\\r') OR NEW.hash_schema_version <> btrim(NEW.hash_schema_version, E' \\t\\n\\r') OR NEW.model_version <> btrim(NEW.model_version, E' \\t\\n\\r') OR NEW.calculation_version <> btrim(NEW.calculation_version, E' \\t\\n\\r') THEN RAISE EXCEPTION 'forecast version values must be canonical'; END IF; RETURN NEW; END; $$ LANGUAGE plpgsql""")
+            BEGIN IF NEW.id !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' OR NEW.input_state_hash !~ '^[0-9a-f]{64}$' OR NEW.idempotency_key_hash !~ '^[0-9a-f]{64}$' OR NEW.snapshot_schema_version !~ '^[!-~]+$' OR NEW.hash_schema_version !~ '^[!-~]+$' OR NEW.model_version !~ '^[!-~]+$' OR NEW.calculation_version !~ '^[!-~]+$' THEN RAISE EXCEPTION 'forecast version values must be canonical'; END IF; RETURN NEW; END; $$ LANGUAGE plpgsql""")
         op.execute("CREATE TRIGGER forecasts_id_format BEFORE INSERT OR UPDATE ON forecasts FOR EACH ROW EXECUTE FUNCTION enforce_forecast_format()")
         op.execute("CREATE TRIGGER forecast_versions_format BEFORE INSERT ON forecast_versions FOR EACH ROW EXECUTE FUNCTION enforce_forecast_version_format()")
 
@@ -190,7 +190,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     bind = op.get_bind()
-    if bind.execute(sa.text("SELECT COUNT(*) FROM forecast_versions")).scalar_one():
+    if bind.execute(sa.text("SELECT COUNT(*) FROM forecast_versions")).scalar_one() or bind.execute(sa.text("SELECT COUNT(*) FROM forecasts")).scalar_one():
         raise RuntimeError("cannot downgrade immutable forecast history while versions exist")
     _drop_immutability_guards()
     _drop_format_guards()

@@ -71,6 +71,22 @@ def test_forecast_version_guards_and_downgrade_refusal(monkeypatch):
             command.downgrade(cfg, PARENT)
 
 
+def test_forecast_downgrade_refuses_versionless_forecast_identity(monkeypatch):
+    with tempfile.TemporaryDirectory() as tmp:
+        url = f"sqlite:///{os.path.join(tmp, 'forecast_identity.db')}"
+        monkeypatch.setattr("app.config.settings.database_url", url)
+        cfg = _config(url)
+        command.upgrade(cfg, "head")
+        engine = create_engine(url)
+        register_sqlite_compat(engine)
+        with engine.begin() as conn:
+            conn.execute(text("INSERT INTO users (id, local_user_sub, email, hashed_password) VALUES (1, 'identity-user', 'identity@example.com', 'x')"))
+            conn.execute(text("INSERT INTO goals (id, user_id, name, target_amount, priority, is_archived) VALUES (1, 1, 'Identity Goal', 1, 0, 0)"))
+            conn.execute(text("INSERT INTO forecasts (id, user_id, goal_id) VALUES ('00000000-0000-4000-8000-000000000010', 1, 1)"))
+        with pytest.raises(RuntimeError, match="immutable forecast history"):
+            command.downgrade(cfg, PARENT)
+
+
 def test_forecast_database_format_guards_reject_direct_invalid_values(monkeypatch):
     with tempfile.TemporaryDirectory() as tmp:
         url = f"sqlite:///{os.path.join(tmp, 'forecast_formats.db')}"
@@ -115,8 +131,11 @@ def test_forecast_database_format_guards_reject_direct_invalid_values(monkeypatc
                 ("hash", "v1 "),
                 ("model", "m" * 129),
                 ("model", " model-v1"),
+                ("model", "\vmodel-v1"),
+                ("model", "\u00a0model-v1"),
                 ("calc", "\t"),
                 ("calc", "calc-v1 "),
+                ("calc", "calc-v1\f"),
             ):
                 values = dict(base); values[key] = value
                 try:

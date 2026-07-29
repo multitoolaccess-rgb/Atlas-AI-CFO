@@ -65,8 +65,8 @@ Unique identity: `(user_id, goal_id, forecast_kind, currency)`.
 Constraints:
 
 - required snapshot-schema, hash-schema, model, and calculation version labels
-  are nonempty, bounded, and reject leading or trailing whitespace rather than
-  normalizing it;
+  are nonempty, bounded printable-ASCII identifiers with no whitespace; the
+  persistence boundary rejects rather than normalizes them;
 - unique `(forecast_id, version_number)`;
 - unique `(forecast_id, input_state_hash, model_version,
   calculation_version)`;
