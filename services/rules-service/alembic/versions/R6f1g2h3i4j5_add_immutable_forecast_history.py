@@ -40,6 +40,32 @@ def _drop_immutability_guards() -> None:
         op.execute("DROP FUNCTION reject_forecast_version_mutation()")
 
 
+def _create_ownership_guards() -> None:
+    bind = op.get_bind()
+    if bind.dialect.name == "sqlite":
+        for event in ("INSERT", "UPDATE"):
+            op.execute(f"""CREATE TRIGGER forecasts_goal_owner_{event.lower()} BEFORE {event} ON forecasts
+                WHEN NEW.user_id != (SELECT user_id FROM goals WHERE id = NEW.goal_id)
+                BEGIN SELECT RAISE(ABORT, 'forecast user must own goal'); END""")
+    elif bind.dialect.name == "postgresql":
+        op.execute("""CREATE FUNCTION enforce_forecast_goal_owner() RETURNS trigger AS $$
+            BEGIN IF NEW.user_id != (SELECT user_id FROM goals WHERE id = NEW.goal_id) THEN
+                RAISE EXCEPTION 'forecast user must own goal'; END IF; RETURN NEW; END; $$ LANGUAGE plpgsql""")
+        op.execute("CREATE TRIGGER forecasts_goal_owner_insert BEFORE INSERT ON forecasts FOR EACH ROW EXECUTE FUNCTION enforce_forecast_goal_owner()")
+        op.execute("CREATE TRIGGER forecasts_goal_owner_update BEFORE UPDATE ON forecasts FOR EACH ROW EXECUTE FUNCTION enforce_forecast_goal_owner()")
+
+
+def _drop_ownership_guards() -> None:
+    bind = op.get_bind()
+    if bind.dialect.name == "sqlite":
+        op.execute("DROP TRIGGER forecasts_goal_owner_insert")
+        op.execute("DROP TRIGGER forecasts_goal_owner_update")
+    elif bind.dialect.name == "postgresql":
+        op.execute("DROP TRIGGER forecasts_goal_owner_insert ON forecasts")
+        op.execute("DROP TRIGGER forecasts_goal_owner_update ON forecasts")
+        op.execute("DROP FUNCTION enforce_forecast_goal_owner()")
+
+
 def upgrade() -> None:
     op.create_table(
         "forecasts",
@@ -60,6 +86,7 @@ def upgrade() -> None:
     )
     op.create_index("ix_forecasts_user_id", "forecasts", ["user_id"])
     op.create_index("ix_forecasts_goal_id", "forecasts", ["goal_id"])
+    _create_ownership_guards()
     op.create_table(
         "forecast_versions",
         sa.Column("id", sa.String(36), primary_key=True),
@@ -106,6 +133,7 @@ def downgrade() -> None:
     if bind.execute(sa.text("SELECT COUNT(*) FROM forecast_versions")).scalar_one():
         raise RuntimeError("cannot downgrade immutable forecast history while versions exist")
     _drop_immutability_guards()
+    _drop_ownership_guards()
     op.drop_index("ix_forecast_versions_forecast_id", table_name="forecast_versions")
     op.drop_table("forecast_versions")
     op.drop_index("ix_forecasts_goal_id", table_name="forecasts")

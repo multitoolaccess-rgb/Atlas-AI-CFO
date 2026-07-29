@@ -56,7 +56,10 @@ def test_forecast_version_guards_and_downgrade_refusal(monkeypatch):
         register_sqlite_compat(engine)
         with engine.begin() as conn:
             conn.execute(text("INSERT INTO users (id, local_user_sub, email, hashed_password) VALUES (1, 'synthetic-user', 'user@example.com', 'x')"))
+            conn.execute(text("INSERT INTO users (id, local_user_sub, email, hashed_password) VALUES (2, 'synthetic-user-2', 'user2@example.com', 'x')"))
             conn.execute(text("INSERT INTO goals (id, user_id, name, target_amount, priority, is_archived) VALUES (1, 1, 'Synthetic Goal', 10, 0, 0)"))
+            with pytest.raises(Exception):
+                conn.execute(text("INSERT INTO forecasts (id, user_id, goal_id) VALUES ('00000000-0000-4000-8000-000000000099', 2, 1)"))
             conn.execute(text("INSERT INTO forecasts (id, user_id, goal_id) VALUES ('00000000-0000-4000-8000-000000000001', 1, 1)"))
             conn.execute(text("""INSERT INTO forecast_versions (id, forecast_id, version_number, input_state_hash, idempotency_key_hash, snapshot_schema_version, hash_schema_version, model_version, calculation_version, calculated_at, data_as_of, max_data_age_days, data_age_days, input_snapshot_json, assumption_snapshot_json, output_snapshot_json, provenance_snapshot_json, ending_balance, target_gap)
                 VALUES ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000001', 1, :h, :k, 'v1', 'v1', 'model-v1', 'calc-v1', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, 0, '{}', '{}', '{}', '{}', '1.23', '0.00')"""), {"h": "a" * 64, "k": "b" * 64})
