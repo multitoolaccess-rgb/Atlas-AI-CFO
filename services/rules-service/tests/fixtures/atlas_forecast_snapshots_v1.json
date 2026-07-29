@@ -1,0 +1,62 @@
+{
+  "schema_version": "atlas-projection-state-fixtures/v1",
+  "synthetic_data_notice": "SYNTHETIC TEST DATA ONLY — no customer, account, statement, or transaction data is represented.",
+  "cases": [
+    {
+      "id": "atlas-test-goal-projection-state",
+      "tags": ["valid", "canonical-json", "input-state-hash", "trusted-adapter"],
+      "envelope": {
+        "schema_version": "atlas-projection-state/v1",
+        "canonicalization": {
+          "canonical_json_version": "atlas-canonical-json/v1",
+          "hash_schema_version": "atlas-input-state-hash/v1",
+          "hash_algorithm": "sha256"
+        },
+        "user_id": "atlas-test-user-alpha",
+        "goal_id": 101,
+        "as_of_timestamp": "2026-07-01T12:00:00Z",
+        "currency": "USD",
+        "current_value_components": [
+          {
+            "kind": "cash",
+            "amount": "1234.56",
+            "source_reference": "atlas-test-aggregate-cash-001",
+            "observed_at": "2026-07-01T12:00:00Z"
+          },
+          {
+            "kind": "investment",
+            "amount": "2345.67",
+            "source_reference": "atlas-test-aggregate-investment-001",
+            "observed_at": "2026-07-01T12:00:00Z"
+          }
+        ],
+        "contribution_inputs": [
+          {
+            "kind": "monthly_investable_cash_flow",
+            "amount": "456.78",
+            "source_reference": "atlas-test-cash-flow-001",
+            "observed_at": "2026-07-01T12:00:00Z"
+          }
+        ],
+        "freshness": {
+          "max_data_age_days": 7,
+          "observed_age_days": 1,
+          "source_updated_at": "2026-06-30T12:00:00Z"
+        },
+        "provenance": [
+          {
+            "source_system": "finlynq",
+            "reference_id": "atlas-test-aggregate-001",
+            "observed_at": "2026-07-01T12:00:00Z",
+            "record_count": 2,
+            "source_state_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "missing_data_codes": [],
+        "reconciliation_state": "reconciled"
+      },
+      "expected_canonical_json": "{\"as_of_timestamp\":\"2026-07-01T12:00:00Z\",\"canonicalization\":{\"canonical_json_version\":\"atlas-canonical-json/v1\",\"hash_algorithm\":\"sha256\",\"hash_schema_version\":\"atlas-input-state-hash/v1\"},\"contribution_inputs\":[{\"amount\":\"456.78\",\"kind\":\"monthly_investable_cash_flow\",\"observed_at\":\"2026-07-01T12:00:00Z\",\"source_reference\":\"atlas-test-cash-flow-001\"}],\"currency\":\"USD\",\"current_value_components\":[{\"amount\":\"1234.56\",\"kind\":\"cash\",\"observed_at\":\"2026-07-01T12:00:00Z\",\"source_reference\":\"atlas-test-aggregate-cash-001\"},{\"amount\":\"2345.67\",\"kind\":\"investment\",\"observed_at\":\"2026-07-01T12:00:00Z\",\"source_reference\":\"atlas-test-aggregate-investment-001\"}],\"freshness\":{\"max_data_age_days\":7,\"observed_age_days\":1,\"source_updated_at\":\"2026-06-30T12:00:00Z\"},\"goal_id\":101,\"missing_data_codes\":[],\"provenance\":[{\"observed_at\":\"2026-07-01T12:00:00Z\",\"record_count\":2,\"reference_id\":\"atlas-test-aggregate-001\",\"source_state_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"source_system\":\"finlynq\"}],\"reconciliation_state\":\"reconciled\",\"schema_version\":\"atlas-projection-state/v1\",\"user_id\":\"atlas-test-user-alpha\"}",
+      "expected_input_state_hash": "f50d09eeaf54ea4f4c0ec4e08ed57d1867728e2311f6e5f5f8427de9979a5727"
+    }
+  ]
+}

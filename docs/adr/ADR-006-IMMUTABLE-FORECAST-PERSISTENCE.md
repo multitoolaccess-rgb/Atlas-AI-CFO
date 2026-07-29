@@ -64,8 +64,9 @@ No Phase 1 persistence or API field accepts or emits binary floating-point
 money.
 
 - Python uses `Decimal`.
-- JSON snapshots and API responses encode money as canonical fixed-scale
-  decimal strings.
+- The canonical input/hash envelope encodes component and contribution money as
+  bounded, exact, unrounded canonical Decimal strings. Its v1 scale limit is
+  defined below; it is not a fixed-scale display contract.
 - Queryable monetary columns use `NUMERIC(38, 2)` through SQLAlchemy
   `Numeric(..., asdecimal=True)` and are checked by cross-dialect round-trip
   tests.
@@ -75,8 +76,9 @@ money.
 - Persisted outputs are quantized to cents with `ROUND_HALF_EVEN`.
 
 The legacy goal `Float` is not silently rewritten in this phase. Its value is
-converted with `Decimal(str(value))`, validated, quantized, and recorded in
-the immutable input snapshot with `source_representation: "float"`,
+converted with `Decimal(str(value))`, validated, and recorded without a claim
+of restored precision in the immutable input snapshot with
+`source_representation: "float"`,
 `conversion: "Decimal(str(value))"`, and `precision_restored: false`.
 Conversion cannot restore precision that the legacy Float already lost, and
 Phase 1 must not present a Float-derived amount as exact. Contract fixtures
@@ -181,6 +183,28 @@ It excludes raw statements, raw transactions, uploaded files, credentials,
 unbounded free-form source payloads, and unnecessary personal information. A
 source-state hash covers the bounded provenance and normalized components;
 Rules Service stores that hash and references, not the source records.
+Contract-boundary validation surfaces only sanitized field locations and stable
+error categories. Raw Pydantic validation errors are internal and must never
+cross the boundary. Caller-facing locations contain only bounded schema-owned
+field names and safe indices; unknown client fields use the fixed
+`<extra-field>` token without echoing their key text.
+
+For `atlas-projection-state/v1`, component and contribution money strings are
+bounded, exact, unrounded canonical Decimal strings with at most 38 digits
+excluding sign and decimal point, at most 18 fractional digits, and at most 40
+encoded characters (sign and decimal point included). These are input/hash
+bounds, not persisted fixed-scale or display rounding: no value is rounded or
+truncated to fit. Queryable monetary columns and output/display values use a
+fixed scale only where their later contract explicitly requires it. Fractional
+assumptions are not accepted in this v1 envelope; their distinct unrounded
+representation remains part of the later approved assumption-snapshot slice.
+
+All v1 envelope collections are order-insensitive and canonicalized before
+hashing. Current-value and contribution entries sort by `(kind,
+source_reference, observed_at)`; provenance entries sort by `(source_system,
+reference_id, observed_at)`; missing-data codes sort lexically. Duplicate
+identity keys are rejected rather than resolved arbitrarily. No v1 envelope
+collection has financial meaning in its input order.
 
 ### Transitional ownership and authorization
 
