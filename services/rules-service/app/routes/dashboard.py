@@ -35,6 +35,7 @@ categories, and analyst-ratings:
   Gateway (catches ``StateSummaryOut`` schema drift end-to-end).
 """
 
+import calendar
 from datetime import date, datetime, timedelta
 
 import httpx
@@ -825,32 +826,39 @@ def _resolve_period(
 ) -> tuple[str, str, datetime, datetime]:
     """Resolve ISO calendar-date controls into display labels and [start, end) bounds."""
 
-    if from_date is not None or to_date is not None:
-        if not from_date or not to_date:
-            raise HTTPException(
-                status_code=400,
-                detail="from_date and to_date must be provided together",
-            )
+    # Preserve the established precedence for a fully explicit range: an
+    # optional period selector has no effect when both calendar dates exist.
+    if from_date is not None and to_date is not None:
         return _date_only_period_bounds(
             _parse_calendar_date(from_date, parameter="from_date"),
             _parse_calendar_date(to_date, parameter="to_date"),
         )
+
+    # A one-sided control is bounded by the same selected/current-month range
+    # used when no explicit dates are supplied.  This maintains the historic
+    # bounded-query behavior while making the supplied date meaningful.
     if period:
         try:
             if len(period) != 7 or period[4] != "-":
                 raise ValueError
             year, month = int(period[:4]), int(period[5:7])
-            period_start = date(year, month, 1)
+            default_start = date(year, month, 1)
         except (ValueError, IndexError):
             raise HTTPException(status_code=400, detail="Period must be YYYY-MM")
-        import calendar
         last_day = calendar.monthrange(year, month)[1]
-        return _date_only_period_bounds(period_start, date(year, month, last_day))
-    now = datetime.utcnow()
-    import calendar
-    last_day = calendar.monthrange(now.year, now.month)[1]
+        default_end = date(year, month, last_day)
+    else:
+        now = datetime.utcnow()
+        default_start = date(now.year, now.month, 1)
+        default_end = date(now.year, now.month, calendar.monthrange(now.year, now.month)[1])
+
     return _date_only_period_bounds(
-        date(now.year, now.month, 1), date(now.year, now.month, last_day)
+        _parse_calendar_date(from_date, parameter="from_date")
+        if from_date is not None
+        else default_start,
+        _parse_calendar_date(to_date, parameter="to_date")
+        if to_date is not None
+        else default_end,
     )
 
 
