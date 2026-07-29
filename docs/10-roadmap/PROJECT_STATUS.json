@@ -26,7 +26,7 @@
     },
     {
       "branch": "codex/fix-inclusive-date-upper-bound",
-      "commit": "734d35e",
+      "commit": "694ec81",
       "id": "work-dashboard-inclusive-date-upper-bound",
       "issue": "",
       "objective": "Remediate the pre-existing date-only upper-bound exclusion in dashboard financial reporting without changing Phase 1 forecast persistence scope.",
@@ -39,9 +39,9 @@
       "risk_tier": "high",
       "status": "in_review",
       "tests": [
-        "Focused inclusive date-boundary regressions: 11 passed",
-        "Dashboard endpoint suite: 32 passed",
-        "Rules Service suite: 587 passed, 10 skipped, 1 xfailed",
+        "Focused inclusive and open-range date-boundary regressions: 7 passed",
+        "Dashboard endpoint suite: 34 passed",
+        "Rules Service suite: 589 passed, 10 skipped, 1 xfailed",
         "Finlynq suite: 93 passed",
         "Cross-service startup unit contracts: 19 passed",
         "Tracker status tests: 9 passed; status and deterministic render checks passed",
@@ -83,6 +83,11 @@
     {
       "commit": "734d35e",
       "description": "Made dashboard date-only ranges inclusive through a half-open next-day bound",
+      "pr": "#7"
+    },
+    {
+      "commit": "694ec81",
+      "description": "Restored bounded open-ended dashboard date ranges while retaining the half-open upper bound",
       "pr": "#7"
     }
   ],
@@ -127,7 +132,7 @@
   ],
   "current_objective": "Review the resolved Phase 1 forecast-persistence decisions and trusted adapter-only generation boundary in PR #4; production implementation remains unauthorized.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-29T03:40:46Z",
+  "last_updated": "2026-07-29T03:50:15Z",
   "next_bounded_task": {
     "description": "Review the revised ADR-006 and plan in PR #4, then explicitly authorize only the canonical-envelope and contract-test implementation slice, including strict request-boundary tests; do not begin schema, migration, route, or UI work.",
     "id": "next-p1-plan-review",

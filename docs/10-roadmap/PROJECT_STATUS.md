@@ -5,7 +5,7 @@
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Review the resolved Phase 1 forecast-persistence decisions and trusted adapter-only generation boundary in PR #4; production implementation remains unauthorized.
-- Last updated: 2026-07-29T03:40:46Z
+- Last updated: 2026-07-29T03:50:15Z
 
 ## Active work
 - work-p1-forecast-persistence-planning: Plan immutable forecast persistence and versioned read APIs (in_review)
@@ -46,6 +46,7 @@
 - 6e485ea: Resolved Phase 1 canonical-envelope, validation, and retention planning decisions #4
 - a818665: Enforced the trusted adapter-only forecast generation boundary #4
 - 734d35e: Made dashboard date-only ranges inclusive through a half-open next-day bound #7
+- 694ec81: Restored bounded open-ended dashboard date ranges while retaining the half-open upper bound #7
 - Test test-p0-rules: Rules Service — 579 passed, 10 skipped, 1 xfailed
 - Test test-p0-finlynq: Finlynq — 93 passed
 - Test test-p0-frontend: Frontend — 496 passed
