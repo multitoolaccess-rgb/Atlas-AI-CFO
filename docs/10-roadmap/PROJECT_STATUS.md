@@ -5,13 +5,13 @@
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 1 forecast models, migration, and repository transactions are complete; the trusted generation application service is the next bounded slice.
-- Last updated: 2026-07-29T16:45:54Z
+- Last updated: 2026-07-29T16:52:22Z
 
 ## Active work
-- work-p1-forecast-generation-service: Implement trusted forecast generation application service (in_progress, high)
+- work-p1-forecast-generation-service: Implement trusted forecast generation application service (blocked, high)
 
 ## Blockers
-- None
+- Slice B forecast generation is blocked until B0 delivers an approved Finlynq-owned, privacy-minimized atlas-projection-state/v1 provider; generic Finlynq state endpoints are prohibited for forecast generation.
 
 ## Phase progress
 - phase-0 — Projection foundation and Atlas baseline: complete (4/4 exit criteria)

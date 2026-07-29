@@ -11,15 +11,18 @@
         "docs/10-roadmap"
       ],
       "phase_id": "phase-1",
+      "reason": "Awaiting the approved B0 Finlynq-owned canonical projection-state provider; generic state endpoints are prohibited for forecast generation.",
       "risk_tier": "high",
-      "status": "in_progress",
+      "status": "blocked",
       "tests": [
         "Trusted adapter, Phase 0 projection, repository generation, idempotency, scope, and safe-error contract tests"
       ],
       "title": "Implement trusted forecast generation application service"
     }
   ],
-  "blockers": [],
+  "blockers": [
+    "Slice B forecast generation is blocked until B0 delivers an approved Finlynq-owned, privacy-minimized atlas-projection-state/v1 provider; generic Finlynq state endpoints are prohibited for forecast generation."
+  ],
   "commit_pr_evidence": [
     {
       "commit": "c0f5287",
@@ -269,7 +272,7 @@
   ],
   "current_objective": "Phase 1 forecast models, migration, and repository transactions are complete; the trusted generation application service is the next bounded slice.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-29T16:45:54Z",
+  "last_updated": "2026-07-29T16:52:22Z",
   "next_bounded_task": {
     "description": "Implement the trusted forecast generation application service after the repository slice merges; do not add HTTP routes.",
     "id": "next-p1-forecast-generation-service",
