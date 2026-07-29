@@ -1,5 +1,27 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "codex/phase-1-finlynq-projection-provider",
+      "id": "work-p1-finlynq-projection-provider",
+      "issue": "#3",
+      "objective": "Implement only the Finlynq-owned privacy-minimized atlas-projection-state/v1 provider and sanctioned Rules Service adapter boundary; no generation service or routes.",
+      "paths": [
+        "services/finlynq/app/projection_state",
+        "services/finlynq/tests/test_projection_state_provider.py",
+        "services/rules-service/app/forecast_provider",
+        "services/rules-service/tests/test_finlynq_projection_provider.py",
+        "docs/adr",
+        "docs/superpowers/plans"
+      ],
+      "phase_id": "phase-1",
+      "risk_tier": "high",
+      "status": "in_progress",
+      "tests": [
+        "Provider privacy, authorization, canonical-envelope, freshness, deterministic-hash, and no-fallback contract tests"
+      ],
+      "title": "Implement Finlynq canonical projection-state provider"
+    }
+  ],
   "blockers": [],
   "commit_pr_evidence": [
     {
@@ -248,12 +270,12 @@
       "title": "Implement immutable forecast repository transactions"
     }
   ],
-  "current_objective": "Phase 1 forecast models, migration, and repository transactions are complete; the trusted generation application service is the next bounded slice.",
+  "current_objective": "Phase 1 repository transactions are complete; B0 must establish the approved Finlynq-owned canonical projection-state provider before generation service work resumes.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-29T16:38:24Z",
+  "last_updated": "2026-07-29T16:53:35Z",
   "next_bounded_task": {
-    "description": "Implement the trusted forecast generation application service after the repository slice merges; do not add HTTP routes.",
-    "id": "next-p1-forecast-generation-service",
+    "description": "Implement the Finlynq-owned canonical projection-state provider, then resume the blocked trusted generation application service; do not add HTTP routes.",
+    "id": "next-p1-finlynq-projection-provider",
     "phase_id": "phase-1"
   },
   "overall_status": "in_progress",

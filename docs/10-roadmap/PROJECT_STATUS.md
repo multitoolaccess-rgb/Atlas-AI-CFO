@@ -4,11 +4,11 @@
 
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Phase 1 forecast models, migration, and repository transactions are complete; the trusted generation application service is the next bounded slice.
-- Last updated: 2026-07-29T16:38:24Z
+- Current objective: Phase 1 repository transactions are complete; B0 must establish the approved Finlynq-owned canonical projection-state provider before generation service work resumes.
+- Last updated: 2026-07-29T16:53:35Z
 
 ## Active work
-- None
+- work-p1-finlynq-projection-provider: Implement Finlynq canonical projection-state provider (in_progress, high)
 
 ## Blockers
 - None
@@ -61,6 +61,6 @@
 - Test test-p1-planning-status: Phase 1 planning governance — 5 passed; status, deterministic render, and trusted generation-boundary documentation checks passed
 
 ## Next bounded task
-- next-p1-forecast-generation-service: Implement the trusted forecast generation application service after the repository slice merges; do not add HTTP routes.
+- next-p1-finlynq-projection-provider: Implement the Finlynq-owned canonical projection-state provider, then resume the blocked trusted generation application service; do not add HTTP routes.
 
 Do not begin the next phase or task automatically.
