@@ -268,7 +268,7 @@
       ],
       "phase_id": "phase-1",
       "pr": "#10",
-      "review_evidence": "Independent review at 4ebf757e2ea266e5ba55f6dc86c18869087fd1e4: APPROVE; no findings.",
+      "review_evidence": "Independent review at 4ebf757e2ea266e5ba55f6dc86c18869087fd1e4: APPROVE; no findings. Durable review record: https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/pull/10#issuecomment-5121611381",
       "risk_tier": "high",
       "status": "complete",
       "tests": [
