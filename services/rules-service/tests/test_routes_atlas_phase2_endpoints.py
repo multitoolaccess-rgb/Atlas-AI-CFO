@@ -362,6 +362,23 @@ def test_expense_breakdown_rejects_invalid_or_reversed_date_only_ranges(
     assert r.status_code == 400
 
 
+@pytest.mark.parametrize(
+    "query",
+    [
+        "to_date=9999-12-31",
+        "from_date=9999-12-31&to_date=9999-12-31",
+        "period=9999-12",
+    ],
+)
+def test_expense_breakdown_rejects_ranges_without_an_exclusive_upper_instant(
+    client, query: str
+) -> None:
+    """The half-open upper bound must remain representable as a datetime."""
+    r = client.get(f"/api/dashboard/expense-breakdown?{query}")
+    assert r.status_code == 400
+    assert r.json()["detail"] == "to_date must allow an exclusive next-day bound"
+
+
 def test_expense_breakdown_from_date_only_uses_current_month_upper_bound(
     client, db_session, make_account
 ) -> None:

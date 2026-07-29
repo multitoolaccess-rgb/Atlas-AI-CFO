@@ -813,6 +813,11 @@ def _date_only_period_bounds(
 
     if period_end < period_start:
         raise HTTPException(status_code=400, detail="to_date must not precede from_date")
+    if period_end == date.max:
+        raise HTTPException(
+            status_code=400,
+            detail="to_date must allow an exclusive next-day bound",
+        )
     return (
         period_start.isoformat(),
         period_end.isoformat(),
