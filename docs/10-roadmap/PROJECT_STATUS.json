@@ -14,8 +14,9 @@
         "docs/10-roadmap"
       ],
       "phase_id": "phase-1",
+      "pr": "#8",
       "risk_tier": "high",
-      "status": "in_progress",
+      "status": "in_review",
       "tests": [
         "Forecast model and migration suite: 3 passed",
         "Canonical contract, hashing, and Phase 0 projection suite: 76 passed",
@@ -208,7 +209,7 @@
   ],
   "current_objective": "Await explicit authorization for the next bounded Phase 1 persistence slice; migrations, routes, and later Phase 1 work remain unauthorized.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-29T04:40:34Z",
+  "last_updated": "2026-07-29T04:54:46Z",
   "next_bounded_task": {
     "description": "Authorize and plan the next bounded Phase 1 persistence slice after reviewing merged canonical-contract evidence; do not begin implementation automatically.",
     "id": "next-p1-persistence-slice-authorization",

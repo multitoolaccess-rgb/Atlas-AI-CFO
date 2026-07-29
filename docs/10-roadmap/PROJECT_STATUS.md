@@ -5,10 +5,10 @@
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Await explicit authorization for the next bounded Phase 1 persistence slice; migrations, routes, and later Phase 1 work remain unauthorized.
-- Last updated: 2026-07-29T04:40:34Z
+- Last updated: 2026-07-29T04:54:46Z
 
 ## Active work
-- work-p1-forecast-persistence-models: Implement immutable forecast persistence models and migration (in_progress, high)
+- work-p1-forecast-persistence-models: Implement immutable forecast persistence models and migration (in_review, high)
 
 ## Blockers
 - None
