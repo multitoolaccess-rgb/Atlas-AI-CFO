@@ -4,14 +4,14 @@
 
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Phase 1 forecast models, migration, and repository transactions are complete; the trusted generation application service is the next bounded slice.
-- Last updated: 2026-07-29T16:52:22Z
+- Current objective: Phase 1 forecast models, migration, repository transactions, and the Finlynq-owned canonical projection-state provider are complete; the trusted generation application service is the active bounded slice.
+- Last updated: 2026-07-29T17:33:28Z
 
 ## Active work
-- work-p1-forecast-generation-service: Implement trusted forecast generation application service (blocked, high)
+- work-p1-forecast-generation-service: Implement trusted forecast generation application service (in_progress, high)
 
 ## Blockers
-- Slice B forecast generation is blocked until B0 delivers an approved Finlynq-owned, privacy-minimized atlas-projection-state/v1 provider; generic Finlynq state endpoints are prohibited for forecast generation.
+- None
 
 ## Phase progress
 - phase-0 — Projection foundation and Atlas baseline: complete (4/4 exit criteria)
@@ -31,13 +31,14 @@
 - risk-p1-dialect-parity [high/medium, open]: SQLite and PostgreSQL differ in exact numeric storage and concurrency semantics for immutable forecast versions.
 - risk-p1-retention-rollout-gate [high/medium, open]: No approved retention or user-deletion policy exists for immutable forecast history.
 - risk-p1-trusted-generation-boundary [high/medium, open]: An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.
+- risk-p1-account-currency-authority [high/high, open]: Finlynq active account balances have no authoritative currency attribute; a user preference/default cannot prove balances are USD for atlas-projection-state/v1.
 
 ## Recently completed work
-- work-p1-forecast-persistence-planning: Plan immutable forecast persistence and versioned read APIs — commit a818665, PR #4
 - work-dashboard-inclusive-date-upper-bound: Fix inclusive date-only dashboard upper bound — commit e2ebbb2, PR #7
 - work-p1-canonical-state-contract: Implement canonical projection-state contract test slice — commit f91de80, PR #6
 - work-p1-forecast-persistence-models: Implement immutable forecast persistence models and migration — commit 59b3baa, PR #8
 - work-p1-forecast-repository: Implement immutable forecast repository transactions — commit a85aed6, PR #9
+- work-p1-finlynq-projection-provider: Implement Finlynq canonical projection-state provider — commit 4ebf757e2ea266e5ba55f6dc86c18869087fd1e4, PR #10
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -61,6 +62,6 @@
 - Test test-p1-planning-status: Phase 1 planning governance — 5 passed; status, deterministic render, and trusted generation-boundary documentation checks passed
 
 ## Next bounded task
-- next-p1-forecast-generation-service: Implement the trusted forecast generation application service after the repository slice merges; do not add HTTP routes.
+- next-p1-forecast-generation-service: After B0 merges, resume the paused trusted forecast generation application-service slice using only the Finlynq canonical projection-state provider; do not add HTTP routes.
 
 Do not begin the next phase or task automatically.

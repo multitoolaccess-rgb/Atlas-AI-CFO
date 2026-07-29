@@ -34,6 +34,12 @@ class Account(Base):
     account_subtype = Column(String, nullable=True)
     current_balance = Column(Float, default=0.0)
     is_active = Column(Boolean, default=True)
+    # Phase 1 B0 — source-backed currency provenance.  These fields have no
+    # defaults: legacy rows remain unknown until supported evidence is stored.
+    currency_code = Column(String(3), nullable=True)
+    currency_source = Column(String(32), nullable=True)
+    currency_observed_at = Column(DateTime(timezone=True), nullable=True)
+    currency_source_reference = Column(String(128), nullable=True)
     # Phase 40 — provenance. The ``server_default='manual'`` in the
     # alembic migration covers ALTER-time back-fill; the
     # model-level ``default='manual'`` covers ad-hoc ORM-row

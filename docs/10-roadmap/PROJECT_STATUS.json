@@ -11,18 +11,15 @@
         "docs/10-roadmap"
       ],
       "phase_id": "phase-1",
-      "reason": "Awaiting the approved B0 Finlynq-owned canonical projection-state provider; generic state endpoints are prohibited for forecast generation.",
       "risk_tier": "high",
-      "status": "blocked",
+      "status": "in_progress",
       "tests": [
         "Trusted adapter, Phase 0 projection, repository generation, idempotency, scope, and safe-error contract tests"
       ],
       "title": "Implement trusted forecast generation application service"
     }
   ],
-  "blockers": [
-    "Slice B forecast generation is blocked until B0 delivers an approved Finlynq-owned, privacy-minimized atlas-projection-state/v1 provider; generic Finlynq state endpoints are prohibited for forecast generation."
-  ],
+  "blockers": [],
   "commit_pr_evidence": [
     {
       "commit": "c0f5287",
@@ -268,13 +265,42 @@
         "Repository contract 34 passed; persistence/canonical/Phase 0 112 passed; Rules Service 691 passed, 10 skipped, 1 xfailed; Finlynq 93 passed; cross-service 4 passed"
       ],
       "title": "Implement immutable forecast repository transactions"
+    },
+    {
+      "branch": "codex/phase-1-finlynq-projection-provider",
+      "ci_evidence": {
+        "check": "cheap (lint + unit, no browser): SUCCESS",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/30475307248"
+      },
+      "commit": "4ebf757e2ea266e5ba55f6dc86c18869087fd1e4",
+      "id": "work-p1-finlynq-projection-provider",
+      "issue": "#3",
+      "objective": "Implement only the Finlynq-owned privacy-minimized atlas-projection-state/v1 provider and sanctioned Rules Service adapter boundary; no generation service or routes.",
+      "paths": [
+        "services/finlynq/app/projection_state",
+        "services/finlynq/tests/test_projection_state_provider.py",
+        "services/rules-service/app/forecast_provider",
+        "services/rules-service/tests/test_finlynq_projection_provider.py",
+        "docs/adr",
+        "docs/superpowers/plans"
+      ],
+      "phase_id": "phase-1",
+      "pr": "#10",
+      "review_evidence": "Independent review at 4ebf757e2ea266e5ba55f6dc86c18869087fd1e4: APPROVE; no findings. Durable review record: https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/pull/10#issuecomment-5121611381",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Finlynq suite: 106 passed; Rules Service suite: 696 passed, 10 skipped, 1 xfailed; cross-service: 2 passed; tracker tests: 9 passed; focused provider: 13 passed; focused migration/provider/parity: 9 passed."
+      ],
+      "title": "Implement Finlynq canonical projection-state provider"
     }
   ],
-  "current_objective": "Phase 1 forecast models, migration, and repository transactions are complete; the trusted generation application service is the next bounded slice.",
+  "current_objective": "Phase 1 forecast models, migration, repository transactions, and the Finlynq-owned canonical projection-state provider are complete; the trusted generation application service is the active bounded slice.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-29T16:52:22Z",
+  "last_updated": "2026-07-29T17:33:28Z",
   "next_bounded_task": {
-    "description": "Implement the trusted forecast generation application service after the repository slice merges; do not add HTTP routes.",
+    "description": "After B0 merges, resume the paused trusted forecast generation application-service slice using only the Finlynq canonical projection-state provider; do not add HTTP routes.",
     "id": "next-p1-forecast-generation-service",
     "phase_id": "phase-1"
   },
@@ -474,6 +500,16 @@
       "mitigation": "Accept no client financial-state fields, authorize the goal before one trusted adapter invocation, reject unknown fields, and require spoofing and adapter-order tests.",
       "owner": "rules-service-security",
       "related": "ADR-006, issue #3, PR #4, PR #6 (trusted-boundary contract slice)",
+      "severity": "high",
+      "status": "open"
+    },
+    {
+      "description": "Finlynq active account balances have no authoritative currency attribute; a user preference/default cannot prove balances are USD for atlas-projection-state/v1.",
+      "id": "risk-p1-account-currency-authority",
+      "likelihood": "high",
+      "mitigation": "Add and independently review an authoritative account-currency source and migration/ingestion policy before enabling the B0 provider.",
+      "owner": "Finlynq domain owner",
+      "related": "B0 provider prerequisite; ADR-006 currency rule",
       "severity": "high",
       "status": "open"
     }
