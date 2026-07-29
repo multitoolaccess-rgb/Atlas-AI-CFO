@@ -2,7 +2,7 @@
   "active_work": [
     {
       "branch": "codex/phase-1-forecast-persistence-models",
-      "commit": "40517d2",
+      "commit": "57b8cb5",
       "id": "work-p1-forecast-persistence-models",
       "issue": "#3",
       "objective": "Implement only ADR-006 immutable forecast identity/version models and additive migration, with constraint, immutability, rollback, and dialect-focused tests.",
@@ -18,11 +18,11 @@
       "risk_tier": "high",
       "status": "in_review",
       "tests": [
-        "Forecast model and migration suite: 4 passed",
+        "Forecast model and migration suite: 12 passed",
         "Canonical contract, hashing, and Phase 0 projection suite: 73 passed",
-        "Rules Service suite: 656 passed, 10 skipped, 1 xfailed",
+        "Rules Service suite: 657 passed, 10 skipped, 1 xfailed",
         "Finlynq suite: 93 passed; relevant cross-service suites: 18 passed",
-        "SQLite upgrade/downgrade/re-upgrade, existing-data preservation, direct-SQL UUID/hash/version-label guards, immutable update/delete guards, and downgrade refusal covered; PostgreSQL trigger branch reviewed"
+        "SQLite upgrade/downgrade/re-upgrade, existing-data preservation, direct-SQL UUID/hash/version-label guards, immutable update/delete guards, and downgrade refusal for persisted identities or versions covered; PostgreSQL trigger branch reviewed"
       ],
       "title": "Implement immutable forecast persistence models and migration"
     }
@@ -65,6 +65,11 @@
     {
       "commit": "40517d2",
       "description": "Hardened forecast persistence UUID, SHA-256, and required-version database constraints",
+      "pr": "#8"
+    },
+    {
+      "commit": "57b8cb5",
+      "description": "Prevented rollback from deleting persisted forecast identities and restricted version labels to printable ASCII",
       "pr": "#8"
     },
     {
