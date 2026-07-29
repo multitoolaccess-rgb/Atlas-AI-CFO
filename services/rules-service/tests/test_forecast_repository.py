@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
+import time
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -19,6 +21,7 @@ from app.forecasts.repository import (
     IdempotencyConflict,
     StaleForecastVersion,
 )
+from app.forecasts.snapshots import build_forecast_snapshots
 from app.models import Goal, User
 
 
@@ -142,6 +145,58 @@ def test_repository_conflict_recovery_rejects_changed_state_for_same_key(
     assert not session.in_transaction()
 
 
+def test_repository_recovers_real_sqlite_lock_race_with_committed_winner(tmp_path) -> None:
+    """Independent SQLite sessions converge after a short writer lock releases."""
+
+    engine = create_engine(
+        f"sqlite:///{tmp_path / 'forecast-race.db'}",
+        connect_args={"check_same_thread": False, "timeout": 0.05},
+    )
+    Base.metadata.create_all(engine)
+    state = _state()
+    snapshots = build_forecast_snapshots(
+        state=state,
+        assumption_snapshot={"assumption_profile": "atlas-test-default"},
+        output_snapshot={"target_status": True},
+    )
+    with Session(engine) as seed:
+        seed.add(User(id=1, local_user_sub="atlas-test-user", email="atlas@example.com", hashed_password="x"))
+        seed.add(Goal(id=1, user_id=1, name="Atlas Test Goal", target_amount=1000.0, priority=0, is_archived=False))
+        seed.commit()
+
+    writer = Session(engine)
+    writer_repo = ForecastRepository(writer)
+    writer_repo._persist_once(
+        user_id=1,
+        goal_id=1,
+        key_hash=hashlib.sha256(b"atlas-test-key").hexdigest(),
+        snapshots=snapshots,
+        state=state,
+        model_version="atlas-model-v1",
+        calculation_version="phase0-projection-v1",
+        calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
+        ending_balance=Decimal("1234.56"),
+        target_gap=Decimal("-1.00"),
+        expected_latest_version=None,
+    )
+    result: list[object] = []
+
+    def contend() -> None:
+        with Session(engine) as contender_session:
+            result.append(_persist(ForecastRepository(contender_session)))
+
+    contender = threading.Thread(target=contend)
+    contender.start()
+    time.sleep(0.15)
+    writer.commit()
+    contender.join(timeout=3)
+    writer.close()
+
+    assert not contender.is_alive()
+    assert len(result) == 1
+    assert result[0].created is False
+
+
 @pytest.mark.parametrize(
     "field",
     [
@@ -159,11 +214,37 @@ def test_repository_conflict_recovery_rejects_changed_state_for_same_key(
 )
 def test_repository_rejects_raw_or_secret_snapshot_payloads(session: Session, field: str) -> None:
     repository = ForecastRepository(session)
-    with pytest.raises(ValueError, match="raw source payloads"):
+    with pytest.raises(ValueError, match="bounded projection contract"):
         repository.persist(
             user_id=1, goal_id=1, state=_state(), idempotency_key="atlas-test-key",
             model_version="atlas-model-v1", calculation_version="phase0-projection-v1",
             calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
             assumption_snapshot={field: "SYNTHETIC-SECRET"}, output_snapshot={},
             ending_balance=Decimal("1.00"), target_gap=Decimal("0.00"),
+        )
+
+
+@pytest.mark.parametrize(
+    "snapshot",
+    [
+        {"assumption_profile": "atlas-test-default", "note": "SYNTHETIC-RAW-STATEMENT"},
+        {"assumption_profile": "atlas-test-default", "metadata": {"value": "SYNTHETIC-TOKEN"}},
+    ],
+)
+def test_repository_rejects_unknown_snapshot_fields_even_when_keys_look_benign(
+    session: Session, snapshot: dict[str, object]
+) -> None:
+    with pytest.raises(ValueError, match="bounded projection contract"):
+        ForecastRepository(session).persist(
+            user_id=1,
+            goal_id=1,
+            state=_state(),
+            idempotency_key="atlas-test-key",
+            model_version="atlas-model-v1",
+            calculation_version="phase0-projection-v1",
+            calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
+            assumption_snapshot=snapshot,
+            output_snapshot={},
+            ending_balance=Decimal("1.00"),
+            target_gap=Decimal("0.00"),
         )

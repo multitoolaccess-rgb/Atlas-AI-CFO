@@ -7,6 +7,7 @@ later Phase 1 slices. It never logs or stores a raw idempotency key.
 from __future__ import annotations
 
 import hashlib
+import time
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -125,6 +126,43 @@ class ForecastRepository:
             return PersistedForecastVersion(
                 forecast, existing_state, False, snapshots.input_snapshot_json
             )
+        return None
+
+    def _recover_database_winner(
+        self,
+        *,
+        user_id: int,
+        goal_id: int,
+        key_hash: str,
+        snapshots: ForecastSnapshots,
+        model_version: str,
+        calculation_version: str,
+        retry_sqlite: bool,
+    ) -> PersistedForecastVersion | None:
+        """Boundedly re-read a committed winner after a uniqueness or lock race."""
+
+        attempts = 20 if retry_sqlite else 1
+        deadline = time.monotonic() + 1.0
+        for attempt in range(attempts):
+            try:
+                recovered = self._existing_result(
+                    user_id=user_id,
+                    goal_id=goal_id,
+                    key_hash=key_hash,
+                    snapshots=snapshots,
+                    model_version=model_version,
+                    calculation_version=calculation_version,
+                )
+            except OperationalError:
+                self._session.rollback()
+                recovered = None
+            if recovered is not None:
+                self._session.commit()
+                return recovered
+            self._session.rollback()
+            if not retry_sqlite or attempt + 1 == attempts or time.monotonic() >= deadline:
+                return None
+            time.sleep(0.05)
         return None
 
     def _persist_once(
@@ -264,16 +302,19 @@ class ForecastRepository:
             # final concurrency backstop.
             self._session.rollback()
             try:
-                recovered = self._existing_result(
+                recovered = self._recover_database_winner(
                     user_id=user_id,
                     goal_id=goal_id,
                     key_hash=key_hash,
                     snapshots=snapshots,
                     model_version=model_version,
                     calculation_version=calculation_version,
+                    retry_sqlite=(
+                        self._session.bind is not None
+                        and self._session.bind.dialect.name == "sqlite"
+                    ),
                 )
                 if recovered is not None:
-                    self._session.commit()
                     return recovered
             except IdempotencyConflict:
                 self._session.rollback()
