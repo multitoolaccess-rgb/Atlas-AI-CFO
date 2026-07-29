@@ -47,6 +47,7 @@
 - 6e485ea: Resolved Phase 1 canonical-envelope, validation, and retention planning decisions #4
 - a818665: Enforced the trusted adapter-only forecast generation boundary #4
 - d85255f: Added immutable forecast persistence models and additive migration from Q5h1i2j3k4l5
+- 40517d2: Hardened forecast persistence UUID, SHA-256, and required-version database constraints #8
 - a44e15d: Hardened canonical Decimal bounds and sanitized contract validation errors #6
 - f91de80: Detached raw validation exception state and bounded caller-facing contract-error locations #6
 - 734d35e: Made dashboard date-only ranges inclusive through a half-open next-day bound #7

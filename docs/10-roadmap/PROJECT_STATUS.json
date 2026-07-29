@@ -2,7 +2,7 @@
   "active_work": [
     {
       "branch": "codex/phase-1-forecast-persistence-models",
-      "commit": "d85255f",
+      "commit": "40517d2",
       "id": "work-p1-forecast-persistence-models",
       "issue": "#3",
       "objective": "Implement only ADR-006 immutable forecast identity/version models and additive migration, with constraint, immutability, rollback, and dialect-focused tests.",
@@ -18,10 +18,11 @@
       "risk_tier": "high",
       "status": "in_review",
       "tests": [
-        "Forecast model and migration suite: 3 passed",
-        "Canonical contract, hashing, and Phase 0 projection suite: 76 passed",
-        "Rules Service suite: 655 passed, 10 skipped, 1 xfailed",
-        "SQLite upgrade/downgrade/re-upgrade, existing-data preservation, immutable update/delete guards, and downgrade refusal covered; PostgreSQL trigger branch reviewed"
+        "Forecast model and migration suite: 4 passed",
+        "Canonical contract, hashing, and Phase 0 projection suite: 73 passed",
+        "Rules Service suite: 656 passed, 10 skipped, 1 xfailed",
+        "Finlynq suite: 93 passed; relevant cross-service suites: 18 passed",
+        "SQLite upgrade/downgrade/re-upgrade, existing-data preservation, direct-SQL UUID/hash/version-label guards, immutable update/delete guards, and downgrade refusal covered; PostgreSQL trigger branch reviewed"
       ],
       "title": "Implement immutable forecast persistence models and migration"
     }
@@ -60,6 +61,11 @@
       "commit": "d85255f",
       "description": "Added immutable forecast persistence models and additive migration from Q5h1i2j3k4l5",
       "pr": ""
+    },
+    {
+      "commit": "40517d2",
+      "description": "Hardened forecast persistence UUID, SHA-256, and required-version database constraints",
+      "pr": "#8"
     },
     {
       "commit": "a44e15d",
