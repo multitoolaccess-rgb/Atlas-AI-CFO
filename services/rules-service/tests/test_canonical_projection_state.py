@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import traceback
 
 import pytest
 
@@ -18,11 +19,31 @@ from app.forecasts.canonical_state import (
     canonicalize_legacy_float_target,
     load_authoritative_projection_state,
     parse_generation_control_body,
+    sanitize_contract_error_location,
     validate_idempotency_key,
 )
 
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "atlas_forecast_snapshots_v1.json"
+
+
+def assert_secret_marker_is_not_exposed(
+    error: ContractValidationError, marker: str
+) -> None:
+    representations = (
+        str(error),
+        repr(error),
+        repr(error.args),
+        repr(error.errors()),
+        error.json(),
+        repr(error.__dict__),
+        repr(error.__cause__),
+        repr(error.__context__),
+        "".join(traceback.format_exception(error)),
+    )
+    assert all(marker not in representation for representation in representations)
+    assert error.__cause__ is None
+    assert error.__context__ is None
 
 
 @pytest.fixture(scope="module")
@@ -92,6 +113,8 @@ def test_envelope_rejects_nested_raw_payloads_and_unknown_component_fields(
             "ATLAS-SECRET-RAW-TXN-002",
         ),
         ({"credentials": "ATLAS-SECRET-CREDENTIAL-003"}, "ATLAS-SECRET-CREDENTIAL-003"),
+        ({"access_token": "ATLAS-SECRET-TOKEN-004"}, "ATLAS-SECRET-TOKEN-004"),
+        ({"uploaded_file": "ATLAS-SECRET-UPLOAD-005"}, "ATLAS-SECRET-UPLOAD-005"),
     ],
 )
 def test_contract_validation_errors_do_not_surface_rejected_raw_payloads(
@@ -103,9 +126,8 @@ def test_contract_validation_errors_do_not_surface_rejected_raw_payloads(
         CanonicalProjectionState.model_validate(envelope)
 
     error = exc_info.value
-    representations = (str(error), repr(error), error.errors(), error.json())
-    assert all(marker not in str(representation) for representation in representations)
-    assert error.errors() == [{"loc": (next(iter(patch)),), "type": "extra_forbidden"}]
+    assert_secret_marker_is_not_exposed(error, marker)
+    assert error.errors() == [{"loc": ("<extra-field>",), "type": "extra_forbidden"}]
 
 
 def test_contract_validation_errors_redact_nested_rejected_payloads(
@@ -119,10 +141,9 @@ def test_contract_validation_errors_redact_nested_rejected_payloads(
         CanonicalProjectionState.model_validate(envelope)
 
     error = exc_info.value
-    representations = (str(error), repr(error), error.errors(), error.json())
-    assert all(marker not in str(representation) for representation in representations)
+    assert_secret_marker_is_not_exposed(error, marker)
     assert {
-        "loc": ("provenance", 0, "raw_transactions"),
+        "loc": ("provenance", 0, "<extra-field>"),
         "type": "extra_forbidden",
     } in error.errors()
 
@@ -137,11 +158,8 @@ def test_direct_top_level_contract_construction_uses_safe_errors(
         CanonicalProjectionState(**envelope)
 
     error = exc_info.value
-    assert all(
-        marker not in str(representation)
-        for representation in (str(error), repr(error), error.errors(), error.json())
-    )
-    assert error.errors() == [{"loc": ("raw_statement",), "type": "extra_forbidden"}]
+    assert_secret_marker_is_not_exposed(error, marker)
+    assert error.errors() == [{"loc": ("<extra-field>",), "type": "extra_forbidden"}]
 
 
 def test_json_contract_validation_uses_safe_errors(
@@ -154,11 +172,76 @@ def test_json_contract_validation_uses_safe_errors(
         CanonicalProjectionState.model_validate_json(json.dumps(envelope))
 
     error = exc_info.value
-    assert all(
-        marker not in str(representation)
-        for representation in (str(error), repr(error), error.errors(), error.json())
+    assert_secret_marker_is_not_exposed(error, marker)
+    assert error.errors() == [{"loc": ("<extra-field>",), "type": "extra_forbidden"}]
+
+
+@pytest.mark.parametrize(
+    "unknown_key",
+    [
+        "x" * 10_000,
+        "ATLAS-SECRET-UNKNOWN-FIELD-007",
+        "line-one\nATLAS-SECRET-CONTROL-008\x1b[31m",
+    ],
+)
+def test_contract_errors_never_echo_unknown_client_field_names(
+    fixture_case: dict[str, object], unknown_key: str
+) -> None:
+    envelope = {**fixture_case["envelope"], unknown_key: "forged-value"}
+
+    with pytest.raises(ContractValidationError) as exc_info:
+        CanonicalProjectionState.model_validate(envelope)
+
+    error = exc_info.value
+    assert_secret_marker_is_not_exposed(error, unknown_key)
+    assert error.errors() == [{"loc": ("<extra-field>",), "type": "extra_forbidden"}]
+
+
+def test_contract_errors_sanitize_nested_unknown_locations_without_echoing_keys(
+    fixture_case: dict[str, object]
+) -> None:
+    marker = "ATLAS-SECRET-NESTED-UNKNOWN-009"
+    envelope = json.loads(json.dumps(fixture_case["envelope"]))
+    envelope["provenance"][0][marker] = "forged-value"
+
+    with pytest.raises(ContractValidationError) as exc_info:
+        CanonicalProjectionState.model_validate(envelope)
+
+    error = exc_info.value
+    assert_secret_marker_is_not_exposed(error, marker)
+    assert {"loc": ("provenance", 0, "<extra-field>"), "type": "extra_forbidden"} in error.errors()
+
+
+def test_contract_error_locations_bound_components_and_indices() -> None:
+    location = sanitize_contract_error_location(
+        ("current_value_components", 10_000, "amount", "ignored", "still_ignored"),
+        "value_error",
     )
-    assert error.errors() == [{"loc": ("raw_statement",), "type": "extra_forbidden"}]
+
+    assert location == (
+        "current_value_components",
+        "<index>",
+        "amount",
+        "<truncated-location>",
+    )
+
+
+def test_contract_errors_preserve_known_safe_field_diagnosis(
+    fixture_case: dict[str, object]
+) -> None:
+    envelope = json.loads(json.dumps(fixture_case["envelope"]))
+    envelope["current_value_components"][0]["amount"] = "not-a-decimal"
+
+    with pytest.raises(ContractValidationError) as exc_info:
+        CanonicalProjectionState.model_validate(envelope)
+
+    error = exc_info.value
+    assert error.errors() == [
+        {
+            "loc": ("current_value_components", 0, "amount"),
+            "type": "value_error",
+        }
+    ]
 
     envelope = json.loads(json.dumps(fixture_case["envelope"]))
     envelope["current_value_components"][0]["raw_statement_text"] = "not-allowed"

@@ -34,6 +34,9 @@ MAX_GOAL_ID = 9_223_372_036_854_775_807
 MAX_DECIMAL_TOTAL_DIGITS = 38
 MAX_DECIMAL_SCALE = 18
 MAX_DECIMAL_ENCODED_LENGTH = 40
+MAX_SAFE_LOCATION_COMPONENTS = 4
+MAX_SAFE_LOCATION_INDEX = 999
+MAX_SAFE_RENDERED_LOCATION_LENGTH = 96
 
 _CANONICAL_DECIMAL = re.compile(r"-?(?:0|[1-9][0-9]*)(?:\.[0-9]*[1-9])?$")
 _IDENTIFIER = re.compile(r"[a-z][a-z0-9._:-]*$")
@@ -45,10 +48,96 @@ _CollectionItem = TypeVar("_CollectionItem")
 _MODEL_VALIDATION_IN_PROGRESS: ContextVar[bool] = ContextVar(
     "atlas_contract_model_validation_in_progress", default=False
 )
+_SAFE_LOCATION_FIELDS = frozenset(
+    {
+        "schema_version",
+        "canonicalization",
+        "canonical_json_version",
+        "hash_schema_version",
+        "hash_algorithm",
+        "user_id",
+        "goal_id",
+        "as_of_timestamp",
+        "currency",
+        "current_value_components",
+        "contribution_inputs",
+        "kind",
+        "amount",
+        "source_reference",
+        "observed_at",
+        "freshness",
+        "max_data_age_days",
+        "observed_age_days",
+        "source_updated_at",
+        "provenance",
+        "source_system",
+        "reference_id",
+        "record_count",
+        "source_state_hash",
+        "missing_data_codes",
+        "reconciliation_state",
+    }
+)
+_SAFE_ERROR_CATEGORIES = frozenset(
+    {
+        "extra_forbidden",
+        "greater_than",
+        "greater_than_equal",
+        "int_type",
+        "json_invalid",
+        "json_type",
+        "less_than",
+        "less_than_equal",
+        "list_type",
+        "literal_error",
+        "missing",
+        "model_type",
+        "string_type",
+        "too_long",
+        "too_short",
+        "tuple_type",
+        "value_error",
+    }
+)
+_EXTRA_FIELD_LOCATION = "<extra-field>"
+_UNKNOWN_LOCATION = "<unknown-location>"
+_INDEX_LOCATION = "<index>"
+_TRUNCATED_LOCATION = "<truncated-location>"
+_INPUT_LOCATION = "<input>"
 
 
 class CanonicalStateValidationError(ValueError):
     """Raised when server-owned canonical-state contract data is invalid."""
+
+
+def sanitize_contract_error_location(
+    location: Any, category: str
+) -> tuple[str | int, ...]:
+    """Return bounded schema-owned locations without echoing client field names."""
+
+    raw_location = location if isinstance(location, tuple) else tuple(location or ())
+    sanitized: list[str | int] = []
+    for index, component in enumerate(raw_location):
+        if index >= MAX_SAFE_LOCATION_COMPONENTS:
+            sanitized[-1:] = [_TRUNCATED_LOCATION]
+            break
+        if isinstance(component, str):
+            if component in _SAFE_LOCATION_FIELDS:
+                sanitized.append(component)
+            elif category == "extra_forbidden":
+                sanitized.append(_EXTRA_FIELD_LOCATION)
+            else:
+                sanitized.append(_UNKNOWN_LOCATION)
+        elif isinstance(component, int) and 0 <= component <= MAX_SAFE_LOCATION_INDEX:
+            sanitized.append(component)
+        else:
+            sanitized.append(_INDEX_LOCATION)
+    return tuple(sanitized) or (_INPUT_LOCATION,)
+
+
+def _safe_error_category(value: Any) -> str:
+    category = value if isinstance(value, str) else ""
+    return category if category in _SAFE_ERROR_CATEGORIES else "validation_error"
 
 
 class ContractValidationError(ValueError):
@@ -68,10 +157,8 @@ class ContractValidationError(ValueError):
     def from_pydantic(cls, error: ValidationError) -> "ContractValidationError":
         sanitized: list[tuple[tuple[str | int, ...], str]] = []
         for detail in error.errors(include_url=False, include_context=False):
-            location = tuple(
-                part for part in detail.get("loc", ()) if isinstance(part, (str, int))
-            )
-            category = str(detail.get("type", "validation_error"))
+            category = _safe_error_category(detail.get("type"))
+            location = sanitize_contract_error_location(detail.get("loc"), category)
             sanitized.append((location, category))
         return cls(tuple(sanitized))
 
@@ -81,6 +168,8 @@ class ContractValidationError(ValueError):
         rendered = []
         for location, category in self._errors:
             path = ".".join(str(part) for part in location) or "input"
+            if len(path) > MAX_SAFE_RENDERED_LOCATION_LENGTH:
+                path = _TRUNCATED_LOCATION
             rendered.append(f"{path} [type={category}]")
         return "contract validation failed: " + "; ".join(rendered)
 
@@ -256,6 +345,7 @@ class _StrictContractModel(BaseModel):
         by_name: bool | None = None,
     ) -> Any:
         validation_token = _MODEL_VALIDATION_IN_PROGRESS.set(True)
+        sanitized_error: ContractValidationError | None = None
         try:
             return super().model_validate(
                 obj,
@@ -267,9 +357,19 @@ class _StrictContractModel(BaseModel):
                 by_name=by_name,
             )
         except ValidationError as exc:
-            raise ContractValidationError.from_pydantic(exc) from None
+            sanitized_error = ContractValidationError.from_pydantic(exc)
         finally:
             _MODEL_VALIDATION_IN_PROGRESS.reset(validation_token)
+        if sanitized_error is not None:
+            try:
+                raise sanitized_error
+            except ContractValidationError as surfaced:
+                surfaced.__cause__ = None
+                surfaced.__context__ = None
+                surfaced.__suppress_context__ = True
+                surfaced.__traceback__ = None
+                raise
+        raise AssertionError("contract validation returned without a model or error")
 
     @classmethod
     def model_validate_json(
@@ -283,6 +383,7 @@ class _StrictContractModel(BaseModel):
         by_name: bool | None = None,
     ) -> Any:
         validation_token = _MODEL_VALIDATION_IN_PROGRESS.set(True)
+        sanitized_error: ContractValidationError | None = None
         try:
             return super().model_validate_json(
                 json_data,
@@ -293,9 +394,19 @@ class _StrictContractModel(BaseModel):
                 by_name=by_name,
             )
         except ValidationError as exc:
-            raise ContractValidationError.from_pydantic(exc) from None
+            sanitized_error = ContractValidationError.from_pydantic(exc)
         finally:
             _MODEL_VALIDATION_IN_PROGRESS.reset(validation_token)
+        if sanitized_error is not None:
+            try:
+                raise sanitized_error
+            except ContractValidationError as surfaced:
+                surfaced.__cause__ = None
+                surfaced.__context__ = None
+                surfaced.__suppress_context__ = True
+                surfaced.__traceback__ = None
+                raise
+        raise AssertionError("contract JSON validation returned without a model or error")
 
 
 class CanonicalizationMetadata(_StrictContractModel):
@@ -384,12 +495,22 @@ class CanonicalProjectionState(_StrictContractModel):
     reconciliation_state: Literal["reconciled", "partial", "unavailable"]
 
     def __init__(self, /, **data: Any) -> None:
+        sanitized_error: ContractValidationError | None = None
         try:
             super().__init__(**data)
         except ValidationError as exc:
             if _MODEL_VALIDATION_IN_PROGRESS.get():
                 raise
-            raise ContractValidationError.from_pydantic(exc) from None
+            sanitized_error = ContractValidationError.from_pydantic(exc)
+        if sanitized_error is not None:
+            try:
+                raise sanitized_error
+            except ContractValidationError as surfaced:
+                surfaced.__cause__ = None
+                surfaced.__context__ = None
+                surfaced.__suppress_context__ = True
+                surfaced.__traceback__ = None
+                raise
 
     _user_id = field_validator("user_id")(_validate_identifier)
     _as_of_timestamp = field_validator("as_of_timestamp")(_validate_utc_timestamp)
@@ -462,12 +583,22 @@ class GenerationControlBody(_StrictContractModel):
     """Empty body contract; generation controls are bounded request headers only."""
 
     def __init__(self, /, **data: Any) -> None:
+        sanitized_error: ContractValidationError | None = None
         try:
             super().__init__(**data)
         except ValidationError as exc:
             if _MODEL_VALIDATION_IN_PROGRESS.get():
                 raise
-            raise ContractValidationError.from_pydantic(exc) from None
+            sanitized_error = ContractValidationError.from_pydantic(exc)
+        if sanitized_error is not None:
+            try:
+                raise sanitized_error
+            except ContractValidationError as surfaced:
+                surfaced.__cause__ = None
+                surfaced.__context__ = None
+                surfaced.__suppress_context__ = True
+                surfaced.__traceback__ = None
+                raise
 
 
 class FinlynqProjectionStateAdapter(Protocol):

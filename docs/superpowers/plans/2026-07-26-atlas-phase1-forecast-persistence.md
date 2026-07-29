@@ -114,8 +114,10 @@ credentials, unbounded free-form source data, and unnecessary personal
 information. A source-state hash covers normalized components and provenance;
 the forecast stores only that hash and the bounded references.
 Contract-boundary validation surfaces only sanitized field locations and stable
-error categories. Callers must not surface raw Pydantic validation errors,
-because their structured representations can retain rejected input values.
+error categories. Raw Pydantic validation errors are internal and must never
+cross the boundary. Caller-facing locations contain only bounded schema-owned
+field names and safe indices; unknown client fields use the fixed
+`<extra-field>` token without echoing their key text.
 
 For v1 component and contribution money strings, accept bounded, exact,
 unrounded canonical Decimal strings with at most 38 digits excluding sign and

@@ -184,8 +184,10 @@ unbounded free-form source payloads, and unnecessary personal information. A
 source-state hash covers the bounded provenance and normalized components;
 Rules Service stores that hash and references, not the source records.
 Contract-boundary validation surfaces only sanitized field locations and stable
-error categories; callers must not surface raw Pydantic validation errors,
-which can retain rejected input values in structured representations.
+error categories. Raw Pydantic validation errors are internal and must never
+cross the boundary. Caller-facing locations contain only bounded schema-owned
+field names and safe indices; unknown client fields use the fixed
+`<extra-field>` token without echoing their key text.
 
 For `atlas-projection-state/v1`, component and contribution money strings are
 bounded, exact, unrounded canonical Decimal strings with at most 38 digits
