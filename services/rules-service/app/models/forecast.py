@@ -16,6 +16,7 @@ class Forecast(Base):
         CheckConstraint("currency = 'USD'", name="ck_forecasts_currency"),
         CheckConstraint("lifecycle_state = 'active'", name="ck_forecasts_lifecycle"),
         CheckConstraint("latest_version_number >= 0", name="ck_forecasts_latest_version"),
+        CheckConstraint("length(id) = 36 AND id = lower(id)", name="ck_forecasts_id_shape"),
     )
 
     id = Column(String(36), primary_key=True)
@@ -40,13 +41,20 @@ class ForecastVersion(Base):
         UniqueConstraint("forecast_id", "input_state_hash", "model_version", "calculation_version", name="uq_forecast_versions_input"),
         UniqueConstraint("forecast_id", "idempotency_key_hash", name="uq_forecast_versions_idempotency"),
         CheckConstraint("version_number > 0", name="ck_forecast_versions_positive_number"),
+        CheckConstraint("length(id) = 36 AND id = lower(id)", name="ck_forecast_versions_id_shape"),
         CheckConstraint("currency = 'USD'", name="ck_forecast_versions_currency"),
         CheckConstraint("length(input_state_hash) = 64", name="ck_forecast_versions_input_hash_length"),
+        CheckConstraint("input_state_hash = lower(input_state_hash)", name="ck_forecast_versions_input_hash_lower"),
         CheckConstraint("length(idempotency_key_hash) = 64", name="ck_forecast_versions_idempotency_hash_length"),
+        CheckConstraint("idempotency_key_hash = lower(idempotency_key_hash)", name="ck_forecast_versions_idempotency_hash_lower"),
         CheckConstraint("length(snapshot_schema_version) <= 64", name="ck_forecast_versions_snapshot_version_length"),
+        CheckConstraint("length(trim(snapshot_schema_version)) > 0", name="ck_forecast_versions_snapshot_version_present"),
         CheckConstraint("length(hash_schema_version) <= 64", name="ck_forecast_versions_hash_version_length"),
+        CheckConstraint("length(trim(hash_schema_version)) > 0", name="ck_forecast_versions_hash_version_present"),
         CheckConstraint("length(model_version) <= 128", name="ck_forecast_versions_model_version_length"),
+        CheckConstraint("length(trim(model_version)) > 0", name="ck_forecast_versions_model_version_present"),
         CheckConstraint("length(calculation_version) <= 128", name="ck_forecast_versions_calculation_version_length"),
+        CheckConstraint("length(trim(calculation_version)) > 0", name="ck_forecast_versions_calculation_version_present"),
         CheckConstraint("max_data_age_days >= 0", name="ck_forecast_versions_max_data_age"),
         CheckConstraint("data_age_days >= 0", name="ck_forecast_versions_data_age"),
     )

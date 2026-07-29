@@ -107,6 +107,10 @@ Every version stores:
 - provenance references; and
 - `calculated_at`, `data_as_of`, `created_at`, and currency.
 
+The four required version labels are bounded database strings. They must be
+nonempty and have no leading or trailing whitespace; the persistence boundary
+rejects rather than normalizes them.
+
 Snapshots are deterministic canonical JSON: UTF-8, sorted keys, no
 insignificant whitespace, ISO dates/timestamps, and Decimal values encoded as
 canonical strings. They do not contain raw transactions, uploaded statements,

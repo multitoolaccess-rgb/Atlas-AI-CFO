@@ -69,3 +69,71 @@ def test_forecast_version_guards_and_downgrade_refusal(monkeypatch):
                 conn.execute(text("DELETE FROM forecast_versions"))
         with pytest.raises(RuntimeError, match="immutable forecast history"):
             command.downgrade(cfg, PARENT)
+
+
+def test_forecast_database_format_guards_reject_direct_invalid_values(monkeypatch):
+    with tempfile.TemporaryDirectory() as tmp:
+        url = f"sqlite:///{os.path.join(tmp, 'forecast_formats.db')}"
+        monkeypatch.setattr("app.config.settings.database_url", url)
+        command.upgrade(_config(url), "head")
+        engine = create_engine(url)
+        register_sqlite_compat(engine)
+        with engine.begin() as conn:
+            conn.execute(text("INSERT INTO users (id, local_user_sub, email, hashed_password) VALUES (1, 'format-user', 'format@example.com', 'x')"))
+            conn.execute(text("INSERT INTO goals (id, user_id, name, target_amount, priority, is_archived) VALUES (1, 1, 'Format Goal', 1, 0, 0)"))
+            for bad_id in (
+                "x",
+                "00000000000040008000000000000001",
+                "0000000-0000-4000-8000-0000000000010",
+                "00000000-0000-4000-8000-00000000000Z",
+                "00000000-0000-4000-8000-00000000000A",
+                " 00000000-0000-4000-8000-000000000001",
+                "00000000-0000-4000-8000-0000000000001",
+            ):
+                with pytest.raises(Exception):
+                    conn.execute(text("INSERT INTO forecasts (id, user_id, goal_id) VALUES (:id, 1, 1)"), {"id": bad_id})
+            conn.execute(text("INSERT INTO forecasts (id, user_id, goal_id) VALUES ('00000000-0000-4000-8000-000000000001', 1, 1)"))
+            with pytest.raises(Exception):
+                conn.execute(text("UPDATE forecasts SET id = '00000000-0000-4000-8000-00000000000A'"))
+            base = {"id": "00000000-0000-4000-8000-000000000002", "forecast_id": "00000000-0000-4000-8000-000000000001", "version_number": 1, "h": "a" * 64, "k": "b" * 64, "snapshot": "v1", "hash": "v1", "model": "model-v1", "calc": "calc-v1"}
+            statement = text("""INSERT INTO forecast_versions (id, forecast_id, version_number, input_state_hash, idempotency_key_hash, snapshot_schema_version, hash_schema_version, model_version, calculation_version, calculated_at, data_as_of, max_data_age_days, data_age_days, input_snapshot_json, assumption_snapshot_json, output_snapshot_json, provenance_snapshot_json, ending_balance, target_gap) VALUES (:id, :forecast_id, :version_number, :h, :k, :snapshot, :hash, :model, :calc, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, 0, '{}', '{}', '{}', '{}', '1.00', '0.00')""")
+            for key, value in (
+                ("id", "0000000-0000-4000-8000-0000000000020"),
+                ("id", "00000000-0000-4000-8000-00000000000A"),
+                ("id", "00000000-0000-4000-8000-00000000000Z"),
+                ("h", "Z" * 64),
+                ("h", "a" * 63),
+                ("h", "a" * 65),
+                ("h", "a" * 63 + " "),
+                ("k", "B" * 64),
+                ("k", "b" * 63),
+                ("k", "sha256:" + "b" * 57),
+                ("snapshot", ""),
+                ("snapshot", "   "),
+                ("snapshot", " v1"),
+                ("hash", "\t"),
+                ("hash", "v1 "),
+                ("model", "m" * 129),
+                ("model", " model-v1"),
+                ("calc", "\t"),
+                ("calc", "calc-v1 "),
+            ):
+                values = dict(base); values[key] = value
+                try:
+                    conn.execute(statement, values)
+                except Exception:
+                    continue
+                pytest.fail(f"direct insert accepted invalid {key} value")
+            conn.execute(statement, base)
+            boundary = {
+                **base,
+                "id": "00000000-0000-4000-8000-000000000003",
+                "version_number": 2,
+                "h": "c" * 64,
+                "k": "d" * 64,
+                "snapshot": "s" * 64,
+                "hash": "h" * 64,
+                "model": "m" * 128,
+                "calc": "c" * 128,
+            }
+            conn.execute(statement, boundary)
