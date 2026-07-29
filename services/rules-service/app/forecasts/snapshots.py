@@ -97,7 +97,17 @@ def _validate_assumption_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
                 "money_precision",
             }
         ),
-        required=frozenset({"assumption_profile"}),
+        required=frozenset(
+            {
+                "assumption_profile",
+                "annual_return_rates",
+                "annual_inflation_rate",
+                "contribution_timing",
+                "period",
+                "rounding_rule",
+                "money_precision",
+            }
+        ),
     )
     result: dict[str, Any] = {"assumption_profile": _identifier(snapshot["assumption_profile"])}
     if "annual_return_rates" in snapshot:
@@ -127,7 +137,11 @@ def _validate_assumption_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _validate_output_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
-    snapshot = _mapping(value, allowed=frozenset({"target_status", "drivers", "scenarios"}))
+    snapshot = _mapping(
+        value,
+        allowed=frozenset({"target_status", "drivers", "scenarios"}),
+        required=frozenset({"target_status", "drivers", "scenarios"}),
+    )
     result: dict[str, Any] = {}
     if "target_status" in snapshot:
         if not isinstance(snapshot["target_status"], bool):
@@ -137,6 +151,17 @@ def _validate_output_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
         drivers = _mapping(
             snapshot["drivers"],
             allowed=frozenset(
+                {
+                    "current_balance",
+                    "monthly_contribution",
+                    "total_contributions",
+                    "target_amount",
+                    "horizon_months",
+                    "data_as_of",
+                    "data_age_days",
+                }
+            ),
+            required=frozenset(
                 {
                     "current_balance",
                     "monthly_contribution",
@@ -176,7 +201,14 @@ def _validate_output_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
                     }
                 ),
                 required=frozenset(
-                    {"annual_return_rate", "ending_balance", "investment_growth", "reaches_target"}
+                    {
+                        "annual_return_rate",
+                        "monthly_real_rate",
+                        "ending_balance",
+                        "investment_growth",
+                        "target_gap",
+                        "reaches_target",
+                    }
                 ),
             )
             result["scenarios"][scenario] = {

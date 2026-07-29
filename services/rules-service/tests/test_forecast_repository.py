@@ -62,12 +62,58 @@ def _persist(repository: ForecastRepository, *, key: str = "atlas-test-key", sta
         model_version="atlas-model-v1",
         calculation_version="phase0-projection-v1",
         calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
-        assumption_snapshot={"assumption_profile":"atlas-test-default"},
-        output_snapshot={"target_status": True},
+        assumption_snapshot=_assumptions(),
+        output_snapshot=_output(),
         ending_balance=Decimal("1234.56"),
         target_gap=Decimal("-1.00"),
         expected_latest_version=expected_latest_version,
     )
+
+
+def _assumptions() -> dict[str, object]:
+    return {
+        "assumption_profile": "atlas-test-default",
+        "annual_return_rates": {
+            "conservative": "0.02",
+            "base": "0.04",
+            "optimistic": "0.06",
+        },
+        "annual_inflation_rate": "0.02",
+        "contribution_timing": "end",
+        "period": "monthly",
+        "rounding_rule": "ROUND_HALF_EVEN",
+        "money_precision": "0.01",
+    }
+
+
+def _output() -> dict[str, object]:
+    return {
+        "target_status": True,
+        "drivers": {
+            "current_balance": "1234.56",
+            "monthly_contribution": "100",
+            "total_contributions": "1200",
+            "target_amount": "1000",
+            "horizon_months": 12,
+            "data_as_of": "2026-07-01",
+            "data_age_days": 0,
+        },
+        "scenarios": {
+            name: {
+                "annual_return_rate": rate,
+                "monthly_real_rate": "0.001",
+                "ending_balance": "1234.56",
+                "investment_growth": "10",
+                "target_gap": "0",
+                "reaches_target": True,
+            }
+            for name, rate in {
+                "conservative": "0.02",
+                "base": "0.04",
+                "optimistic": "0.06",
+            }.items()
+        },
+    }
 
 
 def test_repository_persists_canonical_snapshots_and_only_hashed_idempotency_key(session: Session) -> None:
@@ -156,8 +202,8 @@ def test_repository_recovers_real_sqlite_lock_race_with_committed_winner(tmp_pat
     state = _state()
     snapshots = build_forecast_snapshots(
         state=state,
-        assumption_snapshot={"assumption_profile": "atlas-test-default"},
-        output_snapshot={"target_status": True},
+        assumption_snapshot=_assumptions(),
+        output_snapshot=_output(),
     )
     with Session(engine) as seed:
         seed.add(User(id=1, local_user_sub="atlas-test-user", email="atlas@example.com", hashed_password="x"))
@@ -219,7 +265,7 @@ def test_repository_rejects_raw_or_secret_snapshot_payloads(session: Session, fi
             user_id=1, goal_id=1, state=_state(), idempotency_key="atlas-test-key",
             model_version="atlas-model-v1", calculation_version="phase0-projection-v1",
             calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
-            assumption_snapshot={field: "SYNTHETIC-SECRET"}, output_snapshot={},
+            assumption_snapshot={field: "SYNTHETIC-SECRET"}, output_snapshot=_output(),
             ending_balance=Decimal("1.00"), target_gap=Decimal("0.00"),
         )
 
@@ -244,7 +290,44 @@ def test_repository_rejects_unknown_snapshot_fields_even_when_keys_look_benign(
             calculation_version="phase0-projection-v1",
             calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
             assumption_snapshot=snapshot,
-            output_snapshot={},
+            output_snapshot=_output(),
+            ending_balance=Decimal("1.00"),
+            target_gap=Decimal("0.00"),
+        )
+
+
+@pytest.mark.parametrize(
+    "assumptions,output",
+    [
+        ({"assumption_profile": "atlas-test-default"}, _output()),
+        (_assumptions(), {"target_status": True}),
+        (_assumptions(), {**_output(), "drivers": {}}),
+        (
+            _assumptions(),
+            {
+                **_output(),
+                "scenarios": {
+                    **_output()["scenarios"],
+                    "base": {"annual_return_rate": "0.04"},
+                },
+            },
+        ),
+    ],
+)
+def test_repository_rejects_incomplete_immutable_snapshots(
+    session: Session, assumptions: dict[str, object], output: dict[str, object]
+) -> None:
+    with pytest.raises(ValueError, match="bounded projection contract"):
+        ForecastRepository(session).persist(
+            user_id=1,
+            goal_id=1,
+            state=_state(),
+            idempotency_key="atlas-test-key",
+            model_version="atlas-model-v1",
+            calculation_version="phase0-projection-v1",
+            calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
+            assumption_snapshot=assumptions,
+            output_snapshot=output,
             ending_balance=Decimal("1.00"),
             target_gap=Decimal("0.00"),
         )
