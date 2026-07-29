@@ -4,11 +4,11 @@
 
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Phase 1 forecast models and additive migration are complete; repository transactions remain the next bounded slice and require separate authorization.
-- Last updated: 2026-07-29T15:48:54Z
+- Current objective: Phase 1 forecast models, migration, and repository transactions are complete; the trusted generation application service is the next bounded slice.
+- Last updated: 2026-07-29T16:38:24Z
 
 ## Active work
-- work-p1-forecast-repository: Implement immutable forecast repository transactions (in_review, high)
+- None
 
 ## Blockers
 - None
@@ -33,11 +33,11 @@
 - risk-p1-trusted-generation-boundary [high/medium, open]: An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.
 
 ## Recently completed work
-- work-p0-synthetic-fixtures: Approved synthetic financial fixtures — commit d001e64, PR #1
 - work-p1-forecast-persistence-planning: Plan immutable forecast persistence and versioned read APIs — commit a818665, PR #4
 - work-dashboard-inclusive-date-upper-bound: Fix inclusive date-only dashboard upper bound — commit e2ebbb2, PR #7
 - work-p1-canonical-state-contract: Implement canonical projection-state contract test slice — commit f91de80, PR #6
 - work-p1-forecast-persistence-models: Implement immutable forecast persistence models and migration — commit 59b3baa, PR #8
+- work-p1-forecast-repository: Implement immutable forecast repository transactions — commit a85aed6, PR #9
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -61,6 +61,6 @@
 - Test test-p1-planning-status: Phase 1 planning governance — 5 passed; status, deterministic render, and trusted generation-boundary documentation checks passed
 
 ## Next bounded task
-- next-p1-forecast-repository-transactions: Authorize the next bounded Phase 1 slice: repository transactions for immutable forecast versions; do not begin automatically.
+- next-p1-forecast-generation-service: Implement the trusted forecast generation application service after the repository slice merges; do not add HTTP routes.
 
 Do not begin the next phase or task automatically.
