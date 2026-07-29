@@ -62,6 +62,11 @@ def _canonical_decimal(value: Any) -> str:
         rendered = rendered.rstrip("0").rstrip(".")
     if rendered in {"", "-0"}:
         return "0"
+    unsigned = rendered[1:] if rendered.startswith("-") else rendered
+    integral, _, fractional = unsigned.partition(".")
+    total_digits = len(integral.lstrip("0") or "0") + len(fractional)
+    if len(fractional) > 18 or total_digits > 38 or len(rendered) > 40:
+        raise ProjectionStateUnavailable("projection_state_unavailable")
     return rendered
 
 

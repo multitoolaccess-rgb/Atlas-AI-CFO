@@ -206,3 +206,10 @@ def test_account_currency_migration_clean_downgrade_and_reupgrade(monkeypatch):
         assert "goal_projection_configs" not in inspect(engine).get_table_names()
         command.upgrade(cfg, "head")
         assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == REVISION
+
+
+def test_postgresql_currency_constraint_explicitly_rejects_partial_null_provenance():
+    """PostgreSQL CHECK treats NULL as passing unless the populated arm guards it."""
+    migration = (ROOT / "alembic/versions/S7a1b2c3d4e5_add_account_currency_provenance.py").read_text(encoding="utf-8")
+    assert "currency_code IS NOT NULL AND currency_source IS NOT NULL" in migration
+    assert "currency_observed_at IS NOT NULL AND currency_source_reference IS NOT NULL" in migration

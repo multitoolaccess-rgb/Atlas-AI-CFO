@@ -97,6 +97,15 @@ def test_provider_hides_cross_user_goal_existence():
     assert str(exc.value) == "projection_state_unavailable"
 
 
+def test_provider_rejects_legacy_float_that_exceeds_v1_decimal_scale():
+    db = _session(); user, goal, now = _seed(db)
+    account = db.query(Account).one()
+    account.current_balance = 1e-19
+    db.commit()
+    with pytest.raises(ProjectionStateUnavailable, match="projection_state_unavailable"):
+        build_projection_state(db, user_sub=user.local_user_sub, goal_id=goal.id, now=now)
+
+
 def test_currency_confirmation_is_dry_run_then_atomic_apply_and_refuses_conflicts():
     db = _session(); user, goal, now = _seed(db, currencies=(None,))
     account = db.query(Account).one()

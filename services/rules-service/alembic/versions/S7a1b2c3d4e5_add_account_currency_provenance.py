@@ -63,7 +63,8 @@ def _postgres_currency_guards() -> None:
     op.create_check_constraint(
         "ck_accounts_currency_provenance", "accounts",
         "(currency_code IS NULL AND currency_source IS NULL AND currency_observed_at IS NULL AND currency_source_reference IS NULL) OR "
-        "(currency_code ~ '^[A-Z]{3}$' AND currency_source IN ('provider_reported', 'statement_declared', 'user_confirmed') "
+        "(currency_code IS NOT NULL AND currency_source IS NOT NULL AND currency_observed_at IS NOT NULL AND currency_source_reference IS NOT NULL "
+        "AND currency_code ~ '^[A-Z]{3}$' AND currency_source IN ('provider_reported', 'statement_declared', 'user_confirmed') "
         "AND currency_observed_at IS NOT NULL AND currency_source_reference ~ '^[a-z][a-z0-9._:-]{0,127}$')",
     )
     op.create_check_constraint("ck_goal_projection_configs_kind", "goal_projection_configs", "projection_kind = 'net_worth'")
