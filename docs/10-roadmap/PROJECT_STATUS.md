@@ -5,10 +5,10 @@
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 1 forecast models and additive migration are complete; repository transactions remain the next bounded slice and require separate authorization.
-- Last updated: 2026-07-29T05:52:24Z
+- Last updated: 2026-07-29T15:48:54Z
 
 ## Active work
-- work-p1-forecast-repository: Implement immutable forecast repository transactions (in_progress, high)
+- work-p1-forecast-repository: Implement immutable forecast repository transactions (in_review, high)
 
 ## Blockers
 - None

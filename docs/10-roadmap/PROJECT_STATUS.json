@@ -11,8 +11,9 @@
         "docs/10-roadmap"
       ],
       "phase_id": "phase-1",
+      "pr": "#9",
       "risk_tier": "high",
-      "status": "in_progress",
+      "status": "in_review",
       "tests": [
         "Repository transaction, idempotency, and concurrency contract tests"
       ],
@@ -243,7 +244,7 @@
   ],
   "current_objective": "Phase 1 forecast models and additive migration are complete; repository transactions remain the next bounded slice and require separate authorization.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-29T05:52:24Z",
+  "last_updated": "2026-07-29T15:48:54Z",
   "next_bounded_task": {
     "description": "Authorize the next bounded Phase 1 slice: repository transactions for immutable forecast versions; do not begin automatically.",
     "id": "next-p1-forecast-repository-transactions",
