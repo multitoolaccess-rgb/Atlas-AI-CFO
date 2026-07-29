@@ -1,32 +1,5 @@
 {
-  "active_work": [
-    {
-      "branch": "codex/phase-1-forecast-persistence-models",
-      "commit": "57b8cb5",
-      "id": "work-p1-forecast-persistence-models",
-      "issue": "#3",
-      "objective": "Implement only ADR-006 immutable forecast identity/version models and additive migration, with constraint, immutability, rollback, and dialect-focused tests.",
-      "paths": [
-        "services/rules-service/app/models/forecast.py",
-        "services/rules-service/alembic/versions",
-        "services/rules-service/tests/test_forecast_models.py",
-        "services/rules-service/tests/test_forecast_migration.py",
-        "docs/10-roadmap"
-      ],
-      "phase_id": "phase-1",
-      "pr": "#8",
-      "risk_tier": "high",
-      "status": "in_review",
-      "tests": [
-        "Forecast model and migration suite: 12 passed",
-        "Canonical contract, hashing, and Phase 0 projection suite: 73 passed",
-        "Rules Service suite: 657 passed, 10 skipped, 1 xfailed",
-        "Finlynq suite: 93 passed; relevant cross-service suites: 18 passed",
-        "SQLite upgrade/downgrade/re-upgrade, existing-data preservation, direct-SQL UUID/hash/version-label guards, immutable update/delete guards, and downgrade refusal for persisted identities or versions covered; PostgreSQL trigger branch reviewed"
-      ],
-      "title": "Implement immutable forecast persistence models and migration"
-    }
-  ],
+  "active_work": [],
   "blockers": [],
   "commit_pr_evidence": [
     {
@@ -216,14 +189,45 @@
         "Hosted status and cheap CI checks: passed"
       ],
       "title": "Implement canonical projection-state contract test slice"
+    },
+    {
+      "branch": "codex/phase-1-forecast-persistence-models",
+      "ci_evidence": {
+        "check": "cheap (lint + unit, no browser)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/30425602034"
+      },
+      "commit": "59b3baa",
+      "id": "work-p1-forecast-persistence-models",
+      "issue": "#3",
+      "objective": "Implement only ADR-006 immutable forecast identity/version models and additive migration, with constraint, immutability, rollback, and dialect-focused tests.",
+      "paths": [
+        "services/rules-service/app/models/forecast.py",
+        "services/rules-service/alembic/versions",
+        "services/rules-service/tests/test_forecast_models.py",
+        "services/rules-service/tests/test_forecast_migration.py",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-1",
+      "pr": "#8",
+      "review_evidence": "Independent review approved PR #8 at 59b3baa320ecb0831558f38cac4152268b79b5c9",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Forecast model/migration suite: 12 passed",
+        "Rules Service suite: 657 passed, 10 skipped, 1 xfailed",
+        "Finlynq suite: 93 passed; relevant cross-service suites: 18 passed",
+        "Canonical contract, hashing, and Phase 0 projection suite: 73 passed"
+      ],
+      "title": "Implement immutable forecast persistence models and migration"
     }
   ],
-  "current_objective": "Await explicit authorization for the next bounded Phase 1 persistence slice; migrations, routes, and later Phase 1 work remain unauthorized.",
+  "current_objective": "Phase 1 forecast models and additive migration are complete; repository transactions remain the next bounded slice and require separate authorization.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-29T04:54:46Z",
+  "last_updated": "2026-07-29T05:43:10Z",
   "next_bounded_task": {
-    "description": "Authorize and plan the next bounded Phase 1 persistence slice after reviewing merged canonical-contract evidence; do not begin implementation automatically.",
-    "id": "next-p1-persistence-slice-authorization",
+    "description": "Authorize the next bounded Phase 1 slice: repository transactions for immutable forecast versions; do not begin automatically.",
+    "id": "next-p1-forecast-repository-transactions",
     "phase_id": "phase-1"
   },
   "overall_status": "in_progress",
