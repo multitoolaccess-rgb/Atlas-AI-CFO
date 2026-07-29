@@ -5,10 +5,10 @@
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Await explicit authorization for the next bounded Phase 1 persistence slice; migrations, routes, and later Phase 1 work remain unauthorized.
-- Last updated: 2026-07-29T04:20:50Z
+- Last updated: 2026-07-29T04:40:34Z
 
 ## Active work
-- None
+- work-p1-forecast-persistence-models: Implement immutable forecast persistence models and migration (in_progress, high)
 
 ## Blockers
 - None
@@ -46,6 +46,7 @@
 - b987147: Phase 1 immutable forecast persistence planning #4
 - 6e485ea: Resolved Phase 1 canonical-envelope, validation, and retention planning decisions #4
 - a818665: Enforced the trusted adapter-only forecast generation boundary #4
+- d85255f: Added immutable forecast persistence models and additive migration from Q5h1i2j3k4l5
 - a44e15d: Hardened canonical Decimal bounds and sanitized contract validation errors #6
 - f91de80: Detached raw validation exception state and bounded caller-facing contract-error locations #6
 - 734d35e: Made dashboard date-only ranges inclusive through a half-open next-day bound #7

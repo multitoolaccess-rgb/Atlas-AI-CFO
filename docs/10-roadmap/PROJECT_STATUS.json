@@ -1,5 +1,30 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "codex/phase-1-forecast-persistence-models",
+      "commit": "d85255f",
+      "id": "work-p1-forecast-persistence-models",
+      "issue": "#3",
+      "objective": "Implement only ADR-006 immutable forecast identity/version models and additive migration, with constraint, immutability, rollback, and dialect-focused tests.",
+      "paths": [
+        "services/rules-service/app/models/forecast.py",
+        "services/rules-service/alembic/versions",
+        "services/rules-service/tests/test_forecast_models.py",
+        "services/rules-service/tests/test_forecast_migration.py",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-1",
+      "risk_tier": "high",
+      "status": "in_progress",
+      "tests": [
+        "Forecast model and migration suite: 3 passed",
+        "Canonical contract, hashing, and Phase 0 projection suite: 76 passed",
+        "Rules Service suite: 655 passed, 10 skipped, 1 xfailed",
+        "SQLite upgrade/downgrade/re-upgrade, existing-data preservation, immutable update/delete guards, and downgrade refusal covered; PostgreSQL trigger branch reviewed"
+      ],
+      "title": "Implement immutable forecast persistence models and migration"
+    }
+  ],
   "blockers": [],
   "commit_pr_evidence": [
     {
@@ -29,6 +54,11 @@
       "commit": "a818665",
       "description": "Enforced the trusted adapter-only forecast generation boundary",
       "pr": "#4"
+    },
+    {
+      "commit": "d85255f",
+      "description": "Added immutable forecast persistence models and additive migration from Q5h1i2j3k4l5",
+      "pr": ""
     },
     {
       "commit": "a44e15d",
@@ -178,7 +208,7 @@
   ],
   "current_objective": "Await explicit authorization for the next bounded Phase 1 persistence slice; migrations, routes, and later Phase 1 work remain unauthorized.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-29T04:20:50Z",
+  "last_updated": "2026-07-29T04:40:34Z",
   "next_bounded_task": {
     "description": "Authorize and plan the next bounded Phase 1 persistence slice after reviewing merged canonical-contract evidence; do not begin implementation automatically.",
     "id": "next-p1-persistence-slice-authorization",
