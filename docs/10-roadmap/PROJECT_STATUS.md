@@ -5,7 +5,7 @@
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Independently re-review the hardened canonical projection-state contract in PR #6; forecast persistence, migrations, routes, and later Phase 1 slices remain unauthorized.
-- Last updated: 2026-07-28T05:26:19Z
+- Last updated: 2026-07-29T03:16:13Z
 
 ## Active work
 - work-p1-canonical-state-contract: Implement canonical projection-state contract test slice (in_review, high)
@@ -46,6 +46,7 @@
 - 6e485ea: Resolved Phase 1 canonical-envelope, validation, and retention planning decisions #4
 - a818665: Enforced the trusted adapter-only forecast generation boundary #4
 - a44e15d: Hardened canonical Decimal bounds and sanitized contract validation errors #6
+- f91de80: Detached raw validation exception state and bounded caller-facing contract-error locations #6
 - Test test-p0-rules: Rules Service — 579 passed, 10 skipped, 1 xfailed
 - Test test-p0-finlynq: Finlynq — 93 passed
 - Test test-p0-frontend: Frontend — 496 passed
