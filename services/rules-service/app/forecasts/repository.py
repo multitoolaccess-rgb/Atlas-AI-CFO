@@ -15,7 +15,7 @@ from decimal import Decimal, ROUND_HALF_EVEN
 from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from app.forecasts.canonical_state import (
@@ -77,6 +77,130 @@ class ForecastRepository:
             query = query.with_for_update()
         return query
 
+    def _existing_result(
+        self,
+        *,
+        user_id: int,
+        goal_id: int,
+        key_hash: str,
+        snapshots: ForecastSnapshots,
+        model_version: str,
+        calculation_version: str,
+    ) -> PersistedForecastVersion | None:
+        """Find a committed winner after a database uniqueness race.
+
+        This is deliberately a read-only recovery path.  It never retries an
+        insert, so a conflicting request cannot create a second mutable or
+        duplicate version.
+        """
+
+        forecast = self._session.scalar(
+            self._identity_query(user_id=user_id, goal_id=goal_id)
+        )
+        if forecast is None:
+            return None
+
+        existing_key = self._session.scalar(
+            select(ForecastVersion).where(
+                ForecastVersion.forecast_id == forecast.id,
+                ForecastVersion.idempotency_key_hash == key_hash,
+            )
+        )
+        if existing_key is not None:
+            if existing_key.input_state_hash != snapshots.input_state_hash:
+                raise IdempotencyConflict("idempotency key conflicts with canonical state")
+            return PersistedForecastVersion(
+                forecast, existing_key, False, snapshots.input_snapshot_json
+            )
+
+        existing_state = self._session.scalar(
+            select(ForecastVersion).where(
+                ForecastVersion.forecast_id == forecast.id,
+                ForecastVersion.input_state_hash == snapshots.input_state_hash,
+                ForecastVersion.model_version == model_version,
+                ForecastVersion.calculation_version == calculation_version,
+            )
+        )
+        if existing_state is not None:
+            return PersistedForecastVersion(
+                forecast, existing_state, False, snapshots.input_snapshot_json
+            )
+        return None
+
+    def _persist_once(
+        self,
+        *,
+        user_id: int,
+        goal_id: int,
+        key_hash: str,
+        snapshots: ForecastSnapshots,
+        state: CanonicalProjectionState,
+        model_version: str,
+        calculation_version: str,
+        calculated_at: datetime,
+        ending_balance: Decimal,
+        target_gap: Decimal,
+        expected_latest_version: int | None,
+    ) -> PersistedForecastVersion:
+        """Execute one short database attempt; caller owns commit or rollback."""
+
+        forecast = self._session.scalar(
+            self._identity_query(user_id=user_id, goal_id=goal_id)
+        )
+        if forecast is None:
+            forecast = Forecast(id=_uuid(), user_id=user_id, goal_id=goal_id)
+            self._session.add(forecast)
+            self._session.flush()
+
+        if (
+            expected_latest_version is not None
+            and forecast.latest_version_number != expected_latest_version
+        ):
+            raise StaleForecastVersion("forecast latest version is stale")
+
+        existing = self._existing_result(
+            user_id=user_id,
+            goal_id=goal_id,
+            key_hash=key_hash,
+            snapshots=snapshots,
+            model_version=model_version,
+            calculation_version=calculation_version,
+        )
+        if existing is not None:
+            return existing
+
+        version_number = forecast.latest_version_number + 1
+        version = ForecastVersion(
+            id=_uuid(),
+            forecast_id=forecast.id,
+            version_number=version_number,
+            input_state_hash=snapshots.input_state_hash,
+            idempotency_key_hash=key_hash,
+            snapshot_schema_version=state.schema_version,
+            hash_schema_version=state.canonicalization.hash_schema_version,
+            model_version=model_version,
+            calculation_version=calculation_version,
+            currency=state.currency,
+            calculated_at=calculated_at,
+            data_as_of=datetime.fromisoformat(
+                state.as_of_timestamp.replace("Z", "+00:00")
+            ),
+            max_data_age_days=state.freshness.max_data_age_days,
+            data_age_days=state.freshness.observed_age_days,
+            input_snapshot_json=snapshots.input_snapshot_json,
+            assumption_snapshot_json=snapshots.assumption_snapshot_json,
+            output_snapshot_json=snapshots.output_snapshot_json,
+            provenance_snapshot_json=snapshots.provenance_snapshot_json,
+            ending_balance=_money(ending_balance),
+            target_gap=_money(target_gap),
+        )
+        self._session.add(version)
+        forecast.latest_version_number = version_number
+        self._session.flush()
+        return PersistedForecastVersion(
+            forecast, version, True, snapshots.input_snapshot_json
+        )
+
     def persist(
         self,
         *,
@@ -112,61 +236,47 @@ class ForecastRepository:
             raise ValueError("calculated_at must be timezone-aware")
 
         try:
-            with self._session.begin_nested():
-                forecast = self._session.scalar(
-                    self._identity_query(user_id=user_id, goal_id=goal_id)
+            result = self._persist_once(
+                user_id=user_id,
+                goal_id=goal_id,
+                key_hash=key_hash,
+                snapshots=snapshots,
+                state=state,
+                model_version=model_version,
+                calculation_version=calculation_version,
+                calculated_at=calculated_at,
+                ending_balance=ending_balance,
+                target_gap=target_gap,
+                expected_latest_version=expected_latest_version,
+            )
+            # This repository owns the short persistence transaction.  A
+            # savepoint alone is insufficient because dependency teardown may
+            # otherwise roll the outer transaction back.
+            self._session.commit()
+            return result
+        except (IdempotencyConflict, StaleForecastVersion, ValueError):
+            self._session.rollback()
+            raise
+        except (IntegrityError, OperationalError) as exc:
+            # A unique/locking race is resolved only by observing the committed
+            # winner.  SQLite has no row locks; PostgreSQL gets the lock in the
+            # identity query above.  Both retain database uniqueness as the
+            # final concurrency backstop.
+            self._session.rollback()
+            try:
+                recovered = self._existing_result(
+                    user_id=user_id,
+                    goal_id=goal_id,
+                    key_hash=key_hash,
+                    snapshots=snapshots,
+                    model_version=model_version,
+                    calculation_version=calculation_version,
                 )
-                if forecast is None:
-                    forecast = Forecast(id=_uuid(), user_id=user_id, goal_id=goal_id)
-                    self._session.add(forecast)
-                    self._session.flush()
-
-                existing_key = self._session.scalar(
-                    select(ForecastVersion).where(
-                        ForecastVersion.forecast_id == forecast.id,
-                        ForecastVersion.idempotency_key_hash == key_hash,
-                    )
-                )
-                if existing_key is not None:
-                    if existing_key.input_state_hash != snapshots.input_state_hash:
-                        raise IdempotencyConflict("idempotency key conflicts with canonical state")
-                    return PersistedForecastVersion(forecast, existing_key, False, snapshots.input_snapshot_json)
-
-                if expected_latest_version is not None and forecast.latest_version_number != expected_latest_version:
-                    raise StaleForecastVersion("forecast latest version is stale")
-
-                existing_state = self._session.scalar(
-                    select(ForecastVersion).where(
-                        ForecastVersion.forecast_id == forecast.id,
-                        ForecastVersion.input_state_hash == snapshots.input_state_hash,
-                        ForecastVersion.model_version == model_version,
-                        ForecastVersion.calculation_version == calculation_version,
-                    )
-                )
-                if existing_state is not None:
-                    return PersistedForecastVersion(forecast, existing_state, False, snapshots.input_snapshot_json)
-
-                version_number = forecast.latest_version_number + 1
-                version = ForecastVersion(
-                    id=_uuid(), forecast_id=forecast.id, version_number=version_number,
-                    input_state_hash=snapshots.input_state_hash, idempotency_key_hash=key_hash,
-                    snapshot_schema_version=state.schema_version,
-                    hash_schema_version=state.canonicalization.hash_schema_version,
-                    model_version=model_version, calculation_version=calculation_version,
-                    currency=state.currency, calculated_at=calculated_at,
-                    data_as_of=datetime.fromisoformat(
-                        state.as_of_timestamp.replace("Z", "+00:00")
-                    ), max_data_age_days=state.freshness.max_data_age_days,
-                    data_age_days=state.freshness.observed_age_days,
-                    input_snapshot_json=snapshots.input_snapshot_json,
-                    assumption_snapshot_json=snapshots.assumption_snapshot_json,
-                    output_snapshot_json=snapshots.output_snapshot_json,
-                    provenance_snapshot_json=snapshots.provenance_snapshot_json,
-                    ending_balance=_money(ending_balance), target_gap=_money(target_gap),
-                )
-                self._session.add(version)
-                forecast.latest_version_number = version_number
-                self._session.flush()
-                return PersistedForecastVersion(forecast, version, True, snapshots.input_snapshot_json)
-        except IntegrityError as exc:
+                if recovered is not None:
+                    self._session.commit()
+                    return recovered
+            except IdempotencyConflict:
+                self._session.rollback()
+                raise
+            self._session.rollback()
             raise ForecastRepositoryConflict("forecast persistence conflict") from exc

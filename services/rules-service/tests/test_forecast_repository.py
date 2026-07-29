@@ -9,6 +9,7 @@ from decimal import Decimal
 
 import pytest
 from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import Base
@@ -68,11 +69,14 @@ def _persist(repository: ForecastRepository, *, key: str = "atlas-test-key", sta
 
 def test_repository_persists_canonical_snapshots_and_only_hashed_idempotency_key(session: Session) -> None:
     result = _persist(ForecastRepository(session))
+    assert not session.in_transaction()
     assert result.created is True
     assert result.version.version_number == 1
     assert result.version.input_snapshot_json == result.input_snapshot_json
     assert result.version.idempotency_key_hash == hashlib.sha256(b"atlas-test-key").hexdigest()
-    assert result.version.data_as_of == datetime(2026, 7, 1, 12, tzinfo=timezone.utc)
+    # SQLite stores these legacy DateTime values without a timezone offset;
+    # the canonical snapshot preserves the authoritative UTC representation.
+    assert result.version.data_as_of == datetime(2026, 7, 1, 12)
     assert "atlas-test-key" not in result.version.input_snapshot_json
     assert not hasattr(result.version, "idempotency_key")
 
@@ -101,7 +105,58 @@ def test_repository_rejects_stale_latest_version(session: Session) -> None:
         _persist(repository, key="atlas-test-key-2", expected_latest_version=0)
 
 
-@pytest.mark.parametrize("field", ["raw_statement", "raw_transactions", "credentials", "idempotency_key", "upload"])
+def test_repository_recovers_committed_winner_after_database_conflict(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A loser of a uniqueness race re-reads the committed winner safely."""
+
+    first = _persist(ForecastRepository(session))
+    contender = ForecastRepository(session)
+
+    def concurrent_conflict(**_kwargs):
+        raise IntegrityError("INSERT forecast_versions", {}, RuntimeError("unique conflict"))
+
+    monkeypatch.setattr(contender, "_persist_once", concurrent_conflict)
+    replay = _persist(contender)
+
+    assert replay.created is False
+    assert not session.in_transaction()
+    assert replay.version.id == first.version.id
+
+
+def test_repository_conflict_recovery_rejects_changed_state_for_same_key(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Re-reading a winner never turns a conflicting idempotency key into replay."""
+
+    _persist(ForecastRepository(session))
+    contender = ForecastRepository(session)
+    changed = _state().model_copy(update={"as_of_timestamp": "2026-07-02T12:00:00Z"})
+
+    def concurrent_conflict(**_kwargs):
+        raise IntegrityError("INSERT forecast_versions", {}, RuntimeError("unique conflict"))
+
+    monkeypatch.setattr(contender, "_persist_once", concurrent_conflict)
+    with pytest.raises(IdempotencyConflict):
+        _persist(contender, state=changed)
+    assert not session.in_transaction()
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "raw_statement",
+        "raw_transactions",
+        "credentials",
+        "idempotency_key",
+        "upload",
+        "api_key",
+        "access_token",
+        "password",
+        "authorization",
+        "transaction_history",
+    ],
+)
 def test_repository_rejects_raw_or_secret_snapshot_payloads(session: Session, field: str) -> None:
     repository = ForecastRepository(session)
     with pytest.raises(ValueError, match="raw source payloads"):

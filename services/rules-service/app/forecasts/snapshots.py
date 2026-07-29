@@ -8,22 +8,35 @@ from typing import Any
 
 from app.forecasts.canonical_state import CanonicalProjectionState, canonical_json, hash_input_state
 
-_FORBIDDEN_RAW_KEYS = frozenset(
+# These snapshots are deliberately generic internal structures, so an allowlist
+# would make this bounded repository API needlessly coupled to later projection
+# output contracts.  Rejecting secret and raw-source key families instead keeps
+# the persistence boundary defensive while preserving the approved contract.
+_FORBIDDEN_RAW_KEY_FRAGMENTS = frozenset(
     {
-        "credentials",
-        "idempotency_key",
+        "access_token",
+        "api_key",
+        "authorization",
+        "credential",
+        "idempotency",
+        "password",
+        "private_key",
         "raw_statement",
-        "raw_statements",
         "raw_transaction",
-        "raw_transactions",
+        "secret",
         "statement",
-        "statements",
         "token",
-        "tokens",
+        "transaction_history",
         "upload",
-        "uploads",
     }
 )
+
+
+def _is_forbidden_snapshot_key(key: str) -> bool:
+    """Recognize sensitive key families without reflecting their values."""
+
+    normalized = key.lower().replace("-", "_")
+    return any(fragment in normalized for fragment in _FORBIDDEN_RAW_KEY_FRAGMENTS)
 
 
 @dataclass(frozen=True)
@@ -42,7 +55,7 @@ def _reject_raw_payload(value: Any) -> None:
 
     if isinstance(value, Mapping):
         for key, nested in value.items():
-            if not isinstance(key, str) or key.lower() in _FORBIDDEN_RAW_KEYS:
+            if not isinstance(key, str) or _is_forbidden_snapshot_key(key):
                 raise ValueError("forecast snapshots must not contain raw source payloads")
             _reject_raw_payload(nested)
     elif isinstance(value, (list, tuple)):
