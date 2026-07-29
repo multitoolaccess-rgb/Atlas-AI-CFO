@@ -5,10 +5,10 @@
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 1 forecast models, migration, and repository transactions are complete; the trusted generation application service is the next bounded slice.
-- Last updated: 2026-07-29T16:38:24Z
+- Last updated: 2026-07-29T16:45:54Z
 
 ## Active work
-- None
+- work-p1-forecast-generation-service: Implement trusted forecast generation application service (in_progress, high)
 
 ## Blockers
 - None

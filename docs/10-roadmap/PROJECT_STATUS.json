@@ -1,5 +1,24 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "codex/phase-1-forecast-generation-service",
+      "id": "work-p1-forecast-generation-service",
+      "issue": "#3",
+      "objective": "Implement only the trusted Finlynq adapter, Phase 0 projection integration, and immutable repository generation service; no HTTP routes.",
+      "paths": [
+        "services/rules-service/app/forecasts",
+        "services/rules-service/tests/test_forecast_service.py",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-1",
+      "risk_tier": "high",
+      "status": "in_progress",
+      "tests": [
+        "Trusted adapter, Phase 0 projection, repository generation, idempotency, scope, and safe-error contract tests"
+      ],
+      "title": "Implement trusted forecast generation application service"
+    }
+  ],
   "blockers": [],
   "commit_pr_evidence": [
     {
@@ -250,7 +269,7 @@
   ],
   "current_objective": "Phase 1 forecast models, migration, and repository transactions are complete; the trusted generation application service is the next bounded slice.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-29T16:38:24Z",
+  "last_updated": "2026-07-29T16:45:54Z",
   "next_bounded_task": {
     "description": "Implement the trusted forecast generation application service after the repository slice merges; do not add HTTP routes.",
     "id": "next-p1-forecast-generation-service",
