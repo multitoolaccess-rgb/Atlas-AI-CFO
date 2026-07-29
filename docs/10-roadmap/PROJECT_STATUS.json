@@ -23,6 +23,31 @@
         "trusted generation-boundary documentation audit (a818665): passed"
       ],
       "title": "Plan immutable forecast persistence and versioned read APIs"
+    },
+    {
+      "branch": "codex/fix-inclusive-date-upper-bound",
+      "commit": "734d35e",
+      "id": "work-dashboard-inclusive-date-upper-bound",
+      "issue": "",
+      "objective": "Remediate the pre-existing date-only upper-bound exclusion in dashboard financial reporting without changing Phase 1 forecast persistence scope.",
+      "paths": [
+        "services/rules-service/app/routes/dashboard.py",
+        "services/rules-service/tests/test_routes_atlas_phase2_endpoints.py"
+      ],
+      "phase_id": "phase-1",
+      "pr": "#7",
+      "risk_tier": "high",
+      "status": "in_review",
+      "tests": [
+        "Focused inclusive date-boundary regressions: 11 passed",
+        "Dashboard endpoint suite: 32 passed",
+        "Rules Service suite: 587 passed, 10 skipped, 1 xfailed",
+        "Finlynq suite: 93 passed",
+        "Cross-service startup unit contracts: 19 passed",
+        "Tracker status tests: 9 passed; status and deterministic render checks passed",
+        "Skill validation, Python compilation, and diff check passed"
+      ],
+      "title": "Fix inclusive date-only dashboard upper bound"
     }
   ],
   "blockers": [],
@@ -54,6 +79,11 @@
       "commit": "a818665",
       "description": "Enforced the trusted adapter-only forecast generation boundary",
       "pr": "#4"
+    },
+    {
+      "commit": "734d35e",
+      "description": "Made dashboard date-only ranges inclusive through a half-open next-day bound",
+      "pr": "#7"
     }
   ],
   "completed_work": [
@@ -97,7 +127,7 @@
   ],
   "current_objective": "Review the resolved Phase 1 forecast-persistence decisions and trusted adapter-only generation boundary in PR #4; production implementation remains unauthorized.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-28T03:15:36Z",
+  "last_updated": "2026-07-29T03:40:46Z",
   "next_bounded_task": {
     "description": "Review the revised ADR-006 and plan in PR #4, then explicitly authorize only the canonical-envelope and contract-test implementation slice, including strict request-boundary tests; do not begin schema, migration, route, or UI work.",
     "id": "next-p1-plan-review",
