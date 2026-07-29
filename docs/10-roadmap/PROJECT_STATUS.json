@@ -14,8 +14,9 @@
         "docs/superpowers/plans"
       ],
       "phase_id": "phase-1",
+      "pr": "#10",
       "risk_tier": "high",
-      "status": "in_progress",
+      "status": "in_review",
       "tests": [
         "Provider privacy, authorization, canonical-envelope, freshness, deterministic-hash, and no-fallback contract tests"
       ],
@@ -272,7 +273,7 @@
   ],
   "current_objective": "Phase 1 repository transactions are complete; B0 is establishing authoritative Finlynq account currency and the privacy-minimized canonical projection-state provider before generation service resumes.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-29T17:08:10Z",
+  "last_updated": "2026-07-29T17:14:14Z",
   "next_bounded_task": {
     "description": "Complete the Finlynq-owned canonical projection-state provider, then resume the blocked trusted generation application service; do not add HTTP routes.",
     "id": "next-p1-finlynq-projection-provider",

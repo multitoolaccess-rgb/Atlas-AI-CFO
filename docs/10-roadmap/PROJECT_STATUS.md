@@ -5,10 +5,10 @@
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 1 repository transactions are complete; B0 is establishing authoritative Finlynq account currency and the privacy-minimized canonical projection-state provider before generation service resumes.
-- Last updated: 2026-07-29T17:08:10Z
+- Last updated: 2026-07-29T17:14:14Z
 
 ## Active work
-- work-p1-finlynq-projection-provider: Implement Finlynq canonical projection-state provider (in_progress, high)
+- work-p1-finlynq-projection-provider: Implement Finlynq canonical projection-state provider (in_review, high)
 
 ## Blockers
 - None
