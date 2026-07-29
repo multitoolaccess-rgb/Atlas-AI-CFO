@@ -4,11 +4,11 @@
 
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Independently re-review the hardened canonical projection-state contract in PR #6; forecast persistence, migrations, routes, and later Phase 1 slices remain unauthorized.
-- Last updated: 2026-07-29T04:10:00Z
+- Current objective: Await explicit authorization for the next bounded Phase 1 persistence slice; migrations, routes, and later Phase 1 work remain unauthorized.
+- Last updated: 2026-07-29T04:20:50Z
 
 ## Active work
-- work-p1-canonical-state-contract: Implement canonical projection-state contract test slice (in_review, high)
+- None
 
 ## Blockers
 - None
@@ -33,11 +33,11 @@
 - risk-p1-trusted-generation-boundary [high/medium, open]: An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.
 
 ## Recently completed work
-- work-p0-atlas-baseline: Atlas baseline from validated Finance Copilot foundation — commit c0f5287, PR None
 - work-p0-environment-isolation: Isolated service Python environments — commit 8baa1c2, PR None
 - work-p0-synthetic-fixtures: Approved synthetic financial fixtures — commit d001e64, PR #1
 - work-p1-forecast-persistence-planning: Plan immutable forecast persistence and versioned read APIs — commit a818665, PR #4
 - work-dashboard-inclusive-date-upper-bound: Fix inclusive date-only dashboard upper bound — commit e2ebbb2, PR #7
+- work-p1-canonical-state-contract: Implement canonical projection-state contract test slice — commit f91de80, PR #6
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -58,6 +58,6 @@
 - Test test-p1-planning-status: Phase 1 planning governance — 5 passed; status, deterministic render, and trusted generation-boundary documentation checks passed
 
 ## Next bounded task
-- next-p1-canonical-state-contract-review: Independently re-review the hardened PR #6 canonical projection-state contract; do not begin persistence, migrations, routes, or any later Phase 1 slice until it is approved.
+- next-p1-persistence-slice-authorization: Authorize and plan the next bounded Phase 1 persistence slice after reviewing merged canonical-contract evidence; do not begin implementation automatically.
 
 Do not begin the next phase or task automatically.
