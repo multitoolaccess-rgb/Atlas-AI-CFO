@@ -5,11 +5,10 @@
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Review the resolved Phase 1 forecast-persistence decisions and trusted adapter-only generation boundary in PR #4; production implementation remains unauthorized.
-- Last updated: 2026-07-29T04:00:20Z
+- Last updated: 2026-07-29T04:06:45Z
 
 ## Active work
 - work-p1-forecast-persistence-planning: Plan immutable forecast persistence and versioned read APIs (in_review)
-- work-dashboard-inclusive-date-upper-bound: Fix inclusive date-only dashboard upper bound (in_review, high)
 
 ## Blockers
 - None
@@ -37,6 +36,7 @@
 - work-p0-atlas-baseline: Atlas baseline from validated Finance Copilot foundation — commit c0f5287, PR None
 - work-p0-environment-isolation: Isolated service Python environments — commit 8baa1c2, PR None
 - work-p0-synthetic-fixtures: Approved synthetic financial fixtures — commit d001e64, PR #1
+- work-dashboard-inclusive-date-upper-bound: Fix inclusive date-only dashboard upper bound — commit e2ebbb2, PR #7
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
