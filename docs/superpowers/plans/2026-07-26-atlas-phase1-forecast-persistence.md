@@ -99,6 +99,37 @@ Finlynq owns ingestion and canonical financial state. The adapter owns
 normalization into the envelope. Rules Service owns forecast calculation and
 persistence. Rules Service must not query Finlynq database tables directly.
 
+### B0 provider prerequisite: explicit source currency and net-worth goals
+
+Before the generation service, Finlynq provides one dedicated authenticated,
+privacy-minimized projection-state boundary. Rules Service calls that boundary
+only; `/state`, `/state/summary`, raw listings, and shared-table reads are not
+valid forecast inputs. Existing generic state contracts remain unchanged.
+
+Only explicitly configured `net_worth` goals are eligible in Phase 1. The
+server-owned configuration contains a bounded canonical monthly contribution,
+USD-only goal configuration, and bounded source metadata. It is not inferred
+from goal text, transactions, cash-flow calculations, profiles, or request
+data. Missing, unsupported, stale, or ambiguous configuration fails closed.
+
+Account currency is authoritative only when explicit source evidence supplies
+all of code, approved source (`provider_reported`, `statement_declared`, or
+`user_confirmed`), UTC observed timestamp, and a bounded stable reference.
+Unknown is represented as missing data; no preference/default/symbol/name
+inference or automatic historical backfill is allowed. The provider consumes
+only accounts with one authoritative USD currency and fails closed for mixed,
+unsupported, stale, or conflicting evidence. The bounded operator confirmation
+command is dry-run by default and cannot apply to a real account without an
+explicit operator `--apply` invocation.
+The B0 provider permits at most seven calendar days of age and derives the
+effective timestamp from the stalest included balance, currency, and
+contribution observation.
+
+The confirmation command is operator-only:
+`python -m app.projection_state.confirm_currency --user-id <id> --account-id <id> --currency USD`.
+It prints only IDs and currency codes, is dry-run by default, accepts at most
+ten explicit account IDs, and requires `--apply` for an atomic update.
+
 The versioned, bounded envelope contains:
 
 - `schema_version` and canonicalization/hash metadata;

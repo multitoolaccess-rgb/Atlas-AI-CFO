@@ -39,6 +39,7 @@ from app.database import Base, SessionLocal, engine  # noqa: F401 — registers 
 from app.routes.categorize import categories_router, router as categorize_router
 from app.routes.health import router as health_router
 from app.routes.parse import router as parse_router
+from app.routes.projection_state import router as projection_state_router
 from app.routes.state import router as state_router
 from app.services.categorizer import seed_default_categories
 
@@ -217,6 +218,7 @@ def _bootstrap_schema() -> None:
 # on the route handler — NOT at router mount time).
 app.include_router(health_router)
 app.include_router(parse_router)
+app.include_router(projection_state_router)
 app.include_router(categorize_router)
 app.include_router(categories_router)
 app.include_router(state_router)

@@ -163,6 +163,33 @@ Rules Service receives explicit canonical state. It does not query
 Finlynq-owned tables directly. Provenance references describe inputs without
 copying user statements or transaction histories into forecast rows.
 
+### Finlynq projection-state provider and source currency
+
+Finlynq owns a dedicated authenticated provider for
+`atlas-projection-state/v1`. Rules Service may call only that provider; it
+must not construct forecast state from `/state`, `/state/summary`, shared
+tables, or raw account/transaction listings. The generic state contracts stay
+unchanged and are prohibited for forecast generation.
+
+Phase 1 supports only explicitly configured `net_worth` goals. The
+server-stored configuration carries the bounded monthly contribution and its
+provenance reference; the generation request cannot supply either value.
+Unsupported, missing, ambiguous, stale, or incomplete configuration fails
+closed.
+
+Account currency is source data, never a user preference or server default.
+It is present only with all four authoritative fields: uppercase ISO code,
+one of `provider_reported`, `statement_declared`, or `user_confirmed`, an
+observed UTC timestamp, and a bounded stable reference. There is no historical
+backfill. Unknown, mixed, stale, conflicting, or non-USD account currency
+fails closed for the USD-only Phase 1 provider. Existing Float balances convert
+only with `Decimal(str(value))` and carry the bounded legacy-Float provenance
+indicator; this does not restore precision.
+
+The B0 provider freshness policy is seven calendar days. It uses the stalest
+included balance observation, currency observation, and contribution
+configuration observation; a missing or future timestamp fails closed.
+
 ### Canonical projection-state envelope
 
 Finlynq owns ingestion and canonical financial state. A typed adapter or

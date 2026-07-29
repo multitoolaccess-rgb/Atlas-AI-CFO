@@ -4,14 +4,14 @@
 
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Phase 1 repository transactions are complete; B0 is blocked pending an authoritative Finlynq account-currency source before the provider or generation service can proceed.
-- Last updated: 2026-07-29T16:54:32Z
+- Current objective: Phase 1 repository transactions are complete; B0 is establishing authoritative Finlynq account currency and the privacy-minimized canonical projection-state provider before generation service resumes.
+- Last updated: 2026-07-29T17:08:10Z
 
 ## Active work
-- work-p1-finlynq-projection-provider: Implement Finlynq canonical projection-state provider (blocked, high)
+- work-p1-finlynq-projection-provider: Implement Finlynq canonical projection-state provider (in_progress, high)
 
 ## Blockers
-- B0 is blocked: Finlynq accounts have no authoritative currency, so active balances cannot be truthfully emitted as USD in atlas-projection-state/v1.
+- None
 
 ## Phase progress
 - phase-0 — Projection foundation and Atlas baseline: complete (4/4 exit criteria)
@@ -62,6 +62,6 @@
 - Test test-p1-planning-status: Phase 1 planning governance — 5 passed; status, deterministic render, and trusted generation-boundary documentation checks passed
 
 ## Next bounded task
-- next-p1-account-currency-authority: Approve the authoritative Finlynq account-currency source and its bounded migration/ingestion policy; then resume B0 before the generation service.
+- next-p1-finlynq-projection-provider: Complete the Finlynq-owned canonical projection-state provider, then resume the blocked trusted generation application service; do not add HTTP routes.
 
 Do not begin the next phase or task automatically.
