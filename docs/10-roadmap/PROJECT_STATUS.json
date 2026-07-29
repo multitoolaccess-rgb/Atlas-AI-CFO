@@ -1,28 +1,5 @@
 {
-  "active_work": [
-    {
-      "branch": "codex/phase-1-finlynq-projection-provider",
-      "id": "work-p1-finlynq-projection-provider",
-      "issue": "#3",
-      "objective": "Implement only the Finlynq-owned privacy-minimized atlas-projection-state/v1 provider and sanctioned Rules Service adapter boundary; no generation service or routes.",
-      "paths": [
-        "services/finlynq/app/projection_state",
-        "services/finlynq/tests/test_projection_state_provider.py",
-        "services/rules-service/app/forecast_provider",
-        "services/rules-service/tests/test_finlynq_projection_provider.py",
-        "docs/adr",
-        "docs/superpowers/plans"
-      ],
-      "phase_id": "phase-1",
-      "pr": "#10",
-      "risk_tier": "high",
-      "status": "in_review",
-      "tests": [
-        "Provider privacy, authorization, canonical-envelope, freshness, deterministic-hash, and no-fallback contract tests"
-      ],
-      "title": "Implement Finlynq canonical projection-state provider"
-    }
-  ],
+  "active_work": [],
   "blockers": [],
   "commit_pr_evidence": [
     {
@@ -269,14 +246,43 @@
         "Repository contract 34 passed; persistence/canonical/Phase 0 112 passed; Rules Service 691 passed, 10 skipped, 1 xfailed; Finlynq 93 passed; cross-service 4 passed"
       ],
       "title": "Implement immutable forecast repository transactions"
+    },
+    {
+      "branch": "codex/phase-1-finlynq-projection-provider",
+      "ci_evidence": {
+        "check": "cheap (lint + unit, no browser): SUCCESS",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/30475307248"
+      },
+      "commit": "4ebf757e2ea266e5ba55f6dc86c18869087fd1e4",
+      "id": "work-p1-finlynq-projection-provider",
+      "issue": "#3",
+      "objective": "Implement only the Finlynq-owned privacy-minimized atlas-projection-state/v1 provider and sanctioned Rules Service adapter boundary; no generation service or routes.",
+      "paths": [
+        "services/finlynq/app/projection_state",
+        "services/finlynq/tests/test_projection_state_provider.py",
+        "services/rules-service/app/forecast_provider",
+        "services/rules-service/tests/test_finlynq_projection_provider.py",
+        "docs/adr",
+        "docs/superpowers/plans"
+      ],
+      "phase_id": "phase-1",
+      "pr": "#10",
+      "review_evidence": "Independent review at 4ebf757e2ea266e5ba55f6dc86c18869087fd1e4: APPROVE; no findings.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Finlynq suite: 106 passed; Rules Service suite: 696 passed, 10 skipped, 1 xfailed; cross-service: 2 passed; tracker tests: 9 passed; focused provider: 13 passed; focused migration/provider/parity: 9 passed."
+      ],
+      "title": "Implement Finlynq canonical projection-state provider"
     }
   ],
   "current_objective": "Phase 1 repository transactions are complete; B0 is establishing authoritative Finlynq account currency and the privacy-minimized canonical projection-state provider before generation service resumes.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-29T17:14:14Z",
+  "last_updated": "2026-07-29T17:33:28Z",
   "next_bounded_task": {
-    "description": "Complete the Finlynq-owned canonical projection-state provider, then resume the blocked trusted generation application service; do not add HTTP routes.",
-    "id": "next-p1-finlynq-projection-provider",
+    "description": "After B0 merges, resume the paused trusted forecast generation application-service slice using only the Finlynq canonical projection-state provider; do not add HTTP routes.",
+    "id": "next-p1-forecast-generation-service",
     "phase_id": "phase-1"
   },
   "overall_status": "in_progress",
