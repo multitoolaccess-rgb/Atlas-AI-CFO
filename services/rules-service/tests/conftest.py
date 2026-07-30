@@ -45,6 +45,7 @@ os.environ["JWT_SECRET"] = "pytest-jwt-secret-do-not-use-in-prod"
 os.environ["LOCAL_USER"] = "alex"
 os.environ["ENVIRONMENT"] = "development"
 os.environ["ATLAS_FORECAST_PERSISTENCE_ENABLED"] = "true"
+os.environ["ATLAS_FORECAST_READ_API_ENABLED"] = "true"
 os.environ["PLAID_CLIENT_ID"] = ""  # Plaid endpoints stay 501 in tests
 os.environ["PLAID_SECRET"] = ""
 # Default the Finlynq forwarder URL so httpx-based forwarders don't
@@ -143,6 +144,12 @@ _LIFTED_TABLES = (
     # holdings here makes every test start from a clean ledger so
     # the assertions on sum + count actually mean what they claim.
     "holdings",
+    # Phase 1 Slice B/C/D — forecast history.  ``forecast_versions``
+    # is listed BEFORE ``forecasts`` so FK RESTRICT semantics (active
+    # on Postgres at request level, no-op on SQLite without
+    # enforcement) drop child rows before the parent identity row.
+    "forecast_versions",
+    "forecasts",
 )
 
 

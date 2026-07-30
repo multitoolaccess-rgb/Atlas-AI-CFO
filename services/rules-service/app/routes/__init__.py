@@ -63,6 +63,9 @@ from app.routes.categories import router as categories_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.data import router as data_router
 from app.routes.family_members import router as family_members_router
+# Phase 1 Slice D — bounded read-only /api/v1/forecasts/* routes.
+# No generation POST is registered here; it stays in its own Slice.
+from app.routes.forecasts import router as forecasts_router
 from app.routes.goals import router as goals_router
 # Phase 39 — portfolio holdings (positions import + live pricing).
 from app.routes.holdings import router as holdings_router
@@ -95,6 +98,7 @@ __all__ = [
     "dashboard_router",
     "data_router",
     "family_members_router",
+    "forecasts_router",
     "goals_router",
     "holdings_router",
     "imports_router",
