@@ -5,7 +5,7 @@
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 1 forecast models, migration, repository transactions, and the Finlynq-owned canonical projection-state provider are complete; the trusted generation application service is the active bounded slice.
-- Last updated: 2026-07-30T04:12:48Z
+- Last updated: 2026-07-30T04:27:15Z
 
 ## Active work
 - None
@@ -34,11 +34,11 @@
 - risk-p1-account-currency-authority [high/high, open]: Finlynq active account balances have no authoritative currency attribute; a user preference/default cannot prove balances are USD for atlas-projection-state/v1.
 
 ## Recently completed work
-- work-p1-canonical-state-contract: Implement canonical projection-state contract test slice — commit f91de80, PR #6
 - work-p1-forecast-persistence-models: Implement immutable forecast persistence models and migration — commit 59b3baa, PR #8
 - work-p1-forecast-repository: Implement immutable forecast repository transactions — commit a85aed6, PR #9
 - work-p1-finlynq-projection-provider: Implement Finlynq canonical projection-state provider — commit 4ebf757e2ea266e5ba55f6dc86c18869087fd1e4, PR #10
 - work-p1-forecast-generation-service: Implement trusted forecast generation application service — commit a44aeaf4, PR 11
+- work-p1-versioned-schemas: Phase 1 Slice C: Decimal-safe versioned API schemas — commit 17632b5, PR 12
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -62,6 +62,6 @@
 - Test test-p1-planning-status: Phase 1 planning governance — 5 passed; status, deterministic render, and trusted generation-boundary documentation checks passed
 
 ## Next bounded task
-- work-p1-versioned-schemas: Phase 1 Slice C: Decimal-safe versioned API schemas (no routes yet). Define bounded control-only generation request contract, stable ForecastResponse / ForecastListResponse / ForecastVersionResponse / ForecastVersionListResponse with canonical Decimal-string money, Sanitized validation error envelope, target-status decision v2 representation, stable ETag derivation (forecast id + latest version), opaque base64url cursor codec, validated Idempotency-Key / If-Match / If-None-Match header parsers, stable 409 envelopes (forecast_version_conflict, idempotency_conflict), 503 envelope (forecast_generation_unavailable). All extra="forbid"; reject unknown fields and unknown headers.
+- work-p1-versioned-read-routes: Phase 1 Slice D: Authenticated POST /api/v1/goals/{goal_id}/forecasts + GET /api/v1/forecasts (cursor-paged, user-scoped) + GET /api/v1/forecasts/{forecast_id} + GET /api/v1/forecasts/{forecast_id}/versions (cursor-paged) + GET /api/v1/forecasts/{forecast_id}/versions/{version_number}. Required Idempotency-Key header + If-Match / If-None-Match conditional headers; control-only body (extra=forbid); stable 409 envelopes (forecast_version_conflict + idempotency_conflict); 503 envelope (forecast_generation_unavailable when persistence disabled); 404 non-disclosing for cross-user / missing goal or forecast. NO PUT/PATCH/DELETE routes. Auth via require_user; goal authorization before adapter invocation; idempotency key hashed server-side; ETag header via api_codecs.format_forecast_etag_header. Compose RO classes directly from app.forecasts.schemas — no field re-declaration. Read flag stays OFF (Slice E introduces ATLAS_FORECAST_READ_API_ENABLED).
 
 Do not begin the next phase or task automatically.

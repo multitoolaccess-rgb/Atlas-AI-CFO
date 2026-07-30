@@ -301,14 +301,38 @@
         "rules-service suite 751 passed + 10 skipped + 1 xfailed in 11.55s including the 43 new gate tests; cross-services 4 passed; python compileall clean; tracker check + render --check valid"
       ],
       "title": "Implement trusted forecast generation application service"
+    },
+    {
+      "branch": "codex/phase-1-versioned-schemas",
+      "ci_evidence": {
+        "check": "cheap pass 4m20s + status pass 11s on commit 79b992c (PR #12 head); heavy skipping is expected for Phase 1 no-UI",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/30512825491"
+      },
+      "commit": "17632b5",
+      "id": "work-p1-versioned-schemas",
+      "issue": "",
+      "objective": "Bounded Pydantic schemas + cursor + ETag codecs + sanitized 4xx/5xx envelopes per ADR-006 and Phase 1 plan \u00a7Slice 5 (NO routes, NO flags, NO shadow)",
+      "paths": [
+        "services/rules-service/app/forecasts"
+      ],
+      "phase_id": "phase-1",
+      "pr": "12",
+      "review_evidence": "independent code-reviewer-minimax-m3 (Slice C PR head APPROVE_FOR_MERGE, criteria A-I clean: scope discipline, extra=forbid, Decimal canonical, UTC-RFC-3339-Z, USD-only, cursor codec, ETag codec, no sensitive data, 32/32 atomic tests)",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "rules-service tests/test_forecast_schemas.py 32 passed; broader forecast bundle (test_forecast_service.py + test_forecast_persistence_gate.py + test_forecast_repository.py + test_forecast_hashing.py + test_canonical_projection_state.py + test_forecast_models.py + test_forecast_migration.py) 157 passed; python compileall clean"
+      ],
+      "title": "Phase 1 Slice C: Decimal-safe versioned API schemas"
     }
   ],
   "current_objective": "Phase 1 forecast models, migration, repository transactions, and the Finlynq-owned canonical projection-state provider are complete; the trusted generation application service is the active bounded slice.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-30T04:12:48Z",
+  "last_updated": "2026-07-30T04:27:15Z",
   "next_bounded_task": {
-    "description": "Phase 1 Slice C: Decimal-safe versioned API schemas (no routes yet). Define bounded control-only generation request contract, stable ForecastResponse / ForecastListResponse / ForecastVersionResponse / ForecastVersionListResponse with canonical Decimal-string money, Sanitized validation error envelope, target-status decision v2 representation, stable ETag derivation (forecast id + latest version), opaque base64url cursor codec, validated Idempotency-Key / If-Match / If-None-Match header parsers, stable 409 envelopes (forecast_version_conflict, idempotency_conflict), 503 envelope (forecast_generation_unavailable). All extra=\"forbid\"; reject unknown fields and unknown headers.",
-    "id": "work-p1-versioned-schemas",
+    "description": "Phase 1 Slice D: Authenticated POST /api/v1/goals/{goal_id}/forecasts + GET /api/v1/forecasts (cursor-paged, user-scoped) + GET /api/v1/forecasts/{forecast_id} + GET /api/v1/forecasts/{forecast_id}/versions (cursor-paged) + GET /api/v1/forecasts/{forecast_id}/versions/{version_number}. Required Idempotency-Key header + If-Match / If-None-Match conditional headers; control-only body (extra=forbid); stable 409 envelopes (forecast_version_conflict + idempotency_conflict); 503 envelope (forecast_generation_unavailable when persistence disabled); 404 non-disclosing for cross-user / missing goal or forecast. NO PUT/PATCH/DELETE routes. Auth via require_user; goal authorization before adapter invocation; idempotency key hashed server-side; ETag header via api_codecs.format_forecast_etag_header. Compose RO classes directly from app.forecasts.schemas \u2014 no field re-declaration. Read flag stays OFF (Slice E introduces ATLAS_FORECAST_READ_API_ENABLED).",
+    "id": "work-p1-versioned-read-routes",
     "phase_id": "phase-1"
   },
   "overall_status": "in_progress",
