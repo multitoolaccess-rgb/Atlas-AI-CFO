@@ -245,7 +245,8 @@ forecast response links the latest version but never overwrites history.
 2. Preserve canonical unrounded Decimal strings needed for calculation and
    hashing; quantize only persisted/display monetary outputs with
    `ROUND_HALF_EVEN`.
-3. Normalize currency, dates, contribution timing, assumptions, freshness,
+3. Normalize currency, dates (including the nullable goal target date),
+   contribution timing, goal target and horizon inputs, assumptions, freshness,
    source references, and goal ID.
 4. Serialize Decimal values as canonical strings, dates as ISO date strings,
    and instants as timezone-aware UTC RFC 3339 strings with a `Z` suffix.

@@ -1,5 +1,5 @@
 """Trusted generation-service contracts; no HTTP route is exercised here."""
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 import pytest
@@ -69,6 +69,26 @@ def test_goal_input_change_changes_hash_and_cannot_replay_old_forecast(db):
     assert changed.persisted.created
     assert changed.persisted.version.id != first.persisted.version.id
     assert changed.persisted.version.input_state_hash != first.persisted.version.input_state_hash
+
+    with pytest.raises(IdempotencyConflict):
+        service.generate(user_id=1, user_sub="atlas-user", goal_id=1, idempotency_key="atlas-key", now=now)
+
+
+def test_goal_deadline_change_changes_hash_and_cannot_replay_old_forecast(db):
+    adapter = Adapter(_state())
+    service = ForecastGenerationService(db, adapter)
+    now = datetime(2026, 7, 2, tzinfo=timezone.utc)
+    first = service.generate(user_id=1, user_sub="atlas-user", goal_id=1, idempotency_key="atlas-key", now=now)
+
+    goal = db.get(Goal, 1)
+    assert goal is not None
+    goal.target_date = date(2028, 7, 2)
+    db.commit()
+
+    changed = service.generate(user_id=1, user_sub="atlas-user", goal_id=1, idempotency_key="atlas-key-deadline", now=now)
+    assert changed.persisted.created
+    assert changed.persisted.version.input_state_hash != first.persisted.version.input_state_hash
+    assert '"target_date":"2028-07-02"' in changed.persisted.version.assumption_snapshot_json
 
     with pytest.raises(IdempotencyConflict):
         service.generate(user_id=1, user_sub="atlas-user", goal_id=1, idempotency_key="atlas-key", now=now)

@@ -89,7 +89,7 @@ def _assumptions() -> dict[str, object]:
         "period": "monthly",
         "rounding_rule": "ROUND_HALF_EVEN",
         "money_precision": "0.01",
-        "goal_inputs": {"target_amount": "1000", "horizon_years": 1, "source_representation": "float", "conversion": "decimal-str", "precision_restored": False},
+        "goal_inputs": {"target_amount": "1000", "horizon_years": 1, "target_date": None, "source_representation": "float", "conversion": "decimal-str", "precision_restored": False},
     }
 
 

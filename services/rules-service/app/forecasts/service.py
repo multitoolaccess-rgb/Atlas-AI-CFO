@@ -46,7 +46,7 @@ class ForecastGenerationService:
             "annual_return_rates": {k: canonical_decimal_string(v) for k, v in _RATES.items()},
             "annual_inflation_rate": "0.02", "contribution_timing": "end", "period": "monthly",
             "rounding_rule": "ROUND_HALF_EVEN", "money_precision": "0.01",
-            "goal_inputs": {"target_amount": canonical_decimal_string(Decimal(str(goal.target_amount))), "horizon_years": goal.horizon_years, "source_representation": "float", "conversion": "decimal-str", "precision_restored": False},
+            "goal_inputs": {"target_amount": canonical_decimal_string(Decimal(str(goal.target_amount))), "horizon_years": goal.horizon_years, "target_date": goal.target_date.isoformat() if goal.target_date is not None else None, "source_representation": "float", "conversion": "decimal-str", "precision_restored": False},
         }
         output = self._output(result)
         base = result.scenarios["base"]
