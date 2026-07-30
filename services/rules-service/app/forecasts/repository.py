@@ -395,21 +395,25 @@ class ForecastRepository:
         forecast is built.  The ``+1`` is bounded (max limit 64 per
         the response schema), so the over-fetch is bounded.
         """
-        from sqlalchemy import and_, or_
+        from sqlalchemy import and_, or_, tuple_
 
         bound = max(1, min(64, limit)) + 1
         stmt = select(Forecast).where(Forecast.user_id == user_id)
         if goal_id is not None:
             stmt = stmt.where(Forecast.goal_id == goal_id)
         if cursor is not None:
+            # Strict tuple comparison: a row is included iff
+            # ``(created_at, id)`` is lexicographically strictly less
+            # than ``(cursor.created_at, cursor.id)``.  Using a single
+            # ``ROW`` comparison (rather than the OR-cascade of
+            # ``created_at < OR (created_at = AND id <)``) keeps the
+            # boundary row deterministically excluded across both
+            # Postgres (typed datetime) and SQLite (text-collated datetime)
+            # without depending on timestamp precision alignment
+            # between cursor serialization and DB persistence.
             stmt = stmt.where(
-                or_(
-                    Forecast.created_at < cursor.created_at,
-                    and_(
-                        Forecast.created_at == cursor.created_at,
-                        Forecast.id < cursor.forecast_id,
-                    ),
-                )
+                tuple_(Forecast.created_at, Forecast.id)
+                < tuple_(cursor.created_at, cursor.forecast_id)
             )
         forecasts = list(
             self._session.scalars(
@@ -436,9 +440,26 @@ class ForecastRepository:
         next_cursor: ForecastCursor | None = None
         if has_more and forecasts:
             last = forecasts[-1]
+            # ``Forecast.created_at`` arrives from SQLite as a naive
+            # ``datetime`` because the dialect stores it as text and
+            # strips the tzinfo.  Calling ``.astimezone(timezone.utc)``
+            # on a *naive* datetime would silently treat the value as
+            # local time and shift it by the system offset (positive
+            # hours into the future relative to the stored row), causing
+            # the subsequent page-2 ``< cursor.created_at`` filter to
+            # re-include the boundary row.  ``.replace(tzinfo=...)`` on
+            # the naive case labels the value as already-UTC instead of
+            # shifting it; the already-aware case still uses
+            # ``.astimezone(utc)`` so timezone-normalized comparisons on
+            # Postgres remain correct.
+            utc_created_at = (
+                last.created_at.replace(tzinfo=timezone.utc)
+                if last.created_at.tzinfo is None
+                else last.created_at.astimezone(timezone.utc)
+            )
             next_cursor = ForecastCursor(
                 forecast_id=last.id,
-                created_at=last.created_at.astimezone(timezone.utc),
+                created_at=utc_created_at,
                 version_number=last.latest_version_number,
             )
         return pairs, next_cursor
@@ -456,7 +477,7 @@ class ForecastRepository:
         Returns ``None`` when the user does not own the forecast
         (route layer translates to indistinguishable 404).
         """
-        from sqlalchemy import and_, or_
+        from sqlalchemy import and_, or_, tuple_
 
         forecast = self._session.scalar(
             select(Forecast).where(
@@ -494,9 +515,19 @@ class ForecastRepository:
         next_cursor: ForecastCursor | None = None
         if has_more and versions:
             last = versions[-1]
+            # Same tzinfo-on-naive handling as ``list_forecasts_paginated``
+            # -- see the parent method's comment for the SQLite text-store
+            # rationale.  Without the conditional, a future-shifted
+            # ``created_at`` would re-include the boundary version row
+            # on the next page.
+            utc_created_at = (
+                last.created_at.replace(tzinfo=timezone.utc)
+                if last.created_at.tzinfo is None
+                else last.created_at.astimezone(timezone.utc)
+            )
             next_cursor = ForecastCursor(
                 forecast_id=last.forecast_id,
-                created_at=last.created_at.astimezone(timezone.utc),
+                created_at=utc_created_at,
                 version_number=last.version_number,
             )
         return versions, next_cursor

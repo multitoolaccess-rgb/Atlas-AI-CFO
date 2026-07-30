@@ -77,6 +77,15 @@ def _make_goal(db, user_id: int, *, name: str = "Test goal", target_amount: floa
 
 
 def _make_forecast(db, *, user_id: int, goal_id: int) -> Forecast:
+    # Set ``created_at`` explicitly to a tz-aware UTC datetime so the
+    # row's persisted datetime matches the format the cursor's
+    # SQL-bound parameter uses.  Without this, SQLite stores
+    # ``server_default=func.now()`` as naive text like
+    # ``'YYYY-MM-DD HH:MM:SS'`` while the cursor's tz-aware parameter
+    # is serialized with offset (e.g. ``'+00:00'``).  Lexicographic
+    # tuple-comparison on the persisted text then re-includes the
+    # boundary row in page 2.  Production Postgres is unaffected
+    # because Postgres is timezone-aware at the SQL layer.
     fc = Forecast(
         id=_uuid_for(f"forecast-user{user_id}-goal{goal_id}"),
         user_id=user_id,
@@ -85,6 +94,7 @@ def _make_forecast(db, *, user_id: int, goal_id: int) -> Forecast:
         currency="USD",
         lifecycle_state="active",
         latest_version_number=0,
+        created_at=datetime.now(timezone.utc),
     )
     db.add(fc)
     db.commit()
@@ -182,27 +192,49 @@ def _make_version(
     now = datetime.now(timezone.utc)
     input_hash = hashlib.sha256(f"atlas-tests-input-{forecast_id}-{version_number}".encode("ascii")).hexdigest()
     idem_hash = hashlib.sha256(f"atlas-tests-idem-{forecast_id}-{version_number}".encode("ascii")).hexdigest()
+    # ``AssumptionSnapshotSchema`` declares ``annual_return_rates`` and
+    # ``goal_inputs`` as ``tuple[tuple[str, str], ...]`` (the same wire
+    # pattern as ``OutputSnapshotSchema.scenarios``): Pydantic only
+    # accepts a JSON ARRAY of two-element arrays, not a JSON OBJECT.
+    # We serialize as the sorted list the schema expects on the wire so
+    # the mapper's read-side Pydantic validation accepts the persisted
+    # snapshot verbatim.
     assumption_payload = {
         "assumption_profile": "phase1-server-default",
         "assumption_schema_version": ASSUMPTION_SCHEMA_VERSION,
-        "annual_return_rates": {
-            "conservative": _money_str(Decimal("0.02")),
-            "base": _money_str(Decimal("0.04")),
-            "optimistic": _money_str(Decimal("0.06")),
-        },
+        "annual_return_rates": [
+            [
+                "conservative",
+                _money_str(Decimal("0.02")),
+            ],
+            [
+                "base",
+                _money_str(Decimal("0.04")),
+            ],
+            [
+                "optimistic",
+                _money_str(Decimal("0.06")),
+            ],
+        ],
         "annual_inflation_rate": _money_str(Decimal("0.02")),
         "contribution_timing": "end",
         "period": "monthly",
         "rounding_rule": "ROUND_HALF_EVEN",
         "money_precision": "0.01",
-        "goal_inputs": {
-            "target_amount": _money_str(Decimal("10000")),
-            "horizon_years": 10,
-            "target_date": None,
-            "source_representation": "float",
-            "conversion": "decimal-str",
-            "precision_restored": False,
-        },
+        "goal_inputs": [
+            [
+                "horizon_years",
+                "10",
+            ],
+            [
+                "target_amount",
+                _money_str(Decimal("10000")),
+            ],
+            [
+                "target_date",
+                "",
+            ],
+        ],
     }
     output_payload = _make_version_payload(ending=ending, target_gap=target_gap, now=now)
     provenance_payload = {
