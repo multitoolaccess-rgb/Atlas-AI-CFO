@@ -1,25 +1,13 @@
 {
   "active_work": [
     {
-      "branch": "codex/phase-1-versioned-read-routes",
-      "id": "work-p1-versioned-read-routes",
-      "issue": "",
-      "objective": "Bounded read-only FastAPI router (/api/v1/forecasts/*) per ADR-006 + Slice 6. Four endpoints with byte-identical cross-user/missing-resource 404 envelope, conditional GET (If-None-Match: detail only; collection-side pockets a 400), bounded cursor pagination via merged codec, server-owned ETag, default-off read flag returning 503 envelope, no mutable forecast PUT/PATCH/DELETE routes, no adapter/bulk-finance imports, safe logs. NO generation POST (separate slice).",
-      "paths": [
-        "services/rules-service/app/routes/forecasts.py"
-      ],
-      "phase_id": "phase-1",
-      "risk_tier": "high",
-      "status": "in_progress",
-      "tests": [],
-      "title": "Phase 1 Slice D: Authenticated versioned read routes"
-    },
-    {
-      "task_id": "work-p1-flags-observability-shadow-validation",
       "risk_tier": "high",
       "status": "planned",
-      "branch": null,
-      "pr": null
+      "branch": "codex/planned-slice-e",
+      "pr": null,
+      "id": "work-p1-flags-observability-shadow-validation",
+      "phase_id": "phase-1",
+      "title": "Phase 1 Slice E: Flags, Observability, Shadow Validation"
     }
   ],
   "blockers": [],
@@ -347,11 +335,22 @@
         "rules-service tests/test_forecast_schemas.py 32 passed; broader forecast bundle (test_forecast_service.py + test_forecast_persistence_gate.py + test_forecast_repository.py + test_forecast_hashing.py + test_canonical_projection_state.py + test_forecast_models.py + test_forecast_migration.py) 157 passed; python compileall clean"
       ],
       "title": "Phase 1 Slice C: Decimal-safe versioned API schemas"
+    },
+    {
+      "id": "work-p1-versioned-read-routes",
+      "title": "Phase 1 Slice D: Authenticated versioned read routes",
+      "phase_id": "phase-1",
+      "risk_tier": "high",
+      "branch": "codex/phase-1-versioned-read-routes",
+      "commit": "8b57683",
+      "pr": 13,
+      "merged_at": null,
+      "status": "complete"
     }
   ],
   "current_objective": "Phase 1 forecast models, migration, repository transactions, and the Finlynq-owned canonical projection-state provider are complete; the trusted generation application service is the active bounded slice.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-30T15:02:52Z",
+  "last_updated": "2026-07-30T16:30:00Z",
   "next_bounded_task": "work-p1-flags-observability-shadow-validation",
   "overall_status": "in_progress",
   "phases": [
@@ -596,36 +595,21 @@
       "slice": "D",
       "pr": 13,
       "branch": "codex/phase-1-versioned-read-routes",
-      "head_commit_before_merge": "8b576830edb069f009550b6891750c91e0e8b0bf",
       "ci_runs": [
         {
           "name": "status (project-governance)",
-          "conclusion": "SUCCESS",
-          "workflow_run_id": 30560436970,
+          "conclusion": "success",
           "url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/30560436970"
         },
         {
           "name": "cheap (lint + unit, no browser)",
           "conclusion": "pending-or-success-at-merge-time",
-          "workflow_run_id": 30560436993,
           "url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/30560436993"
         }
       ],
       "independent_review": "code-reviewer-minimax-m3 APPROVE_FOR_MERGE on cumulative seam-fix commit 8b57683 (cycles 5-10 bounded refinements)",
-      "test_pass_evidence": "48/48 focused test_routes_forecasts.py PASS ; 229/229 broader Slice A/B/C/D regression PASS on isolated SQLite test DB",
-      "tasks_completed": [
-        "Four read GET handlers (no mutable routes) per ADR-006",
-        "Default-off atlas_forecast_read_api_enabled short-circuits 503 BEFORE DB query",
-        "Byte-identical cross-user/missing-resource 404 envelope",
-        "If-None-Match 304 on detail endpoints; If-Match + collection conditional headers rejected 400",
-        "Cursor codec round-trip via app.forecasts.api_codecs encode/decode",
-        "Decimal-string invariants on ending_balance/target_gap/drivers",
-        "Snapshot-corruption safety: sanitized 500 internal_data_corruption envelope",
-        "No mutable forecast routes; no adapter/projection imports from app.routes.forecasts",
-        "ValidationErrorEntry.type <= 64 chars enforced",
-        "Cursor-disjointness seam closed (cycles 5-10): tuple_() strict-less + tzinfo na\u00efve-branch + tz-aware fixture seed"
-      ],
-      "pr_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/pull/13"
+      "head_commit": "8b57683",
+      "merged_at": null
     }
   ]
 }
