@@ -79,6 +79,17 @@
       "commit": "e2ebbb2",
       "description": "Rejected dashboard date ranges whose exclusive next-day bound is unrepresentable",
       "pr": "#7"
+    },
+    {
+      "work_id": "work-p1-versioned-read-routes",
+      "slice": "D",
+      "commit": "8b576830edb069f009550b6891750c91e0e8b0bf",
+      "commit_short": "8b57683",
+      "pr": 13,
+      "branch": "codex/phase-1-versioned-read-routes",
+      "governance_status_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/30560436970",
+      "ci_status_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/30560436993",
+      "review_evidence": "code-reviewer-minimax-m3 APPROVE_FOR_MERGE on cumulative seam-fix commit 8b57683 (cycles 5-10 bounded refinements)"
     }
   ],
   "completed_work": [
@@ -350,7 +361,7 @@
   ],
   "current_objective": "Phase 1 forecast models, migration, repository transactions, and the Finlynq-owned canonical projection-state provider are complete; the trusted generation application service is the active bounded slice.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-30T16:30:00Z",
+  "last_updated": "2026-07-30T16:35:00Z",
   "next_bounded_task": "work-p1-flags-observability-shadow-validation",
   "overall_status": "in_progress",
   "phases": [
@@ -588,6 +599,17 @@
       "id": "test-p1-planning-status",
       "result": "5 passed; status, deterministic render, and trusted generation-boundary documentation checks passed",
       "scope": "Phase 1 planning governance"
+    },
+    {
+      "work_id": "work-p1-versioned-read-routes",
+      "slice": "D",
+      "label": "Slice D focused + broader regression",
+      "tests_passed": 48,
+      "tests_total": 48,
+      "broad_tests_passed": 229,
+      "broad_tests_total": 229,
+      "result": "PASS",
+      "note": "48/48 focused test_routes_forecasts.py ; 229/229 broader Slice A/B/C/D regression on isolated SQLite DB"
     }
   ],
   "completed_phase1_slices": [
@@ -608,7 +630,7 @@
         }
       ],
       "independent_review": "code-reviewer-minimax-m3 APPROVE_FOR_MERGE on cumulative seam-fix commit 8b57683 (cycles 5-10 bounded refinements)",
-      "head_commit": "8b57683",
+      "head_commit": "8b576830edb069f009550b6891750c91e0e8b0bf",
       "merged_at": null
     }
   ]
