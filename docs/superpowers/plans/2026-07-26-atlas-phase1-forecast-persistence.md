@@ -83,6 +83,12 @@ versioned snapshots; they must not use a scale-2 monetary column. A later
 queryable fractional field requires `NUMERIC(38, 18)` or a separately reviewed
 higher-scale contract. No `Float` enters the new model or schemas.
 
+Exact finite calculation-only output values use `atlas-calculation-decimal/v1`
+inside immutable output snapshots. It is distinct from inputs and permits 50
+significant digits, scale 64, and 128 plain encoded characters; overflow fails
+closed before persistence without rounding, truncation, float conversion, or
+exponent notation.
+
 `forecast_versions` contains immutable reasoning. Any future lifecycle state
 belongs on the stable `forecasts` row or a separate lifecycle table; it never
 rewrites a historical version.

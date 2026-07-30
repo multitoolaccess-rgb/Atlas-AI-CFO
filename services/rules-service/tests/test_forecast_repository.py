@@ -23,6 +23,7 @@ from app.forecasts.repository import (
 )
 from app.forecasts.snapshots import (
     ASSUMPTION_SCHEMA_VERSION,
+    CALCULATION_DECIMAL_SCHEMA_VERSION,
     TARGET_DECISION_SCHEMA_VERSION,
     build_forecast_snapshots,
 )
@@ -93,6 +94,7 @@ def _assumptions() -> dict[str, object]:
 
 def _output() -> dict[str, object]:
     return {
+        "calculation_decimal_schema_version": CALCULATION_DECIMAL_SCHEMA_VERSION,
         "target_status": True,
         "target_decision": {
             "decision_schema_version": TARGET_DECISION_SCHEMA_VERSION,

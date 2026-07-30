@@ -91,6 +91,15 @@ Decimal string in the immutable assumption and input snapshots. If a later
 queryable fractional column is justified, it must use `NUMERIC(38, 18)` or a
 reviewed higher scale, with an explicit precision contract.
 
+Exact finite values emitted by the unchanged Phase 0 calculation use
+`atlas-calculation-decimal/v1` only in immutable output snapshots. This separate
+representation permits at most 50 significant coefficient digits, scale 64,
+and 128 plain encoded characters. It is Decimal-only, context-independent, and
+never rounds, truncates, converts through float, or persists exponent notation.
+Values outside those bounds fail closed before persistence; input/hash money,
+assumption inputs, queryable money, and display rounding retain their existing
+contracts.
+
 ### Versioned snapshots and calculation identity
 
 Every version stores:

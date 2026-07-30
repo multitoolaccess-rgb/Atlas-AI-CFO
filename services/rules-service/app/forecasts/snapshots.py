@@ -11,7 +11,7 @@ import re
 import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from app.forecasts.canonical_state import (
@@ -27,8 +27,12 @@ _DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 _SCENARIOS = frozenset({"conservative", "base", "optimistic"})
 ASSUMPTION_SCHEMA_VERSION = "atlas-projection-assumptions/v1"
 TARGET_DECISION_SCHEMA_VERSION = "atlas-target-decision/v1"
+CALCULATION_DECIMAL_SCHEMA_VERSION = "atlas-calculation-decimal/v1"
 _MAX_SNAPSHOT_KEYS = 8
 _MAX_SNAPSHOT_STRING_LENGTH = 128
+_MAX_CALCULATION_DIGITS = 50
+_MAX_CALCULATION_SCALE = 64
+_MAX_CALCULATION_LENGTH = 128
 
 
 @dataclass(frozen=True)
@@ -77,6 +81,50 @@ def _decimal(value: Any, *, nullable: bool = False) -> str | None:
         if canonical_decimal_string(value) != value:
             _reject_snapshot()
     except CanonicalStateValidationError:
+        _reject_snapshot()
+    return value
+
+
+def calculation_decimal_string(value: Decimal) -> str:
+    """Serialize a finite Phase 0 Decimal exactly, without ambient context.
+
+    This is deliberately distinct from canonical input-money strings. Bounds are
+    checked from Decimal tuple metadata before any exponent expansion.
+    """
+    if not isinstance(value, Decimal) or not value.is_finite():
+        raise ValueError("forecast_output_out_of_range")
+    sign, digits, exponent = value.as_tuple()
+    first = next((i for i, digit in enumerate(digits) if digit), None)
+    if first is None:
+        return "0"
+    last = len(digits) - 1 - next(i for i, digit in enumerate(reversed(digits)) if digit)
+    coefficient = "".join(str(digit) for digit in digits[first:last + 1])
+    effective_exponent = exponent + (len(digits) - 1 - last)
+    significant = len(coefficient)
+    scale = max(-effective_exponent, 0)
+    integral = significant + effective_exponent if effective_exponent >= 0 else max(significant + effective_exponent, 1)
+    length = (1 if sign else 0) + integral + (1 + scale if scale else 0)
+    if significant > _MAX_CALCULATION_DIGITS or scale > _MAX_CALCULATION_SCALE or length > _MAX_CALCULATION_LENGTH:
+        raise ValueError("forecast_output_out_of_range")
+    if effective_exponent >= 0:
+        result = coefficient + ("0" * effective_exponent)
+    else:
+        point = len(coefficient) + effective_exponent
+        result = coefficient[:point] + "." + coefficient[point:] if point > 0 else "0." + ("0" * -point) + coefficient
+    result = result.rstrip("0").rstrip(".") if "." in result else result
+    return f"-{result}" if sign else result
+
+
+def _calculation_decimal(value: Any, *, nullable: bool = False) -> str | None:
+    if value is None and nullable:
+        return None
+    if not isinstance(value, str) or "e" in value.lower():
+        _reject_snapshot()
+    try:
+        parsed = Decimal(value)
+    except (InvalidOperation, ValueError):
+        _reject_snapshot()
+    if calculation_decimal_string(parsed) != value:
         _reject_snapshot()
     return value
 
@@ -156,12 +204,14 @@ def _validate_assumption_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
 def _validate_output_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
     snapshot = _mapping(
         value,
-        allowed=frozenset({"target_status", "target_decision", "drivers", "scenarios"}),
+        allowed=frozenset({"calculation_decimal_schema_version", "target_status", "target_decision", "drivers", "scenarios"}),
         required=frozenset(
-            {"target_status", "target_decision", "drivers", "scenarios"}
+            {"calculation_decimal_schema_version", "target_status", "target_decision", "drivers", "scenarios"}
         ),
     )
-    result: dict[str, Any] = {}
+    if snapshot["calculation_decimal_schema_version"] != CALCULATION_DECIMAL_SCHEMA_VERSION:
+        _reject_snapshot()
+    result: dict[str, Any] = {"calculation_decimal_schema_version": CALCULATION_DECIMAL_SCHEMA_VERSION}
     if "target_status" in snapshot:
         if not isinstance(snapshot["target_status"], bool):
             _reject_snapshot()
@@ -277,7 +327,7 @@ def _validate_output_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
             )
             result["scenarios"][scenario] = {
                 key: (
-                    _decimal(item, nullable=key == "target_gap")
+                    (_calculation_decimal(item, nullable=key == "target_gap") if key == "monthly_real_rate" else _decimal(item, nullable=key == "target_gap"))
                     if key
                     in {
                         "annual_return_rate",
