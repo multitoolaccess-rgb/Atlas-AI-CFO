@@ -257,10 +257,14 @@ Changing calculation or model version creates a new version even when the
 input-state hash is unchanged.
 
 The output snapshot stores the target-status boolean with
-`atlas-target-decision/v1`: `unrounded_ending_balance` and
-`unrounded_target_amount`, compared by `greater_than_or_equal` for the `base`
-scenario. API and UI display formatting must never recompute or alter target
-status. The canonical input hash includes the validated
+`atlas-target-decision/v2`. It retains exact calculation operands
+(`unrounded_ending_balance`, `unrounded_target_amount`) using the bounded
+calculation-decimal representation, plus canonical USD cents decision operands
+(`rounded_ending_balance`, `rounded_target_amount`). Its
+`currency_rounded` basis applies `ROUND_HALF_EVEN` at `0.01`;
+`target_status` is derived only from the rounded operands and must equal Phase
+0 `reaches_target`. API and UI display formatting must never recompute or alter
+target status. The canonical input hash includes the validated
 `atlas-projection-assumptions/v1` snapshot and its schema identifier. Fixtures
 include Float-to-canonical-string and rounding-boundary cases proving those
 constraints.

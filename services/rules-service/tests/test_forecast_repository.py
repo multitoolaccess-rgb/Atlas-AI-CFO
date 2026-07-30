@@ -89,19 +89,25 @@ def _assumptions() -> dict[str, object]:
         "period": "monthly",
         "rounding_rule": "ROUND_HALF_EVEN",
         "money_precision": "0.01",
+        "goal_inputs": {"target_amount": "1000", "horizon_years": 1, "source_representation": "float", "conversion": "decimal-str", "precision_restored": False},
     }
 
 
 def _output() -> dict[str, object]:
-    return {
+    output = {
         "calculation_decimal_schema_version": CALCULATION_DECIMAL_SCHEMA_VERSION,
         "target_status": True,
         "target_decision": {
             "decision_schema_version": TARGET_DECISION_SCHEMA_VERSION,
             "scenario": "base",
             "comparison": "greater_than_or_equal",
+            "decision_basis": "currency_rounded",
+            "rounding_rule": "ROUND_HALF_EVEN",
+            "money_precision": "0.01",
             "unrounded_ending_balance": "1000.0001",
             "unrounded_target_amount": "1000",
+            "rounded_ending_balance": "1000",
+            "rounded_target_amount": "1000",
             "target_status": True,
         },
         "drivers": {
@@ -129,6 +135,9 @@ def _output() -> dict[str, object]:
             }.items()
         },
     }
+    # The base scenario's rounded output is the operand used by v2's decision.
+    output["scenarios"]["base"]["ending_balance"] = "1000"
+    return output
 
 
 def test_repository_persists_canonical_snapshots_and_only_hashed_idempotency_key(session: Session) -> None:
@@ -382,15 +391,27 @@ def test_repository_rejects_invalid_or_unversioned_assumptions(
 
 
 @pytest.mark.parametrize(
-    "ending_balance,target_amount,status",
+    "ending_balance,target_amount,rounded_ending,rounded_target,status",
     [
-        ("999.9999", "1000", False),
-        ("1000", "1000", True),
-        ("1000.0001", "1000", True),
+        ("0.014", "0.015", "0.01", "0.02", False),
+        # Phase 0's existing golden rounding boundary: 0.015 rounds to 0.02.
+        ("0.015", "0.015", "0.02", "0.02", True),
+        ("0.016", "0.015", "0.02", "0.02", True),
+        # HALF_EVEN tie outcomes remain reproducible for even and odd cents.
+        ("0.025", "0.025", "0.02", "0.02", True),
+        ("0.035", "0.035", "0.04", "0.04", True),
+        # The rounded decision may deliberately differ from exact comparison.
+        ("0.015", "0.016", "0.02", "0.02", True),
+        ("-0.025", "-0.024", "-0.02", "-0.02", True),
     ],
 )
-def test_repository_persists_unrounded_target_decision_boundary(
-    session: Session, ending_balance: str, target_amount: str, status: bool
+def test_repository_persists_currency_rounded_target_decision_boundary(
+    session: Session,
+    ending_balance: str,
+    target_amount: str,
+    rounded_ending: str,
+    rounded_target: str,
+    status: bool,
 ) -> None:
     output = _output()
     output["target_status"] = status
@@ -398,10 +419,17 @@ def test_repository_persists_unrounded_target_decision_boundary(
         "decision_schema_version": TARGET_DECISION_SCHEMA_VERSION,
         "scenario": "base",
         "comparison": "greater_than_or_equal",
+        "decision_basis": "currency_rounded",
+        "rounding_rule": "ROUND_HALF_EVEN",
+        "money_precision": "0.01",
         "unrounded_ending_balance": ending_balance,
         "unrounded_target_amount": target_amount,
+        "rounded_ending_balance": rounded_ending,
+        "rounded_target_amount": rounded_target,
         "target_status": status,
     }
+    output["drivers"]["target_amount"] = rounded_target
+    output["scenarios"]["base"]["ending_balance"] = rounded_ending
     output["scenarios"]["base"]["reaches_target"] = status
     result = ForecastRepository(session).persist(
         user_id=1,
@@ -418,38 +446,37 @@ def test_repository_persists_unrounded_target_decision_boundary(
     )
     persisted = json.loads(result.version.output_snapshot_json)
     assert persisted["target_decision"]["unrounded_ending_balance"] == ending_balance
+    assert persisted["target_decision"]["rounded_ending_balance"] == rounded_ending
+    assert persisted["target_decision"]["rounded_target_amount"] == rounded_target
     assert persisted["target_decision"]["target_status"] is status
 
 
-def test_rounded_display_cannot_override_unrounded_target_decision(session: Session) -> None:
+def test_repository_rejects_status_that_conflicts_with_currency_rounded_operands(session: Session) -> None:
     output = _output()
     output["target_status"] = False
     output["target_decision"] = {
         "decision_schema_version": TARGET_DECISION_SCHEMA_VERSION,
         "scenario": "base",
         "comparison": "greater_than_or_equal",
+        "decision_basis": "currency_rounded",
+        "rounding_rule": "ROUND_HALF_EVEN",
+        "money_precision": "0.01",
         "unrounded_ending_balance": "999.9999",
         "unrounded_target_amount": "1000",
+        "rounded_ending_balance": "1000",
+        "rounded_target_amount": "1000",
         "target_status": False,
     }
     output["scenarios"]["base"]["ending_balance"] = "1000"
     output["scenarios"]["base"]["reaches_target"] = False
-    result = ForecastRepository(session).persist(
-        user_id=1,
-        goal_id=1,
-        state=_state(),
-        idempotency_key="atlas-test-rounded-display",
-        model_version="atlas-model-v1",
-        calculation_version="phase0-projection-v1",
-        calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
-        assumption_snapshot=_assumptions(),
-        output_snapshot=output,
-        ending_balance=Decimal("1000.00"),
-        target_gap=Decimal("0.00"),
-    )
-    persisted = json.loads(result.version.output_snapshot_json)
-    assert persisted["scenarios"]["base"]["ending_balance"] == "1000"
-    assert persisted["target_status"] is False
+    with pytest.raises(ValueError, match="bounded projection contract"):
+        ForecastRepository(session).persist(
+            user_id=1, goal_id=1, state=_state(), idempotency_key="atlas-test-rounded-display",
+            model_version="atlas-model-v1", calculation_version="phase0-projection-v1",
+            calculated_at=datetime(2026, 7, 1, 12, tzinfo=timezone.utc),
+            assumption_snapshot=_assumptions(), output_snapshot=output,
+            ending_balance=Decimal("1000.00"), target_gap=Decimal("0.00"),
+        )
 
 
 def test_repository_rejects_missing_or_inconsistent_target_decision(session: Session) -> None:
@@ -457,7 +484,9 @@ def test_repository_rejects_missing_or_inconsistent_target_decision(session: Ses
     missing.pop("target_decision")
     inconsistent = _output()
     inconsistent["target_decision"]["target_status"] = False
-    for output in (missing, inconsistent):
+    rounded_operands = _output()
+    rounded_operands["target_decision"]["rounded_ending_balance"] = "999.99"
+    for output in (missing, inconsistent, rounded_operands):
         with pytest.raises(ValueError, match="bounded projection contract"):
             ForecastRepository(session).persist(
                 user_id=1,

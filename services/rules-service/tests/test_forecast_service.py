@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import Base
 from app.forecasts.canonical_state import CanonicalProjectionState
+from app.forecasts.repository import IdempotencyConflict
 from app.forecasts.service import ForecastGenerationService, ForecastGenerationUnavailable
 from app.models import Goal, User
 
@@ -34,7 +35,7 @@ def test_authorizes_before_adapter_and_persists_complete_snapshots(db):
     created=service.generate(user_id=1,user_sub="atlas-user",goal_id=1,idempotency_key="atlas-key",now=datetime(2026,7,2,tzinfo=timezone.utc))
     assert adapter.calls == 1 and created.persisted.created
     assert 'atlas-projection-assumptions/v1' in created.persisted.version.assumption_snapshot_json
-    assert 'atlas-target-decision/v1' in created.persisted.version.output_snapshot_json
+    assert 'atlas-target-decision/v2' in created.persisted.version.output_snapshot_json
 
 
 def test_cross_user_goal_does_not_invoke_adapter(db):
@@ -49,7 +50,28 @@ def test_idempotent_replay_and_changed_state_do_not_replay_old_version(db):
     replay=service.generate(user_id=1,user_sub="atlas-user",goal_id=1,idempotency_key="atlas-key",now=now)
     assert not replay.persisted.created and replay.persisted.version.id == first.persisted.version.id
     adapter.state=_state(amount="1001")
-    with pytest.raises(Exception): service.generate(user_id=1,user_sub="atlas-user",goal_id=1,idempotency_key="atlas-key",now=now)
+    with pytest.raises(IdempotencyConflict): service.generate(user_id=1,user_sub="atlas-user",goal_id=1,idempotency_key="atlas-key",now=now)
+
+
+def test_goal_input_change_changes_hash_and_cannot_replay_old_forecast(db):
+    adapter = Adapter(_state())
+    service = ForecastGenerationService(db, adapter)
+    now = datetime(2026, 7, 2, tzinfo=timezone.utc)
+    first = service.generate(user_id=1, user_sub="atlas-user", goal_id=1, idempotency_key="atlas-key", now=now)
+
+    goal = db.get(Goal, 1)
+    assert goal is not None
+    goal.target_amount = 2001.0
+    goal.horizon_years = 3
+    db.commit()
+
+    changed = service.generate(user_id=1, user_sub="atlas-user", goal_id=1, idempotency_key="atlas-key-changed-goal", now=now)
+    assert changed.persisted.created
+    assert changed.persisted.version.id != first.persisted.version.id
+    assert changed.persisted.version.input_state_hash != first.persisted.version.input_state_hash
+
+    with pytest.raises(IdempotencyConflict):
+        service.generate(user_id=1, user_sub="atlas-user", goal_id=1, idempotency_key="atlas-key", now=now)
 
 
 def test_rejects_missing_authoritative_state(db):

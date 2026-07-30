@@ -11,8 +11,9 @@
         "docs/10-roadmap"
       ],
       "phase_id": "phase-1",
+      "pr": "#11",
       "risk_tier": "high",
-      "status": "in_progress",
+      "status": "in_review",
       "tests": [
         "Trusted adapter, Phase 0 projection, repository generation, idempotency, scope, and safe-error contract tests"
       ],
@@ -298,7 +299,7 @@
   ],
   "current_objective": "Phase 1 forecast models, migration, repository transactions, and the Finlynq-owned canonical projection-state provider are complete; the trusted generation application service is the active bounded slice.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-29T17:33:28Z",
+  "last_updated": "2026-07-30T03:13:36Z",
   "next_bounded_task": {
     "description": "After B0 merges, resume the paused trusted forecast generation application-service slice using only the Finlynq canonical projection-state provider; do not add HTTP routes.",
     "id": "next-p1-forecast-generation-service",

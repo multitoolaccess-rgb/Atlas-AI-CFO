@@ -11,7 +11,7 @@ import re
 import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN
 from typing import Any
 
 from app.forecasts.canonical_state import (
@@ -26,9 +26,9 @@ _IDENTIFIER = re.compile(r"[a-z][a-z0-9._:-]*$")
 _DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 _SCENARIOS = frozenset({"conservative", "base", "optimistic"})
 ASSUMPTION_SCHEMA_VERSION = "atlas-projection-assumptions/v1"
-TARGET_DECISION_SCHEMA_VERSION = "atlas-target-decision/v1"
+TARGET_DECISION_SCHEMA_VERSION = "atlas-target-decision/v2"
 CALCULATION_DECIMAL_SCHEMA_VERSION = "atlas-calculation-decimal/v1"
-_MAX_SNAPSHOT_KEYS = 8
+_MAX_SNAPSHOT_KEYS = 16
 _MAX_SNAPSHOT_STRING_LENGTH = 128
 _MAX_CALCULATION_DIGITS = 50
 _MAX_CALCULATION_SCALE = 64
@@ -154,6 +154,7 @@ def _validate_assumption_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
                 "period",
                 "rounding_rule",
                 "money_precision",
+                "goal_inputs",
             }
         ),
         required=frozenset(
@@ -166,6 +167,7 @@ def _validate_assumption_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
                 "period",
                 "rounding_rule",
                 "money_precision",
+                "goal_inputs",
             }
         ),
     )
@@ -198,6 +200,10 @@ def _validate_assumption_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
         result["rounding_rule"] = "ROUND_HALF_EVEN"
     if "money_precision" in snapshot:
         result["money_precision"] = _decimal(snapshot["money_precision"])
+    goal = _mapping(snapshot["goal_inputs"], allowed=frozenset({"target_amount", "horizon_years", "source_representation", "conversion", "precision_restored"}), required=frozenset({"target_amount", "horizon_years", "source_representation", "conversion", "precision_restored"}))
+    if goal["source_representation"] != "float" or goal["conversion"] != "decimal-str" or goal["precision_restored"] is not False:
+        _reject_snapshot()
+    result["goal_inputs"] = {"target_amount": _decimal(goal["target_amount"]), "horizon_years": _nonnegative_int(goal["horizon_years"]), "source_representation": "float", "conversion": "decimal-str", "precision_restored": False}
     return result
 
 
@@ -223,8 +229,13 @@ def _validate_output_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
                 "decision_schema_version",
                 "scenario",
                 "comparison",
+                "decision_basis",
+                "rounding_rule",
+                "money_precision",
                 "unrounded_ending_balance",
                 "unrounded_target_amount",
+                "rounded_ending_balance",
+                "rounded_target_amount",
                 "target_status",
             }
         ),
@@ -233,8 +244,13 @@ def _validate_output_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
                 "decision_schema_version",
                 "scenario",
                 "comparison",
+                "decision_basis",
+                "rounding_rule",
+                "money_precision",
                 "unrounded_ending_balance",
                 "unrounded_target_amount",
+                "rounded_ending_balance",
+                "rounded_target_amount",
                 "target_status",
             }
         ),
@@ -243,22 +259,32 @@ def _validate_output_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
         decision["decision_schema_version"] != TARGET_DECISION_SCHEMA_VERSION
         or decision["scenario"] != "base"
         or decision["comparison"] != "greater_than_or_equal"
+        or decision["decision_basis"] != "currency_rounded"
+        or decision["rounding_rule"] != "ROUND_HALF_EVEN"
+        or decision["money_precision"] != "0.01"
         or not isinstance(decision["target_status"], bool)
     ):
         _reject_snapshot()
-    unrounded_ending_balance = _decimal(decision["unrounded_ending_balance"])
-    unrounded_target_amount = _decimal(decision["unrounded_target_amount"])
-    expected_status = (
-        Decimal(unrounded_ending_balance) >= Decimal(unrounded_target_amount)
-    )
+    unrounded_ending_balance = _calculation_decimal(decision["unrounded_ending_balance"])
+    unrounded_target_amount = _calculation_decimal(decision["unrounded_target_amount"])
+    rounded_ending_balance = _decimal(decision["rounded_ending_balance"])
+    rounded_target_amount = _decimal(decision["rounded_target_amount"])
+    if (Decimal(unrounded_ending_balance).quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN) != Decimal(rounded_ending_balance) or Decimal(unrounded_target_amount).quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN) != Decimal(rounded_target_amount)):
+        _reject_snapshot()
+    expected_status = Decimal(rounded_ending_balance) >= Decimal(rounded_target_amount)
     if decision["target_status"] != expected_status or decision["target_status"] != result["target_status"]:
         _reject_snapshot()
     result["target_decision"] = {
         "decision_schema_version": TARGET_DECISION_SCHEMA_VERSION,
         "scenario": "base",
         "comparison": "greater_than_or_equal",
+        "decision_basis": "currency_rounded",
+        "rounding_rule": "ROUND_HALF_EVEN",
+        "money_precision": "0.01",
         "unrounded_ending_balance": unrounded_ending_balance,
         "unrounded_target_amount": unrounded_target_amount,
+        "rounded_ending_balance": rounded_ending_balance,
+        "rounded_target_amount": rounded_target_amount,
         "target_status": decision["target_status"],
     }
     if "drivers" in snapshot:
@@ -342,7 +368,13 @@ def _validate_output_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
             }
             if not isinstance(result["scenarios"][scenario]["reaches_target"], bool):
                 _reject_snapshot()
-    if result["scenarios"]["base"]["reaches_target"] != result["target_status"]:
+    base = result["scenarios"]["base"]
+    if (
+        base["reaches_target"] != result["target_status"]
+        or base["ending_balance"] != result["target_decision"]["rounded_ending_balance"]
+        or result["drivers"]["target_amount"]
+        != result["target_decision"]["rounded_target_amount"]
+    ):
         _reject_snapshot()
     return result
 
