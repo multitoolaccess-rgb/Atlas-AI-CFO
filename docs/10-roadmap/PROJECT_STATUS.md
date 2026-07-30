@@ -5,7 +5,7 @@
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 1 forecast models, migration, repository transactions, and the Finlynq-owned canonical projection-state provider are complete; the trusted generation application service is the active bounded slice.
-- Last updated: 2026-07-30T04:10:10Z
+- Last updated: 2026-07-30T04:12:48Z
 
 ## Active work
 - None
@@ -62,6 +62,6 @@
 - Test test-p1-planning-status: Phase 1 planning governance — 5 passed; status, deterministic render, and trusted generation-boundary documentation checks passed
 
 ## Next bounded task
-- work-p1-versioned-read-apis: Implement FA-3 read APIs enforcing transitional user scope and preserving historical forecast versions (GET /api/v1/forecasts, /{forecast_id}, /{forecast_id}/versions, /{forecast_id}/versions/{version_number}); route layer with strict reject-unknown-fields, no client financial-state body, ETag from forecast id + latest version, stable cursor pagination, sanitized error envelopes
+- work-p1-versioned-schemas: Phase 1 Slice C: Decimal-safe versioned API schemas (no routes yet). Define bounded control-only generation request contract, stable ForecastResponse / ForecastListResponse / ForecastVersionResponse / ForecastVersionListResponse with canonical Decimal-string money, Sanitized validation error envelope, target-status decision v2 representation, stable ETag derivation (forecast id + latest version), opaque base64url cursor codec, validated Idempotency-Key / If-Match / If-None-Match header parsers, stable 409 envelopes (forecast_version_conflict, idempotency_conflict), 503 envelope (forecast_generation_unavailable). All extra="forbid"; reject unknown fields and unknown headers.
 
 Do not begin the next phase or task automatically.
