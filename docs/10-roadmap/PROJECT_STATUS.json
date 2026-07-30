@@ -1,5 +1,20 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "codex/phase-1-versioned-read-routes",
+      "id": "work-p1-versioned-read-routes",
+      "issue": "",
+      "objective": "Bounded read-only FastAPI router (/api/v1/forecasts/*) per ADR-006 + Slice 6. Four endpoints with byte-identical cross-user/missing-resource 404 envelope, conditional GET (If-None-Match: detail only; collection-side pockets a 400), bounded cursor pagination via merged codec, server-owned ETag, default-off read flag returning 503 envelope, no mutable forecast PUT/PATCH/DELETE routes, no adapter/bulk-finance imports, safe logs. NO generation POST (separate slice).",
+      "paths": [
+        "services/rules-service/app/routes/forecasts.py"
+      ],
+      "phase_id": "phase-1",
+      "risk_tier": "high",
+      "status": "in_progress",
+      "tests": [],
+      "title": "Phase 1 Slice D: Authenticated versioned read routes"
+    }
+  ],
   "blockers": [],
   "commit_pr_evidence": [
     {
@@ -329,7 +344,7 @@
   ],
   "current_objective": "Phase 1 forecast models, migration, repository transactions, and the Finlynq-owned canonical projection-state provider are complete; the trusted generation application service is the active bounded slice.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-30T04:27:15Z",
+  "last_updated": "2026-07-30T15:02:52Z",
   "next_bounded_task": {
     "description": "Phase 1 Slice D: Authenticated POST /api/v1/goals/{goal_id}/forecasts + GET /api/v1/forecasts (cursor-paged, user-scoped) + GET /api/v1/forecasts/{forecast_id} + GET /api/v1/forecasts/{forecast_id}/versions (cursor-paged) + GET /api/v1/forecasts/{forecast_id}/versions/{version_number}. Required Idempotency-Key header + If-Match / If-None-Match conditional headers; control-only body (extra=forbid); stable 409 envelopes (forecast_version_conflict + idempotency_conflict); 503 envelope (forecast_generation_unavailable when persistence disabled); 404 non-disclosing for cross-user / missing goal or forecast. NO PUT/PATCH/DELETE routes. Auth via require_user; goal authorization before adapter invocation; idempotency key hashed server-side; ETag header via api_codecs.format_forecast_etag_header. Compose RO classes directly from app.forecasts.schemas \u2014 no field re-declaration. Read flag stays OFF (Slice E introduces ATLAS_FORECAST_READ_API_ENABLED).",
     "id": "work-p1-versioned-read-routes",

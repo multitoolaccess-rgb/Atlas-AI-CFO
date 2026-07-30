@@ -5,10 +5,10 @@
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 1 forecast models, migration, repository transactions, and the Finlynq-owned canonical projection-state provider are complete; the trusted generation application service is the active bounded slice.
-- Last updated: 2026-07-30T04:27:15Z
+- Last updated: 2026-07-30T15:02:52Z
 
 ## Active work
-- None
+- work-p1-versioned-read-routes: Phase 1 Slice D: Authenticated versioned read routes (in_progress, high)
 
 ## Blockers
 - None
