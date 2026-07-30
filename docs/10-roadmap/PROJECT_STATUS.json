@@ -1,25 +1,5 @@
 {
-  "active_work": [
-    {
-      "branch": "codex/phase-1-forecast-generation-service",
-      "id": "work-p1-forecast-generation-service",
-      "issue": "#3",
-      "objective": "Implement only the trusted Finlynq adapter, Phase 0 projection integration, and immutable repository generation service; no HTTP routes.",
-      "paths": [
-        "services/rules-service/app/forecasts",
-        "services/rules-service/tests/test_forecast_service.py",
-        "docs/10-roadmap"
-      ],
-      "phase_id": "phase-1",
-      "pr": "#11",
-      "risk_tier": "high",
-      "status": "in_review",
-      "tests": [
-        "Trusted adapter, Phase 0 projection, repository generation, idempotency, scope, and safe-error contract tests"
-      ],
-      "title": "Implement trusted forecast generation application service"
-    }
-  ],
+  "active_work": [],
   "blockers": [],
   "commit_pr_evidence": [
     {
@@ -295,14 +275,40 @@
         "Finlynq suite: 106 passed; Rules Service suite: 696 passed, 10 skipped, 1 xfailed; cross-service: 2 passed; tracker tests: 9 passed; focused provider: 13 passed; focused migration/provider/parity: 9 passed."
       ],
       "title": "Implement Finlynq canonical projection-state provider"
+    },
+    {
+      "branch": "codex/phase-1-forecast-generation-service",
+      "ci_evidence": {
+        "check": "success on commit a44aeaf4 (cheap: 90776331544 success; status: 90776331586 success; heavy: 90776332058 skipped, expected for Phase 1 no-UI scope)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/30512825491"
+      },
+      "commit": "a44aeaf4",
+      "id": "work-p1-forecast-generation-service",
+      "issue": "#3",
+      "objective": "Implement only the trusted Finlynq adapter, Phase 0 projection integration, and immutable repository generation service; no HTTP routes.",
+      "paths": [
+        "services/rules-service/app/forecasts",
+        "services/rules-service/tests/test_forecast_service.py",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-1",
+      "pr": "11",
+      "review_evidence": "Fresh independent code-reviewer-minimax-m3 (full PR #11 head scope, APPROVE_FOR_MERGE)",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "rules-service suite 751 passed + 10 skipped + 1 xfailed in 11.55s including the 43 new gate tests; cross-services 4 passed; python compileall clean; tracker check + render --check valid"
+      ],
+      "title": "Implement trusted forecast generation application service"
     }
   ],
   "current_objective": "Phase 1 forecast models, migration, repository transactions, and the Finlynq-owned canonical projection-state provider are complete; the trusted generation application service is the active bounded slice.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-30T03:13:36Z",
+  "last_updated": "2026-07-30T04:10:10Z",
   "next_bounded_task": {
-    "description": "After B0 merges, resume the paused trusted forecast generation application-service slice using only the Finlynq canonical projection-state provider; do not add HTTP routes.",
-    "id": "next-p1-forecast-generation-service",
+    "description": "Implement FA-3 read APIs enforcing transitional user scope and preserving historical forecast versions (GET /api/v1/forecasts, /{forecast_id}, /{forecast_id}/versions, /{forecast_id}/versions/{version_number}); route layer with strict reject-unknown-fields, no client financial-state body, ETag from forecast id + latest version, stable cursor pagination, sanitized error envelopes",
+    "id": "work-p1-versioned-read-apis",
     "phase_id": "phase-1"
   },
   "overall_status": "in_progress",
