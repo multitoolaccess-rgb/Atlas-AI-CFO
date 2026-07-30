@@ -4,11 +4,11 @@
 
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Phase 1 repository transactions are complete; B0 is establishing authoritative Finlynq account currency and the privacy-minimized canonical projection-state provider before generation service resumes.
-- Last updated: 2026-07-29T17:33:28Z
+- Current objective: Phase 1 forecast models, migration, repository transactions, and the Finlynq-owned canonical projection-state provider are complete; the trusted generation application service is the active bounded slice.
+- Last updated: 2026-07-30T03:13:36Z
 
 ## Active work
-- None
+- work-p1-forecast-generation-service: Implement trusted forecast generation application service (in_review, high)
 
 ## Blockers
 - None

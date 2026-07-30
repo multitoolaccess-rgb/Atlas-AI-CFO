@@ -83,6 +83,12 @@ versioned snapshots; they must not use a scale-2 monetary column. A later
 queryable fractional field requires `NUMERIC(38, 18)` or a separately reviewed
 higher-scale contract. No `Float` enters the new model or schemas.
 
+Exact finite calculation-only output values use `atlas-calculation-decimal/v1`
+inside immutable output snapshots. It is distinct from inputs and permits 50
+significant digits, scale 64, and 128 plain encoded characters; overflow fails
+closed before persistence without rounding, truncation, float conversion, or
+exponent notation.
+
 `forecast_versions` contains immutable reasoning. Any future lifecycle state
 belongs on the stable `forecasts` row or a separate lifecycle table; it never
 rewrites a historical version.
@@ -239,8 +245,10 @@ forecast response links the latest version but never overwrites history.
 2. Preserve canonical unrounded Decimal strings needed for calculation and
    hashing; quantize only persisted/display monetary outputs with
    `ROUND_HALF_EVEN`.
-3. Normalize currency, dates, contribution timing, assumptions, freshness,
-   source references, and goal ID.
+3. Normalize currency, dates (including the nullable goal target date),
+   contribution timing, goal target and nullable horizon inputs, assumptions,
+   freshness, source references, and goal ID. An explicit target date derives
+   the Phase 0 horizon; a goal with no target date must supply its horizon.
 4. Serialize Decimal values as canonical strings, dates as ISO date strings,
    and instants as timezone-aware UTC RFC 3339 strings with a `Z` suffix.
 5. Serialize JSON with sorted keys, UTF-8, and compact separators.
@@ -251,10 +259,14 @@ Changing calculation or model version creates a new version even when the
 input-state hash is unchanged.
 
 The output snapshot stores the target-status boolean with
-`atlas-target-decision/v1`: `unrounded_ending_balance` and
-`unrounded_target_amount`, compared by `greater_than_or_equal` for the `base`
-scenario. API and UI display formatting must never recompute or alter target
-status. The canonical input hash includes the validated
+`atlas-target-decision/v2`. It retains exact calculation operands
+(`unrounded_ending_balance`, `unrounded_target_amount`) using the bounded
+calculation-decimal representation, plus canonical USD cents decision operands
+(`rounded_ending_balance`, `rounded_target_amount`). Its
+`currency_rounded` basis applies `ROUND_HALF_EVEN` at `0.01`;
+`target_status` is derived only from the rounded operands and must equal Phase
+0 `reaches_target`. API and UI display formatting must never recompute or alter
+target status. The canonical input hash includes the validated
 `atlas-projection-assumptions/v1` snapshot and its schema identifier. Fixtures
 include Float-to-canonical-string and rounding-boundary cases proving those
 constraints.

@@ -529,6 +529,8 @@ class ScenarioProjection:
     investment_growth: Decimal
     target_gap: Decimal | None
     reaches_target: bool | None
+    unrounded_ending_balance: Decimal
+    unrounded_target_amount: Decimal | None
 
 
 @dataclass(frozen=True)
@@ -612,6 +614,8 @@ def _project_scenario(
                 if rounded_target_amount is not None
                 else None
             ),
+            unrounded_ending_balance=unrounded_ending_balance,
+            unrounded_target_amount=request.target_amount,
         )
 
 

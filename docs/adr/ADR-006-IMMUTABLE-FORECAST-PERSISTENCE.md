@@ -79,11 +79,19 @@ The legacy goal `Float` is not silently rewritten in this phase. Its value is
 converted with `Decimal(str(value))`, validated, and recorded without a claim
 of restored precision in the immutable input snapshot with
 `source_representation: "float"`,
-`conversion: "Decimal(str(value))"`, and `precision_restored: false`.
+`conversion: "decimal-str"` (the bounded metadata token for
+`Decimal(str(value))`), and `precision_restored: false`.
 Conversion cannot restore precision that the legacy Float already lost, and
 Phase 1 must not present a Float-derived amount as exact. Contract fixtures
 must cover Float-to-canonical-string boundary cases. A canonical Goal Decimal
 migration remains a separate reviewed change.
+
+The immutable server-owned goal-input snapshot includes the canonical target
+amount, nullable horizon, and nullable ISO date-only target date used by the
+calculation. A goal uses its explicit target date when present; otherwise its
+horizon supplies the projection period. Each is included in the input-state
+hash, so a goal configuration change cannot replay a forecast calculated for
+an earlier deadline.
 
 Rates, inflation, and other fractional assumptions are not stored in
 `NUMERIC(38, 2)`. Their authoritative representation is an unrounded canonical
@@ -91,7 +99,21 @@ Decimal string in the immutable assumption and input snapshots. If a later
 queryable fractional column is justified, it must use `NUMERIC(38, 18)` or a
 reviewed higher scale, with an explicit precision contract.
 
+Exact finite values emitted by the unchanged Phase 0 calculation use
+`atlas-calculation-decimal/v1` only in immutable output snapshots. This separate
+representation permits at most 50 significant coefficient digits, scale 64,
+and 128 plain encoded characters. It is Decimal-only, context-independent, and
+never rounds, truncates, converts through float, or persists exponent notation.
+Values outside those bounds fail closed before persistence; input/hash money,
+assumption inputs, queryable money, and display rounding retain their existing
+contracts.
+
 ### Versioned snapshots and calculation identity
+
+`atlas-target-decision/v2` stores exact calculation operands separately from
+the USD cents operands that determine status. Its `decision_basis` is
+`currency_rounded`: `target_status` is exactly rounded ending balance greater
+than or equal to rounded target amount under `ROUND_HALF_EVEN` at `0.01`.
 
 Every version stores:
 
@@ -123,14 +145,17 @@ instants. Hashing uses the canonical unrounded Decimal strings required to
 reproduce a calculation; output or display rounding is not an input to the
 hash.
 
-The persisted target-status decision is sourced from an explicit unrounded
-decision basis in the calculation result and is stored with its canonical
-Decimal operands: `unrounded_ending_balance` and
-`unrounded_target_amount`, compared by `greater_than_or_equal` for the `base`
-scenario. `atlas-target-decision/v1` records that basis and the resulting
-boolean. A UI or API display amount must never recompute or alter that boolean
-after rounding. The Phase 1 contract tests must include a rounding-boundary
-case that proves the displayed value cannot change the stored target status.
+The persisted target-status decision uses `atlas-target-decision/v2`.
+It stores the complete exact calculation operands
+(`unrounded_ending_balance`, `unrounded_target_amount`) and the canonical USD
+cents operands actually used by Phase 0
+(`rounded_ending_balance`, `rounded_target_amount`). Its required metadata is
+`scenario: "base"`, `comparison: "greater_than_or_equal"`,
+`decision_basis: "currency_rounded"`, `rounding_rule: "ROUND_HALF_EVEN"`, and
+`money_precision: "0.01"`. `target_status` is derived solely from the rounded
+operands and must equal Phase 0 `reaches_target`; the unrounded operands are
+retained for reproducibility, not for a competing decision. A UI or API
+display amount must never recompute or alter that boolean.
 
 ### Input-state hashing and idempotent generation
 

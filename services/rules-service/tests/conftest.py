@@ -44,6 +44,7 @@ os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 os.environ["JWT_SECRET"] = "pytest-jwt-secret-do-not-use-in-prod"
 os.environ["LOCAL_USER"] = "alex"
 os.environ["ENVIRONMENT"] = "development"
+os.environ["ATLAS_FORECAST_PERSISTENCE_ENABLED"] = "true"
 os.environ["PLAID_CLIENT_ID"] = ""  # Plaid endpoints stay 501 in tests
 os.environ["PLAID_SECRET"] = ""
 # Default the Finlynq forwarder URL so httpx-based forwarders don't

@@ -1,5 +1,25 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "codex/phase-1-forecast-generation-service",
+      "id": "work-p1-forecast-generation-service",
+      "issue": "#3",
+      "objective": "Implement only the trusted Finlynq adapter, Phase 0 projection integration, and immutable repository generation service; no HTTP routes.",
+      "paths": [
+        "services/rules-service/app/forecasts",
+        "services/rules-service/tests/test_forecast_service.py",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-1",
+      "pr": "#11",
+      "risk_tier": "high",
+      "status": "in_review",
+      "tests": [
+        "Trusted adapter, Phase 0 projection, repository generation, idempotency, scope, and safe-error contract tests"
+      ],
+      "title": "Implement trusted forecast generation application service"
+    }
+  ],
   "blockers": [],
   "commit_pr_evidence": [
     {
@@ -277,9 +297,9 @@
       "title": "Implement Finlynq canonical projection-state provider"
     }
   ],
-  "current_objective": "Phase 1 repository transactions are complete; B0 is establishing authoritative Finlynq account currency and the privacy-minimized canonical projection-state provider before generation service resumes.",
+  "current_objective": "Phase 1 forecast models, migration, repository transactions, and the Finlynq-owned canonical projection-state provider are complete; the trusted generation application service is the active bounded slice.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-29T17:33:28Z",
+  "last_updated": "2026-07-30T03:13:36Z",
   "next_bounded_task": {
     "description": "After B0 merges, resume the paused trusted forecast generation application-service slice using only the Finlynq canonical projection-state provider; do not add HTTP routes.",
     "id": "next-p1-forecast-generation-service",
