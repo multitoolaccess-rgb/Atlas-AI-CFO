@@ -24,6 +24,7 @@ from app.forecasts.canonical_state import (
 from app.forecasts.repository import ForecastRepository, PersistedForecastVersion
 from app.forecasts.snapshots import ASSUMPTION_SCHEMA_VERSION, TARGET_DECISION_SCHEMA_VERSION, CALCULATION_DECIMAL_SCHEMA_VERSION, calculation_decimal_string
 from app.models import Goal
+from app.config import settings
 
 
 class ForecastGenerationUnavailable(RuntimeError):
@@ -47,6 +48,8 @@ class ForecastGenerationService:
     def generate(self, *, user_id: int, user_sub: str, goal_id: int, idempotency_key: str, now: datetime) -> GeneratedForecast:
         goal = self._session.scalar(select(Goal).where(Goal.id == goal_id, Goal.user_id == user_id, Goal.is_archived.is_(False)))
         if goal is None:
+            raise ForecastGenerationUnavailable("forecast_generation_unavailable")
+        if not settings.atlas_forecast_persistence_enabled:
             raise ForecastGenerationUnavailable("forecast_generation_unavailable")
         adapter_failure = False
         try:

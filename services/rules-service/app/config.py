@@ -66,6 +66,8 @@ class Settings(BaseSettings):
     # fallback chain — see Phase 39.2 comment in
     # ``app/routes/analyst_ratings.py`` and ``app/routes/holdings.py``.
     finnhub_api_key: Optional[str] = None
+    # Phase 1 forecast persistence flag (default off)
+    atlas_forecast_persistence_enabled: bool = False
 
     model_config = ConfigDict(extra="ignore", env_file=".env", case_sensitive=False)
 
