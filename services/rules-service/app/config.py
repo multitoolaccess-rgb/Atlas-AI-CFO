@@ -68,6 +68,10 @@ class Settings(BaseSettings):
     finnhub_api_key: Optional[str] = None
     # Phase 1 forecast persistence flag (default off)
     atlas_forecast_persistence_enabled: bool = False
+    # Phase 1 forecast read API flag (default off).  Two distinct flags per
+    # ADR-006 §"Feature flags and rollout" -- read enablement is independent
+    # of generation persistence so operators can stage the read surface alone.
+    atlas_forecast_read_api_enabled: bool = False
 
     model_config = ConfigDict(extra="ignore", env_file=".env", case_sensitive=False)
 

@@ -11,7 +11,7 @@ import time
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal, ROUND_HALF_EVEN
 from typing import Any
 
@@ -19,6 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
+from app.forecasts.api_codecs import ForecastCursor
 from app.forecasts.canonical_state import (
     CanonicalProjectionState,
     validate_idempotency_key,
@@ -321,3 +322,213 @@ class ForecastRepository:
                 raise
             self._session.rollback()
             raise ForecastRepositoryConflict("forecast persistence conflict") from exc
+
+    # ------------------------------------------------------------
+    # Read methods (Slice D) — owned by user; ordered by stable
+    # (created_at DESC, id DESC) for forecasts and (version_number
+    # DESC, id DESC) for versions.  None is returned for missing
+    # or cross-user resources so the route renders an indistinguishable
+    # 404 envelope without exposing ownership.
+    # ------------------------------------------------------------
+
+    def get_forecast_for_user(
+        self, *, user_id: int, forecast_id: str
+    ) -> tuple[Forecast, ForecastVersion | None] | None:
+        """Return (forecast, latest_version) if owned; else None."""
+        forecast = self._session.scalar(
+            select(Forecast).where(
+                Forecast.id == forecast_id,
+                Forecast.user_id == user_id,
+            )
+        )
+        if forecast is None:
+            return None
+        latest = self._session.scalar(
+            select(ForecastVersion)
+            .where(ForecastVersion.forecast_id == forecast.id)
+            .order_by(
+                ForecastVersion.version_number.desc(),
+                ForecastVersion.id.desc(),
+            )
+            .limit(1)
+        )
+        return forecast, latest
+
+    def get_forecast_version_for_user(
+        self,
+        *,
+        user_id: int,
+        forecast_id: str,
+        version_number: int,
+    ) -> tuple[Forecast, ForecastVersion] | None:
+        """Return (forecast, version) if owned; else None."""
+        forecast = self._session.scalar(
+            select(Forecast).where(
+                Forecast.id == forecast_id,
+                Forecast.user_id == user_id,
+            ).limit(1)
+        )
+        if forecast is None:
+            return None
+        version = self._session.scalar(
+            select(ForecastVersion).where(
+                ForecastVersion.forecast_id == forecast.id,
+                ForecastVersion.version_number == version_number,
+            ).limit(1)
+        )
+        if version is None:
+            return None
+        return forecast, version
+
+    def list_forecasts_paginated(
+        self,
+        *,
+        user_id: int,
+        goal_id: int | None,
+        cursor: ForecastCursor | None,
+        limit: int,
+    ) -> tuple[list[tuple[Forecast, ForecastVersion | None]], ForecastCursor | None]:
+        """Newest-first listing using (created_at DESC, id DESC).
+
+        Fetches ``limit + 1`` rows; if the extra row arrives, the
+        page has more and a cursor pointing at the last returned
+        forecast is built.  The ``+1`` is bounded (max limit 64 per
+        the response schema), so the over-fetch is bounded.
+        """
+        from sqlalchemy import and_, or_, tuple_
+
+        bound = max(1, min(64, limit)) + 1
+        stmt = select(Forecast).where(Forecast.user_id == user_id)
+        if goal_id is not None:
+            stmt = stmt.where(Forecast.goal_id == goal_id)
+        if cursor is not None:
+            # Strict tuple comparison: a row is included iff
+            # ``(created_at, id)`` is lexicographically strictly less
+            # than ``(cursor.created_at, cursor.id)``.  Using a single
+            # ``ROW`` comparison (rather than the OR-cascade of
+            # ``created_at < OR (created_at = AND id <)``) keeps the
+            # boundary row deterministically excluded across both
+            # Postgres (typed datetime) and SQLite (text-collated datetime)
+            # without depending on timestamp precision alignment
+            # between cursor serialization and DB persistence.
+            stmt = stmt.where(
+                tuple_(Forecast.created_at, Forecast.id)
+                < tuple_(cursor.created_at, cursor.forecast_id)
+            )
+        forecasts = list(
+            self._session.scalars(
+                stmt.order_by(
+                    Forecast.created_at.desc(),
+                    Forecast.id.desc(),
+                ).limit(bound)
+            ).all()
+        )
+        has_more = len(forecasts) > bound - 1
+        forecasts = forecasts[: bound - 1]
+        pairs: list[tuple[Forecast, ForecastVersion | None]] = []
+        for fc in forecasts:
+            latest = self._session.scalar(
+                select(ForecastVersion)
+                .where(ForecastVersion.forecast_id == fc.id)
+                .order_by(
+                    ForecastVersion.version_number.desc(),
+                    ForecastVersion.id.desc(),
+                )
+                .limit(1)
+            )
+            pairs.append((fc, latest))
+        next_cursor: ForecastCursor | None = None
+        if has_more and forecasts:
+            last = forecasts[-1]
+            # ``Forecast.created_at`` arrives from SQLite as a naive
+            # ``datetime`` because the dialect stores it as text and
+            # strips the tzinfo.  Calling ``.astimezone(timezone.utc)``
+            # on a *naive* datetime would silently treat the value as
+            # local time and shift it by the system offset (positive
+            # hours into the future relative to the stored row), causing
+            # the subsequent page-2 ``< cursor.created_at`` filter to
+            # re-include the boundary row.  ``.replace(tzinfo=...)`` on
+            # the naive case labels the value as already-UTC instead of
+            # shifting it; the already-aware case still uses
+            # ``.astimezone(utc)`` so timezone-normalized comparisons on
+            # Postgres remain correct.
+            utc_created_at = (
+                last.created_at.replace(tzinfo=timezone.utc)
+                if last.created_at.tzinfo is None
+                else last.created_at.astimezone(timezone.utc)
+            )
+            next_cursor = ForecastCursor(
+                forecast_id=last.id,
+                created_at=utc_created_at,
+                version_number=last.latest_version_number,
+            )
+        return pairs, next_cursor
+
+    def list_forecast_versions_paginated(
+        self,
+        *,
+        user_id: int,
+        forecast_id: str,
+        cursor: ForecastCursor | None,
+        limit: int,
+    ) -> tuple[list[ForecastVersion], ForecastCursor | None] | None:
+        """Newest-first (version_number DESC, id DESC).
+
+        Returns ``None`` when the user does not own the forecast
+        (route layer translates to indistinguishable 404).
+        """
+        from sqlalchemy import and_, or_, tuple_
+
+        forecast = self._session.scalar(
+            select(Forecast).where(
+                Forecast.id == forecast_id,
+                Forecast.user_id == user_id,
+            ).limit(1)
+        )
+        if forecast is None:
+            return None
+        bound = max(1, min(64, limit)) + 1
+        stmt = (
+            select(ForecastVersion)
+            .where(
+                ForecastVersion.forecast_id == forecast_id,
+            )
+        )
+        # ``(forecast_id, version_number)`` is UNIQUE in the schema, so a
+        # secondary tie-breaker is not needed for deterministic pagination:
+        # ``version_number < cursor.version_number`` already excludes every
+        # already-shown row.  The cursor's ``created_at`` field is preserved
+        # for the merged codec round-trip but not used as a comparator.
+        if cursor is not None:
+            stmt = stmt.where(
+                ForecastVersion.version_number < cursor.version_number,
+            )
+        versions = list(
+            self._session.scalars(
+                stmt.order_by(
+                    ForecastVersion.version_number.desc(),
+                ).limit(bound)
+            ).all()
+        )
+        has_more = len(versions) > bound - 1
+        versions = versions[: bound - 1]
+        next_cursor: ForecastCursor | None = None
+        if has_more and versions:
+            last = versions[-1]
+            # Same tzinfo-on-naive handling as ``list_forecasts_paginated``
+            # -- see the parent method's comment for the SQLite text-store
+            # rationale.  Without the conditional, a future-shifted
+            # ``created_at`` would re-include the boundary version row
+            # on the next page.
+            utc_created_at = (
+                last.created_at.replace(tzinfo=timezone.utc)
+                if last.created_at.tzinfo is None
+                else last.created_at.astimezone(timezone.utc)
+            )
+            next_cursor = ForecastCursor(
+                forecast_id=last.forecast_id,
+                created_at=utc_created_at,
+                version_number=last.version_number,
+            )
+        return versions, next_cursor
+
