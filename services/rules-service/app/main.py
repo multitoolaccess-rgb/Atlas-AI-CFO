@@ -68,9 +68,6 @@ from app.routes import (
     # Phase 2 — policy-based rule evaluation.
     evaluate_router,
     family_members_router,
-    # Phase 1 / Slice D — bounded read-only /api/v1/forecasts/* routes.
-    # No generation POST is registered here; that belongs to a later slice.
-    forecasts_router,
     goals_router,
     holdings_router,
     imports_router,
@@ -412,9 +409,6 @@ app.include_router(auth_router)
 app.include_router(accounts_router)
 app.include_router(budgets_router)
 app.include_router(debts_router)
-# Phase 1 Slice D — bounded read-only /api/v1/forecasts/* routes.
-# Phase 1 default-off feature flag (``atlas_forecast_read_api_enabled``).
-app.include_router(forecasts_router)
 app.include_router(analyst_ratings_router)
 app.include_router(assistant_router)
 # Phase 22 — Pass 4 LLM-backed fallback categorizer. Registered next
