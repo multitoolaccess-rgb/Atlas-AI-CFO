@@ -87,9 +87,11 @@ must cover Float-to-canonical-string boundary cases. A canonical Goal Decimal
 migration remains a separate reviewed change.
 
 The immutable server-owned goal-input snapshot includes the canonical target
-amount, horizon, and nullable ISO date-only target date used by the
-calculation. Each is included in the input-state hash, so a goal configuration
-change cannot replay a forecast calculated for an earlier deadline.
+amount, nullable horizon, and nullable ISO date-only target date used by the
+calculation. A goal uses its explicit target date when present; otherwise its
+horizon supplies the projection period. Each is included in the input-state
+hash, so a goal configuration change cannot replay a forecast calculated for
+an earlier deadline.
 
 Rates, inflation, and other fractional assumptions are not stored in
 `NUMERIC(38, 2)`. Their authoritative representation is an unrounded canonical

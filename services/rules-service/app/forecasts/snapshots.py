@@ -203,7 +203,7 @@ def _validate_assumption_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
     goal = _mapping(snapshot["goal_inputs"], allowed=frozenset({"target_amount", "horizon_years", "target_date", "source_representation", "conversion", "precision_restored"}), required=frozenset({"target_amount", "horizon_years", "target_date", "source_representation", "conversion", "precision_restored"}))
     if goal["source_representation"] != "float" or goal["conversion"] != "decimal-str" or goal["precision_restored"] is not False:
         _reject_snapshot()
-    result["goal_inputs"] = {"target_amount": _decimal(goal["target_amount"]), "horizon_years": _nonnegative_int(goal["horizon_years"]), "target_date": _date(goal["target_date"]) if goal["target_date"] is not None else None, "source_representation": "float", "conversion": "decimal-str", "precision_restored": False}
+    result["goal_inputs"] = {"target_amount": _decimal(goal["target_amount"]), "horizon_years": _nonnegative_int(goal["horizon_years"]) if goal["horizon_years"] is not None else None, "target_date": _date(goal["target_date"]) if goal["target_date"] is not None else None, "source_representation": "float", "conversion": "decimal-str", "precision_restored": False}
     return result
 
 

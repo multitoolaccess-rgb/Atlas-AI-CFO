@@ -22,6 +22,11 @@ class Adapter:
     def load_projection_state(self, *, user_id, goal_id): self.calls += 1; return self.state
 
 
+class MalformedAdapter:
+    def __init__(self): self.calls = 0
+    def load_projection_state(self, *, user_id, goal_id): self.calls += 1; return object()
+
+
 @pytest.fixture()
 def db():
     engine=create_engine("sqlite:///:memory:"); Base.metadata.create_all(engine)
@@ -42,6 +47,16 @@ def test_cross_user_goal_does_not_invoke_adapter(db):
     adapter=Adapter(_state())
     with pytest.raises(ForecastGenerationUnavailable): ForecastGenerationService(db,adapter).generate(user_id=2,user_sub="other",goal_id=1,idempotency_key="atlas-key",now=datetime(2026,7,2,tzinfo=timezone.utc))
     assert adapter.calls == 0
+
+
+def test_rejects_malformed_adapter_output_without_persisting_source_payload(db):
+    adapter = MalformedAdapter()
+    with pytest.raises(ForecastGenerationUnavailable, match="forecast_generation_unavailable"):
+        ForecastGenerationService(db, adapter).generate(
+            user_id=1, user_sub="atlas-user", goal_id=1,
+            idempotency_key="atlas-key", now=datetime(2026, 7, 2, tzinfo=timezone.utc),
+        )
+    assert adapter.calls == 1
 
 
 def test_idempotent_replay_and_changed_state_do_not_replay_old_version(db):
@@ -92,6 +107,22 @@ def test_goal_deadline_change_changes_hash_and_cannot_replay_old_forecast(db):
 
     with pytest.raises(IdempotencyConflict):
         service.generate(user_id=1, user_sub="atlas-user", goal_id=1, idempotency_key="atlas-key", now=now)
+
+
+def test_date_only_goal_derives_horizon_and_hashes_its_deadline(db):
+    goal = db.get(Goal, 1)
+    assert goal is not None
+    goal.horizon_years = None
+    goal.target_date = date(2028, 7, 31)
+    db.commit()
+
+    created = ForecastGenerationService(db, Adapter(_state())).generate(
+        user_id=1, user_sub="atlas-user", goal_id=1,
+        idempotency_key="atlas-date-only", now=datetime(2026, 7, 2, tzinfo=timezone.utc),
+    )
+    assumptions = created.persisted.version.assumption_snapshot_json
+    assert '"horizon_years":null' in assumptions
+    assert '"target_date":"2028-07-31"' in assumptions
 
 
 def test_rejects_missing_authoritative_state(db):

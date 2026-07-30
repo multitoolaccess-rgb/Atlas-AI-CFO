@@ -246,8 +246,9 @@ forecast response links the latest version but never overwrites history.
    hashing; quantize only persisted/display monetary outputs with
    `ROUND_HALF_EVEN`.
 3. Normalize currency, dates (including the nullable goal target date),
-   contribution timing, goal target and horizon inputs, assumptions, freshness,
-   source references, and goal ID.
+   contribution timing, goal target and nullable horizon inputs, assumptions,
+   freshness, source references, and goal ID. An explicit target date derives
+   the Phase 0 horizon; a goal with no target date must supply its horizon.
 4. Serialize Decimal values as canonical strings, dates as ISO date strings,
    and instants as timezone-aware UTC RFC 3339 strings with a `Z` suffix.
 5. Serialize JSON with sorted keys, UTF-8, and compact separators.

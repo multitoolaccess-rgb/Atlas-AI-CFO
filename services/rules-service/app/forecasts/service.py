@@ -8,8 +8,19 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.calculations.projection import MODEL_VERSION, ProjectionRequest, project_scenarios
-from app.forecasts.canonical_state import CanonicalProjectionState, FinlynqProjectionStateAdapter, canonical_decimal_string
+from app.calculations.projection import (
+    MODEL_VERSION,
+    ProjectionRequest,
+    ProjectionValidationError,
+    project_scenarios,
+)
+from app.forecasts.canonical_state import (
+    CanonicalProjectionState,
+    CanonicalStateValidationError,
+    FinlynqProjectionStateAdapter,
+    canonical_decimal_string,
+    load_authoritative_projection_state,
+)
 from app.forecasts.repository import ForecastRepository, PersistedForecastVersion
 from app.forecasts.snapshots import ASSUMPTION_SCHEMA_VERSION, TARGET_DECISION_SCHEMA_VERSION, CALCULATION_DECIMAL_SCHEMA_VERSION, calculation_decimal_string
 from app.models import Goal
@@ -37,7 +48,17 @@ class ForecastGenerationService:
         goal = self._session.scalar(select(Goal).where(Goal.id == goal_id, Goal.user_id == user_id, Goal.is_archived.is_(False)))
         if goal is None:
             raise ForecastGenerationUnavailable("forecast_generation_unavailable")
-        state = self._adapter.load_projection_state(user_id=user_sub, goal_id=goal_id)
+        adapter_failure = False
+        try:
+            state = load_authoritative_projection_state(
+                adapter=self._adapter,
+                server_user_id=user_sub,
+                server_goal_id=goal_id,
+            )
+        except CanonicalStateValidationError:
+            adapter_failure = True
+        if adapter_failure:
+            raise ForecastGenerationUnavailable("forecast_generation_unavailable")
         self._validate_state(state, user_sub, goal_id)
         request = self._request(goal, state, now.date())
         result = project_scenarios(request)
@@ -67,15 +88,28 @@ class ForecastGenerationService:
 
     @staticmethod
     def _request(goal: Goal, state: CanonicalProjectionState, calculation_date: date) -> ProjectionRequest:
-        if goal.horizon_years is None or not 1 <= goal.horizon_years <= 50:
+        if goal.target_date is None and (
+            goal.horizon_years is None or not 1 <= goal.horizon_years <= 50
+        ):
             raise ForecastGenerationUnavailable("forecast_generation_unavailable")
         current = sum((Decimal(c.amount) for c in state.current_value_components), Decimal("0"))
         contribution = sum((Decimal(c.amount) for c in state.contribution_inputs), Decimal("0"))
-        return ProjectionRequest(currency="USD", current_balance=current, monthly_contribution=contribution,
-            horizon_months=goal.horizon_years * 12, calculation_date=calculation_date,
-            data_as_of=date.fromisoformat(state.as_of_timestamp[:10]), max_data_age_days=state.freshness.max_data_age_days,
-            contribution_timing="end_of_month", annual_inflation_rate=Decimal("0.02"), annual_return_rates=_RATES,
-            target_amount=Decimal(str(goal.target_amount)), target_date=goal.target_date)
+        values = {
+            "currency": "USD", "current_balance": current,
+            "monthly_contribution": contribution, "calculation_date": calculation_date,
+            "data_as_of": date.fromisoformat(state.as_of_timestamp[:10]),
+            "max_data_age_days": state.freshness.max_data_age_days,
+            "contribution_timing": "end_of_month", "annual_inflation_rate": Decimal("0.02"),
+            "annual_return_rates": _RATES, "target_amount": Decimal(str(goal.target_amount)),
+        }
+        if goal.target_date is not None:
+            values["target_date"] = goal.target_date
+        else:
+            values["horizon_months"] = goal.horizon_years * 12
+        try:
+            return ProjectionRequest.from_mapping(values)
+        except ProjectionValidationError:
+            raise ForecastGenerationUnavailable("forecast_generation_unavailable") from None
 
     @staticmethod
     def _output(result):
