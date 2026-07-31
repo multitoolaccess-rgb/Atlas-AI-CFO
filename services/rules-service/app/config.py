@@ -68,6 +68,11 @@ class Settings(BaseSettings):
     finnhub_api_key: Optional[str] = None
     # Phase 1 forecast persistence flag (default off)
     atlas_forecast_persistence_enabled: bool = False
+    # Phase 1 read-API flag (default off — peer to the persistence flag).
+    # Strict default-off + case-insensitive env binding via pydantic-settings.
+    # NO client-side override point: this lives only in the server Settings
+    # base class; route layers MUST reject requests when this is False.
+    atlas_forecast_read_api_enabled: bool = False
 
     model_config = ConfigDict(extra="ignore", env_file=".env", case_sensitive=False)
 
