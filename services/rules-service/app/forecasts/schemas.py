@@ -125,6 +125,8 @@ ERROR_CODE_GOAL_NOT_FOUND: Final[str] = "goal_not_found"
 ERROR_CODE_FORECAST_NOT_FOUND: Final[str] = "forecast_not_found"
 ERROR_CODE_FORECAST_VALIDATION: Final[str] = "forecast_validation_error"
 ERROR_CODE_READ_API_DISABLED: Final[str] = "forecast_read_api_unavailable"
+ERROR_CODE_PRECONDITION_FAILED: Final[str] = "precondition_failed"
+ERROR_CODE_BAD_REQUEST: Final[str] = "bad_request"
 
 
 # ============================================================
@@ -233,6 +235,44 @@ class IdempotencyConflictEnvelope(BaseModel):
 
     code: Literal[ERROR_CODE_IDEMPOTENCY_CONFLICT] = ERROR_CODE_IDEMPOTENCY_CONFLICT
     message: Literal["Idempotency-Key conflict."] = "Idempotency-Key conflict."
+
+
+class PreconditionFailedEnvelope(BaseModel):
+    """412 envelope returned when ``If-None-Match: *`` collides with existing state
+    or when ``If-Match`` references a version that does not exist yet."""
+
+    model_config = _phase1_response_config()
+
+    code: Literal[ERROR_CODE_PRECONDITION_FAILED] = ERROR_CODE_PRECONDITION_FAILED
+    message: Literal["Forecast precondition failed."] = "Forecast precondition failed."
+
+
+class BadRequestEnvelope(BaseModel):
+    """400 envelope returned when the request is structurally invalid (e.g., mutually
+    contradictory conditional headers).  No rejected input value is echoed."""
+
+    model_config = _phase1_response_config()
+
+    code: Literal[ERROR_CODE_BAD_REQUEST] = ERROR_CODE_BAD_REQUEST
+    message: Literal["Invalid forecast request."] = "Invalid forecast request."
+    errors: tuple[ValidationErrorEntry, ...] = Field(
+        default_factory=tuple,
+        max_length=64,
+        description="Ordered, deduplicated sanitized findings; same shape as ValidationErrorEnvelope.",
+    )
+
+    @field_validator("errors")
+    @classmethod
+    def _errors_unique_loc(
+        cls, value: tuple[ValidationErrorEntry, ...]
+    ) -> tuple[ValidationErrorEntry, ...]:
+        seen: set[tuple[tuple[str, ...], str]] = set()
+        for entry in value:
+            key = (tuple(str(p) for p in entry.loc), entry.type)
+            if key in seen:
+                raise ValueError("duplicate sanitized error location")
+            seen.add(key)
+        return value
 
 
 class ForecastGenerationDisabledEnvelope(BaseModel):
