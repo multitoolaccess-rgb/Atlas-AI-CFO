@@ -259,11 +259,15 @@ def downgrade() -> None:
         # the column itself. SQLite doesn't auto-drop indexes when a
         # column is dropped (Postgres DOES), so a downgrade against
         # SQLite would otherwise leave an orphan
-        # ``ix_accounts_family_member_id`` lying around. ``if_exists=True``
-        # keeps the downgrade idempotent on multiple rerun cycles.
+        # ``ix_accounts_family_member_id`` lying around. ``if_exists`` is
+        # intentionally NOT passed here: alembic 1.13.x's
+        # ``ApplyBatchImpl.drop_index`` rejects that kwarg
+        # (``TypeError: ... got an unexpected keyword argument 'if_exists'``),
+        # and it is unnecessary by construction because the upgrade path
+        # unconditionally provisions the index, so the downgrade against
+        # any post-upgrade schema state is safe.
         batch_op.drop_index(
             op.f("ix_accounts_family_member_id"),
-            if_exists=True,
         )
         batch_op.drop_constraint("fk_accounts_family_member", type_="foreignkey")
         batch_op.drop_column("family_member_id")
