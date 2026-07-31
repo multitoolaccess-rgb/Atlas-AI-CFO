@@ -4,11 +4,12 @@
 
 - Current phase: **phase-1 — Forecast persistence** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Phase 1 forecast models, migration, repository transactions, and the Finlynq-owned canonical projection-state provider are complete; the trusted generation application service is the active bounded slice.
-- Last updated: 2026-07-30T15:02:52Z
+- Current objective: Phase 1 forecast models, migration, repository transactions, Finlynq-owned canonical projection-state provider, trusted generation application service, bounded versioned API schemas (Slice C), and Slice D authenticated read routes are complete. Slice D-post (authenticated forecast generation HTTP route) is the active bounded slice: mapper sub-PR #14 (commit 175ac8c) provides partial evidence; the handler continuation PR is the remaining bounded work. Slice D-post completion (both mapper + handler PRs merged) is required before Slice E (flags, observability, shadow validation) begins.
+- Last updated: 2026-07-31T01:29:51Z
 
 ## Active work
-- work-p1-versioned-read-routes: Phase 1 Slice D: Authenticated versioned read routes (in_progress, high)
+- work-p1-forecast-generation-route: Phase 1 Slice D-post: Authenticated forecast generation HTTP route (in_progress, high)
+- work-p1-flags-observability-shadow-validation: Phase 1 Slice E: Flags, Observability, Shadow Validation (planned, high)
 
 ## Blockers
 - None
@@ -34,11 +35,11 @@
 - risk-p1-account-currency-authority [high/high, open]: Finlynq active account balances have no authoritative currency attribute; a user preference/default cannot prove balances are USD for atlas-projection-state/v1.
 
 ## Recently completed work
-- work-p1-forecast-persistence-models: Implement immutable forecast persistence models and migration — commit 59b3baa, PR #8
 - work-p1-forecast-repository: Implement immutable forecast repository transactions — commit a85aed6, PR #9
 - work-p1-finlynq-projection-provider: Implement Finlynq canonical projection-state provider — commit 4ebf757e2ea266e5ba55f6dc86c18869087fd1e4, PR #10
 - work-p1-forecast-generation-service: Implement trusted forecast generation application service — commit a44aeaf4, PR 11
 - work-p1-versioned-schemas: Phase 1 Slice C: Decimal-safe versioned API schemas — commit 17632b5, PR 12
+- work-p1-versioned-read-routes: Phase 1 Slice D: Authenticated versioned read routes — commit 8b576830edb069f009550b6891750c91e0e8b0bf, PR 13
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -55,13 +56,17 @@
 - 734d35e: Made dashboard date-only ranges inclusive through a half-open next-day bound #7
 - 694ec81: Restored bounded open-ended dashboard date ranges while retaining the half-open upper bound #7
 - e2ebbb2: Rejected dashboard date ranges whose exclusive next-day bound is unrepresentable #7
+- 8b576830edb069f009550b6891750c91e0e8b0bf:  13
+- 175ac8c6da24a81125741ba336a56fc8cba3f777: Bounded mapper-only correction on top of mapper rewrite (a6adb17). Fix A: _assumption_goal_pairs enforces the Phase 0 XOR invariant (target_amount required + exactly one of (horizon_years, target_date)) with `_NULL_SENTINEL` now documented as a deliberate bounded wire placeholder rather than a missing field — both-None and both-present reject via sanitized ForecastMapperError. Fix B: _coerce_drivers_data_as_of accepts ONLY YYYY-MM-DD (10-char) OR RFC 3339 (T-separator + Z-suffix); timezone offsets, space separators, garbage, empty, non-string, and >64-char inputs reject with sanitized ForecastMapperError. Mapper remains route-free and adapter-free (AST isolation test still passes). Route WIP preserved untracked in stash@{0} (message: wip-route-handler-pre-pr14-merge) for the next bounded handler PR. 14
 - Test test-p0-rules: Rules Service — 579 passed, 10 skipped, 1 xfailed
 - Test test-p0-finlynq: Finlynq — 93 passed
 - Test test-p0-frontend: Frontend — 496 passed
 - Test test-p0-typescript: TypeScript check — passed
 - Test test-p1-planning-status: Phase 1 planning governance — 5 passed; status, deterministic render, and trusted generation-boundary documentation checks passed
+- Test test-p1-slice-d-routes: Slice D focused + broader regression on isolated SQLite DB — PASS
+- Test test-p1-slice-d-post-mapper-sub-pr: Phase 1 Slice D-post mapper sub-PR (PR #14 commit 175ac8c) on isolated SQLite DB — 37/37 test_forecast_mapper.py + 226/226 broader regression + APPROVE_FOR_MERGE from fresh independent code-reviewer-minimax-m3
 
 ## Next bounded task
-- work-p1-versioned-read-routes: Phase 1 Slice D: Authenticated POST /api/v1/goals/{goal_id}/forecasts + GET /api/v1/forecasts (cursor-paged, user-scoped) + GET /api/v1/forecasts/{forecast_id} + GET /api/v1/forecasts/{forecast_id}/versions (cursor-paged) + GET /api/v1/forecasts/{forecast_id}/versions/{version_number}. Required Idempotency-Key header + If-Match / If-None-Match conditional headers; control-only body (extra=forbid); stable 409 envelopes (forecast_version_conflict + idempotency_conflict); 503 envelope (forecast_generation_unavailable when persistence disabled); 404 non-disclosing for cross-user / missing goal or forecast. NO PUT/PATCH/DELETE routes. Auth via require_user; goal authorization before adapter invocation; idempotency key hashed server-side; ETag header via api_codecs.format_forecast_etag_header. Compose RO classes directly from app.forecasts.schemas — no field re-declaration. Read flag stays OFF (Slice E introduces ATLAS_FORECAST_READ_API_ENABLED).
+- work-p1-flags-observability-shadow-validation: Phase 1 Slice E: Flags, observability, and bounded shadow validation. Blocked until Slice D-post (mapper + handler PRs) merges AND retention / user-deletion policy is approved.
 
 Do not begin the next phase or task automatically.

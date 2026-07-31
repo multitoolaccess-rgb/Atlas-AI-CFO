@@ -1,6 +1,28 @@
 {
   "active_work": [
     {
+      "branch": "codex/phase-1-forecast-generation-route",
+      "id": "work-p1-forecast-generation-route",
+      "issue": "",
+      "objective": "Implement only the bounded authenticated POST /api/v1/goals/{goal_id}/forecasts route with ownership authorization, idempotency, conditional headers, default-off persistence 503, sanitized 4xx/5xx envelopes, and HATEOAS links. NO mutable forecast CRUD. NO request-path shadowing. NO early Slice E.",
+      "paths": [
+        "services/rules-service/app/routes/forecasts_generation.py",
+        "services/rules-service/app/main.py",
+        "services/rules-service/tests/test_routes_forecast_generation.py"
+      ],
+      "phase_id": "phase-1",
+      "pr": null,
+      "risk_tier": "high",
+      "status": "in_progress",
+      "tests": [
+        "9-case status/header/body matrix (200 idempotent replay / 201 new generation / 400 conditional mismatch / 404 cross-user indistinguishability / 409 stable 409 / 412 precondition / 422 sanitized validation / 503 persistence disabled)",
+        "Idempotency + If-None-Match + If-Match regression",
+        "Ownership-before-adapter + cross-user 404 indistinguishability",
+        "Default-off persistence 503 + early-disabled-stop before adapter invocation"
+      ],
+      "title": "Phase 1 Slice D-post: Authenticated forecast generation HTTP route"
+    },
+    {
       "branch": "codex/planned-slice-e",
       "id": "work-p1-flags-observability-shadow-validation",
       "phase_id": "phase-1",
@@ -90,6 +112,16 @@
       "review_evidence": "code-reviewer-minimax-m3 APPROVE_FOR_MERGE on cumulative seam-fix commit 8b57683 (cycles 5-10 bounded refinements)",
       "slice": "D",
       "work_id": "work-p1-versioned-read-routes"
+    },
+    {
+      "branch": "codex/phase-1-forecast-generation-route",
+      "commit": "175ac8c6da24a81125741ba336a56fc8cba3f777",
+      "commit_short": "175ac8c",
+      "description": "Bounded mapper-only correction on top of mapper rewrite (a6adb17). Fix A: _assumption_goal_pairs enforces the Phase 0 XOR invariant (target_amount required + exactly one of (horizon_years, target_date)) with `_NULL_SENTINEL` now documented as a deliberate bounded wire placeholder rather than a missing field \u2014 both-None and both-present reject via sanitized ForecastMapperError. Fix B: _coerce_drivers_data_as_of accepts ONLY YYYY-MM-DD (10-char) OR RFC 3339 (T-separator + Z-suffix); timezone offsets, space separators, garbage, empty, non-string, and >64-char inputs reject with sanitized ForecastMapperError. Mapper remains route-free and adapter-free (AST isolation test still passes). Route WIP preserved untracked in stash@{0} (message: wip-route-handler-pre-pr14-merge) for the next bounded handler PR.",
+      "pr": 14,
+      "review_evidence": "code-reviewer-minimax-m3 (fresh independent review of new head) APPROVE_FOR_MERGE on commit 175ac8c \u2014 bounded mapper-only fix A + fix B, scope disciplined to mapper + mapper tests only.",
+      "slice": "D-post",
+      "work_id": "work-p1-forecast-generation-route"
     }
   ],
   "completed_phase1_slices": [
@@ -391,10 +423,14 @@
       "title": "Phase 1 Slice D: Authenticated versioned read routes"
     }
   ],
-  "current_objective": "Phase 1 forecast models, migration, repository transactions, and the Finlynq-owned canonical projection-state provider are complete; the trusted generation application service is the active bounded slice.",
+  "current_objective": "Phase 1 forecast models, migration, repository transactions, Finlynq-owned canonical projection-state provider, trusted generation application service, bounded versioned API schemas (Slice C), and Slice D authenticated read routes are complete. Slice D-post (authenticated forecast generation HTTP route) is the active bounded slice: mapper sub-PR #14 (commit 175ac8c) provides partial evidence; the handler continuation PR is the remaining bounded work. Slice D-post completion (both mapper + handler PRs merged) is required before Slice E (flags, observability, shadow validation) begins.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-30T16:25:11Z",
-  "next_bounded_task": "work-p1-flags-observability-shadow-validation",
+  "last_updated": "2026-07-31T01:29:51Z",
+  "next_bounded_task": {
+    "description": "Phase 1 Slice E: Flags, observability, and bounded shadow validation. Blocked until Slice D-post (mapper + handler PRs) merges AND retention / user-deletion policy is approved.",
+    "id": "work-p1-flags-observability-shadow-validation",
+    "phase_id": "phase-1"
+  },
   "overall_status": "in_progress",
   "phases": [
     {
@@ -635,13 +671,20 @@
     {
       "broad_tests_passed": 229,
       "broad_tests_total": 229,
+      "id": "test-p1-slice-d-routes",
       "label": "Slice D focused + broader regression",
       "note": "48/48 focused test_routes_forecasts.py ; 229/229 broader Slice A/B/C/D regression on isolated SQLite DB",
       "result": "PASS",
+      "scope": "Slice D focused + broader regression on isolated SQLite DB",
       "slice": "D",
       "tests_passed": 48,
       "tests_total": 48,
       "work_id": "work-p1-versioned-read-routes"
+    },
+    {
+      "id": "test-p1-slice-d-post-mapper-sub-pr",
+      "result": "37/37 test_forecast_mapper.py + 226/226 broader regression + APPROVE_FOR_MERGE from fresh independent code-reviewer-minimax-m3",
+      "scope": "Phase 1 Slice D-post mapper sub-PR (PR #14 commit 175ac8c) on isolated SQLite DB"
     }
   ]
 }
