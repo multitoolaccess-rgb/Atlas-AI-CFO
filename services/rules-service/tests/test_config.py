@@ -96,3 +96,49 @@ def test_production_environment_accepts_explicit_jwt_secret(monkeypatch):
     s = Settings(_env_file=None)
     assert s.environment == "production"
     assert s.jwt_secret == "from-explicit-env-override"
+
+# =============================================================================
+# Phase 1 Slice E.1 — atlas_forecast_read_api_enabled default-off flag
+# =============================================================================
+
+
+def test_read_api_flag_default_is_off(monkeypatch: object) -> None:
+    """When ``ATLAS_FORECAST_READ_API_ENABLED`` is unset, the flag is ``False``."""
+    monkeypatch.delenv(  # type: ignore[attr-defined]
+        "ATLAS_FORECAST_READ_API_ENABLED", raising=False
+    )
+    Settings = __import__("app.config", fromlist=["Settings"]).Settings
+    settings = Settings()
+    assert settings.atlas_forecast_read_api_enabled is False
+
+
+def test_read_api_flag_explicit_false_remains_off(monkeypatch: object) -> None:
+    """When ``ATLAS_FORECAST_READ_API_ENABLED=false``, the flag is ``False``."""
+    monkeypatch.setenv("ATLAS_FORECAST_READ_API_ENABLED", "false")  # type: ignore[attr-defined]
+    Settings = __import__("app.config", fromlist=["Settings"]).Settings
+    settings = Settings()
+    assert settings.atlas_forecast_read_api_enabled is False
+
+
+def test_read_api_flag_explicit_true_enables(monkeypatch: object) -> None:
+    """When ``ATLAS_FORECAST_READ_API_ENABLED=true``, the flag is ``True``."""
+    monkeypatch.setenv("ATLAS_FORECAST_READ_API_ENABLED", "true")  # type: ignore[attr-defined]
+    Settings = __import__("app.config", fromlist=["Settings"]).Settings
+    settings = Settings()
+    assert settings.atlas_forecast_read_api_enabled is True
+
+
+def test_read_api_flag_invalid_value_fails_closed(monkeypatch: object) -> None:
+    """An invalid or ambiguous env value MUST raise a validation error (fail-closed)."""
+    from pydantic import ValidationError
+    monkeypatch.setenv("ATLAS_FORECAST_READ_API_ENABLED", "maybe")  # type: ignore[attr-defined]
+    Settings = __import__("app.config", fromlist=["Settings"]).Settings
+    try:
+        Settings()
+    except ValidationError as exc:
+        assert "atlas_forecast_read_api_enabled" in str(exc).lower()
+        return
+    raise AssertionError(
+        "expected ValidationError on ambiguous ATLAS_FORECAST_READ_API_ENABLED"
+    )
+
