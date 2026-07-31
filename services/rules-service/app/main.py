@@ -75,7 +75,9 @@ from app.routes import (
     # the same router from ``app.routes.merchant_rules``. Mirrors the
     # category gesture (categories_router carries the canonical
     # category taxonomy; merchant_rules_router carries the user-
-    # editable keyword list that maps merchants to those categories).
+    # editable keyword list that maps merchants to those categories,
+    # Phase 1 Slice D-post — bounded authenticated POST /api/v1/goals/{goal_id}/forecasts.
+    forecasts_generation_router,
     merchant_rules_router,
     plaid_router,
     transactions_router,
@@ -435,6 +437,7 @@ app.include_router(users_router)
 app.include_router(recommendations_router)
 # Phase 2 — policy-based rule evaluation.
 app.include_router(evaluate_router)
+app.include_router(forecasts_generation_router)
 
 
 @app.on_event("startup")
