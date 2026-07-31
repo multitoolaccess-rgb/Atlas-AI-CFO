@@ -45,7 +45,16 @@ class ForecastGenerationService:
     def __init__(self, session: Session, adapter: FinlynqProjectionStateAdapter) -> None:
         self._session, self._adapter = session, adapter
 
-    def generate(self, *, user_id: int, user_sub: str, goal_id: int, idempotency_key: str, now: datetime) -> GeneratedForecast:
+    def generate(
+        self,
+        *,
+        user_id: int,
+        user_sub: str,
+        goal_id: int,
+        idempotency_key: str,
+        now: datetime,
+        expected_latest_version: int | None = None,
+    ) -> GeneratedForecast:
         goal = self._session.scalar(select(Goal).where(Goal.id == goal_id, Goal.user_id == user_id, Goal.is_archived.is_(False)))
         if goal is None:
             raise ForecastGenerationUnavailable("forecast_generation_unavailable")
@@ -79,6 +88,7 @@ class ForecastGenerationService:
             model_version=result.model_version, calculation_version=MODEL_VERSION, calculated_at=now,
             assumption_snapshot=assumptions, output_snapshot=output, ending_balance=base.ending_balance,
             target_gap=base.target_gap or Decimal("0"),
+            expected_latest_version=expected_latest_version,
         )
         return GeneratedForecast(persisted)
 
