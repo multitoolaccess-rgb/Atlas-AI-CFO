@@ -48,6 +48,18 @@ from app.main import app
 from app.models import Goal, User  # Base lives in app.database
 
 
+# Phase 1 Slice D-post cleanup NOTE
+# The 9 route-matrix tests under this file were originally marked
+# `@pytest.mark.xfail(strict=False)` because the mapper schema applied the
+# canonical-money validator (MAX_TOTAL_DIGITS=38) to fields whose source
+# values are atlas-calculation-decimal/v1 (MAX_DIGITS=50). The mapper-cleanup
+# follow-up PR split the validator routing: monthly_real_rate +
+# unrounded_ending_balance + unrounded_target_amount now use
+# _check_calculation_decimal; the canonical-money fields stay bounded at 38.
+# The xfail markers have been removed and the Goal fixture target_amount
+# restored to the original Slice D-post realistic values (1000.0 / 500.0).
+
+
 # ----------------------------------------------------------------------
 # Stub adapter — deterministic canonical state, zero network.
 # ----------------------------------------------------------------------
@@ -150,7 +162,7 @@ def _reset_db():
                 id=1,
                 user_id=1,
                 name="Atlas Goal",
-                target_amount=0.0,
+                target_amount=1000.0,
                 horizon_years=1,
                 target_date=None,
                 priority=0,
@@ -162,7 +174,7 @@ def _reset_db():
                 id=2,
                 user_id=1,
                 name="Atlas Goal with date",
-                target_amount=0.0,
+                target_amount=500.0,
                 horizon_years=None,
                 target_date=datetime(2027, 7, 1).date(),
                 priority=1,
@@ -197,10 +209,7 @@ def _post(client: TestClient, *, goal_id: int, headers: dict[str, str], body=Non
 # ----------------------------------------------------------------------
 
 
-# BUG-follow-up: forecast-version-mapper routes monthly_real_rate + unrounded_ending_balance through canonical-money validator (MAX_TOTAL_DIGITS=38) but snapshot builder emits atlas-calculation-decimal/v1 values (MAX_DIGITS=50); resolve in bounded mapper-cleanup PR: route monthly_real_rate through calculation-decimal validator + defensively bound unrounded Decimal fields to v1 decimal total-digit and scale limits.
-@pytest.mark.xfail(reason="ScenarioSnapshotSchema.monthly_real_rate > v1 decimal bounds — mapper-cleanup PR", strict=False)
-# BUG-201-FIRST-CREATION-NO-HEADERS-EMITS-LOCATION-ETAG-AND-HATEOA: forecast-version-mapper routes monthly_real_rate + unrounded_ending_balance through canonical-money validator (MAX_TOTAL_DIGITS=38) but snapshot builder emits atlas-calculation-decimal/v1 values (MAX_DIGITS=50). Bounded mapper-cleanup PR resolves the wire-schema validator mismatch + defensive bound-truncation.
-@pytest.mark.xfail(reason="ScenarioSnapshotSchema.monthly_real_rate > v1 decimal bounds — mapper-cleanup PR", strict=False)
+
 def test_201_first_creation_no_headers_emits_location_etag_and_hateoas(client: TestClient, stub_adapter) -> None:
     response = _post(client, goal_id=1, headers=_auth_headers(idem="atlas-c-1"))
     assert response.status_code == 201
@@ -221,9 +230,6 @@ def test_201_first_creation_no_headers_emits_location_etag_and_hateoas(client: T
     assert etag.startswith('"') and etag.endswith('"')
     assert etag.strip('"') == body["etag"]
 
-
-# BUG-200-REPLAY-WITH-SAME-IDEMPOTENCY-KEY-RETURNS-IDENTICAL-VERSI: forecast-version-mapper routes monthly_real_rate + unrounded_ending_balance through canonical-money validator (MAX_TOTAL_DIGITS=38) but snapshot builder emits atlas-calculation-decimal/v1 values (MAX_DIGITS=50). Bounded mapper-cleanup PR resolves the wire-schema validator mismatch + defensive bound-truncation.
-@pytest.mark.xfail(reason="ScenarioSnapshotSchema.monthly_real_rate > v1 decimal bounds — mapper-cleanup PR", strict=False)
 def test_200_replay_with_same_idempotency_key_returns_identical_version(client: TestClient, stub_adapter) -> None:
     response_1 = _post(client, goal_id=1, headers=_auth_headers(idem="atlas-replay-1"))
     assert response_1.status_code == 201
@@ -287,23 +293,17 @@ def test_503_persistence_disabled_returns_forecast_generation_unavailable(client
     assert body["code"] == ERROR_CODE_FORECAST_GENERATION_UNAVAILABLE
     assert "currently unavailable" in body["message"]
 
-
-# BUG-412-IF-NONE-MATCH-WILDCARD-AGAINST-EXISTIN: forecast-version-mapper routes monthly_real_rate + unrounded_ending_balance through canonical-money validator (MAX_TOTAL_DIGITS=38) but snapshot builder emits atlas-calculation-decimal/v1 values (MAX_DIGITS=50). Bounded mapper-cleanup PR resolves the wire-schema validator mismatch + defensive bound-truncation.
-@pytest.mark.xfail(reason="ScenarioSnapshotSchema.monthly_real_rate > v1 decimal bounds — mapper-cleanup PR", strict=False)
 def test_412_if_none_match_wildcard_against_existing(client: TestClient, stub_adapter) -> None:
-    response_1 = _post(client, goal_id=2, headers=_auth_headers(idem="atlas-nm-c-1"))
+    response_1 = _post(client, goal_id=1, headers=_auth_headers(idem="atlas-nm-c-1"))
     assert response_1.status_code == 201
     response_2 = _post(
         client,
-        goal_id=2,
+        goal_id=1,
         headers={**_auth_headers(idem="atlas-nm-c-2"), "If-None-Match": "*"},
     )
     assert response_2.status_code == 412
     assert response_2.json()["code"] == ERROR_CODE_PRECONDITION_FAILED
 
-
-# BUG-201-IF-NONE-MATCH-WILDCARD-NO-EXISTIN: forecast-version-mapper routes monthly_real_rate + unrounded_ending_balance through canonical-money validator (MAX_TOTAL_DIGITS=38) but snapshot builder emits atlas-calculation-decimal/v1 values (MAX_DIGITS=50). Bounded mapper-cleanup PR resolves the wire-schema validator mismatch + defensive bound-truncation.
-@pytest.mark.xfail(reason="ScenarioSnapshotSchema.monthly_real_rate > v1 decimal bounds — mapper-cleanup PR", strict=False)
 def test_201_if_none_match_wildcard_no_existing(client: TestClient, stub_adapter) -> None:
     response = _post(
         client,
@@ -312,9 +312,6 @@ def test_201_if_none_match_wildcard_no_existing(client: TestClient, stub_adapter
     )
     assert response.status_code == 201
 
-
-# BUG-409-IF-MATCH-STALE-RETURNS-CURRENT-ETAG-AND-LATEST-VERSIO: forecast-version-mapper routes monthly_real_rate + unrounded_ending_balance through canonical-money validator (MAX_TOTAL_DIGITS=38) but snapshot builder emits atlas-calculation-decimal/v1 values (MAX_DIGITS=50). Bounded mapper-cleanup PR resolves the wire-schema validator mismatch + defensive bound-truncation.
-@pytest.mark.xfail(reason="ScenarioSnapshotSchema.monthly_real_rate > v1 decimal bounds — mapper-cleanup PR", strict=False)
 def test_409_if_match_stale_returns_current_etag_and_latest_version(client: TestClient, stub_adapter) -> None:
     # Create a known version v1
     response_1 = _post(client, goal_id=1, headers=_auth_headers(idem="atlas-im-d-1"))
@@ -335,9 +332,6 @@ def test_409_if_match_stale_returns_current_etag_and_latest_version(client: Test
     assert body["current_etag"] == expected_etag.strip('"')
     assert body["latest_version_number"] == 1
 
-
-# BUG-200-IF-MATCH-MATCHES-EXISTING-RETURNS-REPLA: forecast-version-mapper routes monthly_real_rate + unrounded_ending_balance through canonical-money validator (MAX_TOTAL_DIGITS=38) but snapshot builder emits atlas-calculation-decimal/v1 values (MAX_DIGITS=50). Bounded mapper-cleanup PR resolves the wire-schema validator mismatch + defensive bound-truncation.
-@pytest.mark.xfail(reason="ScenarioSnapshotSchema.monthly_real_rate > v1 decimal bounds — mapper-cleanup PR", strict=False)
 def test_200_if_match_matches_existing_returns_replay(client: TestClient, stub_adapter) -> None:
     response_1 = _post(client, goal_id=1, headers=_auth_headers(idem="atlas-im-e-1"))
     assert response_1.status_code == 201
@@ -364,9 +358,6 @@ def test_412_if_match_provided_but_no_existing(client: TestClient, stub_adapter)
     assert response.status_code == 412
     assert response.json()["code"] == ERROR_CODE_PRECONDITION_FAILED
 
-
-# BUG-400-BOTH-CONDITIONAL-HEADERS-PROVIDE: forecast-version-mapper routes monthly_real_rate + unrounded_ending_balance through canonical-money validator (MAX_TOTAL_DIGITS=38) but snapshot builder emits atlas-calculation-decimal/v1 values (MAX_DIGITS=50). Bounded mapper-cleanup PR resolves the wire-schema validator mismatch + defensive bound-truncation.
-@pytest.mark.xfail(reason="ScenarioSnapshotSchema.monthly_real_rate > v1 decimal bounds — mapper-cleanup PR", strict=False)
 def test_400_both_conditional_headers_provided(client: TestClient, stub_adapter) -> None:
     response_1 = _post(client, goal_id=1, headers=_auth_headers(idem="atlas-g-1"))
     assert response_1.status_code == 201
@@ -383,9 +374,6 @@ def test_400_both_conditional_headers_provided(client: TestClient, stub_adapter)
     assert response.status_code == 400
     assert response.json()["code"] == ERROR_CODE_BAD_REQUEST
 
-
-# BUG-400-IF-NONE-MATCH-WITH-EXPLICIT-ETA: forecast-version-mapper routes monthly_real_rate + unrounded_ending_balance through canonical-money validator (MAX_TOTAL_DIGITS=38) but snapshot builder emits atlas-calculation-decimal/v1 values (MAX_DIGITS=50). Bounded mapper-cleanup PR resolves the wire-schema validator mismatch + defensive bound-truncation.
-@pytest.mark.xfail(reason="ScenarioSnapshotSchema.monthly_real_rate > v1 decimal bounds — mapper-cleanup PR", strict=False)
 def test_400_if_none_match_with_explicit_etag(client: TestClient, stub_adapter) -> None:
     response_1 = _post(client, goal_id=1, headers=_auth_headers(idem="atlas-i-1"))
     assert response_1.status_code == 201
@@ -432,9 +420,6 @@ def test_422_body_rejects_unknown_field(client: TestClient, stub_adapter) -> Non
     body = response.json()
     assert body["code"] == ERROR_CODE_FORECAST_VALIDATION
 
-
-# BUG-422-EMPTY-BODY-ACCEPTED-WITH-EXTRA-FORBI: forecast-version-mapper routes monthly_real_rate + unrounded_ending_balance through canonical-money validator (MAX_TOTAL_DIGITS=38) but snapshot builder emits atlas-calculation-decimal/v1 values (MAX_DIGITS=50). Bounded mapper-cleanup PR resolves the wire-schema validator mismatch + defensive bound-truncation.
-@pytest.mark.xfail(reason="ScenarioSnapshotSchema.monthly_real_rate > v1 decimal bounds — mapper-cleanup PR", strict=False)
 def test_422_empty_body_accepted_with_extra_forbid(client: TestClient, stub_adapter) -> None:
     """An explicit empty body (``{}``) must succeed — only unknown fields
     are rejected by ``extra=\"forbid\"``.  This validates the strict
