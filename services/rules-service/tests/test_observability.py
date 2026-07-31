@@ -63,10 +63,9 @@ def test_sanitize_payload_drops_top_level_forbidden_key(forbidden_fragment: str)
     }
     sanitized = sanitize_event_payload(payload)
     assert f"some_{forbidden_fragment}_thing" not in sanitized
-    # The allowlisted ``event_type`` is dropped by the sanitizer (the
-    # emission step adds it back as ``event_type``), so it is intentional
-    # that it does NOT appear as a key-injected value here.
-    assert "event_type" not in sanitized
+    # ``event_type`` is a bounded allowlisted category; the sanitizer
+    # passes it through unchanged so test bodies can assert its presence.
+    assert "event_type" in sanitized
 
 
 @pytest.mark.parametrize("forbidden_fragment", sorted(_FORBIDDEN_KEY_FRAGMENTS))
