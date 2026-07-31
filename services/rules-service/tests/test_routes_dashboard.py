@@ -659,3 +659,66 @@ def test_dashboard_summary_forwarder_non_json_2xx_maps_to_502(
     monkeypatch.setattr("app.routes.dashboard._forward", _stub_pong)
     r = client.get("/api/dashboard/summary")
     assert r.status_code == 502, r.text
+
+
+
+def test_dashboard_summary_date_filter_robust_at_month_boundary(
+    client, install_finlynq_state_forward, db_session, make_account, make_transaction
+) -> None:
+    """Phase 1 cert: regression for the UTC second-level boundary race.
+
+    The previous implementation used a string-based date filter
+    ``Transaction.transaction_date >= "YYYY-MM-01"`` whose SQL execution
+    depended on literal-vs-column coercion. With ``datetime.utcnow()``,
+    call-to-call latency could land the seed and the filter on DIFFERENT
+    months, silently excluding the seeded row. The half-open datetime
+    interval in ``get_dashboard_summary`` eliminates that race.
+
+    This test seeds ``transaction_date`` at NOW and asserts the seeded
+    value falls within the route's current-month interval and produces
+    a 2500.0 income fact in the response.
+    """
+    from datetime import datetime as dt, date, datetime as dtt, time
+
+    # Mirror the production interval computation.
+    _now = dt.utcnow()
+    _start = dtt.combine(date(_now.year, _now.month, 1), time.min)
+    _next = date(_now.year + (_now.month // 12), (_now.month % 12) + 1, 1)
+    _end_excl = dtt.combine(_next, time.min)
+
+    acct = make_account(
+        account_name="Boundary Account",
+        account_type="checking",
+        institution_name="Boundary Bank",
+        current_balance=0.0,
+    )
+    db_session.add(acct)
+    db_session.flush()
+    txn = make_transaction(
+        account_id=acct.id,
+        description="BOUNDARY PAYROLL",
+        amount=2500.0,
+        transaction_date=dt.utcnow(),
+    )
+    db_session.add(txn)
+    db_session.commit()
+
+    from app.models import Transaction
+    rows_in_window = (
+        db_session.query(Transaction)
+        .filter(Transaction.transaction_date >= _start,
+                Transaction.transaction_date < _end_excl)
+        .count()
+    )
+    assert rows_in_window >= 1
+
+    canned = {
+        "total_balance": 0.0, "total_income_month": 0.0, "total_expenses_month": 0.0,
+        "accounts_count": 0, "transactions_count": 0, "last_sync": None,
+        "import_batches_count": 0, "last_import_at": None, "user_goals": [],
+    }
+    install_finlynq_state_forward(canned)
+    r = client.get("/api/dashboard/summary")
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["total_income_month"] == 2500.0

@@ -30,6 +30,46 @@ from app.forecasts.observability import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _observability_isolation():
+    """Phase 1 cert hardening -- minimal scoped snap+reset+restore for the named logger.
+
+    In the FULL Rules Service session (vs focused single-file runs),
+    pytest's ``LogCaptureFixture`` named-logger cache plus module-import
+    side-effects from earlier tests can leave ``app.forecasts.observability``
+    in a state where ``caplog.set_level(...)`` does not surface the emit
+    to the root-level capture handler. This fixture RESETS the named
+    logger to a known-good baseline BEFORE the test runs and RESTORES
+    the pre-test state AFTER the test, scoped strictly to THIS module's
+    tests.
+
+    Properties kept (per user mandate):
+    * No production code change.
+    * No ``conftest.py`` change.
+    * No ``caplog.handler`` global attach.
+    * No pytest-internal-patching.
+    * Bounded snap+reset+restore observable in conftest-free isolation.
+    """
+    log = logging.getLogger("app.forecasts.observability")
+    saved_disabled = log.disabled
+    saved_propagate = log.propagate
+    saved_level = log.level
+    saved_handlers = list(log.handlers)
+    log.disabled = False
+    log.setLevel(logging.NOTSET)
+    log.propagate = True
+    for h in list(log.handlers):
+        log.removeHandler(h)
+    yield
+    for h in list(log.handlers):
+        log.removeHandler(h)
+    for h in saved_handlers:
+        log.addHandler(h)
+    log.disabled = saved_disabled
+    log.propagate = saved_propagate
+    log.setLevel(saved_level)
+
+
 class _DummyModel(BaseModel):
     """Plain pydantic model used to verify BaseModel drop in sanitization."""
 

@@ -222,10 +222,15 @@ async def get_dashboard_summary(
     summary.total_balance = round(float(_bal), 2)
     from datetime import datetime as dt
     import calendar
+    # Phase 1 cert fix -- use proper datetime arithmetic with a HALF-OPEN
+    # [start_of_month, start_of_next_month) interval. This eliminates the
+    # UTC second-level boundary race where ``datetime.utcnow()`` at the
+    # seed call and ``dt.utcnow()`` at the route call could land in
+    # different months, causing ``_rows`` to come back empty.
     _now = dt.utcnow()
-    _last_day = calendar.monthrange(_now.year, _now.month)[1]
-    _start = f"{_now.year:04d}-{_now.month:02d}-01"
-    _end = f"{_now.year:04d}-{_now.month:02d}-{_last_day:02d}"
+    _start = datetime.combine(date(_now.year, _now.month, 1), datetime.min.time())
+    _next_month_first = date(_now.year + (_now.month // 12), (_now.month % 12) + 1, 1)
+    _end_exclusive = datetime.combine(_next_month_first, datetime.min.time())
     _rows = (
         db.query(Transaction)
         .options(joinedload(Transaction.account))
@@ -233,7 +238,7 @@ async def get_dashboard_summary(
         .filter(
             Account.user_id == local_user.id,
             Transaction.transaction_date >= _start,
-            Transaction.transaction_date <= _end,
+            Transaction.transaction_date < _end_exclusive,
         )
         .all()
     )

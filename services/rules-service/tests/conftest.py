@@ -243,6 +243,28 @@ def _run_migrations() -> None:
     command.upgrade(cfg, "head")
 
 
+
+@pytest.fixture(autouse=True)
+def _observability_caplog_chain():
+    """Phase 1 cert hardening -- observability._logger propagates to root.
+
+    Evidence: services/rules-service/app/forecasts/observability.py has only
+    ``_logger = logging.getLogger(__name__)`` (no propagate=False, no
+    addHandler, no basicConfig). Conftest bootstrap imports app.database
+    which creates the SQLAlchemy engine; SQLAlchemy may reset the named
+    logger's handler chain. Without explicit propagation re-assertion,
+    caplog.set_level(level, logger=name) may attach to a chain that
+    doesn't reach the recorded emit call. This fixture defensively
+    re-asserts propagate=True and clears any stray handler on the named
+    logger so pytest's root capture handler sees the emit.
+    """
+    import logging
+
+    log = logging.getLogger("app.forecasts.observability")
+    log.propagate = True
+    for h in list(log.handlers):
+        log.removeHandler(h)
+    yield
 @pytest.fixture(scope="session", autouse=True)
 def _bootstrap_test_schema():
     """Phase-F2 fix: with `:memory:` SQLite (hermetic default), every pytest
