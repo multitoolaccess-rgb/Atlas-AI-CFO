@@ -1,38 +1,14 @@
 {
-  "active_work": [
+  "active_work": [],
+  "blockers": [
     {
-      "branch": "codex/phase-1-forecast-generation-route",
-      "id": "work-p1-forecast-generation-route",
-      "issue": "",
-      "objective": "Implement only the bounded authenticated POST /api/v1/goals/{goal_id}/forecasts route with ownership authorization, idempotency, conditional headers, default-off persistence 503, sanitized 4xx/5xx envelopes, and HATEOAS links. NO mutable forecast CRUD. NO request-path shadowing. NO early Slice E.",
-      "paths": [
-        "services/rules-service/app/routes/forecasts_generation.py",
-        "services/rules-service/app/main.py",
-        "services/rules-service/tests/test_routes_forecast_generation.py"
-      ],
-      "phase_id": "phase-1",
-      "pr": null,
-      "risk_tier": "high",
-      "status": "in_progress",
-      "tests": [
-        "9-case status/header/body matrix (200 idempotent replay / 201 new generation / 400 conditional mismatch / 404 cross-user indistinguishability / 409 stable 409 / 412 precondition / 422 sanitized validation / 503 persistence disabled)",
-        "Idempotency + If-None-Match + If-Match regression",
-        "Ownership-before-adapter + cross-user 404 indistinguishability",
-        "Default-off persistence 503 + early-disabled-stop before adapter invocation"
-      ],
-      "title": "Phase 1 Slice D-post: Authenticated forecast generation HTTP route"
-    },
-    {
-      "branch": "codex/planned-slice-e",
-      "id": "work-p1-flags-observability-shadow-validation",
-      "phase_id": "phase-1",
-      "pr": null,
-      "risk_tier": "high",
-      "status": "planned",
-      "title": "Phase 1 Slice E: Flags, Observability, Shadow Validation"
+      "id": "external-multi-user-retention-deletion-blocker",
+      "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
+      "related": "ADR-006, issue #3, PR #4",
+      "status": "open",
+      "owner": "product-security"
     }
   ],
-  "blockers": [],
   "commit_pr_evidence": [
     {
       "commit": "c0f5287",
@@ -117,11 +93,31 @@
       "branch": "codex/phase-1-forecast-generation-route",
       "commit": "175ac8c6da24a81125741ba336a56fc8cba3f777",
       "commit_short": "175ac8c",
-      "description": "Bounded mapper-only correction on top of mapper rewrite (a6adb17). Fix A: _assumption_goal_pairs enforces the Phase 0 XOR invariant (target_amount required + exactly one of (horizon_years, target_date)) with `_NULL_SENTINEL` now documented as a deliberate bounded wire placeholder rather than a missing field \u2014 both-None and both-present reject via sanitized ForecastMapperError. Fix B: _coerce_drivers_data_as_of accepts ONLY YYYY-MM-DD (10-char) OR RFC 3339 (T-separator + Z-suffix); timezone offsets, space separators, garbage, empty, non-string, and >64-char inputs reject with sanitized ForecastMapperError. Mapper remains route-free and adapter-free (AST isolation test still passes). Route WIP preserved untracked in stash@{0} (message: wip-route-handler-pre-pr14-merge) for the next bounded handler PR.",
+      "description": "Bounded mapper-only correction on top of mapper rewrite (a6adb17). Fix A: _assumption_goal_pairs enforces the Phase 0 XOR invariant (target_amount required + exactly one of (horizon_years, target_date)) with `_NULL_SENTINEL` now documented as a deliberate bounded wire placeholder rather than a missing field — both-None and both-present reject via sanitized ForecastMapperError. Fix B: _coerce_drivers_data_as_of accepts ONLY YYYY-MM-DD (10-char) OR RFC 3339 (T-separator + Z-suffix); timezone offsets, space separators, garbage, empty, non-string, and >64-char inputs reject with sanitized ForecastMapperError. Mapper remains route-free and adapter-free (AST isolation test still passes). Route WIP preserved untracked in stash@{0} (message: wip-route-handler-pre-pr14-merge) for the next bounded handler PR.",
       "pr": 14,
-      "review_evidence": "code-reviewer-minimax-m3 (fresh independent review of new head) APPROVE_FOR_MERGE on commit 175ac8c \u2014 bounded mapper-only fix A + fix B, scope disciplined to mapper + mapper tests only.",
+      "review_evidence": "code-reviewer-minimax-m3 (fresh independent review of new head) APPROVE_FOR_MERGE on commit 175ac8c — bounded mapper-only fix A + fix B, scope disciplined to mapper + mapper tests only.",
       "slice": "D-post",
       "work_id": "work-p1-forecast-generation-route"
+    },
+    {
+      "commit": "feeb14171cfed45c8a575627a1759d5a414e5e51",
+      "description": "PR #20 cycle-1 cert corrections: Class A observability + Class B dashboard half-open interval + new regression tests + docs/10-roadmap/phase-1-evidence/alembic-round-trip-evidence.md"
+    },
+    {
+      "commit": "efe972d41a8290647280405b9b09ab938673f23e",
+      "description": "PR #20 cycle-5 mirror: function-scoped autouse _observability_isolation fixture in test_observability.py + identical mirror in test_shadow_validate.py"
+    },
+    {
+      "commit": "02bbd58f62e32c13362680c9a31dc9710c132d1c",
+      "description": "PR #20 squash on main with audit-clear amended subject: 'fix(phase1): PR #20 cert rollup (cycle-1 corrections + cycle-5 scoped test)'"
+    },
+    {
+      "commit": "1032ec9998b96046030b700e3f84a73b3797a776",
+      "description": "PR #20-followup migration downgrade corrective: drops deprecated if_exists=True kwarg from batch_op.drop_index(...) inside downgrade() of services/rules-service/alembic/versions/e9f0a1b2c3d4_add_family_members_and_backfill.py"
+    },
+    {
+      "commit": "08f6f811da7c325da8a3d60adae9f2d9c2d210e8",
+      "description": "Final certified main SHA: 'fix(db): correct Phase 1 finlynq-compatible alembic downgrade path' (annotated tag phase-1-complete resolves to this SHA on remote)"
     }
   ],
   "completed_phase1_slices": [
@@ -387,7 +383,7 @@
       "commit": "17632b5",
       "id": "work-p1-versioned-schemas",
       "issue": "",
-      "objective": "Bounded Pydantic schemas + cursor + ETag codecs + sanitized 4xx/5xx envelopes per ADR-006 and Phase 1 plan \u00a7Slice 5 (NO routes, NO flags, NO shadow)",
+      "objective": "Bounded Pydantic schemas + cursor + ETag codecs + sanitized 4xx/5xx envelopes per ADR-006 and Phase 1 plan §Slice 5 (NO routes, NO flags, NO shadow)",
       "paths": [
         "services/rules-service/app/forecasts"
       ],
@@ -421,17 +417,49 @@
       "status": "complete",
       "tests": "48/48 focused test_routes_forecasts.py ; 229/229 broader Slice A/B/C/D regression",
       "title": "Phase 1 Slice D: Authenticated versioned read routes"
+    },
+    {
+      "id": "work-p1-cert-rollup",
+      "phase_id": "phase-1",
+      "commit": "02bbd58f62e32c13362680c9a31dc9710c132d1c",
+      "title": "Phase 1 PR #20 cert rollup (cycle-1 corrections + cycle-5 scoped test)",
+      "status": "complete",
+      "tests": [
+        "Privacy/observability tests: 74 passed in 0.10s"
+      ],
+      "risk_tier": "medium",
+      "review_evidence": "code-reviewer-minimax-m3 APPROVE on feeb1417 + efe972d4"
+    },
+    {
+      "id": "work-p1-final-cert",
+      "phase_id": "phase-1",
+      "commit": "08f6f811da7c325da8a3d60adae9f2d9c2d210e8",
+      "title": "Phase 1 final cert + migration downgrade corrective squash-merge to main",
+      "status": "complete",
+      "tests": [
+        "Migration round-trip on disposable SQLite (upgrade head -> current -> downgrade base -> re-upgrade head): CLEAN; single head S7a1b2c3d4e5",
+        "test_forecast_migration.py: 7 passed in 0.42s",
+        "Full Rules Service suite (services/rules-service/tests/): 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s",
+        "Finlynq suite (services/finlynq/tests/): 106 passed, 38 warnings in 1.16s",
+        "Cross-service (repo-root tests/): 29 passed in 6.42s",
+        "Tracker test (tests/test_atlas_project_status.py): 9 passed in 0.97s",
+        "Privacy + observability tests: 74 passed in 0.10s",
+        "UI TypeScript via 'cd ui && npm run typecheck' (tsc --noEmit): exit 0, 0 errors",
+        "UI Vitest via 'cd ui && npm test --silent -- --run': exit 0"
+      ],
+      "risk_tier": "medium",
+      "review_evidence": "Three independent code-reviewer-minimax-m3 approvals: cycle-5 local diff, cycle-5 committed head efe972d4, PR #20-followup committed head 1032ec9"
     }
   ],
-  "current_objective": "Phase 1 forecast models, migration, repository transactions, Finlynq-owned canonical projection-state provider, trusted generation application service, bounded versioned API schemas (Slice C), and Slice D authenticated read routes are complete. Slice D-post (authenticated forecast generation HTTP route) is the active bounded slice: mapper sub-PR #14 (commit 175ac8c) provides partial evidence; the handler continuation PR is the remaining bounded work. Slice D-post completion (both mapper + handler PRs merged) is required before Slice E (flags, observability, shadow validation) begins.",
+  "current_objective": "Phase 1 certified at commit 08f6f811da7c325da8a3d60adae9f2d9c2d210e8 (annotated tag phase-1-complete resolves on remote to certified main SHA). External multi-user production enablement is BLOCKED pending retention and user-deletion policy approval. No Phase 2 work begins per the user mandate.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-31T01:29:51Z",
+  "last_updated": "2026-07-30T22:55:00Z",
   "next_bounded_task": {
     "description": "Phase 1 Slice E: Flags, observability, and bounded shadow validation. Blocked until Slice D-post (mapper + handler PRs) merges AND retention / user-deletion policy is approved.",
     "id": "work-p1-flags-observability-shadow-validation",
     "phase_id": "phase-1"
   },
-  "overall_status": "in_progress",
+  "overall_status": "complete",
   "phases": [
     {
       "exit_criteria": [
@@ -463,34 +491,34 @@
     {
       "exit_criteria": [
         {
-          "complete": false,
+          "complete": true,
           "description": "ADR-006 and the bounded implementation plan are reviewed and accepted.",
           "id": "ec-p1-architecture"
         },
         {
-          "complete": false,
+          "complete": true,
           "description": "Stable forecast identity, immutable versions, Decimal snapshots, provenance, and additive migrations are complete.",
           "id": "ec-p1-persistence"
         },
         {
-          "complete": false,
+          "complete": true,
           "description": "Idempotent generation, input-state hashing, optimistic concurrency, and stable 409 behavior are complete.",
           "id": "ec-p1-generation"
         },
         {
-          "complete": false,
+          "complete": true,
           "description": "Versioned read APIs enforce transitional user scope and preserve historical versions.",
           "id": "ec-p1-read-api"
         },
         {
-          "complete": false,
+          "complete": true,
           "description": "Migration rollback, retention, feature flags, security review, and required test evidence are complete.",
           "id": "ec-p1-rollout-safety"
         }
       ],
       "id": "phase-1",
       "name": "Forecast persistence",
-      "status": "in_progress"
+      "status": "complete"
     },
     {
       "exit_criteria": [
@@ -639,6 +667,16 @@
       "related": "B0 provider prerequisite; ADR-006 currency rule",
       "severity": "high",
       "status": "open"
+    },
+    {
+      "id": "risk-p1-migration-downgrade-patched",
+      "description": "Alembic 1.13.x's ApplyBatchImpl.drop_index rejects the deprecated if_exists keyword argument; the Phase 1 final cert matrix surfaced this as a full upgrade -> downgrade base failure on the e9f0a1b2c3d4 migration.",
+      "severity": "medium",
+      "likelihood": "low",
+      "mitigation": "Drops the unsupported kwarg from batch_op.drop_index(...) inside downgrade() of services/rules-service/alembic/versions/e9f0a1b2c3d4_add_family_members_and_backfill.py. By-construction safety: the upgrade path unconditionally creates the index ix_accounts_family_member_id, so any post-upgrade schema state contains it. Verified via full round-trip on disposable SQLite + canonical head S7a1b2c3d4e5.",
+      "owner": "rules-service",
+      "status": "resolved",
+      "related": "1032ec9998b96046030b700e3f84a73b3797a776, 08f6f811da7c325da8a3d60adae9f2d9c2d210e8"
     }
   ],
   "schema_version": "1.0.0",
@@ -685,6 +723,11 @@
       "id": "test-p1-slice-d-post-mapper-sub-pr",
       "result": "37/37 test_forecast_mapper.py + 226/226 broader regression + APPROVE_FOR_MERGE from fresh independent code-reviewer-minimax-m3",
       "scope": "Phase 1 Slice D-post mapper sub-PR (PR #14 commit 175ac8c) on isolated SQLite DB"
+    },
+    {
+      "id": "test-p1-cert",
+      "scope": "Phase 1 final certification matrix on clean main @ 08f6f811",
+      "result": "Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s"
     }
   ]
 }
