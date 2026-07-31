@@ -35,6 +35,49 @@ from app.forecasts.shadow_validate import (
 
 
 # ---------------------------------------------------------------------------
+# Phase 1 cert hardening -- mirrored scoped logger isolation fixture
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _observability_isolation():
+    """Phase 1 cert hardening -- mirror of test_observability.py fixture.
+
+    Identical minimal scoped snap+reset+restore for the named logger.
+    BOTH ``caplog``-using tests in this module route through the SAME
+    ``app.forecasts.observability`` logger, so a single module-scoped
+    autouse fixture is sufficient. RESETS the named logger to a
+    known-good baseline BEFORE the test runs and RESTORES the pre-test
+    state AFTER, scoped strictly to THIS module's tests.
+
+    Properties kept (per user mandate):
+    * No production code change.
+    * No ``conftest.py`` change.
+    * No ``caplog.handler`` global attach.
+    * No pytest-internal-patching.
+    * Bounded snap+reset+restore observable in conftest-free isolation.
+    """
+    log = logging.getLogger("app.forecasts.observability")
+    saved_disabled = log.disabled
+    saved_propagate = log.propagate
+    saved_level = log.level
+    saved_handlers = list(log.handlers)
+    log.disabled = False
+    log.setLevel(logging.NOTSET)
+    log.propagate = True
+    for h in list(log.handlers):
+        log.removeHandler(h)
+    yield
+    for h in list(log.handlers):
+        log.removeHandler(h)
+    for h in saved_handlers:
+        log.addHandler(h)
+    log.disabled = saved_disabled
+    log.propagate = saved_propagate
+    log.setLevel(saved_level)
+
+
+# ---------------------------------------------------------------------------
 # Parser-level structural invariants
 # ---------------------------------------------------------------------------
 
