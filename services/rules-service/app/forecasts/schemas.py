@@ -116,6 +116,34 @@ def _check_uuid_lower(v: Any) -> str:
 
 # ============================================================
 # Stable error code constants
+def _check_calculation_decimal(v: Any) -> str:
+    """Validate an ``atlas-calculation-decimal/v1`` string used for deterministically persisted
+    Phase 0 unrounded Decimal values.
+
+    Wraps ``app.forecasts.snapshots.calculation_decimal_string`` to enforce the same
+    finite-decimal canonical-no-significant-zeros invariant used during snapshot
+    construction, but accepting values up to the snapshot's 50-significant-digit /
+    64-fractional-digit envelope (vs canonical-money's 38 total digits).
+    """
+    if not isinstance(v, str):
+        raise ValueError("must be a calculation-decimal string (atlas-calculation-decimal/v1)")
+    if "e" in v.lower():
+        raise ValueError("must be a finite calculation-decimal string without scientific notation")
+    try:
+        from decimal import Decimal as _D, InvalidOperation as _IO
+        parsed = _D(v)
+    except (InvalidOperation, ValueError):
+        raise ValueError("must be a finite calculation-decimal string")
+    if not parsed.is_finite():
+        raise ValueError("must be a finite calculation-decimal string")
+    from app.forecasts.snapshots import calculation_decimal_string as _cds
+    if _cds(parsed) != v:
+        raise ValueError("calculation-decimal must not include insignificant decimal zeros")
+    return v
+
+
+# ============================================================
+# Stable error code constants
 # ============================================================
 
 ERROR_CODE_FORECAST_GENERATION_UNAVAILABLE: Final[str] = "forecast_generation_unavailable"
@@ -452,11 +480,17 @@ class TargetDecisionV2Schema(BaseModel):
     rounded_target_amount: str
     target_status: bool
 
-    @field_validator("unrounded_ending_balance", "unrounded_target_amount",
-                     "rounded_ending_balance", "rounded_target_amount")
+    @field_validator("rounded_ending_balance", "rounded_target_amount")
     @classmethod
     def _money_is_canonical(cls, v: Any) -> str:
+        # canonical-money (atlas-canonical-decimal/v1): 38 total digits, 18 fractional.
         return _check_canonical_decimal(v)
+
+    @field_validator("unrounded_ending_balance", "unrounded_target_amount")
+    @classmethod
+    def _unrounded_is_calculation_decimal(cls, v: Any) -> str:
+        # calculation-decimal (atlas-calculation-decimal/v1): 50 sig digits, 64 fractional.
+        return _check_calculation_decimal(v)
 
     @model_validator(mode="after")
     def _rounded_quantizes_to_unrounded(self) -> "TargetDecisionV2Schema":
@@ -496,14 +530,14 @@ class ScenarioSnapshotSchema(BaseModel):
     @field_validator("annual_return_rate", "ending_balance", "investment_growth")
     @classmethod
     def _money_is_canonical(cls, v: Any) -> str:
+        # canonical-money (atlas-canonical-decimal/v1): 38 total digits, 18 fractional.
         return _check_canonical_decimal(v)
 
     @field_validator("monthly_real_rate")
     @classmethod
-    def _rate_is_canonical(cls, v: Any) -> str:
-        # Calculation-decimal (atlas-calculation-decimal/v1) shape: canonical form
-        # validated by ``canonical_decimal_string`` (the same validator).
-        return _check_canonical_decimal(v)
+    def _rate_is_calculation_decimal(cls, v: Any) -> str:
+        # calculation-decimal (atlas-calculation-decimal/v1): 50 sig digits, 64 fractional.
+        return _check_calculation_decimal(v)
 
     @field_validator("target_gap")
     @classmethod

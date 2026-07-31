@@ -32,9 +32,9 @@ values, the user sub, the goal id, or any internal ORM attribute.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Annotated, Final, Optional
+from typing import Annotated, Final, Optional  # Annotated is still used by the Depends-style type hints on user_sub / db
 
-from fastapi import APIRouter, Body, Depends, Header, HTTPException, Path, Request, status
+from fastapi import APIRouter, Depends, Header, Path, Request, status  # Body + HTTPException removed (unused)
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -48,16 +48,14 @@ from app.forecasts.api_codecs import (
     parse_forecast_etag_header,
 )
 from app.forecasts.canonical_state import (
-    FinlynqProjectionStateAdapter,
     MAX_IDEMPOTENCY_KEY_LENGTH,
     validate_idempotency_key,
-)
+)  # FinlynqProjectionStateAdapter removed (unused)
 from app.forecasts.mappers import build_forecast_version_response
 from app.forecasts.repository import (
-    ForecastRepository,
     IdempotencyConflict,
     StaleForecastVersion,
-)
+)  # ForecastRepository removed (unused)
 from app.forecasts.schemas import (
     ERROR_CODE_BAD_REQUEST,
     BadRequestEnvelope,
