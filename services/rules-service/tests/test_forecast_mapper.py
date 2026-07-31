@@ -566,3 +566,178 @@ def test_mapper_does_not_invoke_the_database_session_or_db() -> None:
     persisted = _make_persisted()
     response = build_forecast_version_response(persisted, base_url="http://testserver")
     assert response is not None
+
+
+# ---------------------------------------------------------------
+# Fix A: bounded "null" sentinel is intentional + XOR invariant
+# ---------------------------------------------------------------
+
+
+def _patch_assumption_goal_inputs(persisted: PersistedForecastVersion, **overrides) -> None:
+    """Wedge a custom ``goal_inputs`` dict into the persisted
+    assumption snapshot.  Roundtrips through ``canonical_json``
+    so the snapshot stays structurally valid for the ``_build_*``
+    layer."""
+    from app.forecasts.canonical_state import canonical_json
+    from app.forecasts.snapshots import _validate_assumption_snapshot
+    payload = json.loads(persisted.version.assumption_snapshot_json)
+    merged = {**payload["goal_inputs"], **overrides}
+    payload["goal_inputs"] = merged
+    validated = _validate_assumption_snapshot(payload)
+    persisted.version.assumption_snapshot_json = canonical_json(validated)
+
+
+def test_assumption_null_sentinel_is_emitted_only_for_absent_optional_field() -> None:
+    """Contract (Fix A): the literal sentinel ``"null"`` is a
+
+    BOUNDED wire placeholder for the OPTIONAL field that is absent
+    per the Phase 0 Goal model XOR invariant — not a missing
+    field.  When a Phase 0 persister records ``horizon_years``
+    (int) the mapper MUST emit ``("horizon_years", "<int>")`` and
+    ``("target_date", "null")``.
+    """
+    persisted = _make_persisted()
+    # Default fixture: horizon_years=1, target_date=None.
+    response = build_forecast_version_response(persisted, base_url="http://testserver")
+    pairs = dict(response.assumption_snapshot.goal_inputs)
+    assert pairs["horizon_years"] == "1"
+    assert pairs["target_date"] == "null"
+    assert pairs["target_amount"] == "1000"
+
+
+def test_assumption_null_sentinel_swap_to_target_date_when_horizon_absent() -> None:
+    """Symmetric case: ``target_date`` present, ``horizon_years``
+    absent — sentinel MUST appear on the OTHER field."""
+    persisted = _make_persisted()
+    _patch_assumption_goal_inputs(
+        persisted,
+        horizon_years=None,
+        target_date="2030-12-31",
+    )
+    response = build_forecast_version_response(persisted, base_url="http://testserver")
+    pairs = dict(response.assumption_snapshot.goal_inputs)
+    assert pairs["horizon_years"] == "null"
+    assert pairs["target_date"] == "2030-12-31"
+
+
+def test_assumption_xor_invariant_rejects_both_present() -> None:
+    """Contract invariant: both ``horizon_years`` AND ``target_date``
+    present simultaneously is a contract violation — reject."""
+    persisted = _make_persisted()
+    _patch_assumption_goal_inputs(
+        persisted,
+        horizon_years=5,
+        target_date="2030-12-31",
+    )
+    with pytest.raises(ForecastMapperError) as excinfo:
+        build_forecast_version_response(persisted, base_url="http://testserver")
+    # Sanitized token — no field names, no persisted values.
+    assert "horizon_years" not in str(excinfo.value)
+    assert "target_date" not in str(excinfo.value)
+    assert "5" not in str(excinfo.value)
+    assert "2030" not in str(excinfo.value)
+
+
+def test_assumption_xor_invariant_rejects_both_absent() -> None:
+    """Contract invariant: BOTH ``horizon_years`` AND ``target_date``
+    absent simultaneously is a contract violation — reject, do not
+    silently emit two ``"null"`` sentinels."""
+    persisted = _make_persisted()
+    _patch_assumption_goal_inputs(
+        persisted,
+        horizon_years=None,
+        target_date=None,
+    )
+    with pytest.raises(ForecastMapperError) as excinfo:
+        build_forecast_version_response(persisted, base_url="http://testserver")
+    assert "horizon_years" not in str(excinfo.value)
+    assert "target_date" not in str(excinfo.value)
+
+
+# ---------------------------------------------------------------
+# Fix B: drivers.data_as_of must be YYYY-MM-DD or RFC3339-Z+T
+# ---------------------------------------------------------------
+
+
+def _patch_drivers_data_as_of(persisted: PersistedForecastVersion, value) -> None:
+    """Write the raw ``drivers.data_as_of`` value directly into the
+
+    persisted snapshot JSON column WITHOUT roundtripping through
+    ``_validate_output_snapshot``.  Real-world persistence flows through
+    the snapshot validator which has its own date validator; this
+    test fixture intentionally bypasses that path so the mapper's own
+    ``_coerce_drivers_data_as_of`` rejection logic is exercised
+    end-to-end in isolation (defense in depth contract).
+    """
+
+    payload = json.loads(persisted.version.output_snapshot_json)
+    payload["drivers"]["data_as_of"] = value
+    persisted.version.output_snapshot_json = json.dumps(payload)
+
+
+@pytest.mark.parametrize("good", [
+    "2026-07-01",                              # plain date promoted
+    "2026-07-01T00:00:00Z",                    # minimal RFC 3339 Z
+    "2026-07-01T12:34:56Z",                    # seconds precision, Z
+    "2026-07-01T12:34:56.789Z",                # milliseconds, Z
+    "2026-07-01T23:59:59.999999Z",             # microseconds, Z
+])
+def test_drivers_data_as_of_accepts_only_bounded_shapes(good) -> None:
+    """Fix B: plain ``YYYY-MM-DD`` OR RFC 3339 ``Z``+``T`` shape."""
+    persisted = _make_persisted()
+    _patch_drivers_data_as_of(persisted, good)
+    response = build_forecast_version_response(persisted, base_url="http://testserver")
+    assert response.drivers.data_as_of.endswith("Z") or len(good) == 10
+    # When plain date, must be promoted to UTC midnight Z.
+    if len(good) == 10:
+        assert response.drivers.data_as_of == f"{good}T00:00:00.000000Z"
+    else:
+        assert response.drivers.data_as_of == good
+
+
+@pytest.mark.parametrize("bad", [
+    "2026-07-01T12:34:56+00:00",     # RFC 3339 with offset (no Z) — ambiguous
+    "2026-07-01T12:34:56.789+02:00", # timezone offset Europe
+    "2026-07-01 12:34:56Z",          # space instead of T
+    "07/01/2026",                    # US slash format
+    "garbage",                       # arbitrary garbage
+])
+def test_drivers_data_as_of_rejects_ambiguous_or_unknown_shapes(bad) -> None:
+    """Fix B: every unrecognized shape raises a sanitized error."""
+    persisted = _make_persisted()
+    _patch_drivers_data_as_of(persisted, bad)
+    with pytest.raises(ForecastMapperError) as excinfo:
+        build_forecast_version_response(persisted, base_url="http://testserver")
+    msg = str(excinfo.value)
+    # Sanitized: no persisted value, no field name leak.
+    assert bad not in msg
+    assert "drivers" not in msg
+    assert "data_as_of" not in msg
+
+
+def test_drivers_data_as_of_rejects_empty_string() -> None:
+    """Fix B: empty-string ``drivers.data_as_of`` rejects without
+    leaking any echo (the value ``""`` trivially IS a substring of
+    any error message so a generic inclusion assertion cannot prove
+    sanitization for this case — we verify REJECTION only)."""
+    persisted = _make_persisted()
+    _patch_drivers_data_as_of(persisted, "")
+    with pytest.raises(ForecastMapperError):
+        build_forecast_version_response(persisted, base_url="http://testserver")
+
+
+def test_drivers_data_as_of_rejects_non_string_value() -> None:
+    """Fix B: non-string drivers.data_as_of rejects."""
+    persisted = _make_persisted()
+    _patch_drivers_data_as_of(persisted, 20260701)  # int
+    with pytest.raises(ForecastMapperError):
+        build_forecast_version_response(persisted, base_url="http://testserver")
+
+
+def test_drivers_data_as_of_rejects_overlong_string() -> None:
+    """Fix B: ``>64`` chars rejects — prevents DoS via long strings."""
+    persisted = _make_persisted()
+    _patch_drivers_data_as_of(persisted, "Z" * 65)
+    with pytest.raises(ForecastMapperError):
+        build_forecast_version_response(persisted, base_url="http://testserver")
+

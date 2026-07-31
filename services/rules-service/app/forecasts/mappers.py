@@ -57,6 +57,14 @@ REL_GOAL: Final[str] = "goal"
 
 
 _NULL_SENTINEL: Final[str] = "null"
+# Deliberate bounded sentinel for an absent optional goal_inputs
+# field (Phase 0 Goal model: every goal carries EITHER
+# ``horizon_years`` (int years) OR ``target_date`` (ISO date string)
+# — never both and never neither).  The wire schema accepts the
+# literal string ``"null"`` as a structural placeholder so the
+# tuple fields stay in 1-1 correspondence.  Callers MUST handle the
+# sentinel case explicitly; it is NOT a missing field and MUST NOT
+# be silently coerced by clients.
 
 
 class ForecastMapperError(ValueError):
@@ -114,34 +122,60 @@ def _parse_snapshot_dict(label: str, raw: Any) -> dict[str, Any]:
 def _assumption_goal_pairs(goal_inputs: dict[str, Any]) -> tuple[tuple[str, str], ...]:
     """Re-shape the persisted ``goal_inputs`` dict into bounded (name, str) tuples.
 
-    The wire schema (``AssumptionSnapshotSchema.goal_inputs``) accepts
-    only ``tuple[tuple[str, str], ...]`` with names drawn from
-    ``{target_amount, horizon_years, target_date}``; the persisted
-    snapshot additionally carries ``source_representation``,
-    ``conversion``, ``precision_restored`` metadata that the wire
-    contract drops.
+    Contract (Phase 0 Goal model — enforced here):
+
+    * ``target_amount`` is REQUIRED.  ``None`` or missing →
+      ``ForecastMapperError("assumption_snapshot_invalid")``.
+    * EXACTLY ONE of ``horizon_years`` and ``target_date`` is
+      present (a goal always carries a horizon via either an int
+      number of years OR an ISO target date — never both, never
+      neither).  All cases other than the XOR invariant →
+      ``ForecastMapperError("assumption_snapshot_invalid")``.
+    * When the absent optional field's value is ``None``, this
+      mapper emits the bounded literal sentinel ``"null"`` (see
+      ``_NULL_SENTINEL``).  This sentinel is a deliberate wire
+      contract placeholder, NOT a missing field; clients MUST
+      handle it explicitly.
+    * ``horizon_years`` (when present) is a non-boolean ``int``.
+    * ``target_date`` (when present) is a ``str``.
+
+    The persisted snapshot may additionally carry
+    ``source_representation``, ``conversion``, ``precision_restored``
+    metadata that the wire contract drops.
     """
 
-    out: list[tuple[str, str]] = []
     target_amount = goal_inputs.get("target_amount")
     if target_amount is None:
         raise ForecastMapperError("assumption_snapshot_invalid")
-    out.append(("target_amount", _canonical_decimal(target_amount)))
-    hy = goal_inputs.get("horizon_years")
-    if hy is None:
-        out.append(("horizon_years", _NULL_SENTINEL))
-    elif isinstance(hy, bool) or not isinstance(hy, int):
+    target_str = _canonical_decimal(target_amount)
+
+    hy_raw = goal_inputs.get("horizon_years")
+    td_raw = goal_inputs.get("target_date")
+    has_horizon = hy_raw is not None
+    has_target = td_raw is not None
+    # XOR invariant — exactly one of (horizon_years, target_date).
+    if has_horizon == has_target:
         raise ForecastMapperError("assumption_snapshot_invalid")
+
+    if has_horizon:
+        if isinstance(hy_raw, bool) or not isinstance(hy_raw, int):
+            raise ForecastMapperError("assumption_snapshot_invalid")
+        horizon_str = str(hy_raw)
     else:
-        out.append(("horizon_years", str(hy)))
-    td = goal_inputs.get("target_date")
-    if td is None:
-        out.append(("target_date", _NULL_SENTINEL))
-    elif not isinstance(td, str):
-        raise ForecastMapperError("assumption_snapshot_invalid")
+        horizon_str = _NULL_SENTINEL
+
+    if has_target:
+        if not isinstance(td_raw, str):
+            raise ForecastMapperError("assumption_snapshot_invalid")
+        target_date_str = td_raw
     else:
-        out.append(("target_date", td))
-    return tuple(out)
+        target_date_str = _NULL_SENTINEL
+
+    return (
+        ("target_amount", target_str),
+        ("horizon_years", horizon_str),
+        ("target_date", target_date_str),
+    )
 
 
 def _build_assumption_snapshot(payload: dict[str, Any]) -> AssumptionSnapshotSchema:
@@ -187,22 +221,33 @@ def _build_assumption_snapshot(payload: dict[str, Any]) -> AssumptionSnapshotSch
 def _coerce_drivers_data_as_of(value: Any) -> str:
     """Coerce a persisted driver ``data_as_of`` into a RFC 3339 Z string.
 
-    The persisted snapshot may carry a plain ISO date (``YYYY-MM-DD``)
-    or a full RFC 3339 Z string; the wire schema requires the latter.
-    Neither form is bounded to a maximum length over 64 chars.
+    Bounded accepted shapes (every other shape is rejected):
+
+    * Plain ISO date ``YYYY-MM-DD`` (length 10, ``-`` separators at
+      index 4 and 7) — promoted to ``YYYY-MM-DDT00:00:00.000000Z``.
+    * Full RFC 3339 Z with the literal ``Z`` suffix and a ``T``
+      separator (e.g. ``2026-07-01T12:34:56.789Z``) — passes through
+      unchanged.
+
+    Anything else (timezone offsets like ``+00:00`` / ``+02:00``,
+    missing ``Z``, missing ``T``, non-strings, garbage strings,
+    truncated dates) raises
+    :class:`ForecastMapperError` (``"output_snapshot_invalid"``)
+    so persistence cannot smuggle in ambiguous or non-UTC dates
+    that the schema validator would later reject inconsistently.
     """
 
     if not isinstance(value, str):
         raise ForecastMapperError("output_snapshot_invalid")
+    if len(value) > 64:
+        raise ForecastMapperError("output_snapshot_invalid")
     if len(value) == 10 and value[4] == "-" and value[7] == "-":
-        # Plain YYYY-MM-DD — promote to a UTC midnight RFC 3339 Z string.
-        iso_z = f"{value}T00:00:00.000000Z"
-        if len(iso_z) > 64:
-            raise ForecastMapperError("output_snapshot_invalid")
-        return iso_z
-    # Otherwise the value must already be RFC 3339 Z (the schema's
-    # field validator will reject anything else on construction).
-    return value
+        # Plain YYYY-MM-DD — promote to UTC midnight RFC 3339 Z.
+        return f"{value}T00:00:00.000000Z"
+    if "T" in value and value.endswith("Z"):
+        # Full RFC 3339 Z — pass through.
+        return value
+    raise ForecastMapperError("output_snapshot_invalid")
 
 
 def _build_output_snapshot(payload: dict[str, Any]) -> OutputSnapshotSchema:
