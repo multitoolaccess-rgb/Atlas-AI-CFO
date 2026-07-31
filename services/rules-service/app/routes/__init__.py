@@ -63,6 +63,22 @@ from app.routes.categories import router as categories_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.data import router as data_router
 from app.routes.family_members import router as family_members_router
+
+# Phase 1 Slice D-post — authenticated POST /api/v1/goals/{goal_id}/forecasts
+# generation route. Bounded scope: ownership-before-adapter, idempotency,
+# conditional headers, default-off persistence-gated 503, sanitized
+# 4xx/5xx envelopes, HATEOAS links. NO mutable forecast CRUD. route
+# signature uses Annotated[X, Header(..., default=None)] (default INSIDE
+# Header) to avoid the FastAPI 0.104.1 + pydantic 2.x FieldInfo.in_ leak.
+from app.routes.forecasts_generation import router as forecasts_generation_router
+# Phase 1 Slice D-post — authenticated POST /api/v1/goals/{goal_id}/forecasts
+# generation route. Bounded scope: ownership-before-adapter, idempotency,
+# conditional headers, default-off persistence-gated 503, sanitized
+# 4xx/5xx envelopes, HATEOAS links. NO mutable forecast CRUD. NO
+# request-path shadowing. Route signature uses ``Annotated[X, Header(...,
+# default=None)]`` (default INSIDE Header) to avoid the FastAPI 0.104.1
+# + pydantic 2.x ``FieldInfo.in_`` leak at TestClient(app) construction.
+from app.routes.forecasts_generation import router as forecasts_generation_router
 from app.routes.goals import router as goals_router
 # Phase 39 — portfolio holdings (positions import + live pricing).
 from app.routes.holdings import router as holdings_router
@@ -104,4 +120,5 @@ __all__ = [
     "users_router",
     "recommendations_router",
     "evaluate_router",
+    "forecasts_generation_router",
 ]
