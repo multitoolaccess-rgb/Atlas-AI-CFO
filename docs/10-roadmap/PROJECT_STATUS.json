@@ -1,5 +1,21 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "id": "work-p2-vertical-slice-planning",
+      "title": "Phase 2 vertical-slice planning (10 deliverables) \u2014 review-only",
+      "phase": "phase-2",
+      "status": "planned",
+      "risk_tier": "high",
+      "scope": "PLANNING ONLY. Produce the 10 Phase 2 vertical-slice deliverables (reuse map, user journey + ACs, API-to-UI flow, recommendation contract, decision-journal contract, file-by-file plan, test strategy, risks/flags/rollback/non-goals, exit-criteria checklist, next bounded implementation task) into the documented plan. NO implementation begins in this turn.",
+      "artifact": "docs/10-roadmap/PHASE2_VERTICAL_SLICE_PLAN.md",
+      "review_status": "awaiting_review",
+      "tests": "n/a (planning artifact)",
+      "ci_run_url": null,
+      "ci_check": null,
+      "review_evidence": "n/a \u2014 independent review of the planning doc is the next step",
+      "notes": "Cross-phase slice: touches Phase 2 (UI) + Phase 3 (recommendations) + Phase 4 (decision journal) building blocks WITHOUT adopting their phase-completion semantics. Sole Phase 2 exit criterion from PHASE_PLAN.md is verifiable via AC1-AC10 in the plan. Phase 3 + Phase 4 remain not_started until they are separately authorized. Default-off flags unchanged: persistence + read-API gates remain False. RISK_REGISTER.md untouched in this planning turn (no new rows) per the user mandate."
+    }
+  ],
   "blockers": [
     {
       "id": "external-multi-user-retention-deletion-blocker",
@@ -93,9 +109,9 @@
       "branch": "codex/phase-1-forecast-generation-route",
       "commit": "175ac8c6da24a81125741ba336a56fc8cba3f777",
       "commit_short": "175ac8c",
-      "description": "Bounded mapper-only correction on top of mapper rewrite (a6adb17). Fix A: _assumption_goal_pairs enforces the Phase 0 XOR invariant (target_amount required + exactly one of (horizon_years, target_date)) with `_NULL_SENTINEL` now documented as a deliberate bounded wire placeholder rather than a missing field — both-None and both-present reject via sanitized ForecastMapperError. Fix B: _coerce_drivers_data_as_of accepts ONLY YYYY-MM-DD (10-char) OR RFC 3339 (T-separator + Z-suffix); timezone offsets, space separators, garbage, empty, non-string, and >64-char inputs reject with sanitized ForecastMapperError. Mapper remains route-free and adapter-free (AST isolation test still passes). Route WIP preserved untracked in stash@{0} (message: wip-route-handler-pre-pr14-merge) for the next bounded handler PR.",
+      "description": "Bounded mapper-only correction on top of mapper rewrite (a6adb17). Fix A: _assumption_goal_pairs enforces the Phase 0 XOR invariant (target_amount required + exactly one of (horizon_years, target_date)) with `_NULL_SENTINEL` now documented as a deliberate bounded wire placeholder rather than a missing field \u2014 both-None and both-present reject via sanitized ForecastMapperError. Fix B: _coerce_drivers_data_as_of accepts ONLY YYYY-MM-DD (10-char) OR RFC 3339 (T-separator + Z-suffix); timezone offsets, space separators, garbage, empty, non-string, and >64-char inputs reject with sanitized ForecastMapperError. Mapper remains route-free and adapter-free (AST isolation test still passes). Route WIP preserved untracked in stash@{0} (message: wip-route-handler-pre-pr14-merge) for the next bounded handler PR.",
       "pr": 14,
-      "review_evidence": "code-reviewer-minimax-m3 (fresh independent review of new head) APPROVE_FOR_MERGE on commit 175ac8c — bounded mapper-only fix A + fix B, scope disciplined to mapper + mapper tests only.",
+      "review_evidence": "code-reviewer-minimax-m3 (fresh independent review of new head) APPROVE_FOR_MERGE on commit 175ac8c \u2014 bounded mapper-only fix A + fix B, scope disciplined to mapper + mapper tests only.",
       "slice": "D-post",
       "work_id": "work-p1-forecast-generation-route"
     },
@@ -383,7 +399,7 @@
       "commit": "17632b5",
       "id": "work-p1-versioned-schemas",
       "issue": "",
-      "objective": "Bounded Pydantic schemas + cursor + ETag codecs + sanitized 4xx/5xx envelopes per ADR-006 and Phase 1 plan §Slice 5 (NO routes, NO flags, NO shadow)",
+      "objective": "Bounded Pydantic schemas + cursor + ETag codecs + sanitized 4xx/5xx envelopes per ADR-006 and Phase 1 plan \u00a7Slice 5 (NO routes, NO flags, NO shadow)",
       "paths": [
         "services/rules-service/app/forecasts"
       ],
@@ -451,13 +467,21 @@
       "review_evidence": "Three independent code-reviewer-minimax-m3 approvals: cycle-5 local diff, cycle-5 committed head efe972d4, PR #20-followup committed head 1032ec9"
     }
   ],
-  "current_objective": "Phase 1 certified at commit 08f6f811da7c325da8a3d60adae9f2d9c2d210e8 (annotated tag phase-1-complete resolves on remote to certified main SHA). External multi-user production enablement is BLOCKED pending retention and user-deletion policy approval. No Phase 2 work begins per the user mandate.",
+  "current_objective": "Phase 2 vertical-slice PLANNING drafted in 'docs/10-roadmap/PHASE2_VERTICAL_SLICE_PLAN.md'. Phase 1 remains certified at 08f6f811da7c325da8a3d60adae9f2d9c2d210e8 (annotated tag phase-1-complete). External multi-user production enablement remains BLOCKED pending retention and user-deletion policy. Implementation PR 1 (work-p2-decision-journal-substrate) is BLOCKED until this plan is reviewed and the next bounded task is explicitly authorized. No Phase 2 implementation begins per the user mandate.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-07-30T22:55:00Z",
+  "last_updated": "2026-08-01T01:32:50Z",
   "next_bounded_task": {
-    "description": "Phase 1 Slice E: Flags, observability, and bounded shadow validation. Blocked until Slice D-post (mapper + handler PRs) merges AND retention / user-deletion policy is approved.",
-    "id": "work-p1-flags-observability-shadow-validation",
-    "phase_id": "phase-1"
+    "id": "work-p2-vertical-slice-planning",
+    "title": "Phase 2 vertical-slice planning review",
+    "description": "Independent review of docs/10-roadmap/PHASE2_VERTICAL_SLICE_PLAN.md against the 10 deliverable sections + the hard constraints (no LLMs, no Monte Carlo, no new flag, no risk-register mutations, default-off persistence/read-API preserved). After approval, authorize PR 1 (work-p2-decision-journal-substrate) as the bounded next implementation task. Do NOT begin Phase 2 implementation before explicit authorization.",
+    "depends_on_completion_of": "work-p1-forecast-generation-route (merged per Phase 1 cert)",
+    "blocked_until": [
+      "Independent review of PHASE2_VERTICAL_SLICE_PLAN.md approved",
+      "External multi-user retention + user-deletion policy approval (preserves risk-p1-retention-rollout-gate)",
+      "risk-p1-account-currency-authority resolution decision"
+    ],
+    "outcome_gate": "Explicit user authorization to begin PR 1 (work-p2-decision-journal-substrate)",
+    "risk_tier": "high"
   },
   "overall_status": "complete",
   "phases": [
