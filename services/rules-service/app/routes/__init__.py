@@ -79,6 +79,14 @@ from app.routes.forecasts_generation import router as forecasts_generation_route
 # default=None)]`` (default INSIDE Header) to avoid the FastAPI 0.104.1
 # + pydantic 2.x ``FieldInfo.in_`` leak at TestClient(app) construction.
 from app.routes.forecasts_generation import router as forecasts_generation_router
+# Phase 2 Slice 1 commit-4 â bounded Phase 2 routes:
+# GET  /api/v1/forecasts/{forecast_id}/recommendation
+# POST /api/v1/recommendations/{recommendation_id}/decisions
+# Reuses Settings.atlas_forecast_read_api_enabled (existing Phase 1
+# gate; no NEW flag). Cross-user / missing return SAME envelope for
+# indistinguishability. Append-only journal semantics. NO mutable
+# Phase 2 CRUD. NO client financial-state fields.
+from app.routes.recommendations_derived import router as recommendations_derived_router
 from app.routes.goals import router as goals_router
 # Phase 39 — portfolio holdings (positions import + live pricing).
 from app.routes.holdings import router as holdings_router

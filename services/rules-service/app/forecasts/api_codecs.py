@@ -170,7 +170,7 @@ def decode_forecast_cursor(cursor: str) -> ForecastCursor:
 
 
 # ----------------------------------------------------------------------
-# ETag codec
+# ETag codec (forecast namespace)
 # ----------------------------------------------------------------------
 
 @dataclass(frozen=True)
@@ -227,3 +227,100 @@ def parse_forecast_etag_header(value: Any) -> ForecastETag | None:
         raise CodecError("etag")
     version_number = _validate_version_number(int(version_text))
     return ForecastETag(forecast_id=forecast_id, version_number=version_number)
+
+
+# ----------------------------------------------------------------------
+# ETag codec (decision namespace, Phase 2 Slice 1)
+# ----------------------------------------------------------------------
+#
+# The decision ETag namespace uses a distinct ``-dN`` form so that an
+# immutable recommendation row (whose PK is a UUIDv4-lowercase) and an
+# immutable journal row (whose PK is also a UUIDv4-lowercase) cannot
+# collide at the wire surface with the ``-vN`` forecast namespace.
+# Bare form: ``{uuid}-d{positive_int}``.  Length-bound at 96 to leave
+# slack identical to the forecast ETag namespace.
+#
+# Schema parity: ``recommendation_schemas._DECISION_ETAG_BARE`` is
+# re-imported from here so wire-shape validators and server-emitted
+# values stay byte-identical without a duplicated regex literal.
+
+_DECISION_ETAG_BARE = re.compile(
+    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-d[1-9][0-9]{0,9}$"
+)
+_DECISION_ETAG_WEAK = re.compile(
+    r"W/\"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-d[1-9][0-9]{0,9}\"$"
+)
+_DECISION_ETAG_STRONG = re.compile(
+    r"\"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-d[1-9][0-9]{0,9}\"$"
+)
+
+
+@dataclass(frozen=True)
+class DecisionETag:
+    """Inner ETag payload for the recommendation / decision-jet namespace.
+
+    ``source_id`` is the canonical UUID of the underlying Phase 2 row
+    (a recommendation row's PK, or a journal entry's PK); ``version``
+    is currently always 1 in Phase 2 Slice 1 because the bounded
+    derivation engine emits exactly one row per canonical input tuple.
+    The field is retained as a ``version`` placeholder so a future
+    additive bump has a wire-stable shape to ride on without changing
+    the contract.
+    """
+
+    source_id: str
+    version: int = 1
+
+
+def derive_decision_etag(*, source_id: str, version: int = 1) -> str:
+    """Return the **bare** server-derived decision-ETag value (no quotes).
+
+    Mirrors :func:`derive_forecast_etag` shape, but emits the
+    ``-d<n>`` distinction so the two namespaces cannot collide.
+    """
+    _validate_forecast_id(source_id)
+    if not isinstance(version, int) or isinstance(version, bool):
+        raise CodecError("etag")
+    if not 1 <= version <= 9_999_999_999:
+        raise CodecError("etag")
+    bare = f"{source_id}-d{version}"
+    if not _DECISION_ETAG_BARE.fullmatch(bare) or len(bare) > ETAG_MAX_LENGTH:
+        raise CodecError("etag")
+    return bare
+
+
+def format_decision_etag_header(*, source_id: str, version: int = 1) -> str:
+    """Return the **quoted** RFC 7232 ETag header value ready to emit."""
+    bare = derive_decision_etag(source_id=source_id, version=version)
+    return f'"{bare}"'
+
+
+def parse_decision_etag_header(value: Any) -> DecisionETag | None:
+    """Parse an inbound decision ETag header value.
+
+    Returns ``None`` for the wildcard ``*``.  Rejects weak ETags
+    (``W/``) for the same byte-stability reason as
+    :func:`parse_forecast_etag_header`.
+    """
+    if value is None:
+        raise CodecError("etag")
+    if not isinstance(value, str):
+        raise CodecError("etag")
+    if value == "*":
+        return None
+    if len(value) > ETAG_MAX_LENGTH:
+        raise CodecError("etag")
+    if _DECISION_ETAG_WEAK.fullmatch(value):
+        raise CodecError("etag")  # weak forbidden (see module docstring)
+    match = _DECISION_ETAG_STRONG.fullmatch(value)
+    if not match:
+        raise CodecError("etag")
+    bare = value[1:-1]
+    source_id, _, version_text = bare.rpartition("-d")
+    if not _UUID_LOWER.fullmatch(source_id):
+        raise CodecError("etag")
+    try:
+        version = _validate_version_number(int(version_text))
+    except CodecError:
+        raise CodecError("etag")
+    return DecisionETag(source_id=source_id, version=version)

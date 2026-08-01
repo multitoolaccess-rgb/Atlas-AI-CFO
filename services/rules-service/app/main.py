@@ -83,6 +83,11 @@ from app.routes import (
     transactions_router,
     users_router,
     recommendations_router,
+    # Phase 2 Slice 1 commit-4 — deterministic recommendation GET +
+    # append-only decision-journal POST routes. Re-uses the existing
+    # ``Settings.atlas_forecast_read_api_enabled`` Phase 1 gate. NO new
+    # flag introduced. NO mutable Phase 2 CRUD. NO autonomous execution.
+    recommendations_derived_router,
 )
 
 LOG = logging.getLogger("uvicorn.error")
@@ -438,6 +443,11 @@ app.include_router(recommendations_router)
 # Phase 2 — policy-based rule evaluation.
 app.include_router(evaluate_router)
 app.include_router(forecasts_generation_router)
+# Phase 2 Slice 1 commit-4 — deterministic recommendation GET +
+# append-only decision-journal POST routes. Re-uses the existing
+# ``Settings.atlas_forecast_read_api_enabled`` Phase 1 gate. NO new
+# flag introduced. NO mutable Phase 2 CRUD. NO autonomous execution.
+app.include_router(recommendations_derived_router)
 
 
 @app.on_event("startup")
