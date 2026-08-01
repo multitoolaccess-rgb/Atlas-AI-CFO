@@ -16,7 +16,28 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Mock the API surface so we don't pull in auth/layout/axios in this test.
+// Shared HTTP-mock handles for the ``api_phase2`` cross-import seam
+// declared inside ``vi.mock`` below. ``vi.hoisted`` makes these
+// available to the hoisted mock factory AND to the test body's
+// ``beforeEach`` reset hook.
+const defaultApiHandles = vi.hoisted(() => {
+  const readGateOff = {
+    isAxiosError: true,
+    response: {
+      status: 503,
+      data: {
+        code: 'forecast_read_api_unavailable',
+        message: 'Forecast reads are currently disabled.',
+      },
+    },
+  }
+  return {
+    readGateOff,
+    get: vi.fn().mockRejectedValue(readGateOff),
+    post: vi.fn().mockRejectedValue(readGateOff),
+  }
+})
+
 vi.mock('@/lib/api', () => ({
   rulesService: {
     listGoals: vi.fn(),
@@ -25,11 +46,19 @@ vi.mock('@/lib/api', () => ({
     updateGoal: vi.fn(),
     deleteGoal: vi.fn(),
     // PageLayout's bootstrap useEffect calls getProfile() once at
-    // mount for the header avatar. Provide a resolved stub so mount
-    // doesn't crash on the missing-method TypeError.
+    // mount for the header avatar. Provide a resolved stub so
+    // mount doesn't crash on the missing-method TypeError.
     getProfile: vi
       .fn()
       .mockResolvedValue({ id: 1, email: 'alex@test.com', full_name: 'Alex' }),
+  },
+  // Cross-import seam for ``api_phase2.ts`` (Slice 2):
+  //   ``import api from '@/lib/api'`` → ``api.get``/``api.post``
+  //   Default behaviour: reject with the sanitized 503 so the
+  //   LatestForecastSection page wiring collapses gracefully.
+  default: {
+    get: defaultApiHandles.get,
+    post: defaultApiHandles.post,
   },
 }))
 
@@ -113,6 +142,11 @@ beforeEach(() => {
   mockedRulesService.createGoal.mockReset()
   mockedRulesService.updateGoal.mockReset()
   mockedRulesService.deleteGoal.mockReset()
+  // Slice 2 cross-import seam: clear cross-test call counts on the
+  // shared ``default.get``/``default.post`` HTTP mocks so a prior
+  // test's POST and the next test's component mount see fresh state.
+  defaultApiHandles.get.mockClear()
+  defaultApiHandles.post.mockClear()
 })
 
 describe('GoalsPage — Phase F2 #2 error isolation', () => {
