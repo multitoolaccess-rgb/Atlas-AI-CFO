@@ -4,8 +4,8 @@
 
 - Current phase: **phase-1 — Forecast persistence** (complete)
 - Overall status: **complete**
-- Current objective: Phase 1 certified at commit 08f6f811da7c325da8a3d60adae9f2d9c2d210e8 (annotated tag phase-1-complete resolves on remote to certified main SHA). External multi-user production enablement is BLOCKED pending retention and user-deletion policy approval. No Phase 2 work begins per the user mandate.
-- Last updated: 2026-07-30T22:55:00Z
+- Current objective: Phase 2 vertical-slice PLANNING drafted in 'docs/10-roadmap/PHASE2_VERTICAL_SLICE_PLAN.md'. Phase 1 remains certified at 08f6f811da7c325da8a3d60adae9f2d9c2d210e8 (annotated tag phase-1-complete). External multi-user production enablement remains BLOCKED pending retention and user-deletion policy. Implementation PR 1 (work-p2-decision-journal-substrate) is BLOCKED until this plan is reviewed and the next bounded task is explicitly authorized. No Phase 2 implementation begins per the user mandate.
+- Last updated: 2026-08-01T01:34:34Z
 
 ## Active work
 - None
@@ -73,6 +73,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-p1-flags-observability-shadow-validation: Phase 1 Slice E: Flags, observability, and bounded shadow validation. Blocked until Slice D-post (mapper + handler PRs) merges AND retention / user-deletion policy is approved.
+- work-p2-vertical-slice-planning: Independent review of docs/10-roadmap/PHASE2_VERTICAL_SLICE_PLAN.md against the 10 deliverable sections + the hard constraints (no LLMs, no Monte Carlo, no new flag, no risk-register mutations, default-off persistence/read-API preserved). After approval, authorize PR 1 (work-p2-decision-journal-substrate) as the bounded next implementation task. Do NOT begin Phase 2 implementation before explicit authorization.
 
 Do not begin the next phase or task automatically.

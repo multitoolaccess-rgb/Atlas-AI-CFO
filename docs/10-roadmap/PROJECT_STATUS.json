@@ -1,21 +1,5 @@
 {
-  "active_work": [
-    {
-      "id": "work-p2-vertical-slice-planning",
-      "title": "Phase 2 vertical-slice planning (10 deliverables) \u2014 review-only",
-      "phase": "phase-2",
-      "status": "planned",
-      "risk_tier": "high",
-      "scope": "PLANNING ONLY. Produce the 10 Phase 2 vertical-slice deliverables (reuse map, user journey + ACs, API-to-UI flow, recommendation contract, decision-journal contract, file-by-file plan, test strategy, risks/flags/rollback/non-goals, exit-criteria checklist, next bounded implementation task) into the documented plan. NO implementation begins in this turn.",
-      "artifact": "docs/10-roadmap/PHASE2_VERTICAL_SLICE_PLAN.md",
-      "review_status": "awaiting_review",
-      "tests": "n/a (planning artifact)",
-      "ci_run_url": null,
-      "ci_check": null,
-      "review_evidence": "n/a \u2014 independent review of the planning doc is the next step",
-      "notes": "Cross-phase slice: touches Phase 2 (UI) + Phase 3 (recommendations) + Phase 4 (decision journal) building blocks WITHOUT adopting their phase-completion semantics. Sole Phase 2 exit criterion from PHASE_PLAN.md is verifiable via AC1-AC10 in the plan. Phase 3 + Phase 4 remain not_started until they are separately authorized. Default-off flags unchanged: persistence + read-API gates remain False. RISK_REGISTER.md untouched in this planning turn (no new rows) per the user mandate."
-    }
-  ],
+  "active_work": [],
   "blockers": [
     {
       "id": "external-multi-user-retention-deletion-blocker",
@@ -469,7 +453,7 @@
   ],
   "current_objective": "Phase 2 vertical-slice PLANNING drafted in 'docs/10-roadmap/PHASE2_VERTICAL_SLICE_PLAN.md'. Phase 1 remains certified at 08f6f811da7c325da8a3d60adae9f2d9c2d210e8 (annotated tag phase-1-complete). External multi-user production enablement remains BLOCKED pending retention and user-deletion policy. Implementation PR 1 (work-p2-decision-journal-substrate) is BLOCKED until this plan is reviewed and the next bounded task is explicitly authorized. No Phase 2 implementation begins per the user mandate.",
   "current_phase_id": "phase-1",
-  "last_updated": "2026-08-01T01:32:50Z",
+  "last_updated": "2026-08-01T01:34:34Z",
   "next_bounded_task": {
     "id": "work-p2-vertical-slice-planning",
     "title": "Phase 2 vertical-slice planning review",
