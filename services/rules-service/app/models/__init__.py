@@ -46,6 +46,12 @@ from app.models.holding import Holding
 # Phase 4 — recommendation approval workflow audit trail.
 from app.models.recommendation_log import RecommendationLog
 from app.models.forecast import Forecast, ForecastVersion
+# Phase 2 Slice 1 — deterministic, derived-from-forecast-version
+# recommendation ledger (append-only; one row per derivation) and the
+# user's append-only decision journal. The two models are distinct from
+# the Phase-4 mutable ``RecommendationLog`` workflow audit trail.
+from app.models.recommendation import Recommendation
+from app.models.decision_journal_entry import DecisionJournalEntry
 
 __all__ = [
     "Budget",
@@ -65,4 +71,6 @@ __all__ = [
     "RecommendationLog",
     "Forecast",
     "ForecastVersion",
+    "Recommendation",
+    "DecisionJournalEntry",
 ] 

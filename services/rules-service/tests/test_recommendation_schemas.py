@@ -422,13 +422,13 @@ def test_impact_range_rejects_non_canonical(min_value, max_value) -> None:
 
 
 @pytest.mark.parametrize(
-    "value,boundary",
+    "value",
     [
-        pytest.param("9" * 41, "length_cap", id="length_cap_violation"),
-        pytest.param("9" * 40, "total_digit_cap", id="total_digit_cap_violation"),
+        pytest.param("9" * 41, id="length_cap_violation"),
+        pytest.param("9" * 40, id="total_digit_cap_violation"),
     ],
 )
-def test_impact_range_rejects_canonical_state_v1_bounds(value, boundary) -> None:
+def test_impact_range_rejects_canonical_state_v1_bounds(value) -> None:
     """Phase 1 v1 bounds the canonical-state validator enforces that the
     inline copy did not: length cap (MAX_DECIMAL_ENCODED_LENGTH=40) and
     total-digit cap (MAX_DECIMAL_TOTAL_DIGITS=38).  Each parametrize case
@@ -443,7 +443,12 @@ def test_impact_range_rejects_canonical_state_v1_bounds(value, boundary) -> None
         )
     detail = next(iter(captured.value.errors()), None)
     assert detail is not None
-    assert detail["type"] in {"value_error", "string_type"}
+    # ``canonical-state/v1`` raises ``ValueError`` via ``field_validator``;
+    # Pydantic surfaces that as ``type == 'value_error'``. We tighten the
+    # prior over-permissive ``in {value_error, string_type}`` assertion
+    # because the test payload is always a string and the canonical-state
+    # validator always raises ``ValueError``.
+    assert detail["type"] == "value_error"
 
 
 def test_impact_range_rejects_fractional_scale_cap_violation() -> None:
