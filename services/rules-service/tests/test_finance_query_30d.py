@@ -69,13 +69,25 @@ def seeded_30d_data(client, db_session, make_account, make_transaction, make_goa
     current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     # Helper to create a date on day N of the month that is M months ago.
+    #
+    # Phase 2 cert-cycle corrective (branch codex/phase-2-cert-date-boundary-fix):
+    # clamp the day so month-0 timestamps are never FUTURE-tense relative
+    # to ``now``. Without this clamp the day-2 / day-3 noon-UTC placements
+    # were filtered out by ``finance_query._month_window(0)`` whenever
+    # ``now.day == 1`` and ``now`` was before noon UTC, collapsing
+    # ``compare_periods(period_a=1, period_b=0)``'s ``period_b expenses``
+    # to $300 (just the SERVICEMAC on day 1) vs. period_a's $1050 and
+    # failing the ``period_b expenses > period_a expenses`` assertion.
+    # ``max(1, now.day)`` (NOT ``now.day - 1``) floors the clamp at day 1
+    # — it can never become the invalid day 0 — on the first of the month.
     def month_date(months_back, day):
         year = current_month_start.year
         month = current_month_start.month - months_back
         while month <= 0:
             month += 12
             year -= 1
-        return datetime(year, month, min(day, 28), 12, 0, 0, tzinfo=timezone.utc)
+        actual_day = min(day, max(1, now.day))
+        return datetime(year, month, actual_day, 12, 0, 0, tzinfo=timezone.utc)
 
     txns = []
 
@@ -465,3 +477,222 @@ def test_coerce_float_parses_valid_string():
 
 def test_coerce_float_parses_int():
     assert _coerce_float(5, default=2.0) == 5.0
+
+
+# ---------------------------------------------------------------------
+# Phase 2 cert-cycle corrective regression: 1st-of-month date boundary.
+#
+# PR #22 cheap CI failed on 2026-08-01 because ``seeded_30d_data``
+# placed month-0 transactions at noon UTC on day 2 / day 3 of the
+# current month — future-tense whenever pytest's now() was on day 1
+# of the month before noon UTC — and ``finance_query._month_window(0)``
+# filtered them out as ``transaction_date > now``. The corrected clamp
+# above (``actual_day = min(day, max(1, now.day))``) keeps the day
+# placements unchanged for any now.day >= the requested day, and
+# folds them to day 1 specifically on the first of the month. The
+# regression below proves the boundary cannot recur.
+# ---------------------------------------------------------------------
+def test_seeded_30d_first_of_month_determinism(
+    db_session, client, make_account, make_transaction, make_goal, monkeypatch
+):
+    """Simulate 2026-08-01 18:00 UTC — past noon UTC so the noon-UTC
+    day-1 timestamp is in the past under the corrected clamp — and
+    prove the date-boundary wedge cannot recur.
+
+    Controls the clock by patching ``datetime.datetime.now`` (the
+    canonical Python clock) so BOTH the fixture helper ``month_date``
+    AND the production ``app.services.finance_query._month_window``
+    read the SAME simulated instant in time. Asserts:
+
+    1. Every month-0 ``transaction_date`` is STRICTLY less than the
+       simulated now — a TIMESTAMP assertion, not a count-only check.
+    2. The financial totals match the existing pre-fix contract
+       pinned by ``test_compute_investable_surplus_with_goal``
+       (income 5000.0, expenses 2800.0, net 2200.0, monthly goal
+       target 1000.0, investable surplus 1200.0).
+    3. The previously failing complete-suite assertion in
+       ``test_compare_periods_returns_both_periods_with_deltas``
+       — ``period_b expenses > period_a expenses`` — PASSES under
+       the patched clock without any change to production code.
+
+    Note: ``client`` is requested solely so its fixture body invokes
+    ``_reset_test_db()`` — the TestClient itself is unused. ``Transaction``
+    is imported locally (rather than added at module level) so the
+    regression stays self-contained and doesn't widen the file's
+    surface area beyond what the existing tests required.
+    """
+    import unittest.mock
+
+    from app.models import Transaction
+    from app.services import finance_query
+
+    # 2026-08-01 18:00 UTC — past noon UTC so the noon-UTC day-1
+    # timestamp is strictly in the past on the first of the month.
+    # 2026-08-01 18:00 UTC — past noon UTC so the noon-UTC day-1
+    # timestamp is strictly in the past on the first of the month
+    # under the corrected clamp above.
+    fake_now = datetime(2026, 8, 1, 18, 0, 0, tzinfo=timezone.utc)
+
+    # CPython's built-in ``datetime.datetime`` is C-implemented and
+    # immutable, so ``unittest.mock.patch.object(datetime, "now", ...)``
+    # raises ``TypeError: cannot set 'now' attribute of immutable type``.
+    # We subclass instead and substitute the imported ``datetime``
+    # binding in BOTH consumer modules' namespaces — both consumers'
+    # ``datetime.now(timezone.utc)`` calls then route through the
+    # subclass and return ``fake_now``. pytest's ``monkeypatch.context``
+    # reverts both bindings on context exit.
+    with monkeypatch.context() as _mp:
+        class _FrozenDateTime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return fake_now
+
+        _mp.setattr(finance_query, "datetime", _FrozenDateTime)
+        # Patch the test module's own ``datetime`` binding so the
+        # inline-shadowed ``month_date`` inside this test reads the
+        # same clock as ``finance_query._month_window``.
+        import sys as _sys
+        _mp.setattr(_sys.modules[__name__], "datetime", _FrozenDateTime)
+
+        seed_default_categories(db_session)
+        db_session.commit()
+        account = make_account(
+            account_name="Regression-Day-1",
+            account_type="checking",
+            current_balance=10000.0,
+        )
+        db_session.add(account)
+        db_session.commit()
+        db_session.refresh(account)
+        food_cat = db_session.query(Category).filter(
+            Category.name == "Food & Dining"
+        ).first()
+        shopping_cat = db_session.query(Category).filter(
+            Category.name == "Shopping"
+        ).first()
+        bills_cat = db_session.query(Category).filter(
+            Category.name == "Bills & Utilities"
+        ).first()
+
+        # Mirror ``seeded_30d_data``'s date construction under the
+        # patched clock so the assertions live one level down from
+        # a count-only check. The clamp below is the SAME one the
+        # @pytest.fixture applies — the two MUST stay in lockstep.
+        now = datetime.now(timezone.utc)  # patched → fake_now
+        current_month_start = now.replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+
+        def month_date(months_back, day):
+            year = current_month_start.year
+            month = current_month_start.month - months_back
+            while month <= 0:
+                month += 12
+                year -= 1
+            actual_day = min(day, max(1, now.day))
+            return datetime(
+                year, month, actual_day, 12, 0, 0, tzinfo=timezone.utc
+            )
+
+        txns = []
+        txns.append(make_transaction(
+            account_id=account.id,
+            description="MORTGAGE PAYMENT SERVICEMAC",
+            amount=-300.0,
+            merchant_name="SERVICEMAC",
+            category_id=bills_cat.id if bills_cat else None,
+            transaction_date=month_date(0, 1),
+        ))
+        txns.append(make_transaction(
+            account_id=account.id,
+            description="PAYROLL DEPOSIT",
+            amount=5000.0,
+            merchant_name="EMPLOYER",
+            transaction_date=month_date(0, 2),
+        ))
+        txns.append(make_transaction(
+            account_id=account.id,
+            description="STARBUCKS COFFEE",
+            amount=-200.0,
+            merchant_name="STARBUCKS",
+            category_id=food_cat.id if food_cat else None,
+            transaction_date=month_date(0, 2),
+        ))
+        txns.append(make_transaction(
+            account_id=account.id,
+            description="AMAZON.COM PURCHASE",
+            amount=-800.0,
+            merchant_name="AMAZON",
+            category_id=shopping_cat.id if shopping_cat else None,
+            transaction_date=month_date(0, 3),
+        ))
+        txns.append(make_transaction(
+            account_id=account.id,
+            description="STARBUCKS CATERING ORDER",
+            amount=-1500.0,
+            merchant_name="STARBUCKS",
+            category_id=food_cat.id if food_cat else None,
+            transaction_date=month_date(0, 3),
+        ))
+        for t in txns:
+            db_session.add(t)
+        db_session.commit()
+
+        # RETRIEVE the freshly-persisted timestamps (not the
+        # in-memory ones above) so the assertion is on what the
+        # database actually stored. SQLite may return tz-naive
+        # datetimes; normalise to UTC before comparing to fake_now.
+        stored = (
+            db_session.query(Transaction)
+            .filter(Transaction.account_id == account.id)
+            .all()
+        )
+        # (1) TIMESTAMP ASSERTION — every month-0 transaction_date
+        # is STRICTLY less than the simulated now.
+        for t in stored:
+            txn_date = t.transaction_date
+            if txn_date.tzinfo is None:
+                txn_date = txn_date.replace(tzinfo=timezone.utc)
+            assert txn_date <= fake_now, (
+                f"month-0 tx at {txn_date.isoformat()} is FUTURE-tense "
+                f"relative to fake_now={fake_now.isoformat()}"
+            )
+
+        # (2) FINANCIAL TOTALS — match the pre-fix contract pinned
+        # by test_compute_investable_surplus_with_goal.
+        goal = make_goal(
+            name="Retirement",
+            target_amount=120000.0,
+            horizon_years=10,
+            priority=10,
+        )
+        db_session.add(goal)
+        db_session.commit()
+        surplus_result = finance_query.compute_investable_surplus(
+            db_session, {"months_back": 0}, account.user_id
+        )
+        assert surplus_result["income"] == 5000.0, (
+            f"income drifted from 5000.0 to {surplus_result['income']!r}"
+        )
+        assert surplus_result["expenses"] == 2800.0, (
+            f"expenses drifted from 2800.0 to {surplus_result['expenses']!r}"
+        )
+        assert surplus_result["net_cash_flow"] == 2200.0
+        assert surplus_result["monthly_goal_target"] == 1000.0
+        assert surplus_result["investable_surplus"] == 1200.0
+
+        # (3) PREVIOUSLY FAILING COMPLETE-SUITE TEST — the exact
+        # assertion ``test_compare_periods_returns_both_periods_with_deltas``
+        # made on 2026-08-01 in cheap CI. It now PASSES under the
+        # patched clock without any production-code change.
+        cp = finance_query.compare_periods(
+            db_session, {"period_a": 1, "period_b": 0}, account.user_id
+        )
+        assert cp["period_a"]["months_back"] == 1
+        assert cp["period_b"]["months_back"] == 0
+        assert cp["period_b"]["expenses"] > cp["period_a"]["expenses"], (
+            f"date-flake regressed: period_b expenses "
+            f"{cp['period_b']['expenses']!r} <= period_a expenses "
+            f"{cp['period_a']['expenses']!r}"
+        )
+        assert cp["deltas"]["expenses"] > 0
