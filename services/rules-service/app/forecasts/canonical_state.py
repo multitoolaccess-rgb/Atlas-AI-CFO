@@ -260,7 +260,14 @@ def canonical_decimal_string(value: Decimal | str) -> str:
     return f"-{result}" if sign else result
 
 
-def _validate_canonical_decimal(value: Any) -> str:
+# Public Decimal-string validator used by every Phase 2 contract envelope that
+# accepts canonical-decimal money ranges (impact ranges, expected deltas,
+# decision-journal money tags if Phase 2 adds them).  The contract is the
+# canonical-state v1 specification: finite, unrounded, no exponent, no
+# whitespace, no insignificant zeros, bounded total digits + scale, bounded
+# absolute value.  Reuse > reimplementation so cross-contract surfaces cannot
+# drift.
+def validate_canonical_decimal(value: Any) -> str:
     if (
         not isinstance(value, str)
         or len(value) > MAX_DECIMAL_ENCODED_LENGTH
@@ -285,6 +292,12 @@ def _validate_canonical_decimal(value: Any) -> str:
     if canonical_decimal_string(decimal_value) != value:
         raise ValueError("must not include insignificant decimal zeros")
     return value
+
+
+# Backward-compatible alias for legacy Phase 1 callers that imported the
+# leading-underscore private name.  New code MUST use
+# ``validate_canonical_decimal``.
+_validate_canonical_decimal = validate_canonical_decimal
 
 
 def _validate_identifier(value: Any) -> str:
