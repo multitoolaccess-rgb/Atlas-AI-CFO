@@ -53,6 +53,10 @@ class ProjectStatusTests(unittest.TestCase):
         self.assertEqual(completed["risk_tier"], "low")
         self.assertFalse(completed["pr"])
         self.assertNotIn("ci_evidence", completed)
+        # Low risk requires NO branch (the tracker always emits the ``branch`` key on
+        # the work dict; for low risk it stays empty), NO pr, NO review_evidence,
+        # NO ci_evidence.
+        self.assertEqual(completed.get("branch"), "")
 
     def test_medium_risk_completion_allows_no_pr(self):
         self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "docs", "--objective", "test", "--risk-tier", "medium")
@@ -61,6 +65,40 @@ class ProjectStatusTests(unittest.TestCase):
         self.assertEqual(completed["risk_tier"], "medium")
         self.assertFalse(completed["pr"])
         self.assertNotIn("ci_evidence", completed)
+        # Medium risk requires NO branch (consistent with optional PR + optional CI
+        # under the new "shared-behavior-affected" gate).
+        self.assertEqual(completed.get("branch"), "")
+
+    def test_medium_risk_start_does_not_require_a_branch(self):
+        # Mirror the new simplified medium-risk policy: medium-risk work can start
+        # without an explicit --branch flag (a branch may still be created locally
+        # by the workflow, but the tracker does not require it).
+        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "ui/components/dashboard", "--objective", "test", "--risk-tier", "medium")
+        active = json.loads(self.status.read_text())["active_work"][0]
+        self.assertEqual(active["risk_tier"], "medium")
+        self.assertFalse(active["branch"])
+
+    def test_high_risk_review_evidence_can_document_two_cycle_cap_marker(self):
+        # The "max 2 correction-and-review cycles" rule is documentation-level;
+        # the script accepts the cycle marker inside review_evidence content.
+        # This test pins the convention so audit reviewers know the format.
+        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
+        review_text = "Independent code-reviewer-minimax-m3 APPROVE on head abc1234 (cycle 2/2 of 2-cycle cap)."
+        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", review_text, "--test", "1 passed", "--ci-run-url", "https://github.com/atlas/test/actions/runs/123", "--ci-check", "status")
+        completed = json.loads(self.status.read_text())["completed_work"][0]
+        self.assertEqual(completed["risk_tier"], "high")
+        self.assertIn("2-cycle cap", completed["review_evidence"])
+        self.assertEqual(completed["ci_evidence"]["conclusion"], "success")
+
+    def test_high_risk_work_still_requires_a_branch_on_completion(self):
+        # Backward-compat: high-risk work requires a branch even after the
+        # simplified policy. This catches regressions in command_start / validate.
+        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
+        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", "approved", "--test", "1 passed", "--ci-run-url", "https://github.com/atlas/test/actions/runs/123", "--ci-check", "status")
+        payload = json.loads(self.status.read_text())
+        payload["completed_work"][0].pop("branch")
+        self.status.write_text(json.dumps(payload), encoding="utf-8")
+        self.invoke("check", expect=1)
 
     def test_high_risk_completion_requires_branch_pr_review_and_ci_evidence(self):
         self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
