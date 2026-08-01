@@ -452,8 +452,8 @@
     }
   ],
   "current_objective": "Governance simplified for solo personal-use development per the bounded policy update (.agents/skills/atlas-project-tracker/SKILL.md, STATUS_SCHEMA.md, AGENTS.md, CLAUDE.md, DEVELOPMENT_GUIDELINES.md, PHASE_PLAN.md). Phase 1 remains certified at SHA 08f6f811da7c325da8a3d60adae9f2d9c2d210e8 (annotated tag phase-1-complete). External multi-user production enablement remains BLOCKED pending retention and user-deletion policy (risk-p1-retention-rollout-gate). Phase 2 personal single-user development may proceed under the new tiered workflow. The Phase 2 vertical-slice plan (docs/10-roadmap/PHASE2_VERTICAL_SLICE_PLAN.md) was reviewed and approved (APPROVE_WITH_NITS) per the planning-window independent review. No Phase 2 implementation begins automatically per the user mandate.",
-  "current_phase_id": "phase-1",
-  "last_updated": "2026-08-01T01:41:39Z",
+  "current_phase_id": "phase-2",
+  "last_updated": "2026-08-01T01:45:37Z",
   "next_bounded_task": {
     "id": "work-p2-decision-journal-substrate",
     "title": "Phase 2 PR 1: backend recommendation + decision-journal substrate",
@@ -467,7 +467,7 @@
     "risk_tier": "high",
     "follow_up_pr": "work-p2-vertical-slice-ui (single UX-consumption PR)"
   },
-  "overall_status": "complete",
+  "overall_status": "in_progress",
   "phases": [
     {
       "exit_criteria": [
@@ -538,7 +538,7 @@
       ],
       "id": "phase-2",
       "name": "Forecast UI migration",
-      "status": "not_started"
+      "status": "in_progress"
     },
     {
       "exit_criteria": [

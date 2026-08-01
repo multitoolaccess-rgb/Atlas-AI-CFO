@@ -2,10 +2,10 @@
 
 > Generated from `PROJECT_STATUS.json`; regenerate with `python3 scripts/atlas_project_status.py render`.
 
-- Current phase: **phase-1 — Forecast persistence** (complete)
-- Overall status: **complete**
-- Current objective: Phase 2 vertical-slice PLANNING drafted in 'docs/10-roadmap/PHASE2_VERTICAL_SLICE_PLAN.md'. Phase 1 remains certified at 08f6f811da7c325da8a3d60adae9f2d9c2d210e8 (annotated tag phase-1-complete). External multi-user production enablement remains BLOCKED pending retention and user-deletion policy. Implementation PR 1 (work-p2-decision-journal-substrate) is BLOCKED until this plan is reviewed and the next bounded task is explicitly authorized. No Phase 2 implementation begins per the user mandate.
-- Last updated: 2026-08-01T01:34:34Z
+- Current phase: **phase-2 — Forecast UI migration** (in_progress)
+- Overall status: **in_progress**
+- Current objective: Governance simplified for solo personal-use development per the bounded policy update (.agents/skills/atlas-project-tracker/SKILL.md, STATUS_SCHEMA.md, AGENTS.md, CLAUDE.md, DEVELOPMENT_GUIDELINES.md, PHASE_PLAN.md). Phase 1 remains certified at SHA 08f6f811da7c325da8a3d60adae9f2d9c2d210e8 (annotated tag phase-1-complete). External multi-user production enablement remains BLOCKED pending retention and user-deletion policy (risk-p1-retention-rollout-gate). Phase 2 personal single-user development may proceed under the new tiered workflow. The Phase 2 vertical-slice plan (docs/10-roadmap/PHASE2_VERTICAL_SLICE_PLAN.md) was reviewed and approved (APPROVE_WITH_NITS) per the planning-window independent review. No Phase 2 implementation begins automatically per the user mandate.
+- Last updated: 2026-08-01T01:45:37Z
 
 ## Active work
 - None
@@ -16,7 +16,7 @@
 ## Phase progress
 - phase-0 — Projection foundation and Atlas baseline: complete (4/4 exit criteria)
 - phase-1 — Forecast persistence: complete (5/5 exit criteria)
-- phase-2 — Forecast UI migration: not_started (0/1 exit criteria)
+- phase-2 — Forecast UI migration: in_progress (0/1 exit criteria)
 - phase-3 — Goal-linked recommendations: not_started (0/1 exit criteria)
 - phase-4 — Decision journal: not_started (0/1 exit criteria)
 
@@ -73,6 +73,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-p2-vertical-slice-planning: Independent review of docs/10-roadmap/PHASE2_VERTICAL_SLICE_PLAN.md against the 10 deliverable sections + the hard constraints (no LLMs, no Monte Carlo, no new flag, no risk-register mutations, default-off persistence/read-API preserved). After approval, authorize PR 1 (work-p2-decision-journal-substrate) as the bounded next implementation task. Do NOT begin Phase 2 implementation before explicit authorization.
+- work-p2-decision-journal-substrate: Bounded backend-only Phase 2 implementation PR 1 of the two-PR vertical slice: append-only decision journal ORM (mirrors Phase 1 forecast_versions immutability), deterministic recommendation derivation rules (no LLM), bounded schemas and routes for GET /api/v1/forecasts/{forecast_id}/recommendation and POST /api/v1/recommendations/{recommendation_id}/decisions, gated by the existing atlas_forecast_read_api_enabled flag. High risk per the new simplified tier: one cohesive branch + PR + relevant CI + one fresh independent review + maximum two correction-and-review cycles.
 
 Do not begin the next phase or task automatically.
