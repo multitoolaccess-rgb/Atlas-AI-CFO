@@ -25,6 +25,7 @@ import { Button, Input, Modal } from '@/components/ui'
 import AnimatedRadialProgress from '@/components/charts/AnimatedRadialProgress'
 import TiltCard from '@/components/ui/TiltCard'
 import FinancialPlans, { GOAL_PROJECTION_ANNUAL_RETURN } from '@/components/dashboard/FinancialPlans'
+import LatestForecastSection from '@/components/dashboard/LatestForecastSection'
 import { projectDashboardTrajectory } from '@/lib/math/projection'
 import { rulesService, type Goal, type DashboardSummary } from '@/lib/api'
 import { classifyErrorMessage } from '@/lib/errors'
@@ -554,6 +555,22 @@ export default function GoalsPage() {
           ))}
         </div>
       )}
+
+      {/* Phase 2 Slice 2 — Latest persisted forecast + deterministic
+          recommendation + append-only decision journal. Per
+          `docs/10-roadmap/PHASE2_VERTICAL_SLICE_PLAN.md` §10 PR 2:
+          bounded extension of the existing goals page. Default-off
+          (``atlas_forecast_read_api_enabled``) surfaces a stable
+          sanitized 503 inline — never renders stale legacy data.
+          Existing list / create / edit / archive / what-if logic
+          below is NOT modified. */}
+      <LatestForecastSection
+        goals={sortedGoals.map((g) => ({
+          id: g.id,
+          name: g.name,
+          target_amount: String(g.target_amount),
+        }))}
+      />
 
       {/* Funding Plan — projected completion dates for each goal + what-if calculator */}
       {summary && sortedGoals.length > 0 && (() => {
