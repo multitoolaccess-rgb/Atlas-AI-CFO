@@ -29,6 +29,11 @@ Use the project-local `atlas-project-tracker` skill for risk tier classification
   Fold final tracker evidence into the implementation commit when
   practical.
 
+Use `$atlas-handoff` when starting, resuming, transferring, closing, or
+checking material Atlas work, or for project-status and next-task requests.
+Skip it for routine builds, tests, linting, inspection, and small edits within
+an uninterrupted task.
+
 Current phase status lives in `docs/10-roadmap/PROJECT_STATUS.json`.
 External multi-user production enablement remains blocked pending the
 approved retention + user-deletion policy; Phase 2 personal single-user

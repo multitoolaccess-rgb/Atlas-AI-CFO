@@ -41,6 +41,11 @@ reviews. Update project status only on material work milestones, blockers,
 significant risks, or next-task changes; do not create tracker-evidence
 commits after every implementation correction.
 
+Invoke `$atlas-handoff` when starting, resuming, transferring, closing, or
+checking material Atlas work, or when asked for project status or the next
+task. Do not invoke it for routine builds, tests, linting, inspection, or
+small edits within an uninterrupted task.
+
 - Keep changes scoped and reversible.
 - Do not bypass financial validation or approval gates.
 - Preserve history and data provenance.
