@@ -2106,10 +2106,7 @@ export const rulesService = {
      *  stamp that value. */
     source?: MerchantRuleSource
   }): Promise<MerchantRule> => {
-    const response = await api.post('/api/merchant-rules/', {
-      priority: 100,
-      ...payload,
-    })
+    const response = await api.post('/api/merchant-rules/', payload)
     return response.data
   },
 
