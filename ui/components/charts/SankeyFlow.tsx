@@ -149,6 +149,8 @@ function getConnectedSet(
   return connected
 }
 
+const SANKEY_MARGIN = { top: 8, right: 180, bottom: 16, left: 24 }
+
 const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, onNodeClick, activeNode }: SankeyFlowProps) {
   const reducedMotion = useReducedMotion()
   const isDark = useThemeMode()
@@ -160,7 +162,7 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
   // Stable callbacks for hover handlers (avoids inline arrow allocation per link)
   const handleLinkEnter = useCallback((i: number) => setHoveredLink(i), [])
   const handleLinkLeave = useCallback(() => setHoveredLink(null), [])
-  const margin = { top: 8, right: 180, bottom: 16, left: 24 }
+  const margin = SANKEY_MARGIN
 
   // d3-sankey mutates input — deep clone inside useMemo
   const { computedNodes, computedLinks } = useMemo(() => {
@@ -186,8 +188,8 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
       .nodeWidth(14)
       .nodePadding(24)
       .extent([
-        [margin.left, margin.top],
-        [width - margin.right, height - margin.bottom],
+        [SANKEY_MARGIN.left, SANKEY_MARGIN.top],
+        [width - SANKEY_MARGIN.right, height - SANKEY_MARGIN.bottom],
       ])
 
     const { nodes: sn, links: sl } = sankeyLayout({

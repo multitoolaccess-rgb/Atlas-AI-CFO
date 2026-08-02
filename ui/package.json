@@ -40,8 +40,10 @@
     "@types/d3-sankey": "^0.12.3",
     "@types/headroom.js": "^0.12.4",
     "@vitest/coverage-v8": "^1.6.1",
+    "@typescript-eslint/eslint-plugin": "6.21.0",
     "eslint": "8.56.0",
     "eslint-config-next": "14.0.4",
+    "eslint-plugin-local-rules": "file:eslint-plugin-local-rules",
     "jsdom": "^22.1.0",
     "vitest": "^1.6.1"
   }

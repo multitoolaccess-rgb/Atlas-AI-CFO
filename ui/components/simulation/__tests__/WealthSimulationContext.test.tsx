@@ -8,7 +8,7 @@ import {
 } from '@/components/simulation/WealthSimulationContext'
 
 function wrapper(initial?: { netWorth?: number; initialMonthlyContribution?: number }) {
-  return ({ children }: { children: ReactNode }) => (
+  const Wrapper = ({ children }: { children: ReactNode }) => (
     <WealthSimulationProvider
       netWorth={initial?.netWorth ?? 100000}
       initialMonthlyContribution={initial?.initialMonthlyContribution ?? 500}
@@ -17,6 +17,8 @@ function wrapper(initial?: { netWorth?: number; initialMonthlyContribution?: num
       {children}
     </WealthSimulationProvider>
   )
+  Wrapper.displayName = 'WealthSimulationTestWrapper'
+  return Wrapper
 }
 
 describe('WealthSimulationContext', () => {

@@ -83,4 +83,6 @@ export function initDefaultHeader(): Headroom | null {
   });
 }
 
-export default { initHeadroom, initDefaultHeader };
+const headroomApi = { initHeadroom, initDefaultHeader }
+
+export default headroomApi

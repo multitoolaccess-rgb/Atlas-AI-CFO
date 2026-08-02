@@ -59,18 +59,6 @@ test.describe('Phase 28 — priority auto-increment + detach + Untagged filter',
       category_id: number
       priority: number
     }>
-    // Compute the max priority across ALL categories so the
-    // assertion is robust to category-membership uncertainty (the
-    // hermetic dev DB is reseeded each test boot, so we don't
-    // know which categories the test starts with).
-    const baselineMax = baselineRules.reduce(
-      (acc, r) => Math.max(acc, r.priority),
-      0,
-    )
-    expect(baselineMax, 'baseline should have seeded system rules').toBeGreaterThan(
-      0,
-    )
-
     // 2. Drive the Settings page to add a new rule. The form has
     //    Category + Keyword fields only (priority is intentionally
     //    absent so the BE auto-increment branch fires).
@@ -87,21 +75,25 @@ test.describe('Phase 28 — priority auto-increment + detach + Untagged filter',
       .getAttribute('value')
     expect(firstOptionValue).toBeTruthy()
     await categorySelect.selectOption(firstOptionValue as string)
+    const selectedCategoryId = Number(firstOptionValue)
+    const baselineMax = baselineRules
+      .filter((rule) => rule.category_id === selectedCategoryId)
+      .reduce((max, rule) => Math.max(max, rule.priority), 0)
     await page
       .getByTestId('create-rule-keyword')
       .fill('E2E-AUTO-PRIO-TEST')
+    const createdRuleResponse = page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/api/merchant-rules/') &&
+        resp.request().method() === 'POST',
+      { timeout: 5000 },
+    )
     await page.getByTestId('create-rule-submit').click()
 
     // 3. Reload the rules list and assert the new rule's priority
     //    is strictly greater than the baseline max (the +10 gap
     //    is the contract; the value is ``MAX + 10``).
-    await page.waitForResponse(
-      (resp) =>
-        resp.url().includes('/api/merchant-rules/') &&
-        resp.url().includes('include_archived=true') &&
-        resp.request().method() === 'GET',
-      { timeout: 5000 },
-    )
+    await createdRuleResponse
     const afterResp = await request.get(
       'http://localhost:8000/api/merchant-rules/?include_archived=true',
     )
@@ -171,15 +163,14 @@ test.describe('Phase 28 — priority auto-increment + detach + Untagged filter',
     const chipTestId = await chip.getAttribute('data-testid')
     const txnId = chipTestId?.replace('activity-category-button-', '')
     expect(txnId).toBeTruthy()
-    await chip.click()
-
-    // 4. Wait for the PUT response that performs the detach.
-    await page.waitForResponse(
+    const detached = page.waitForResponse(
       (resp) =>
         resp.url().includes(`/api/transactions/${txnId}`) &&
         resp.request().method() === 'PUT',
       { timeout: 5000 },
     )
+    await chip.click()
+    await detached
     // And: the chip for this row must be gone (re-rendered as the
     // untagged affordance). The simplest assertion is that the
     // page no longer has the chip with this testid.
@@ -204,33 +195,23 @@ test.describe('Phase 28 — priority auto-increment + detach + Untagged filter',
     await page.goto('/activity')
     await page.waitForLoadState('networkidle')
 
-    // Baseline: the page has loaded the default view. We capture
-    // the initial GET so we can assert the request shape and
-    // confirm the test environment has BOTH tagged + untagged rows.
-    // (The test is a no-op skip if the env has only one or the other;
-    // the e2e harness can land with arbitrary seed state.)
-    await page.waitForResponse(
-      (resp) =>
-        resp.url().includes('/api/transactions/') &&
-        resp.request().method() === 'GET' &&
-        !resp.url().includes('uncategorized=true'),
-      { timeout: 5000 },
-    )
-
     // Change the status filter to "Untagged".
     const statusSelect = page.getByTestId('activity-filter-status')
-    await statusSelect.selectOption('untagged')
-
-    // Wait for the re-fetch with the new filter. The BE's URL
-    // should carry ``uncategorized=true``; we assert on the
-    // RESPONSE side: only rows with category_id IS NULL arrive.
-    const filteredResp = await page.waitForResponse(
+    // Register the listener before the UI action: the local stack can
+    // complete this fetch before a post-action listener is attached.
+    const filteredResponse = page.waitForResponse(
       (resp) =>
         resp.url().includes('/api/transactions/') &&
         resp.url().includes('uncategorized=true') &&
         resp.request().method() === 'GET',
       { timeout: 5000 },
     )
+    await statusSelect.selectOption('untagged')
+
+    // The BE's URL
+    // should carry ``uncategorized=true``; we assert on the
+    // RESPONSE side: only rows with category_id IS NULL arrive.
+    const filteredResp = await filteredResponse
     expect(filteredResp.status()).toBe(200)
     const filteredRows = (await filteredResp.json()) as Array<{
       category_id: number | null

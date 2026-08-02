@@ -136,7 +136,7 @@ function HomeInner() {
     [retryCount, timeRange],
     { group: 'dashboard' },
   )
-  const transactions = txnData ?? []
+  const transactions = useMemo(() => txnData ?? [], [txnData])
 
   const handleSegmentClick = useCallback((label: string) => {
     const txns = transactions.filter((t) => {
@@ -258,7 +258,7 @@ function HomeInner() {
   const profile = profileData ?? null
   const summary = summaryData ?? null
   const accounts = accountsData ?? []
-  const categories = categoriesData ?? []
+  const categories = useMemo(() => categoriesData ?? [], [categoriesData])
   const anomalies = anomaliesData?.anomalies ?? []
   const upcomingBills = billsData?.bills ?? []
   const insights = insightsData?.insights ?? []

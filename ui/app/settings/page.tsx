@@ -616,7 +616,7 @@ function MerchantRulesCard({
           {showCategoryForm ? 'Cancel' : 'Add new category'}
         </Button>
         <span className="label-sm text-tertiary">
-          Need a category the rules dropdown doesn't list? Create one
+          Need a category the rules dropdown doesn&apos;t list? Create one
           here first, then add the rule.
         </span>
       </div>
@@ -2244,7 +2244,7 @@ export default function SettingsPage() {
               <strong className="text-primary">
                 {confirmingMemberDelete.name}
               </strong>
-              . They'll stop appearing in the Accounts page member select.
+              . They&apos;ll stop appearing in the Accounts page member select.
               Linked accounts are NOT reassigned — archive only succeeds when
               zero active accounts reference this member.
             </p>
@@ -2341,7 +2341,7 @@ export default function SettingsPage() {
             </p>
             <p className="text-sm text-tertiary">
               You can restore it later from the archived filter
-              toggle (set it to "Archived only" or "All rules").
+              toggle (set it to &quot;Archived only&quot; or &quot;All rules&quot;).
               The boot-time seed helper will not re-insert
               this keyword on the next BE restart.
             </p>

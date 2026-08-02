@@ -29,21 +29,24 @@ vi.mock('framer-motion', async (importOriginal) => {
   })
   FakeMotionDiv.displayName = 'FakeMotionDiv'
 
+  const MotionDiv = React.forwardRef<HTMLDivElement, Record<string, unknown>>(
+    (props, ref) => {
+      capturedMotionProps = props
+      return (
+        <FakeMotionDiv
+          ref={ref}
+          {...(props as React.HTMLAttributes<HTMLDivElement>)}
+        />
+      )
+    },
+  )
+  MotionDiv.displayName = 'MotionDiv'
+
   return {
     ...actual,
     motion: {
       ...actual.motion,
-      div: React.forwardRef<HTMLDivElement, Record<string, unknown>>(
-        (props, ref) => {
-          capturedMotionProps = props
-          return (
-            <FakeMotionDiv
-              ref={ref}
-              {...(props as React.HTMLAttributes<HTMLDivElement>)}
-            />
-          )
-        },
-      ),
+      div: MotionDiv,
     },
   }
 })

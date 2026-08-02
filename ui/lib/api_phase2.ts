@@ -380,10 +380,12 @@ export async function postDecisionJournal(
   return resp.data
 }
 
-export default {
+const phase2Api = {
   getLatestForecastForGoal,
   getDerivedRecommendation,
   postDecisionJournal,
   readSanitizedError,
   mintIdempotencyKey,
 }
+
+export default phase2Api

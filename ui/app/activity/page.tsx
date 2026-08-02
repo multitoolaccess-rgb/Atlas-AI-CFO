@@ -377,7 +377,7 @@ function ActivityContent() {
     }
     options.push({ value: 'untagged', label: 'Untagged' })
     return options
-  }, [categories, CATEGORY_GROUP_ORDER])
+  }, [categories])
   const statusOptions = useMemo(
     () => [
       { value: 'all', label: 'All statuses' },
