@@ -79,9 +79,10 @@ test.describe('Phase 28 — priority auto-increment + detach + Untagged filter',
     const baselineMax = baselineRules
       .filter((rule) => rule.category_id === selectedCategoryId)
       .reduce((max, rule) => Math.max(max, rule.priority), 0)
+    const keyword = `E2E-AUTO-PRIO-${Date.now()}`
     await page
       .getByTestId('create-rule-keyword')
-      .fill('E2E-AUTO-PRIO-TEST')
+      .fill(keyword)
     const createdRuleResponse = page.waitForResponse(
       (resp) =>
         resp.url().includes('/api/merchant-rules/') &&
@@ -103,7 +104,7 @@ test.describe('Phase 28 — priority auto-increment + detach + Untagged filter',
       priority: number
     }>
     const newRule = afterRules.find(
-      (r) => r.keyword === 'E2E-AUTO-PRIO-TEST',
+      (r) => r.keyword === keyword,
     )
     expect(newRule, 'newly-added rule must be present').toBeTruthy()
     expect(newRule!.priority, 'priority must exceed baseline max').toBeGreaterThan(
