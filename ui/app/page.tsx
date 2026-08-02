@@ -23,6 +23,7 @@ import ErrorBanner from '@/components/ui/ErrorBanner'
 import TiltCard from '@/components/ui/TiltCard'
 import { Receipt, RefreshCw, Upload, Orbit } from 'lucide-react'
 import { useCachedFetch } from '@/lib/cache'
+import { classifyErrorMessage } from '@/lib/errors'
 import AnimatedSection from '@/components/ui/AnimatedSection'
 import { formatNumber } from '@/lib/format'
 
@@ -215,9 +216,9 @@ function HomeInner() {
   //   - DataRefresh integration (uploads/mutations invalidate cache)
 
   // Static endpoints — only re-fetch on manual retry
-  const { data: profileData, loading: profileLoading, error: profileError } =
+  const { data: profileData, loading: profileLoading, errorCause: profileErrorCause } =
     useCachedFetch<Profile>('dashboard-profile', () => rulesService.getProfile(), [retryCount], { group: 'dashboard' })
-  const { data: summaryData, loading: summaryLoading, error: summaryError } =
+  const { data: summaryData, loading: summaryLoading, errorCause: summaryErrorCause } =
     useCachedFetch<DashboardSummary>('dashboard-summary', () => rulesService.getDashboardSummary(), [retryCount], { group: 'dashboard' })
   const { data: accountsData, loading: accountsLoading } =
     useCachedFetch<Account[]>('dashboard-accounts', () => rulesService.listAccounts(), [retryCount], { group: 'dashboard' })
@@ -266,7 +267,8 @@ function HomeInner() {
   const trends = trendsData ?? null
   const breakdown = breakdownData ?? null
 
-  const error = profileError ?? summaryError ?? null
+  const errorCause = profileErrorCause ?? summaryErrorCause
+  const error = errorCause ? classifyErrorMessage(errorCause) : null
   const loading = profileLoading || summaryLoading || accountsLoading
   const ready = !loading && !!summary
   const rangedRefreshing = flowsLoading || trendsLoading || breakdownLoading || txnLoading
