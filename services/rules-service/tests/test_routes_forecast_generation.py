@@ -65,6 +65,9 @@ from app.models import Goal, User  # Base lives in app.database
 # ----------------------------------------------------------------------
 
 
+_TEST_NOW = datetime(2026, 8, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+
 class _StubAdapter:
     """Stub ``FinlynqProjectionStateAdapter`` returning a canonical state."""
 
@@ -78,6 +81,10 @@ class _StubAdapter:
 
 
 def _stub_state(user_id: str, goal_id: int, goal_target_amount: str = "0") -> CanonicalProjectionState:
+    # Use one fixed synthetic instant for both the trusted state and the
+    # route's calculation clock. A live wall clock would race at UTC
+    # rollover and could make this otherwise-valid fixture stale.
+    as_of_z = _TEST_NOW.isoformat().replace("+00:00", "Z")
     payload = {
         "schema_version": PROJECTION_STATE_SCHEMA_VERSION,
         "canonicalization": {
@@ -87,14 +94,14 @@ def _stub_state(user_id: str, goal_id: int, goal_target_amount: str = "0") -> Ca
         },
         "user_id": user_id,
         "goal_id": goal_id,
-        "as_of_timestamp": "2026-07-01T12:00:00Z",
+        "as_of_timestamp": as_of_z,
         "currency": "USD",
         "current_value_components": [
             {
                 "kind": "investment",
                 "amount": goal_target_amount,
                 "source_reference": "atlas-stub-current-value",
-                "observed_at": "2026-07-01T12:00:00Z",
+                "observed_at": as_of_z,
             }
         ],
         "contribution_inputs": [
@@ -102,19 +109,19 @@ def _stub_state(user_id: str, goal_id: int, goal_target_amount: str = "0") -> Ca
                 "kind": "monthly_investable_cash_flow",
                 "amount": "0",
                 "source_reference": "atlas-stub-contribution",
-                "observed_at": "2026-07-01T12:00:00Z",
+                "observed_at": as_of_z,
             }
         ],
         "freshness": {
             "max_data_age_days": 30,
             "observed_age_days": 0,
-            "source_updated_at": "2026-07-01T12:00:00Z",
+            "source_updated_at": as_of_z,
         },
         "provenance": [
             {
                 "source_system": "atlas-stub",
                 "reference_id": "atlas-stub-reference",
-                "observed_at": "2026-07-01T12:00:00Z",
+                "observed_at": as_of_z,
                 "record_count": 1,
                 "source_state_hash": "a" * 64,
             }
@@ -134,6 +141,17 @@ def _stub_state(user_id: str, goal_id: int, goal_target_amount: str = "0") -> Ca
 def stub_adapter(monkeypatch):
     """Override the route's adapter dep with the stub — zero network calls."""
 
+    class _FrozenDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return _TEST_NOW
+
+    # The route imports datetime directly, so patch that module binding—not
+    # the immutable built-in datetime class. pytest restores it after each
+    # test, keeping this deterministic clock local to the route tests.
+    monkeypatch.setattr(
+        "app.routes.forecasts_generation.datetime", _FrozenDateTime
+    )
     state = _stub_state(settings.local_user, 1)
     adapter = _StubAdapter(state)
     monkeypatch.setattr(

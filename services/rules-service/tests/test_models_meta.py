@@ -42,6 +42,11 @@ EXPECTED_TABLES = {
     # Phase 1 — immutable forecast identity and version history.
     "forecasts",
     "forecast_versions",
+    # Phase 2 Slice 1 — deterministic recommendation ledger and
+    # append-only decision journal. These models are now part of the
+    # merged metadata contract and must remain inside the FK closure.
+    "recommendations",
+    "decision_journal_entries",
 }
 
 
