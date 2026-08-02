@@ -20,22 +20,24 @@
  *    - Goal ``id`` is numeric (typed as ``number``).
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 
 // ``vi.hoisted`` so the mock factory closes over the handles despite
 // vitest's hoisting of ``vi.mock`` above module-level declarations.
 const {
   mockGetLatestForecastForGoal,
   mockGetDerivedRecommendation,
+  mockPostDecisionJournal,
 } = vi.hoisted(() => ({
   mockGetLatestForecastForGoal: vi.fn(),
   mockGetDerivedRecommendation: vi.fn(),
+  mockPostDecisionJournal: vi.fn(),
 }))
 
 vi.mock('@/lib/api_phase2', () => ({
   getLatestForecastForGoal: mockGetLatestForecastForGoal,
   getDerivedRecommendation: mockGetDerivedRecommendation,
-  postDecisionJournal: vi.fn(),
+  postDecisionJournal: mockPostDecisionJournal,
   readSanitizedError: (err: unknown) => {
     const e = err as {
       isAxiosError?: boolean
@@ -199,6 +201,7 @@ const conflict409 = {
 beforeEach(() => {
   mockGetLatestForecastForGoal.mockReset()
   mockGetDerivedRecommendation.mockReset()
+  mockPostDecisionJournal.mockReset()
 })
 
 // =======================================================================
@@ -352,6 +355,70 @@ describe('<LatestForecastSection /> — per-goal isolation (matrix item 13)', ()
     })
     expect(mockGetLatestForecastForGoal).not.toHaveBeenCalled()
     expect(mockGetDerivedRecommendation).not.toHaveBeenCalled()
+  })
+
+  it('retries an ambiguous decision response with the same idempotency key', async () => {
+    mockGetLatestForecastForGoal.mockResolvedValue(readyEnvelope(1))
+    mockGetDerivedRecommendation.mockResolvedValue(makeRecommendationWire(1))
+    let resolveRetry: ((value: unknown) => void) | undefined
+    mockPostDecisionJournal
+      .mockRejectedValueOnce(new Error('transport timeout'))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveRetry = resolve
+          }),
+      )
+
+    render(<LatestForecastSection goals={[goalA]} />)
+    await screen.findByTestId('recommendation-explained-card-forecast-uuid-goal-1')
+
+    fireEvent.click(screen.getByTestId('rec-accept'))
+    await screen.findByTestId('decision-error')
+    expect(mockPostDecisionJournal).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByTestId('decision-retry'))
+    await waitFor(() => {
+      expect(mockPostDecisionJournal).toHaveBeenCalledTimes(2)
+    })
+    expect(mockPostDecisionJournal.mock.calls[1]?.[0]).toBe(
+      mockPostDecisionJournal.mock.calls[0]?.[0],
+    )
+    expect(mockPostDecisionJournal.mock.calls[1]?.[1]).toEqual(
+      mockPostDecisionJournal.mock.calls[0]?.[1],
+    )
+    expect(mockPostDecisionJournal.mock.calls[1]?.[2]).toBe(
+      mockPostDecisionJournal.mock.calls[0]?.[2],
+    )
+
+    resolveRetry?.({
+      schema_version: 'atlas-decision-journal-entry/v1',
+      journal_entry_id: '33333333-3333-4333-8333-333333333333',
+      recommendation_id: 'forecast-uuid-goal-1',
+      action_taken: 'accept',
+      decided_at: '2026-08-01T00:01:00.000000Z',
+      decision_etag: 'etag-goal-1-v1-d1',
+      links: [],
+    })
+    await screen.findByTestId('recorded-journal-id')
+  })
+
+  it('suppresses a rapid double-click while the same decision is in flight', async () => {
+    mockGetLatestForecastForGoal.mockResolvedValue(readyEnvelope(1))
+    mockGetDerivedRecommendation.mockResolvedValue(makeRecommendationWire(1))
+    mockPostDecisionJournal.mockImplementation(
+      () => new Promise(() => undefined),
+    )
+
+    render(<LatestForecastSection goals={[goalA]} />)
+    await screen.findByTestId('recommendation-explained-card-forecast-uuid-goal-1')
+
+    fireEvent.click(screen.getByTestId('rec-accept'))
+    fireEvent.click(screen.getByTestId('rec-accept'))
+    await waitFor(() => {
+      expect(mockPostDecisionJournal).toHaveBeenCalledTimes(1)
+    })
+    expect(screen.getByTestId('rec-accept')).toBeDisabled()
   })
 
   it('loading state: forecast card absent until first fetch resolves per goal', async () => {

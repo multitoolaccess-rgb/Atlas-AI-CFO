@@ -155,14 +155,14 @@ export default function LatestForecastCard({
             {formatNumber(version.ending_balance)}
           </dd>
         </div>
-        <div className="sm:col-span-2 flex items-center gap-2 text-xs text-on-surface-variant">
-          <Clock className="w-3.5 h-3.5" aria-hidden="true" />
-          <span data-testid="forecast-timestamp">
-            Forecast calculated {shortTimestamp(version.calculated_at)}
-            {' '}· data {freshness} ({version.drivers.data_age_days} days)
-          </span>
-        </div>
       </dl>
+      <div className="flex items-center gap-2 text-xs text-on-surface-variant mb-4">
+        <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+        <span data-testid="forecast-timestamp">
+          Forecast calculated {shortTimestamp(version.calculated_at)}
+          {' '}· data {freshness} ({version.drivers.data_age_days} days)
+        </span>
+      </div>
 
       <button
         type="button"
