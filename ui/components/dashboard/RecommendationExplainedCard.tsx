@@ -70,6 +70,10 @@ export interface RecommendationExplainedCardProps {
   recordedEntry?: DecisionJournalEntryWire | null
   /** Disables all three buttons while a write is in-flight. */
   busy?: boolean
+  /** Retries the same logical decision with its retained idempotency key. */
+  onRetry?: () => void | Promise<void>
+  /** Sanitized decision-write error for the accessible retry state. */
+  decisionError?: string | null
 }
 
 const CONFIDENCE_STYLE: Record<
@@ -128,6 +132,8 @@ export default function RecommendationExplainedCard({
   onDecide,
   recordedEntry,
   busy = false,
+  onRetry,
+  decisionError = null,
 }: RecommendationExplainedCardProps) {
   const [showAssumptions, setShowAssumptions] = useState(false)
 
@@ -328,6 +334,28 @@ export default function RecommendationExplainedCard({
             {recommendation.assumptions_reference}
           </code>
         </section>
+      )}
+
+      {decisionError && (
+        <div
+          className="mb-4 flex items-start gap-3 p-3 rounded-lg bg-warning-50 text-warning-700 border border-warning-200"
+          role="alert"
+          data-testid="decision-error"
+        >
+          <p className="flex-1 text-sm">{decisionError}</p>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={() => void onRetry()}
+              disabled={busy}
+              className="shrink-0 text-sm font-semibold underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-warning-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Retry decision"
+              data-testid="decision-retry"
+            >
+              Retry decision
+            </button>
+          )}
+        </div>
       )}
 
       <div

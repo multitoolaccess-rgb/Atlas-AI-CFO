@@ -52,6 +52,13 @@ export interface Goal {
   target_amount: string
 }
 
+interface PendingDecision {
+  action: DecisionAction
+  recommendationId: string
+  decisionEtag: string
+  idempotencyKey: string
+}
+
 interface PerGoalSliceState {
   forecast: 'loading' | LatestForecastState
   recommendation:
@@ -60,6 +67,8 @@ interface PerGoalSliceState {
     | DeterministicRecommendationWire
   recorded: DecisionJournalEntryWire | null
   busy: boolean
+  pendingDecision: PendingDecision | null
+  decisionError: string | null
 }
 
 const EMPTY: PerGoalSliceState = {
@@ -67,12 +76,16 @@ const EMPTY: PerGoalSliceState = {
   recommendation: 'idle',
   recorded: null,
   busy: false,
+  pendingDecision: null,
+  decisionError: null,
 }
 
 export default function LatestForecastSection({ goals }: { goals: Goal[] }) {
   const [perGoal, setPerGoal] = useState<Record<number, PerGoalSliceState>>({})
   const [toast, setToast] = useState<DecisionJournalEntryWire | null>(null)
   const [sectionError, setSectionError] = useState<string | null>(null)
+  const pendingDecisionsRef = useRef<Record<number, PendingDecision | null>>({})
+  const decisionBusyRef = useRef<Record<number, boolean>>({})
 
   // Goals-array identity change (e.g., user added/removed a goal)
   // drives a fresh per-goal fetch.
@@ -84,6 +97,9 @@ export default function LatestForecastSection({ goals }: { goals: Goal[] }) {
     let cancelled = false
 
     async function fetchGoal(goal: Goal): Promise<void> {
+      // A changed forecast/recommendation starts a new logical decision.
+      pendingDecisionsRef.current[goal.id] = null
+      decisionBusyRef.current[goal.id] = false
       // 1) Forecast.
       let fc: LatestForecastState
       try {
@@ -119,6 +135,8 @@ export default function LatestForecastSection({ goals }: { goals: Goal[] }) {
           ...EMPTY,
           forecast: fc,
           recommendation: fc.state === 'ready' ? 'loading' : 'idle',
+          pendingDecision: null,
+          decisionError: null,
         },
       }))
       if (fc.state !== 'ready') return
@@ -129,7 +147,12 @@ export default function LatestForecastSection({ goals }: { goals: Goal[] }) {
         if (cancelled) return
         setPerGoal((prev) => ({
           ...prev,
-          [goal.id]: { ...(prev[goal.id] ?? EMPTY), recommendation: rec },
+          [goal.id]: {
+            ...(prev[goal.id] ?? EMPTY),
+            recommendation: rec,
+            pendingDecision: null,
+            decisionError: null,
+          },
         }))
       } catch (err) {
         if (cancelled) return
@@ -160,39 +183,79 @@ export default function LatestForecastSection({ goals }: { goals: Goal[] }) {
       rec: DeterministicRecommendationWire,
     ) => {
       const goalId = rec.linked_goal_id
+      if (decisionBusyRef.current[goalId]) return
+
+      const existing = pendingDecisionsRef.current[goalId]
+      const pendingDecision =
+        existing &&
+        existing.action === action &&
+        existing.recommendationId === rec.forecast_id &&
+        existing.decisionEtag === rec.forecast_etag
+          ? existing
+          : {
+              action,
+              recommendationId: rec.forecast_id,
+              decisionEtag: rec.forecast_etag,
+              idempotencyKey: mintIdempotencyKey(),
+            }
+      pendingDecisionsRef.current[goalId] = pendingDecision
+      decisionBusyRef.current[goalId] = true
       setPerGoal((prev) => ({
         ...prev,
-        [goalId]: { ...(prev[goalId] ?? EMPTY), busy: true },
+        [goalId]: {
+          ...(prev[goalId] ?? EMPTY),
+          busy: true,
+          pendingDecision,
+          decisionError: null,
+        },
       }))
       try {
         const entry = await postDecisionJournal(
           rec.forecast_id,
           { action, decision_etag: rec.forecast_etag },
-          mintIdempotencyKey(),
+          pendingDecision.idempotencyKey,
         )
+        pendingDecisionsRef.current[goalId] = null
+        decisionBusyRef.current[goalId] = false
         setPerGoal((prev) => ({
           ...prev,
           [goalId]: {
             ...(prev[goalId] ?? EMPTY),
             busy: false,
+            pendingDecision: null,
+            decisionError: null,
             recorded: entry,
           },
         }))
         setToast(entry)
       } catch (err) {
+        decisionBusyRef.current[goalId] = false
         const env = readSanitizedError(err)
+        const decisionError =
+          env.code === 'decision_version_conflict'
+            ? 'This recommendation has changed. Refresh before trying again.'
+            : env.code === 'recommendation_not_found'
+              ? 'That recommendation is no longer available.'
+              : env.code === 'forecast_validation_error'
+                ? env.message || 'That decision was rejected.'
+                : env.code !== 'unknown'
+                  ? env.message || 'Could not record your decision.'
+                  : 'The response was not confirmed. Retry with the same request.'
+        const retryable = env.code === 'unknown'
+        if (!retryable) {
+          pendingDecisionsRef.current[goalId] = null
+        }
         if (env.code === 'decision_version_conflict') {
-          setSectionError('This recommendation has changed. Refresh and try again.')
-        } else if (env.code === 'recommendation_not_found') {
-          setSectionError('That recommendation is no longer available.')
-        } else if (env.code === 'forecast_validation_error') {
-          setSectionError(env.message || 'That decision was rejected.')
-        } else if (env.code !== 'unknown') {
-          setSectionError(env.message || 'Could not record your decision.')
+          setSectionError(decisionError)
         }
         setPerGoal((prev) => ({
           ...prev,
-          [goalId]: { ...(prev[goalId] ?? EMPTY), busy: false },
+          [goalId]: {
+            ...(prev[goalId] ?? EMPTY),
+            busy: false,
+            pendingDecision: retryable ? pendingDecision : null,
+            decisionError,
+          },
         }))
       }
     },
@@ -269,6 +332,12 @@ export default function LatestForecastSection({ goals }: { goals: Goal[] }) {
                   fcState ? fcState.version.drivers.data_age_days : 0
                 }
                 onDecide={handleDecide}
+                onRetry={
+                  state.pendingDecision
+                    ? () => void handleDecide(state.pendingDecision!.action, rec)
+                    : undefined
+                }
+                decisionError={state.decisionError}
                 recordedEntry={state.recorded}
                 busy={state.busy}
               />
