@@ -37,11 +37,27 @@ vi.mock('@/lib/api_phase2', () => ({
   getDerivedRecommendation: mockGetDerivedRecommendation,
   postDecisionJournal: vi.fn(),
   readSanitizedError: (err: unknown) => {
-    const e = err as { code?: string; message?: string }
-    return {
-      code: (e?.code ?? 'unknown') as string,
-      message: e?.message ?? '',
+    const e = err as {
+      isAxiosError?: boolean
+      response?: { data?: { code?: unknown; message?: unknown } }
     }
+    const data = e?.response?.data
+    const validCodes = new Set([
+      'forecast_read_api_unavailable',
+      'forecast_not_found',
+      'recommendation_not_found',
+      'decision_version_conflict',
+      'forecast_validation_error',
+    ])
+    const code =
+      e?.isAxiosError && typeof data?.code === 'string' && validCodes.has(data.code)
+        ? data.code
+        : 'unknown'
+    const message =
+      code !== 'unknown' && typeof data?.message === 'string'
+        ? data.message.slice(0, 280)
+        : ''
+    return { code, message }
   },
   mintIdempotencyKey: () => '44444444-4444-4444-8444-444444444444',
 }))
@@ -302,7 +318,7 @@ describe('<LatestForecastSection /> — per-goal isolation (matrix item 13)', ()
     ).not.toBeInTheDocument()
   })
 
-  it('per-goal 409 idempotency conflict collapses to no_forecast WITHOUT section escalation', async () => {
+  it('per-goal 409 idempotency conflict surfaces a sanitized section warning', async () => {
     mockGetLatestForecastForGoal.mockImplementation(async (goalId: number) => {
       if (goalId === 3) throw conflict409
       return readyEnvelope(goalId)
@@ -323,9 +339,8 @@ describe('<LatestForecastSection /> — per-goal isolation (matrix item 13)', ()
       expect(screen.getByTestId('goal-slice-3')).toBeInTheDocument()
     })
 
-    expect(
-      screen.queryByTestId('latest-forecast-section-error'),
-    ).not.toBeInTheDocument()
+    const banner = await screen.findByTestId('latest-forecast-section-error')
+    expect(banner).toHaveTextContent('etag conflict')
   })
 
   it('empty goals list returns null — no DOM, zero fetches', async () => {
