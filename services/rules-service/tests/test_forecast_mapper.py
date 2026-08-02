@@ -25,6 +25,7 @@ tests prove:
 from __future__ import annotations
 
 import ast
+from pathlib import Path
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -535,7 +536,8 @@ def test_quirky_currency_rejected_by_wire_schema() -> None:
 def test_mapper_does_not_import_db_session_or_adapter_module() -> None:
     """Static AST inspection proves the mapper stays route-free / adapter-free."""
 
-    source = open("services/rules-service/app/forecasts/mappers.py").read()
+    mapper_path = Path(__file__).resolve().parents[1] / "app" / "forecasts" / "mappers.py"
+    source = mapper_path.read_text()
     tree = ast.parse(source)
     banner_module = "app.forecasts.mappers"
     forbidden_imports = {

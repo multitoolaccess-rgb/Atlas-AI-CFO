@@ -12,10 +12,12 @@ Tools tested:
 - compute_investable_surplus — income - expenses - goal contributions
 """
 from datetime import datetime, timedelta, timezone
+import sys
 
 import pytest
 
 from app.models import Category, Goal
+from app.services import finance_query
 from app.services.finance_query import (
     _coerce_float,
     _extract_merchant,
@@ -30,8 +32,13 @@ from app.services.finance_query import (
 from app.services.categorizer import seed_default_categories
 
 
+_TEST_NOW = datetime(2026, 8, 1, 18, 0, 0, tzinfo=timezone.utc)
+
+
 @pytest.fixture
-def seeded_30d_data(client, db_session, make_account, make_transaction, make_goal):
+def seeded_30d_data(
+    client, db_session, make_account, make_transaction, make_goal, monkeypatch
+):
     """Seed a user with an account, categories, transactions across
     multiple months, and a goal for the surplus tool.
 
@@ -61,6 +68,15 @@ def seeded_30d_data(client, db_session, make_account, make_transaction, make_goa
     shopping_cat = db_session.query(Category).filter(Category.name == "Shopping").first()
     bills_cat = db_session.query(Category).filter(Category.name == "Bills & Utilities").first()
 
+    class _FrozenDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return _TEST_NOW
+
+    # Keep the fixture and finance-query window on one deterministic clock;
+    # monkeypatch restores both imported bindings after the test.
+    monkeypatch.setattr(finance_query, "datetime", _FrozenDateTime)
+    monkeypatch.setattr(sys.modules[__name__], "datetime", _FrozenDateTime)
     now = datetime.now(timezone.utc)
     # Use the 1st of the current month as the anchor for deterministic
     # date placement. All "month 0" transactions are placed on days 2-28
@@ -504,8 +520,9 @@ def test_seeded_30d_first_of_month_determinism(
     AND the production ``app.services.finance_query._month_window``
     read the SAME simulated instant in time. Asserts:
 
-    1. Every month-0 ``transaction_date`` is STRICTLY less than the
-       simulated now — a TIMESTAMP assertion, not a count-only check.
+    1. Every month-0 ``transaction_date`` is no later than the
+       simulated now — a TIMESTAMP assertion, not a count-only check;
+       the expected five month-0 rows are also counted explicitly.
     2. The financial totals match the existing pre-fix contract
        pinned by ``test_compute_investable_surplus_with_goal``
        (income 5000.0, expenses 2800.0, net 2200.0, monthly goal
@@ -521,8 +538,6 @@ def test_seeded_30d_first_of_month_determinism(
     regression stays self-contained and doesn't widen the file's
     surface area beyond what the existing tests required.
     """
-    import unittest.mock
-
     from app.models import Transaction
     from app.services import finance_query
 
@@ -647,8 +662,9 @@ def test_seeded_30d_first_of_month_determinism(
             .filter(Transaction.account_id == account.id)
             .all()
         )
-        # (1) TIMESTAMP ASSERTION — every month-0 transaction_date
-        # is STRICTLY less than the simulated now.
+        # (1) TIMESTAMP ASSERTION — all five expected month-0 rows are
+        # present, and every transaction_date is no later than fake_now.
+        assert len(stored) == 5
         for t in stored:
             txn_date = t.transaction_date
             if txn_date.tzinfo is None:
