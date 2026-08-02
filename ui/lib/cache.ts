@@ -118,6 +118,8 @@ interface UseCachedFetchResult<T> {
   data: T | null
   loading: boolean
   error: string | null
+  /** Original fetch failure for callers that need status-aware UI copy. */
+  errorCause: unknown | null
   refetch: () => void
 }
 
@@ -152,6 +154,7 @@ export function useCachedFetch<T>(
   const [data, setData] = useState<T | null>(() => cacheGet<T>(fullKey, ttlMs))
   const [loading, setLoading] = useState<boolean>(() => !cacheGet<T>(fullKey, ttlMs))
   const [error, setError] = useState<string | null>(null)
+  const [errorCause, setErrorCause] = useState<unknown | null>(null)
   const [, forceUpdate] = useState(0)
   const mountedRef = useRef(true)
   // Store fetcher in a ref so inline arrow functions don't cause
@@ -184,6 +187,7 @@ export function useCachedFetch<T>(
     }
 
     setError(null)
+    setErrorCause(null)
     try {
       const result = await cacheGetOrCompute(fullKey, fetcherRef.current, ttlMs)
       if (!mountedRef.current) return
@@ -195,6 +199,7 @@ export function useCachedFetch<T>(
       if (!mountedRef.current) return
       const msg = err instanceof Error ? err.message : 'Fetch failed'
       setError(msg)
+      setErrorCause(err)
       setLoading(false)
     }
   }, [fullKey, ttlMs, enabled])
@@ -220,7 +225,7 @@ export function useCachedFetch<T>(
     })
   }, [fullKey, fetchData])
 
-  return { data, loading, error, refetch }
+  return { data, loading, error, errorCause, refetch }
 }
 
 /**
