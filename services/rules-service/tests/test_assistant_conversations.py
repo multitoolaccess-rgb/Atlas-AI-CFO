@@ -19,7 +19,7 @@ import pytest
 
 import app.services.assistant_orchestrator as _orch
 import app.services.llm_client as _llm_client
-from app.models import AssistantConversation, AssistantMessage
+from app.models import AssistantConversation, AssistantMessage, User
 from app.services.categorizer import seed_default_categories
 
 
@@ -329,6 +329,10 @@ def test_conversation_id_from_other_user_not_found(
     seed_default_categories(db_session)
     db_session.commit()
 
+    # Create a real second owner before its conversation; SQLite FK checks
+    # now mirror PostgreSQL rather than allowing an orphaned fixture row.
+    db_session.add(User(id=999, local_user_sub="other-user", email="other@example.com", hashed_password="x"))
+    db_session.commit()
     # Create a conversation owned by a different user (id=999).
     other_conv = AssistantConversation(user_id=999, title="Other user's conv")
     db_session.add(other_conv)

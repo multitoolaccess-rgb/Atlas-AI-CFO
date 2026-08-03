@@ -100,6 +100,11 @@ _IS_POSTGRES = _DIALECT == "postgresql"
 # we DELETE without FK-ordering checks (SQLite has no enforcement;
 # Postgres uses CASCADE).
 _LIFTED_TABLES = (
+    "outcome_evaluations",
+    "decision_journal_entries",
+    "recommendations",
+    "forecast_versions",
+    "forecasts",
     "transactions",
     "import_batches",
     "budgets",
@@ -151,10 +156,6 @@ _LIFTED_TABLES = (
     # that calls ``_build_world`` (or any equivalent fixture)
     # fails on the second INSERT because the per-test reset
     # nukes users/goals/accounts but leaves the Phase 2 rows.
-    "forecasts",
-    "forecast_versions",
-    "recommendations",
-    "decision_journal_entries",
 )
 
 
@@ -203,7 +204,7 @@ def _reset_test_db() -> None:
     """
     from sqlalchemy import text
 
-    from app.database import engine
+    from app.database import Base, engine
 
     if _IS_POSTGRES:
         with engine.connect() as conn:
@@ -222,8 +223,8 @@ def _reset_test_db() -> None:
         # on a freshly-bootstrapped DB. See the larger comment at
         # the bottom of the module for the full rationale.
         with engine.connect() as conn:
-            for table in _LIFTED_TABLES:
-                conn.execute(text(f"DELETE FROM {table}"))
+            for table in reversed(Base.metadata.sorted_tables):
+                conn.execute(table.delete())
             seq_exists = conn.execute(
                 text(
                     "SELECT 1 FROM sqlite_master "

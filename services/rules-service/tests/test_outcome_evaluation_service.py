@@ -46,8 +46,8 @@ def test_outcome_requires_acceptance_and_is_idempotent(world_with_recommendation
             authoritative_evidence_reference="verified-statement-period-2026-07",
             measurement_window_start=datetime(2026, 7, 1, tzinfo=timezone.utc),
             measurement_window_end=datetime(2026, 7, 31, tzinfo=timezone.utc),
-            inputs={"source": "verified_statement"}, result={"status": "observed"},
-            confidence="high", explanation="Authoritative statement evidence was evaluated.",
+            inputs={"observation_basis": "authoritative_aggregate"}, result={"outcome_status": "observed"},
+            confidence="high", explanation="authoritative_evidence_evaluated",
         )
         first = service.record(**args)
         replay = service.record(**args)
@@ -83,10 +83,23 @@ def test_outcome_replay_rejects_changed_measured_evidence(world_with_recommendat
     with Session(world_with_recommendation) as session:
         decision_id = _accepted_decision(session)
         service = OutcomeEvaluationService(session)
-        args = dict(user_id=1, goal_id=1, recommendation_id=recommendation_row_id(), decision_journal_entry_id=decision_id, lifecycle="measured", raw_idempotency_key="phase3-replay-content", authoritative_evidence_reference="verified-ref", measurement_window_start=datetime(2026, 7, 1, tzinfo=timezone.utc), measurement_window_end=datetime(2026, 7, 31, tzinfo=timezone.utc), inputs={"source": "verified_statement"}, result={"status": "observed"}, confidence="high", explanation="Evidence evaluated.")
+        args = dict(user_id=1, goal_id=1, recommendation_id=recommendation_row_id(), decision_journal_entry_id=decision_id, lifecycle="measured", raw_idempotency_key="phase3-replay-content", authoritative_evidence_reference="verified-ref", measurement_window_start=datetime(2026, 7, 1, tzinfo=timezone.utc), measurement_window_end=datetime(2026, 7, 31, tzinfo=timezone.utc), inputs={"observation_basis": "authoritative_aggregate"}, result={"outcome_status": "observed"}, confidence="high", explanation="authoritative_evidence_evaluated")
         service.record(**args)
         with pytest.raises(OutcomeEvaluationConflictError):
-            service.record(**{**args, "result": {"status": "not_observed"}})
+            service.record(**{**args, "result": {"outcome_status": "not_observed"}})
+
+
+def test_outcome_persists_complete_canonical_request_identity_hash(world_with_recommendation):
+    with Session(world_with_recommendation) as session:
+        decision_id = _accepted_decision(session)
+        result = OutcomeEvaluationService(session).record(
+            user_id=1, goal_id=1, recommendation_id=recommendation_row_id(), decision_journal_entry_id=decision_id,
+            lifecycle="measured", raw_idempotency_key="phase3-identity-hash", authoritative_evidence_reference="verified-ref",
+            measurement_window_start=datetime(2026, 7, 1, tzinfo=timezone.utc), measurement_window_end=datetime(2026, 7, 31, tzinfo=timezone.utc),
+            inputs={"observation_basis": "authoritative_aggregate"}, result={"outcome_status": "observed"}, confidence="high", explanation="authoritative_evidence_evaluated",
+        )
+        stored = session.execute(text("SELECT request_identity_hash FROM outcome_evaluations WHERE id = :id"), {"id": result.evaluation.id}).scalar_one()
+        assert len(stored) == 64 and stored == stored.lower()
 
 
 def test_outcome_rejects_sensitive_evidence_fields(world_with_recommendation):
@@ -99,7 +112,7 @@ def test_outcome_rejects_sensitive_evidence_fields(world_with_recommendation):
                 raw_idempotency_key="phase3-sensitive", authoritative_evidence_reference="verified-ref",
                 measurement_window_start=datetime(2026, 7, 1, tzinfo=timezone.utc),
                 measurement_window_end=datetime(2026, 7, 31, tzinfo=timezone.utc),
-                inputs={"account_balance": "redacted"}, result={"status": "observed"},
+                inputs={"account_balance": "redacted"}, result={"outcome_status": "observed"},
                 confidence="high", explanation="Evidence evaluated.",
             )
         with pytest.raises(OutcomeEvaluationNotFoundError):
@@ -109,9 +122,17 @@ def test_outcome_rejects_sensitive_evidence_fields(world_with_recommendation):
                 raw_idempotency_key="phase3-sensitive-value", authoritative_evidence_reference="verified-ref",
                 measurement_window_start=datetime(2026, 7, 1, tzinfo=timezone.utc),
                 measurement_window_end=datetime(2026, 7, 31, tzinfo=timezone.utc),
-                inputs={"source": "statement says account balance is $42,000"}, result={"status": "observed"},
+                inputs={"observation_basis": "SSN 123-45-6789"}, result={"outcome_status": "observed"},
                 confidence="high", explanation="Evidence evaluated.",
             )
+        with pytest.raises(OutcomeEvaluationNotFoundError) as exc:
+            OutcomeEvaluationService(session).record(
+                user_id=1, goal_id=1, recommendation_id=recommendation_row_id(), decision_journal_entry_id=decision_id,
+                lifecycle="measured", raw_idempotency_key="phase3-unknown-evidence", authoritative_evidence_reference="verified-ref",
+                measurement_window_start=datetime(2026, 7, 1, tzinfo=timezone.utc), measurement_window_end=datetime(2026, 7, 31, tzinfo=timezone.utc),
+                inputs={"unknown": "anything"}, result={"outcome_status": "observed"}, confidence="high", explanation="unsafe raw explanation",
+            )
+        assert "unknown" not in str(exc.value) and "unsafe" not in str(exc.value)
 
 
 def test_outcome_database_triggers_reject_mutation(world_with_recommendation):

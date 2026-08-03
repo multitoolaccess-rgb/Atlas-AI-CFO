@@ -82,6 +82,9 @@ def _plant_world(engine, *, user_id: int = 1, goal_id: int = 1, fv_seed: int = 0
             ),
             {"id": goal_id, "user": user_id},
         )
+        conn.execute(text("INSERT INTO forecasts (id, user_id, goal_id) VALUES (:id, :user, :goal)"), {"id": _new_uuid(fv_seed - 1), "user": user_id, "goal": goal_id})
+        conn.execute(text("""INSERT INTO forecast_versions (id, forecast_id, version_number, input_state_hash, idempotency_key_hash, snapshot_schema_version, hash_schema_version, model_version, calculation_version, calculated_at, data_as_of, max_data_age_days, data_age_days, input_snapshot_json, assumption_snapshot_json, output_snapshot_json, provenance_snapshot_json, ending_balance, target_gap)
+            VALUES (:id, :forecast, 1, :hash, :key, 'v1', 'v1', 'm1', 'c1', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, 0, '{}', '{}', '{}', '{}', 0, 0)"""), {"id": fv_id, "forecast": _new_uuid(fv_seed - 1), "hash": "f" * 64, "key": "e" * 64})
         rec_id_value = inputs["rec"]
         fv_id_value = inputs["fv"]
         journal_id_value = inputs["journal"]
@@ -257,6 +260,10 @@ def test_decision_journal_ownership_trigger_rejects_cross_user_insert(monkeypatc
                 "INSERT INTO goals (id, user_id, name, target_amount, priority, is_archived) "
                 "VALUES (1, 1, 'Owner-one Goal', 1, 0, 0)"
             ))
+            legitimate_fv = _new_uuid(0x0000000140008000000000101)
+            legitimate_forecast = _new_uuid(0x0000000140008000000000102)
+            conn.execute(text("INSERT INTO forecasts (id, user_id, goal_id) VALUES (:id, 1, 1)"), {"id": legitimate_forecast})
+            conn.execute(text("""INSERT INTO forecast_versions (id, forecast_id, version_number, input_state_hash, idempotency_key_hash, snapshot_schema_version, hash_schema_version, model_version, calculation_version, calculated_at, data_as_of, max_data_age_days, data_age_days, input_snapshot_json, assumption_snapshot_json, output_snapshot_json, provenance_snapshot_json, ending_balance, target_gap) VALUES (:id, :forecast, 1, :hash, :key, 'v1', 'v1', 'm1', 'c1', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, 0, '{}', '{}', '{}', '{}', 0, 0)"""), {"id": legitimate_fv, "forecast": legitimate_forecast, "hash": "a" * 64, "key": "b" * 64})
             cross_user_rec = _new_uuid(0x0000000140008000000000099)
             with pytest.raises(Exception):
                 conn.execute(
@@ -286,7 +293,7 @@ def test_decision_journal_ownership_trigger_rejects_cross_user_insert(monkeypatc
                     "'atlas-recommendation/v1', 'USD', 'legit', 0, 100, 0.5, '{}', '{}', "
                     "'{}', '{}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
                 ),
-                {"id": legit_rec, "fv": _new_uuid(0x0000000140008000000000101), "ish": "d" * 64},
+                    {"id": legit_rec, "fv": legitimate_fv, "ish": "d" * 64},
             )
             cross_user_journal = _new_uuid(0x0000000140008000000000200)
             with pytest.raises(Exception):

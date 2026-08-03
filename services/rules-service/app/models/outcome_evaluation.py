@@ -16,6 +16,7 @@ class OutcomeEvaluation(Base):
         CheckConstraint("length(recommendation_id) = 36 AND recommendation_id = lower(recommendation_id)", name="ck_outcome_evaluation_recommendation_id_shape"),
         CheckConstraint("length(decision_journal_entry_id) = 36 AND decision_journal_entry_id = lower(decision_journal_entry_id)", name="ck_outcome_evaluation_decision_id_shape"),
         CheckConstraint("length(idempotency_key_hash) = 64 AND idempotency_key_hash = lower(idempotency_key_hash)", name="ck_outcome_evaluation_idempotency_hash"),
+        CheckConstraint("length(request_identity_hash) = 64 AND request_identity_hash = lower(request_identity_hash)", name="ck_outcome_evaluation_request_identity_hash"),
         CheckConstraint("lifecycle IN ('pending', 'not_yet_measurable', 'measured')", name="ck_outcome_evaluation_lifecycle"),
         CheckConstraint("currency = 'USD'", name="ck_outcome_evaluation_currency"),
         CheckConstraint("length(schema_version) BETWEEN 1 AND 64", name="ck_outcome_evaluation_schema_version"),
@@ -31,6 +32,7 @@ class OutcomeEvaluation(Base):
     lifecycle = Column(String(32), nullable=False)
     schema_version = Column(String(64), nullable=False)
     idempotency_key_hash = Column(String(64), nullable=False)
+    request_identity_hash = Column(String(64), nullable=False)
     currency = Column(String(3), nullable=False, default="USD", server_default="USD")
     authoritative_evidence_reference = Column(String(512), nullable=True)
     measurement_window_start = Column(DateTime(timezone=True), nullable=True)

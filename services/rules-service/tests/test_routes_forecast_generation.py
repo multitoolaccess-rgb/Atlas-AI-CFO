@@ -168,13 +168,11 @@ def _reset_db():
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as session:
         # Truncate to a clean slate per test
-        from sqlalchemy import text
-        session.execute(text("DELETE FROM forecast_versions"))
-        session.execute(text("DELETE FROM forecasts"))
-        session.execute(text("DELETE FROM goals"))
-        session.execute(text("DELETE FROM users"))
+        for table in reversed(Base.metadata.sorted_tables):
+            session.execute(table.delete())
         # Seed the auth-associated user and one owned goal
         session.add(User(id=1, local_user_sub=settings.local_user, email="alex@example.com", hashed_password="x"))
+        session.flush()
         session.add(
             Goal(
                 id=1,

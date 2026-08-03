@@ -52,10 +52,10 @@ def test_outcome_downgrade_refuses_recorded_history(monkeypatch):
         with engine.begin() as conn:
             conn.execute(text("""INSERT INTO outcome_evaluations
                 (id, recommendation_id, decision_journal_entry_id, user_id, goal_id, lifecycle,
-                 schema_version, idempotency_key_hash, currency, recorded_at)
+                 schema_version, idempotency_key_hash, request_identity_hash, currency, recorded_at)
                 VALUES ('00000000-0000-4000-8000-000000000030', :rec, :journal, 1, 1,
-                        'pending', 'atlas-outcome-evaluation/v1', :key, 'USD', CURRENT_TIMESTAMP)"""),
-                {"rec": ids["rec"], "journal": ids["journal"], "key": "c" * 64})
+                        'pending', 'atlas-outcome-evaluation/v1', :key, :identity, 'USD', CURRENT_TIMESTAMP)"""),
+                {"rec": ids["rec"], "journal": ids["journal"], "key": "c" * 64, "identity": "d" * 64})
         with pytest.raises(RuntimeError, match="outcome evaluation data exists"):
             command.downgrade(config, PARENT)
 
@@ -79,17 +79,17 @@ def test_sqlite_acceptance_and_lifecycle_guards_fail_closed(monkeypatch):
             with pytest.raises(Exception):
                 conn.execute(text("""INSERT INTO outcome_evaluations
                     (id, recommendation_id, decision_journal_entry_id, user_id, goal_id, lifecycle,
-                     schema_version, idempotency_key_hash, currency, recorded_at)
+                     schema_version, idempotency_key_hash, request_identity_hash, currency, recorded_at)
                     VALUES ('00000000-0000-4000-8000-000000000031',
                             '00000000-0000-4000-8000-000000000032',
                             '00000000-0000-4000-8000-000000000033', 1, 1, 'pending',
-                            'atlas-outcome-evaluation/v1', :key, 'USD', CURRENT_TIMESTAMP)"""), {"key": "d" * 64})
+                            'atlas-outcome-evaluation/v1', :key, :identity, 'USD', CURRENT_TIMESTAMP)"""), {"key": "d" * 64, "identity": "e" * 64})
         ids = _plant_world(engine)
         with engine.begin() as conn:
             with pytest.raises(Exception):
                 conn.execute(text("""INSERT INTO outcome_evaluations
                     (id, recommendation_id, decision_journal_entry_id, user_id, goal_id, lifecycle,
-                     schema_version, idempotency_key_hash, currency, authoritative_evidence_reference, recorded_at)
+                     schema_version, idempotency_key_hash, request_identity_hash, currency, authoritative_evidence_reference, recorded_at)
                     VALUES ('00000000-0000-4000-8000-000000000034', :rec, :journal, 1, 1, 'pending',
-                            'atlas-outcome-evaluation/v1', :key, 'USD', 'must-not-appear', CURRENT_TIMESTAMP)"""),
-                    {"rec": ids["rec"], "journal": ids["journal"], "key": "e" * 64})
+                            'atlas-outcome-evaluation/v1', :key, :identity, 'USD', 'must-not-appear', CURRENT_TIMESTAMP)"""),
+                    {"rec": ids["rec"], "journal": ids["journal"], "key": "f" * 64, "identity": "a" * 64})

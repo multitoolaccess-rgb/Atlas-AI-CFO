@@ -74,6 +74,7 @@ def register_sqlite_compat(engine) -> None:
         #     MUST run ``PRAGMA wal_checkpoint(TRUNCATE)`` first, or
         #     copy all three files (db + wal + shm) atomically.
         cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
         cursor.execute("PRAGMA busy_timeout=30000")
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.close()

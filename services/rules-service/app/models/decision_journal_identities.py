@@ -47,6 +47,7 @@ _RECOMMENDATION_NAMESPACE: Final[bytes] = b"atlas-recommendation/v1:"
 _DECISION_SLOT_NAMESPACE: Final[bytes] = b"atlas-decision-slot/v1:"
 _DECISION_JOURNAL_NAMESPACE: Final[bytes] = b"atlas-decision-journal/v1:"
 _OUTCOME_EVALUATION_NAMESPACE: Final[bytes] = b"atlas-outcome-evaluation/v1:"
+_OUTCOME_REQUEST_NAMESPACE: Final[bytes] = b"atlas-outcome-evaluation-request/v1:"
 _GENERIC_IDEMPOTENCY_NAMESPACE: Final[bytes] = b"atlas-idempotency-key/v1:"
 
 _CANONICAL_UUID_REGEX: Final[re.Pattern[str]] = re.compile(
@@ -162,6 +163,11 @@ def outcome_evaluation_id_for(
         "lifecycle": lifecycle, "idempotency_key_hash": idempotency_key_hash,
         "schema_version": schema_version,
     }, _OUTCOME_EVALUATION_NAMESPACE))
+
+
+def outcome_request_identity_hash(inputs: dict[str, Any]) -> str:
+    """Canonical SHA-256 identity of every semantic outcome request field."""
+    return derivation_sha256_hex(inputs, _OUTCOME_REQUEST_NAMESPACE)
 
 
 def canonical_idempotency_key_hash(raw_key: str) -> str:

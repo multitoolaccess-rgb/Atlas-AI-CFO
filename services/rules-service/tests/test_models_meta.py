@@ -47,6 +47,8 @@ EXPECTED_TABLES = {
     # merged metadata contract and must remain inside the FK closure.
     "recommendations",
     "decision_journal_entries",
+    # Phase 3 — append-only outcome evidence linked to accepted decisions.
+    "outcome_evaluations",
 }
 
 

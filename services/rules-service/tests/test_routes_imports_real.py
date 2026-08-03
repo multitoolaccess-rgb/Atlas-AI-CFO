@@ -1849,6 +1849,7 @@ def test_deactivate_orphan_imported_statements_lock_4_branches(client, db_sessio
         Transaction.import_batch_id == other_batch.id
     ).delete(synchronize_session=False)
     db_session.delete(other_batch)
+    db_session.flush()
     db_session.delete(orphan)
     db_session.delete(new_acct)
     db_session.commit()

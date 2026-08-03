@@ -25,6 +25,7 @@ def upgrade() -> None:
         sa.Column("lifecycle", sa.String(32), nullable=False),
         sa.Column("schema_version", sa.String(64), nullable=False),
         sa.Column("idempotency_key_hash", sa.String(64), nullable=False),
+        sa.Column("request_identity_hash", sa.String(64), nullable=False),
         sa.Column("currency", sa.String(3), nullable=False, server_default="USD"),
         sa.Column("authoritative_evidence_reference", sa.String(512)),
         sa.Column("measurement_window_start", sa.DateTime(timezone=True)),
@@ -38,6 +39,7 @@ def upgrade() -> None:
         sa.CheckConstraint("length(recommendation_id) = 36 AND recommendation_id = lower(recommendation_id)", name="ck_outcome_evaluation_recommendation_id_shape"),
         sa.CheckConstraint("length(decision_journal_entry_id) = 36 AND decision_journal_entry_id = lower(decision_journal_entry_id)", name="ck_outcome_evaluation_decision_id_shape"),
         sa.CheckConstraint("length(idempotency_key_hash) = 64 AND idempotency_key_hash = lower(idempotency_key_hash)", name="ck_outcome_evaluation_idempotency_hash"),
+        sa.CheckConstraint("length(request_identity_hash) = 64 AND request_identity_hash = lower(request_identity_hash)", name="ck_outcome_evaluation_request_identity_hash"),
         sa.CheckConstraint("lifecycle IN ('pending', 'not_yet_measurable', 'measured')", name="ck_outcome_evaluation_lifecycle"),
         sa.CheckConstraint("currency = 'USD'", name="ck_outcome_evaluation_currency"),
         sa.CheckConstraint("measurement_window_start IS NULL OR measurement_window_end IS NULL OR measurement_window_start <= measurement_window_end", name="ck_outcome_evaluation_window_order"),
@@ -67,12 +69,9 @@ def upgrade() -> None:
         op.execute("CREATE TRIGGER outcome_evaluations_no_update BEFORE UPDATE ON outcome_evaluations FOR EACH ROW EXECUTE FUNCTION reject_outcome_evaluation_mutation()")
         op.execute("CREATE TRIGGER outcome_evaluations_no_delete BEFORE DELETE ON outcome_evaluations FOR EACH ROW EXECUTE FUNCTION reject_outcome_evaluation_mutation()")
         op.execute("""CREATE FUNCTION enforce_outcome_evaluation_acceptance() RETURNS trigger AS $$
-        BEGIN IF NEW.user_id != (SELECT user_id FROM goals WHERE id = NEW.goal_id)
-           OR NEW.user_id != (SELECT user_id FROM recommendations WHERE id = NEW.recommendation_id)
-           OR NEW.recommendation_id != (SELECT recommendation_id FROM decision_journal_entries WHERE id = NEW.decision_journal_entry_id)
-           OR NEW.user_id != (SELECT user_id FROM decision_journal_entries WHERE id = NEW.decision_journal_entry_id)
-           OR NEW.goal_id != (SELECT goal_id FROM decision_journal_entries WHERE id = NEW.decision_journal_entry_id)
-           OR 'accept' != (SELECT decision_action FROM decision_journal_entries WHERE id = NEW.decision_journal_entry_id) THEN
+        BEGIN IF NOT EXISTS (SELECT 1 FROM goals WHERE id = NEW.goal_id AND user_id = NEW.user_id)
+           OR NOT EXISTS (SELECT 1 FROM recommendations WHERE id = NEW.recommendation_id AND user_id = NEW.user_id AND goal_id = NEW.goal_id)
+           OR NOT EXISTS (SELECT 1 FROM decision_journal_entries WHERE id = NEW.decision_journal_entry_id AND user_id = NEW.user_id AND goal_id = NEW.goal_id AND recommendation_id = NEW.recommendation_id AND decision_action = 'accept') THEN
            RAISE EXCEPTION 'outcome evaluation requires an accepted owned decision'; END IF; RETURN NEW; END; $$ LANGUAGE plpgsql""")
         op.execute("CREATE TRIGGER outcome_evaluations_accepted_owner BEFORE INSERT ON outcome_evaluations FOR EACH ROW EXECUTE FUNCTION enforce_outcome_evaluation_acceptance()")
 
