@@ -46,7 +46,10 @@ export default function SpendByCategoryBar({
   onCategoryClick,
   categories: externalCategories,
 }: SpendByCategoryBarProps) {
-  const colorByName = externalColorMap ?? new Map<string, string>()
+  const colorByName = useMemo(
+    () => externalColorMap ?? new Map<string, string>(),
+    [externalColorMap],
+  )
   const [sortBy, setSortBy] = useState<SortMode>('highest')
   const [showAll, setShowAll] = useState(false)
 

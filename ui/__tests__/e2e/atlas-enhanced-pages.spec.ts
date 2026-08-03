@@ -121,11 +121,11 @@ test.describe('Budgeting page — enhanced with BudgetCategoryCard', () => {
     await page.waitForLoadState('networkidle')
 
     // Click "Add Budget" or "Create Your First Budget"
-    const addBtn = page.locator('button:has-text("Add Budget")').or(
-      page.locator('button:has-text("Create Your First Budget")')
+    const addBtn = page.getByTestId('add-budget-button').or(
+      page.getByRole('button', { name: 'Create Your First Budget', exact: true })
     )
-    await expect(addBtn).toBeVisible({ timeout: 10_000 })
-    await addBtn.click()
+    await expect(addBtn.first()).toBeVisible({ timeout: 10_000 })
+    await addBtn.first().click()
 
     // Form should appear with category select and amount input
     await expect(page.locator('text=New Budget Entry')).toBeVisible({ timeout: 3_000 })
@@ -185,9 +185,11 @@ test.describe('Income page — enhanced with drilldown', () => {
 
     // Time range selector should be visible
     await expect(
-      page.locator('[data-testid="time-range-selector"]')
-        .or(page.locator('button:has-text("MTD")'))
-        .or(page.locator('button:has-text("All")'))
+      page.locator('[data-testid="time-range-selector"]').or(
+        page.getByRole('radio', { name: 'MTD', exact: true }),
+      ).or(
+        page.getByRole('radio', { name: 'All', exact: true }),
+      ).first(),
     ).toBeVisible({ timeout: 10_000 })
 
     expect(errors).toEqual([])
@@ -219,7 +221,7 @@ test.describe('Income page — enhanced with drilldown', () => {
     await expect(page.locator('h1:has-text("Income")')).toBeVisible({ timeout: 10_000 })
 
     // Look for "Income Sources" section
-    const sourcesSection = page.locator('text=Income Sources')
+    const sourcesSection = page.getByRole('heading', { name: 'Income Sources', exact: true })
     const hasSources = await sourcesSection.isVisible()
     if (hasSources) {
       await expect(sourcesSection).toBeVisible()
@@ -387,8 +389,9 @@ test.describe('Debts page — enhanced with DebtTable + payoff projections', () 
     // KPI cards (Total Debt, Blended APR, Monthly Minimum, Accounts)
     // OR empty state
     await expect(
-      page.locator('text=Total Debt')
-        .or(page.locator('text=No debt accounts'))
+      page.getByText('Total Debt', { exact: true }).first().or(
+        page.getByText('No debt accounts', { exact: true }),
+      ),
     ).toBeVisible({ timeout: 10_000 })
 
     expect(errors).toEqual([])
@@ -408,9 +411,7 @@ test.describe('Debts page — enhanced with DebtTable + payoff projections', () 
       await expect(compositionSection).toBeVisible()
       // ChartDonut renders legend buttons for each debt type
       await expect(
-        page.locator('text=Credit Cards')
-          .or(page.locator('text=Loans'))
-          .or(page.locator('text=Mortgages'))
+        page.getByRole('button', { name: /^(Credit Cards|Loans|Mortgages)\b/ }).first(),
       ).toBeVisible({ timeout: 10_000 })
     }
 

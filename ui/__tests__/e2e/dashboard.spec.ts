@@ -185,18 +185,20 @@ test('dark mode toggle adds .dark class to <html> and persists to localStorage',
   )
   expect(hasDarkClass).toBe(true)
 
-  // localStorage should have the darkMode key.
-  const darkMode = await page.evaluate(() => localStorage.getItem('darkMode'))
-  expect(darkMode).toBe('enabled')
+  // localStorage should persist the current Atlas theme.
+  const theme = await page.evaluate(() => localStorage.getItem('atlas_theme'))
+  expect(theme).toBe('enabled')
 
-  // Click again to toggle off.
-  await toggle.click()
+  // Click again to toggle off using the updated accessible name.
+  const lightModeToggle = page.getByRole('button', { name: 'Switch to light mode' })
+  await expect(lightModeToggle).toBeVisible()
+  await lightModeToggle.click()
   const hasDarkClassAfter = await page.evaluate(() =>
     document.documentElement.classList.contains('dark'),
   )
   expect(hasDarkClassAfter).toBe(false)
-  const darkModeAfter = await page.evaluate(() => localStorage.getItem('darkMode'))
-  expect(darkModeAfter).toBe('disabled')
+  const themeAfter = await page.evaluate(() => localStorage.getItem('atlas_theme'))
+  expect(themeAfter).toBe('disabled')
 })
 
 test('AI Wealth Overview hero zone renders with net worth + wealth score', async ({ page }) => {

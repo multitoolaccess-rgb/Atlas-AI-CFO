@@ -32,7 +32,10 @@ export default function BreakdownPanel({ breakdown, trends, loading, className, 
   const tc = useThemeColors()
   const [hoveredSegment, setHoveredSegment] = useState<string | null>(null)
 
-  const visibleBuckets = breakdown ? breakdown.buckets.filter((b) => b.amount > 0) : []
+  const visibleBuckets = useMemo(
+    () => breakdown ? breakdown.buckets.filter((b) => b.amount > 0) : [],
+    [breakdown],
+  )
   const total = breakdown?.total_spend ?? 0
 
   const donutData: DonutDatum[] = useMemo(

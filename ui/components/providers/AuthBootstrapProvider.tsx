@@ -611,7 +611,7 @@ export default function AuthBootstrapProvider({
         )}
         <div className="mt-6 flex flex-col gap-2 border-t border-outline-variant/20 pt-4">
           <p className="text-xs text-on-surface-variant">
-            If Retry doesn't work, your stored session key may be corrupted
+            If Retry doesn&apos;t work, your stored session key may be corrupted
             or the interceptor is locked. Clear the local session and reload
             to start fresh.
           </p>

@@ -33,6 +33,9 @@ export default function TreemapChart({ data, onSelect, height = 320, className =
     [onSelect],
   )
 
+  const total = useMemo(() => data.reduce((s, d) => s + d.value, 0) || 1, [data])
+  const sorted = useMemo(() => [...data].sort((a, b) => b.value - a.value), [data])
+
   if (!data.length) {
     return (
       <div className={`flex items-center justify-center text-[var(--text-tertiary)] ${className}`} style={{ height }}>
@@ -40,9 +43,6 @@ export default function TreemapChart({ data, onSelect, height = 320, className =
       </div>
     )
   }
-
-  const total = useMemo(() => data.reduce((s, d) => s + d.value, 0) || 1, [data])
-  const sorted = useMemo(() => [...data].sort((a, b) => b.value - a.value), [data])
 
   // Compute bar heights proportionally within the available height
   const availableHeight = height - (sorted.length - 1) * BAR_GAP

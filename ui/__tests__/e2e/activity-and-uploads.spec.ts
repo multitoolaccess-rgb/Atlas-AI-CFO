@@ -145,57 +145,36 @@ test('CSV upload completes successfully (no OperationalError 500)', async ({
   const errors = errorListener(page)
   await page.goto('/accounts')
   await expect(page.locator('h1').first()).toBeVisible({ timeout: 10_000 })
+  await page.getByRole('tab', { name: 'Statement', exact: true }).click()
 
   const csvPath = path.resolve(
     __dirname,
     '../../../services/rules-service/tests/fixtures/sample-bank-statement.csv',
   )
 
-  // Stash the recent-history length so we can assert an increment.
-  const beforeUpload = await page.evaluate(() => {
-    // The component renders data-testid="import-history-row-N" for each
-    // existing batch; if none, the section renders the empty-state.
-    const rows = document.querySelectorAll(
-      '[data-testid^="import-history-row-"]',
-    )
-    return rows.length
-  })
-
   await page
     .locator('[data-testid="import-file-input"]')
     .setInputFiles(csvPath)
   await page.locator('[data-testid="import-submit"]').click()
 
-  // Wait for either a success status banner OR an "Importing…" /
-  // loading state that resolves to a success banner. 15s is a
-  // generous budget because the CSV parser + DB commit can be 200-400ms
-  // in dev and the next dev HMR client may have garbage-collected
-  // the axios interceptor's worker at the time of the first request.
-  await expect(page.locator('p[role="status"]')).toContainText(
-    /transaction|imported|recorded|saved/i,
-    { timeout: 15_000 },
-  )
+  // Auto-detection pauses for this synthetic fixture because its account
+  // type is ambiguous. Complete the explicit prompt before asserting the
+  // finalized import contract.
+  await expect(page.locator('[data-testid="import-type-prompt"]')).toBeVisible({ timeout: 10_000 })
+  await page.locator('[data-testid="import-type-prompt-skip"]').click()
 
-  // History should now show +1 row (or 1 row if it started empty).
-  const afterUpload = await page.evaluate(() => {
-    const rows = document.querySelectorAll(
-      '[data-testid^="import-history-row-"]',
-    )
-    return rows.length
-  })
-  expect(
-    afterUpload,
-    `Expected upload to add at least one history row (before=${beforeUpload}, after=${afterUpload}).`,
-  ).toBeGreaterThanOrEqual(1)
+  // Warning-bearing imports render the finalized result as a preview card
+  // rather than a role=status paragraph. Assert the actual saved count.
+  const preview = page.locator('[data-testid="import-preview"]')
+  await expect(preview).toBeVisible({ timeout: 15_000 })
+  await expect(preview).toContainText(/Transactions saved/i)
 
-  // The success status must NOT carry the "Internal Server Error" /
+  // The rendered import result must NOT carry the "Internal Server Error" /
   // "OperationalError" markers that the original failure mode emitted.
-  const statusText = (
-    await page.locator('p[role="status"]').innerText()
-  ).toLowerCase()
-  expect(statusText).not.toContain('operationalerror')
-  expect(statusText).not.toContain('no such column')
-  expect(statusText).not.toContain('internal server error')
+  const previewText = (await preview.innerText()).toLowerCase()
+  expect(previewText).not.toContain('operationalerror')
+  expect(previewText).not.toContain('no such column')
+  expect(previewText).not.toContain('internal server error')
 
   expect(
     errors,

@@ -1926,7 +1926,7 @@ export default function PortfolioPage() {
           </div>
           <p className="text-xs text-tertiary">
             Server auto-derives position value as <code>last price × quantity</code>{' '}
-            when both are updated. The parent account's balance is recomputed
+            when both are updated. The parent account&apos;s balance is recomputed
             when the patch lands.
           </p>
           {editError && (
@@ -1985,7 +1985,7 @@ export default function PortfolioPage() {
         <div className="space-y-4" data-testid="delete-holding-modal">
           <p className="text-sm">
             This permanently removes the position from your portfolio. The
-            parent account's balance is recomputed after the row is gone —
+            parent account&apos;s balance is recomputed after the row is gone —
             there is no undo.
           </p>
           {deleteHoldingRow && (

@@ -315,6 +315,6 @@ test('dark mode toggle works on a sub-route (not just Overview)', async ({ page 
     document.documentElement.classList.contains('dark'),
   )
   expect(hasDark).toBe(true)
-  const stored = await page.evaluate(() => localStorage.getItem('darkMode'))
+  const stored = await page.evaluate(() => localStorage.getItem('atlas_theme'))
   expect(stored).toBe('enabled')
 })
