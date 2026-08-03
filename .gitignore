@@ -79,3 +79,4 @@ Thumbs.db
 .claude/
 .codex/
 graphify-out/cache/
+.atlas-operator-state/
