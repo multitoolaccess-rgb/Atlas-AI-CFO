@@ -1,6 +1,6 @@
 """Atlas lifecycle CORS and migration-safety contracts."""
 
-import logging
+from unittest.mock import Mock
 
 
 def test_cors_allows_only_explicit_local_atlas_ui_origins() -> None:
@@ -11,11 +11,14 @@ def test_cors_allows_only_explicit_local_atlas_ui_origins() -> None:
     assert all(origin.startswith(("http://localhost:", "http://127.0.0.1:")) for origin in ALLOWED_CORS_ORIGINS)
 
 
-def test_automatic_migration_is_disabled_without_explicit_opt_in(monkeypatch, caplog) -> None:
-    from app.main import _run_alembic_upgrade_on_boot
+def test_automatic_migration_is_disabled_without_explicit_opt_in(monkeypatch) -> None:
+    from app import main
 
     monkeypatch.delenv("ATLAS_AUTO_MIGRATE", raising=False)
-    caplog.set_level(logging.INFO, logger="uvicorn.error")
-    _run_alembic_upgrade_on_boot()
+    log_info = Mock()
+    monkeypatch.setattr(main.LOG, "info", log_info)
+    main._run_alembic_upgrade_on_boot()
 
-    assert "Automatic migrations are disabled" in caplog.text
+    log_info.assert_called_once_with(
+        "Automatic migrations are disabled; run Alembic explicitly when approved."
+    )
