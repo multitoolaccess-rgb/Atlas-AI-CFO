@@ -41,7 +41,7 @@ def upgrade() -> None:
         sa.CheckConstraint("lifecycle IN ('pending', 'not_yet_measurable', 'measured')", name="ck_outcome_evaluation_lifecycle"),
         sa.CheckConstraint("currency = 'USD'", name="ck_outcome_evaluation_currency"),
         sa.CheckConstraint("measurement_window_start IS NULL OR measurement_window_end IS NULL OR measurement_window_start <= measurement_window_end", name="ck_outcome_evaluation_window_order"),
-        sa.CheckConstraint("lifecycle != 'measured' OR (authoritative_evidence_reference IS NOT NULL AND measurement_window_start IS NOT NULL AND measurement_window_end IS NOT NULL AND inputs_json IS NOT NULL AND result_json IS NOT NULL AND confidence IS NOT NULL AND explanation IS NOT NULL)", name="ck_outcome_evaluation_measured_evidence"),
+        sa.CheckConstraint("(lifecycle = 'measured' AND authoritative_evidence_reference IS NOT NULL AND measurement_window_start IS NOT NULL AND measurement_window_end IS NOT NULL AND inputs_json IS NOT NULL AND result_json IS NOT NULL AND confidence IS NOT NULL AND explanation IS NOT NULL) OR (lifecycle IN ('pending', 'not_yet_measurable') AND authoritative_evidence_reference IS NULL AND measurement_window_start IS NULL AND measurement_window_end IS NULL AND inputs_json IS NULL AND result_json IS NULL AND confidence IS NULL AND explanation IS NULL)", name="ck_outcome_evaluation_lifecycle_evidence"),
     )
     op.create_index("ix_outcome_evaluations_recommendation_id", "outcome_evaluations", ["recommendation_id"])
     op.create_index("ix_outcome_evaluations_decision_journal_entry_id", "outcome_evaluations", ["decision_journal_entry_id"])
@@ -52,7 +52,10 @@ def upgrade() -> None:
         op.execute("CREATE TRIGGER outcome_evaluations_no_update BEFORE UPDATE ON outcome_evaluations BEGIN SELECT RAISE(ABORT, 'outcome_evaluations are immutable'); END")
         op.execute("CREATE TRIGGER outcome_evaluations_no_delete BEFORE DELETE ON outcome_evaluations BEGIN SELECT RAISE(ABORT, 'outcome_evaluations are immutable'); END")
         op.execute("""CREATE TRIGGER outcome_evaluations_accepted_owner_insert BEFORE INSERT ON outcome_evaluations
-        WHEN NEW.user_id != (SELECT user_id FROM goals WHERE id = NEW.goal_id)
+        WHEN NOT EXISTS (SELECT 1 FROM goals WHERE id = NEW.goal_id AND user_id = NEW.user_id)
+          OR NOT EXISTS (SELECT 1 FROM recommendations WHERE id = NEW.recommendation_id AND user_id = NEW.user_id AND goal_id = NEW.goal_id)
+          OR NOT EXISTS (SELECT 1 FROM decision_journal_entries WHERE id = NEW.decision_journal_entry_id AND user_id = NEW.user_id AND goal_id = NEW.goal_id AND recommendation_id = NEW.recommendation_id AND decision_action = 'accept')
+          OR NEW.user_id != (SELECT user_id FROM goals WHERE id = NEW.goal_id)
           OR NEW.user_id != (SELECT user_id FROM recommendations WHERE id = NEW.recommendation_id)
           OR NEW.recommendation_id != (SELECT recommendation_id FROM decision_journal_entries WHERE id = NEW.decision_journal_entry_id)
           OR NEW.user_id != (SELECT user_id FROM decision_journal_entries WHERE id = NEW.decision_journal_entry_id)

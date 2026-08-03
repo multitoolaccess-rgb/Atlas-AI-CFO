@@ -65,3 +65,31 @@ def test_postgresql_counterpart_guards_are_present():
     assert "bind.dialect.name == \"postgresql\"" in migration
     assert "enforce_outcome_evaluation_acceptance" in migration
     assert "reject_outcome_evaluation_mutation" in migration
+
+
+def test_sqlite_acceptance_and_lifecycle_guards_fail_closed(monkeypatch):
+    with tempfile.TemporaryDirectory() as tmp:
+        url = f"sqlite:///{os.path.join(tmp, 'outcomes-guards.db')}"
+        monkeypatch.setattr("app.config.settings.database_url", url)
+        config = _config(url)
+        command.upgrade(config, REVISION)
+        engine = create_engine(url)
+        register_sqlite_compat(engine)
+        with engine.begin() as conn:
+            with pytest.raises(Exception):
+                conn.execute(text("""INSERT INTO outcome_evaluations
+                    (id, recommendation_id, decision_journal_entry_id, user_id, goal_id, lifecycle,
+                     schema_version, idempotency_key_hash, currency, recorded_at)
+                    VALUES ('00000000-0000-4000-8000-000000000031',
+                            '00000000-0000-4000-8000-000000000032',
+                            '00000000-0000-4000-8000-000000000033', 1, 1, 'pending',
+                            'atlas-outcome-evaluation/v1', :key, 'USD', CURRENT_TIMESTAMP)"""), {"key": "d" * 64})
+        ids = _plant_world(engine)
+        with engine.begin() as conn:
+            with pytest.raises(Exception):
+                conn.execute(text("""INSERT INTO outcome_evaluations
+                    (id, recommendation_id, decision_journal_entry_id, user_id, goal_id, lifecycle,
+                     schema_version, idempotency_key_hash, currency, authoritative_evidence_reference, recorded_at)
+                    VALUES ('00000000-0000-4000-8000-000000000034', :rec, :journal, 1, 1, 'pending',
+                            'atlas-outcome-evaluation/v1', :key, 'USD', 'must-not-appear', CURRENT_TIMESTAMP)"""),
+                    {"rec": ids["rec"], "journal": ids["journal"], "key": "e" * 64})

@@ -20,7 +20,7 @@ class OutcomeEvaluation(Base):
         CheckConstraint("currency = 'USD'", name="ck_outcome_evaluation_currency"),
         CheckConstraint("length(schema_version) BETWEEN 1 AND 64", name="ck_outcome_evaluation_schema_version"),
         CheckConstraint("measurement_window_start IS NULL OR measurement_window_end IS NULL OR measurement_window_start <= measurement_window_end", name="ck_outcome_evaluation_window_order"),
-        CheckConstraint("lifecycle != 'measured' OR (authoritative_evidence_reference IS NOT NULL AND measurement_window_start IS NOT NULL AND measurement_window_end IS NOT NULL AND inputs_json IS NOT NULL AND result_json IS NOT NULL AND confidence IS NOT NULL AND explanation IS NOT NULL)", name="ck_outcome_evaluation_measured_evidence"),
+        CheckConstraint("(lifecycle = 'measured' AND authoritative_evidence_reference IS NOT NULL AND measurement_window_start IS NOT NULL AND measurement_window_end IS NOT NULL AND inputs_json IS NOT NULL AND result_json IS NOT NULL AND confidence IS NOT NULL AND explanation IS NOT NULL) OR (lifecycle IN ('pending', 'not_yet_measurable') AND authoritative_evidence_reference IS NULL AND measurement_window_start IS NULL AND measurement_window_end IS NULL AND inputs_json IS NULL AND result_json IS NULL AND confidence IS NULL AND explanation IS NULL)", name="ck_outcome_evaluation_lifecycle_evidence"),
     )
 
     id = Column(String(36), primary_key=True)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Final, Mapping
@@ -21,6 +22,7 @@ _SENSITIVE_TOKENS: Final[tuple[str, ...]] = (
     "balance", "amount", "contribution", "transaction", "snapshot", "account",
     "token", "secret", "password", "api_key", "apikey",
 )
+_MONEY_PATTERN: Final[re.Pattern[str]] = re.compile(r"(?:\$|\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b)")
 
 
 class OutcomeEvaluationError(Exception):
@@ -62,7 +64,8 @@ def _safe_evidence_map(value: Mapping[str, str] | None) -> Mapping[str, str] | N
     for key, item in value.items():
         if (not isinstance(key, str) or not isinstance(item, str) or not key
                 or len(key) > 64 or len(item) > 512
-                or any(token in key.lower() for token in _SENSITIVE_TOKENS)):
+                or any(token in key.lower() or token in item.lower() for token in _SENSITIVE_TOKENS)
+                or _MONEY_PATTERN.search(item)):
             raise OutcomeEvaluationNotFoundError("invalid evidence map")
         safe[key] = item
     return safe
@@ -103,6 +106,14 @@ class OutcomeEvaluationService:
         evaluation_id = outcome_evaluation_id_for(user_id=user_id, goal_id=goal_id, recommendation_id=recommendation_id, decision_journal_entry_id=decision_journal_entry_id, lifecycle=lifecycle, idempotency_key_hash=key_hash, schema_version=OUTCOME_EVALUATION_SCHEMA_VERSION)
         existing = self._session.get(OutcomeEvaluation, evaluation_id)
         if existing is not None:
+            if not self._canonical_fields_match(
+                existing, lifecycle=lifecycle,
+                authoritative_evidence_reference=authoritative_evidence_reference,
+                measurement_window_start=measurement_window_start,
+                measurement_window_end=measurement_window_end, inputs=safe_inputs,
+                result=safe_result, confidence=confidence, explanation=explanation,
+            ):
+                raise OutcomeEvaluationConflictError("idempotency conflict")
             return OutcomeEvaluationWriteResult(existing, replayed=True)
         conflict = self._session.scalar(select(OutcomeEvaluation).where(OutcomeEvaluation.user_id == user_id, OutcomeEvaluation.idempotency_key_hash == key_hash))
         if conflict is not None:
@@ -118,3 +129,27 @@ class OutcomeEvaluationService:
                 raise OutcomeEvaluationConflictError("persistence conflict")
             return OutcomeEvaluationWriteResult(existing, replayed=True)
         return OutcomeEvaluationWriteResult(evaluation, replayed=False)
+
+    @staticmethod
+    def _canonical_fields_match(
+        existing: OutcomeEvaluation, *, lifecycle: str,
+        authoritative_evidence_reference: str | None,
+        measurement_window_start: datetime | None, measurement_window_end: datetime | None,
+        inputs: Mapping[str, str] | None, result: Mapping[str, str] | None,
+        confidence: str | None, explanation: str | None,
+    ) -> bool:
+        def timestamp(value: datetime | None) -> str | None:
+            if value is None:
+                return None
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=timezone.utc)
+            return value.astimezone(timezone.utc).isoformat()
+        return (
+            existing.lifecycle == lifecycle
+            and existing.authoritative_evidence_reference == authoritative_evidence_reference
+            and timestamp(existing.measurement_window_start) == timestamp(measurement_window_start)
+            and timestamp(existing.measurement_window_end) == timestamp(measurement_window_end)
+            and existing.inputs_json == (None if inputs is None else json.dumps(dict(inputs), sort_keys=True, separators=(",", ":")))
+            and existing.result_json == (None if result is None else json.dumps(dict(result), sort_keys=True, separators=(",", ":")))
+            and existing.confidence == confidence and existing.explanation == explanation
+        )

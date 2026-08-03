@@ -79,6 +79,16 @@ def test_outcome_same_key_different_request_conflicts(world_with_recommendation)
             service.record(user_id=1, goal_id=1, recommendation_id=recommendation_row_id(), decision_journal_entry_id=decision_id, lifecycle="not_yet_measurable", raw_idempotency_key="phase3-conflict")
 
 
+def test_outcome_replay_rejects_changed_measured_evidence(world_with_recommendation):
+    with Session(world_with_recommendation) as session:
+        decision_id = _accepted_decision(session)
+        service = OutcomeEvaluationService(session)
+        args = dict(user_id=1, goal_id=1, recommendation_id=recommendation_row_id(), decision_journal_entry_id=decision_id, lifecycle="measured", raw_idempotency_key="phase3-replay-content", authoritative_evidence_reference="verified-ref", measurement_window_start=datetime(2026, 7, 1, tzinfo=timezone.utc), measurement_window_end=datetime(2026, 7, 31, tzinfo=timezone.utc), inputs={"source": "verified_statement"}, result={"status": "observed"}, confidence="high", explanation="Evidence evaluated.")
+        service.record(**args)
+        with pytest.raises(OutcomeEvaluationConflictError):
+            service.record(**{**args, "result": {"status": "not_observed"}})
+
+
 def test_outcome_rejects_sensitive_evidence_fields(world_with_recommendation):
     with Session(world_with_recommendation) as session:
         decision_id = _accepted_decision(session)
@@ -90,6 +100,16 @@ def test_outcome_rejects_sensitive_evidence_fields(world_with_recommendation):
                 measurement_window_start=datetime(2026, 7, 1, tzinfo=timezone.utc),
                 measurement_window_end=datetime(2026, 7, 31, tzinfo=timezone.utc),
                 inputs={"account_balance": "redacted"}, result={"status": "observed"},
+                confidence="high", explanation="Evidence evaluated.",
+            )
+        with pytest.raises(OutcomeEvaluationNotFoundError):
+            OutcomeEvaluationService(session).record(
+                user_id=1, goal_id=1, recommendation_id=recommendation_row_id(),
+                decision_journal_entry_id=decision_id, lifecycle="measured",
+                raw_idempotency_key="phase3-sensitive-value", authoritative_evidence_reference="verified-ref",
+                measurement_window_start=datetime(2026, 7, 1, tzinfo=timezone.utc),
+                measurement_window_end=datetime(2026, 7, 31, tzinfo=timezone.utc),
+                inputs={"source": "statement says account balance is $42,000"}, result={"status": "observed"},
                 confidence="high", explanation="Evidence evaluated.",
             )
 
