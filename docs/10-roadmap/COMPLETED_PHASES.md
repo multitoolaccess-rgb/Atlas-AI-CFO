@@ -42,3 +42,13 @@ criteria are complete.
   - Forecast persistence gate (`atlas_forecast_persistence_enabled`) and read API gate (`atlas_forecast_read_api_enabled`) remain default-off at the application layer; default-off behavior is exercised in the full Rules Service suite per the cycle-1 cert corrections.
   - Real-account currency confirmation (`risk-p1-account-currency-authority`) NOT applied to real accounts.
 - Authorized next phase: BLOCKED. External multi-user production enablement is blocked until an approved retention and user-deletion policy exists for immutable forecast history (`risk-p1-retention-rollout-gate` remains `open`). No Phase 2 work begins per the user mandate.
+
+## phase-2 — Forecast UI migration
+
+- Completion date: 2026-08-02
+- Final commit: `c62b1ac9f34ade417aa4a0b50e4c6c4d3b956278`
+- Merged PRs: 28
+- Test evidence: Clean-main Phase 2 certification matrix passed: migration/parity, service suites, cross-service, focused recommendation and decision-journal privacy/observability coverage, frontend checks, dedicated journey, canonical Playwright 85 passed / 2 fixture-gated skips, tracker validation.
+- ADRs: ADR-005-ATLAS-VERTICAL-SLICE-FOUNDATION.md; ADR-006-IMMUTABLE-FORECAST-PERSISTENCE.md
+- Known limitations: External multi-user rollout remains blocked by retention/deletion policy; account currency authority remains fail-closed; Phase 3 remains not started.
+- Authorized next phase: Phase 3 planning only: define a separately authorized bounded plan; do not implement automatically.
