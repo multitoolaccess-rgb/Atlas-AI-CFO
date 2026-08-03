@@ -46,6 +46,16 @@ class ProjectStatusTests(unittest.TestCase):
         self.assertEqual(json.loads(self.status.read_text())["phases"][0]["status"], "in_progress")
         self.invoke("start", "--id", "work-2", "--title", "Two", "--phase", "phase-1", "--path", "services/rules-service/app", "--objective", "test", expect=1)
 
+    def test_start_advances_from_a_completed_current_phase(self):
+        payload = json.loads(self.status.read_text())
+        payload["phases"][0]["status"] = "complete"
+        payload["phases"].append({"id": "phase-2", "name": "Two", "status": "not_started", "exit_criteria": [{"id": "ec-2", "description": "done", "complete": False}]})
+        self.status.write_text(json.dumps(payload), encoding="utf-8")
+        self.invoke("start", "--id", "work-2", "--title", "Two", "--phase", "phase-2", "--path", "services/rules-service", "--objective", "test")
+        updated = json.loads(self.status.read_text())
+        self.assertEqual(updated["current_phase_id"], "phase-2")
+        self.assertEqual(updated["phases"][1]["status"], "in_progress")
+
     def test_low_risk_completion_requires_only_a_commit(self):
         self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "docs", "--objective", "test", "--risk-tier", "low")
         self.invoke("complete-work", "--id", "work-1", "--commit", "abc123")

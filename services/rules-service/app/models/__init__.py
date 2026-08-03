@@ -52,6 +52,7 @@ from app.models.forecast import Forecast, ForecastVersion
 # the Phase-4 mutable ``RecommendationLog`` workflow audit trail.
 from app.models.recommendation import Recommendation
 from app.models.decision_journal_entry import DecisionJournalEntry
+from app.models.outcome_evaluation import OutcomeEvaluation
 
 __all__ = [
     "Budget",
@@ -73,4 +74,5 @@ __all__ = [
     "ForecastVersion",
     "Recommendation",
     "DecisionJournalEntry",
-] 
+    "OutcomeEvaluation",
+]

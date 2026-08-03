@@ -46,6 +46,7 @@ DERIVATION_HASH_ALGORITHM: Final[str] = "sha256"
 _RECOMMENDATION_NAMESPACE: Final[bytes] = b"atlas-recommendation/v1:"
 _DECISION_SLOT_NAMESPACE: Final[bytes] = b"atlas-decision-slot/v1:"
 _DECISION_JOURNAL_NAMESPACE: Final[bytes] = b"atlas-decision-journal/v1:"
+_OUTCOME_EVALUATION_NAMESPACE: Final[bytes] = b"atlas-outcome-evaluation/v1:"
 _GENERIC_IDEMPOTENCY_NAMESPACE: Final[bytes] = b"atlas-idempotency-key/v1:"
 
 _CANONICAL_UUID_REGEX: Final[re.Pattern[str]] = re.compile(
@@ -146,6 +147,21 @@ def decision_journal_id_for(
         "schema_version": schema_version,
     }
     return canonical_uuid_from_digest(canonical_digest(inputs, _DECISION_JOURNAL_NAMESPACE))
+
+
+def outcome_evaluation_id_for(
+    *, user_id: int, goal_id: int, recommendation_id: str,
+    decision_journal_entry_id: str, lifecycle: str,
+    idempotency_key_hash: str, schema_version: str,
+) -> str:
+    """Deterministic identity for one immutable outcome-evaluation record."""
+    return canonical_uuid_from_digest(canonical_digest({
+        "user_id": user_id, "goal_id": goal_id,
+        "recommendation_id": recommendation_id,
+        "decision_journal_entry_id": decision_journal_entry_id,
+        "lifecycle": lifecycle, "idempotency_key_hash": idempotency_key_hash,
+        "schema_version": schema_version,
+    }, _OUTCOME_EVALUATION_NAMESPACE))
 
 
 def canonical_idempotency_key_hash(raw_key: str) -> str:

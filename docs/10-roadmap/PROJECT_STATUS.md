@@ -2,13 +2,13 @@
 
 > Generated from `PROJECT_STATUS.json`; regenerate with `python3 scripts/atlas_project_status.py render`.
 
-- Current phase: **phase-2 — Forecast UI migration** (complete)
+- Current phase: **phase-3 — Goal-linked recommendations** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 2 Slice 1 BACKEND SUBSTRATE COMPLETE. PR #21 (head 642b3d488af16cd737e28ceca63c576a1238d2e1) squash-merged to main at 3ce7fe5706530d0ec68e743fff0882c76b3434cf with code-reviewer-minimax-m3 VERDICT: GREEN against the full 13-item plan §3/§4/§5/§8 matrix, status CI gate passed (9s), and governance-required cross-cut regression coverage (16/16 commit-4 route integration + 238/238 focused + broader regression over commit-1/2/3 + Phase 1 forecast/canonical/hashing/migration/currency-provenance). The backend substrate delivers: deterministic recommendation derivation rules (no LLM, no external market data, no raw transactions), append-only decision journal ORM (mirrors Phase 1 immutable forecast_versions with SQLite + PostgreSQL BEFORE UPDATE/DELETE protection), owned Pydantic schemas (canonical-Decimal, RFC-3339-UTC-Z, sanitized envelopes including the dedicated RecommendationNotFound envelope), the two approved authenticated Phase 2 routes (GET /api/v1/forecasts/{forecast_id}/recommendation; POST /api/v1/recommendations/{recommendation_id}/decisions) gated by aptly scoped default-off server flags (atlas_forecast_read_api_enabled plus the new atlas_recommendation_persistence_enabled and atlas_decision_journal_writes_enabled), full plan-disciplined boundary contracts (ownership-before-disclosure, idempotent replay, stable sanitized 409 on conflicting payload reuse, currency fail-closed on missing/unverified/conflicting evidence), and test_decision_journal_parity.py dialect-parity coverage. Phase 1 cert remains canonical at SHA 08f6f811da7c325da8a3d60adae9f2d9c2d210e8 (annotated tag phase-1-complete). External multi-user production enablement remains BLOCKED pending retention and user-deletion policy (risk-p1-retention-rollout-gate open). Currency uncertainty continues to fail closed (risk-p1-account-currency-authority open). Personal single-user development may continue per the simplified tiered governance. Phase 2 Slice 2 (UI vertical slice) is the next bounded task.
-- Last updated: 2026-08-03T00:46:41Z
+- Last updated: 2026-08-03T03:20:06Z
 
 ## Active work
-- None
+- work-p3-outcome-evaluation-substrate: Phase 3 Slice 1: append-only outcome evaluation substrate (in_progress, high)
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
@@ -17,7 +17,7 @@
 - phase-0 — Projection foundation and Atlas baseline: complete (4/4 exit criteria)
 - phase-1 — Forecast persistence: complete (5/5 exit criteria)
 - phase-2 — Forecast UI migration: complete (1/1 exit criteria)
-- phase-3 — Goal-linked recommendations: not_started (0/1 exit criteria)
+- phase-3 — Goal-linked recommendations: in_progress (0/1 exit criteria)
 - phase-4 — Decision journal: not_started (0/1 exit criteria)
 
 ## Current risks

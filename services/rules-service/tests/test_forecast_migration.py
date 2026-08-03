@@ -13,14 +13,15 @@ from app.database import register_sqlite_compat
 
 ROOT = Path(__file__).parent.parent
 PARENT = "Q5h1i2j3k4l5"
-# Phase 2 Slice 1 commit-3 added an additive migration on top of the
-# Phase 1 cert chain (``S7a1b2c3d4e5`` → ``T8a1b2c3d4e5``). The
+# Phase 3 Slice 1 adds an additive migration on top of the
+# Phase 2 substrate chain (``S7a1b2c3d4e5`` → ``T8a1b2c3d4e5`` →
+# ``U9a1b2c3d4e5``). The
 # baseline ``alembic_version.version_num`` constant tracks the new
 # chain head so the round-trip assertions below stay aligned with
 # the certified migration chain (Phase 1 cert was committed against
-# ``S7a1b2c3d4e5``; commit-3 advances head to ``T8a1b2c3d4e5`` but
+# ``S7a1b2c3d4e5``; Phase 3 advances head to ``U9a1b2c3d4e5`` but
 # does NOT alter the Phase 1 cert semantics).
-REVISION = "T8a1b2c3d4e5"
+REVISION = "U9a1b2c3d4e5"
 ACCOUNT_CURRENCY_PARENT = "R6f1g2h3i4j5"
 
 

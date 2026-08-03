@@ -204,7 +204,17 @@ def write_render(status: dict[str, Any], check: bool = False) -> None:
 
 def command_start(status: dict[str, Any], args: argparse.Namespace) -> None:
     if args.phase != status["current_phase_id"]:
-        raise StatusError("work does not belong to the current phase")
+        phases = status["phases"]
+        current_index = next(index for index, item in enumerate(phases) if item["id"] == status["current_phase_id"])
+        target_index = next((index for index, item in enumerate(phases) if item["id"] == args.phase), None)
+        if (
+            target_index is None
+            or target_index != current_index + 1
+            or phases[current_index]["status"] != "complete"
+            or any(item["status"] != "complete" for item in phases[:target_index])
+        ):
+            raise StatusError("work does not belong to the current phase")
+        status["current_phase_id"] = args.phase
     target_phase = phase(status, args.phase)
     if target_phase["status"] == "complete":
         raise StatusError("cannot start work in a completed phase")
