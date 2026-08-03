@@ -513,37 +513,23 @@ function HomeInner() {
             visual center, AlertsPanel is a smaller companion, NOT a
             parallel full-width row (which would flatten the rhythm).
             Falls back gracefully when either side has no data. */}
-        {ready && (insights.length > 0 || anomalies.length > 0 || upcomingBills.length > 0) && (
+        {ready && (
           <div className="fade-in-only mt-8 grid grid-cols-1 lg:grid-cols-12 gap-4">
-            {insights.length > 0 && (
-              <div
-                className={`min-w-0 ${
-                  anomalies.length > 0 || upcomingBills.length > 0
-                    ? 'lg:col-span-8'
-                    : 'lg:col-span-12'
-                }`}
-              >
-                <CategoryMovers
-                  insights={insights}
-                  loading={rangedRefreshing}
-                  variant="strip"
-                />
-              </div>
-            )}
-            {(anomalies.length > 0 || upcomingBills.length > 0) && (
-              <div
-                className={`min-w-0 ${
-                  insights.length > 0 ? 'lg:col-span-4' : 'lg:col-span-12'
-                }`}
-              >
-                <AlertsPanel
-                  anomalies={anomalies}
-                  upcomingBills={upcomingBills}
-                  insights={insights}
-                  loading={rangedRefreshing}
-                />
-              </div>
-            )}
+            <div className="min-w-0 lg:col-span-8">
+              <CategoryMovers
+                insights={insights}
+                loading={rangedRefreshing}
+                variant="strip"
+              />
+            </div>
+            <div className="min-w-0 lg:col-span-4">
+              <AlertsPanel
+                anomalies={anomalies}
+                upcomingBills={upcomingBills}
+                insights={insights}
+                loading={rangedRefreshing}
+              />
+            </div>
           </div>
         )}
 

@@ -22,6 +22,25 @@ test('Category Movers section renders on dashboard', async ({ page }) => {
   ).toBeVisible({ timeout: 10_000 })
 })
 
+test('Category Movers keeps its empty state when dashboard source collections are empty', async ({ page }) => {
+  await page.route('**/api/dashboard/insights', async (route) => {
+    await route.fulfill({ json: { insights: [] } })
+  })
+  await page.route('**/api/dashboard/anomalies', async (route) => {
+    await route.fulfill({ json: { anomalies: [], count: 0 } })
+  })
+  await page.route('**/api/dashboard/upcoming-bills', async (route) => {
+    await route.fulfill({ json: { bills: [], count: 0 } })
+  })
+
+  await page.goto('/')
+  await page.waitForURL('**/')
+  await page.waitForLoadState('networkidle')
+
+  await expect(page.getByRole('heading', { name: 'Category Movers' })).toBeVisible()
+  await expect(page.getByText('No significant category changes detected')).toBeVisible()
+})
+
 test('Alerts Panel section renders on dashboard', async ({ page }) => {
   await page.goto('/')
   await page.waitForURL('**/')
@@ -31,6 +50,25 @@ test('Alerts Panel section renders on dashboard', async ({ page }) => {
   await expect(
     page.locator('h3:has-text("Alerts & Insights")'),
   ).toBeVisible({ timeout: 10_000 })
+})
+
+test('Alerts & Insights keeps its empty state when dashboard source collections are empty', async ({ page }) => {
+  await page.route('**/api/dashboard/insights', async (route) => {
+    await route.fulfill({ json: { insights: [] } })
+  })
+  await page.route('**/api/dashboard/anomalies', async (route) => {
+    await route.fulfill({ json: { anomalies: [], count: 0 } })
+  })
+  await page.route('**/api/dashboard/upcoming-bills', async (route) => {
+    await route.fulfill({ json: { bills: [], count: 0 } })
+  })
+
+  await page.goto('/')
+  await page.waitForURL('**/')
+  await page.waitForLoadState('networkidle')
+
+  await expect(page.getByRole('heading', { name: 'Alerts & Insights' })).toBeVisible()
+  await expect(page.getByText('All clear')).toBeVisible()
 })
 
 test('RecommendationCard shows data-driven content (not hardcoded)', async ({ page }) => {
