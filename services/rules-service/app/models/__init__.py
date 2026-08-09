@@ -52,6 +52,10 @@ from app.models.forecast import Forecast, ForecastVersion
 # the Phase-4 mutable ``RecommendationLog`` workflow audit trail.
 from app.models.recommendation import Recommendation
 from app.models.decision_journal_entry import DecisionJournalEntry
+# Phase 3 Slice 1 — append-only outcome evaluation records for accepted
+# decisions. Privacy-safe: allowlisted evidence_source_kind + hash-only
+# evidence_reference_hash (no raw URLs, filenames, or identifiers).
+from app.models.outcome_evaluation import OutcomeEvaluation
 
 __all__ = [
     "Budget",
@@ -73,4 +77,5 @@ __all__ = [
     "ForecastVersion",
     "Recommendation",
     "DecisionJournalEntry",
+    "OutcomeEvaluation",
 ] 

@@ -47,6 +47,9 @@ EXPECTED_TABLES = {
     # merged metadata contract and must remain inside the FK closure.
     "recommendations",
     "decision_journal_entries",
+    # Phase 3 Slice 1 — immutable outcome-evaluation substrate (privacy
+    # safe: allowlisted evidence_source_kind + hash-only evidence ref).
+    "outcome_evaluations",
 }
 
 
