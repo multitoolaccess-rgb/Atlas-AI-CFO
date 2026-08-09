@@ -13,8 +13,12 @@ Lifecycle states:
 Privacy contract:
 
 * ``evidence_source_kind`` is a strict allowlisted enum (no free-form input).
-* ``evidence_reference_hash`` is a hash-only opaque reference (no raw URLs,
-  filenames, account IDs, transaction payloads, or free-form source data).
+* ``evidence_reference_hash`` is the only evidence pointer, and it is a
+  hash-only opaque reference (no raw URLs, filenames, account IDs, or
+  transaction identifiers).
+* ``result_json`` / ``explanation`` carry the measured outcome data and
+  its human explanation (size-bounded, not content-scrubbed); they are
+  the outcome itself, never evidence references.
 * Raw evidence references are NEVER persisted, logged, or included in
   validation errors.
 

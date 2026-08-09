@@ -695,6 +695,69 @@ def test_service_race_recovery_returns_committed_winner(world_with_accepted_deci
         assert result.entry.id == eval_id
 
 
+def test_recover_database_winner_falls_back_to_idempotency_key(world_with_accepted_decision):
+    """A UNIQUE-collision loser whose PK differs from the winner's is recovered
+    via the cross-row idempotency-key lookup, not reported as a generic error."""
+    now = _now()
+    rec_id = recommendation_row_id()
+    dec_id = accepted_decision_row_id()
+    raw_key = "k-race-divergent"
+    idem_hash = canonical_idempotency_key_hash(raw_key)
+    # Divergent lifecycle ⇒ the loser's deterministic PK differs from the
+    # committed winner's even though the UNIQUE tuple collides.
+    winner_id = outcome_evaluation_id_for(
+        user_id=primary_user_id(), goal_id=primary_goal_id(),
+        recommendation_id=rec_id, decision_journal_entry_id=dec_id,
+        lifecycle="measured", idempotency_key_hash=idem_hash,
+        schema_version=OUTCOME_EVALUATION_SCHEMA_VERSION,
+    )
+    loser_id = outcome_evaluation_id_for(
+        user_id=primary_user_id(), goal_id=primary_goal_id(),
+        recommendation_id=rec_id, decision_journal_entry_id=dec_id,
+        lifecycle="pending", idempotency_key_hash=idem_hash,
+        schema_version=OUTCOME_EVALUATION_SCHEMA_VERSION,
+    )
+    assert loser_id != winner_id
+    with Session(world_with_accepted_decision) as session, session.begin():
+        session.add(
+            OutcomeEvaluation(
+                id=winner_id,
+                recommendation_id=rec_id,
+                decision_journal_entry_id=dec_id,
+                user_id=primary_user_id(),
+                goal_id=primary_goal_id(),
+                lifecycle="measured",
+                schema_version=OUTCOME_EVALUATION_SCHEMA_VERSION,
+                idempotency_key_hash=idem_hash,
+                currency="USD",
+                evidence_source_kind="account_balance_delta",
+                evidence_reference_hash=_derive_evidence_reference_hash(
+                    user_id=primary_user_id(), goal_id=primary_goal_id(),
+                    recommendation_id=rec_id, decision_journal_entry_id=dec_id,
+                    evidence_source_kind="account_balance_delta",
+                    measurement_window_start=now, measurement_window_end=now,
+                ),
+                measurement_window_start=now,
+                measurement_window_end=now,
+                result_json='{"delta_usd": "150.00"}',
+                confidence="high",
+                explanation="Account balance increased by $150 in the measurement window",
+                recorded_at=now,
+            )
+        )
+        session.flush()
+    with Session(world_with_accepted_decision) as session:
+        service = OutcomeEvaluationService(session)
+        recovered = service._recover_database_winner(
+            user_id=primary_user_id(),
+            idempotency_key_hash=idem_hash,
+            evaluation_id=loser_id,
+        )
+        assert recovered is not None
+        assert recovered.id == winner_id
+        assert recovered.lifecycle == "measured"
+
+
 # ---------------------------------------------------------------------------
 # Append-only: service exposes no UPDATE/DELETE + SQL triggers still block
 # ---------------------------------------------------------------------------

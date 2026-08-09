@@ -29,10 +29,14 @@ Semantics enforced here:
   defence; the service enforces the same contract for defense-in-depth.
 
 * **Privacy contract.**  ``evidence_source_kind`` is a strict
-  allowlisted enum.  ``evidence_reference_hash`` is a server-derived
-  64-char lowercase SHA-256 hex.  No raw URLs, filenames, account IDs,
-  transaction payloads, or free-form source data are ever accepted or
-  stored.
+  allowlisted enum and ``evidence_reference_hash`` is a server-derived
+  64-char lowercase SHA-256 hex.  The evidence REFERENCE is the only
+  pointer to where evidence lives, and it is hash-only: no raw URLs,
+  filenames, account IDs, or transaction identifiers are ever accepted
+  or stored as references.  ``result_json`` and ``explanation`` carry
+  the measured outcome data and its human explanation (size-bounded,
+  not content-scrubbed); they ARE the outcome, never evidence
+  references.
 
 * **Idempotent-replay + cross-row conflict detection.**  Same raw
   Idempotency-Key + same canonical request = same row
@@ -228,7 +232,8 @@ def _derive_evidence_reference_hash(
 
     1. The hash is server-derived, not client-supplied.
     2. The same canonical tuple always produces the same hash.
-    3. No raw evidence is ever persisted, logged, or echoed.
+    3. No raw evidence reference is ever persisted, logged, or echoed —
+       only its digest.
     """
     inputs = {
         "decision_journal_entry_id": decision_journal_entry_id,
@@ -476,9 +481,25 @@ class OutcomeEvaluationService:
     # ------------------------------------------------------------------
 
     def _recover_database_winner(
-        self, *, evaluation_id: str,
+        self,
+        *,
+        user_id: int,
+        idempotency_key_hash: str,
+        evaluation_id: str,
     ) -> OutcomeEvaluation | None:
-        return self._session.get(OutcomeEvaluation, evaluation_id)
+        by_pk = self._session.get(OutcomeEvaluation, evaluation_id)
+        if by_pk is not None:
+            return by_pk
+        # The losing insert may have collided on the UNIQUE
+        # (user_id, recommendation_id, decision_journal_entry_id,
+        # idempotency_key_hash) constraint against a concurrent writer whose
+        # canonical request diverged (e.g. a different lifecycle ⇒ different
+        # deterministic PK).  Fall back to the cross-row idempotency-key
+        # lookup so the caller surfaces that winner as an
+        # OutcomeConflictError instead of a generic persistence error.
+        return self._lookup_by_idempotency_key(
+            user_id=user_id, idempotency_key_hash=idempotency_key_hash,
+        )
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -509,7 +530,9 @@ class OutcomeEvaluationService:
 
         The ``evidence_reference_hash`` is **server-derived** from the
         canonical evaluation identity + source kind + measurement window.
-        No raw evidence is ever accepted, persisted, logged, or echoed.
+        No raw evidence reference is ever accepted, persisted, logged, or
+        echoed; ``result_json`` / ``explanation`` carry the measured
+        outcome data itself, never an evidence pointer.
         """
         # 1. Bounded lifecycle token.
         if lifecycle not in _LIFECYCLE_ALLOWED:
@@ -670,7 +693,11 @@ class OutcomeEvaluationService:
             raise
         except (IntegrityError, OperationalError):
             self._session.rollback()
-            recovered = self._recover_database_winner(evaluation_id=evaluation_id)
+            recovered = self._recover_database_winner(
+                user_id=user_id,
+                idempotency_key_hash=idempotency_key_hash,
+                evaluation_id=evaluation_id,
+            )
             if recovered is None:
                 raise OutcomeError("outcome persistence conflict")
             if not self._canonical_fields_match(
