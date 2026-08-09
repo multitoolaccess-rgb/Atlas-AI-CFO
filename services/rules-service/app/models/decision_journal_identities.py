@@ -46,6 +46,7 @@ DERIVATION_HASH_ALGORITHM: Final[str] = "sha256"
 _RECOMMENDATION_NAMESPACE: Final[bytes] = b"atlas-recommendation/v1:"
 _DECISION_SLOT_NAMESPACE: Final[bytes] = b"atlas-decision-slot/v1:"
 _DECISION_JOURNAL_NAMESPACE: Final[bytes] = b"atlas-decision-journal/v1:"
+_OUTCOME_EVALUATION_NAMESPACE: Final[bytes] = b"atlas-outcome-evaluation/v1:"
 _GENERIC_IDEMPOTENCY_NAMESPACE: Final[bytes] = b"atlas-idempotency-key/v1:"
 
 _CANONICAL_UUID_REGEX: Final[re.Pattern[str]] = re.compile(
@@ -168,3 +169,32 @@ def is_canonical_uuid(value: str) -> bool:
 def is_lowercase_hex_sha256(value: str) -> bool:
     """True iff ``value`` is a 64-character lowercase hex SHA-256 digest."""
     return isinstance(value, str) and bool(_LOWERCASE_SHA256_REGEX.match(value))
+
+
+def outcome_evaluation_id_for(
+    *,
+    user_id: int,
+    goal_id: int,
+    recommendation_id: str,
+    decision_journal_entry_id: str,
+    lifecycle: str,
+    idempotency_key_hash: str,
+    schema_version: str,
+) -> str:
+    """Deterministic PK for ``OutcomeEvaluation``.
+
+    A client retry with the same idempotency_key_hash on the same
+    recommendation + decision + lifecycle produces the same PK, which
+    collides on the UNIQUE constraint and lets the orchestrator API layer
+    return the prior row instead of inserting a duplicate evaluation.
+    """
+    inputs = {
+        "user_id": user_id,
+        "goal_id": goal_id,
+        "recommendation_id": recommendation_id,
+        "decision_journal_entry_id": decision_journal_entry_id,
+        "lifecycle": lifecycle,
+        "idempotency_key_hash": idempotency_key_hash,
+        "schema_version": schema_version,
+    }
+    return canonical_uuid_from_digest(canonical_digest(inputs, _OUTCOME_EVALUATION_NAMESPACE))
