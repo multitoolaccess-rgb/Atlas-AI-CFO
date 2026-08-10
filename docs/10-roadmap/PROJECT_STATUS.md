@@ -2,10 +2,10 @@
 
 > Generated from `PROJECT_STATUS.json`; regenerate with `python3 scripts/atlas_project_status.py render`.
 
-- Current phase: **phase-3 — Goal-linked recommendations** (in_progress)
+- Current phase: **phase-4 — Decision journal** (not_started)
 - Overall status: **in_progress**
-- Current objective: Phase 3 recommendation contract IMPLEMENTED on PR #33: the Phase 2 deterministic recommendation and append-only decision-journal substrate now surfaces owner-scoped goal, forecast-evidence, risks, confidence, accepted approvals, and linked immutable outcome evaluations through a bounded read-only contract. The contract preserves the existing read gate, ownership-before-existence, append-only/idempotency behavior, USD fail-closed constraint, and hash-only evidence design; raw evidence locations, outcome result payloads, explanations, idempotency keys, and user identities remain absent. ec-p3-recommendation-contract is satisfied, subject only to the approved PR merge and phase-completion reconciliation. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.
-- Last updated: 2026-08-10T04:12:30Z
+- Current objective: Phase 3 COMPLETE: PR #33 squash-merged at 3586e2b, satisfying ec-p3-recommendation-contract with owner-scoped goal, forecast-evidence, risks, confidence, accepted approvals, and linked immutable outcome evaluations. Phase 4 decision journal is not started and requires explicit authorization. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.
+- Last updated: 2026-08-10T04:33:32Z
 
 ## Active work
 - None
@@ -17,7 +17,7 @@
 - phase-0 — Projection foundation and Atlas baseline: complete (4/4 exit criteria)
 - phase-1 — Forecast persistence: complete (5/5 exit criteria)
 - phase-2 — Forecast UI migration: complete (1/1 exit criteria)
-- phase-3 — Goal-linked recommendations: in_progress (1/1 exit criteria)
+- phase-3 — Goal-linked recommendations: complete (1/1 exit criteria)
 - phase-4 — Decision journal: not_started (0/1 exit criteria)
 
 ## Current risks

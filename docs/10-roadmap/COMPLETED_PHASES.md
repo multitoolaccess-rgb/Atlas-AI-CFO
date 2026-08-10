@@ -52,3 +52,13 @@ criteria are complete.
 - ADRs: ADR-005-ATLAS-VERTICAL-SLICE-FOUNDATION.md; ADR-006-IMMUTABLE-FORECAST-PERSISTENCE.md
 - Known limitations: External multi-user rollout remains blocked by retention/deletion policy; account currency authority remains fail-closed; Phase 3 remains not started.
 - Authorized next phase: Phase 3 planning only: define a separately authorized bounded plan; do not implement automatically.
+
+## phase-3 — Goal-linked recommendations
+
+- Completion date: 2026-08-09
+- Final commit: `3586e2b4f74c1476e454af4bb49bf3c994240471`
+- Merged PRs: 33
+- Test evidence: PR #33 final head: governance/status and cheap CI passed; heavy/browser skipped under the established backend-only policy.; Focused tracker tests: 12 passed; approved implementation tests: 181 focused passed and Rules Service suite 1179 passed, 10 skipped, 1 xfailed.
+- ADRs: ADR-003-PROGRESSIVE-AUTONOMY.md, ADR-004-EVENTED-HISTORY.md
+- Known limitations: External multi-user rollout remains blocked pending retention and user-deletion policy.; Currency authority remains fail-closed pending authoritative active-account currency.
+- Authorized next phase: Phase 4 decision journal (ec-p4-decision-history) requires explicit authorization; do not begin automatically.
