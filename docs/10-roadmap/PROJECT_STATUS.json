@@ -1,28 +1,5 @@
 {
-  "active_work": [
-    {
-      "branch": "codex/phase-3-recommendation-linkage-and-approvals",
-      "id": "work-p3-recommendation-linkage-and-approvals",
-      "issue": "",
-      "objective": "Close the Phase 3 recommendation contract by linking accepted deterministic recommendations to goal, privacy-safe evidence, risks, confidence, approvals, and outcome evaluations without weakening authorization, append-only, idempotency, or fail-closed constraints.",
-      "paths": [
-        "services/rules-service/app/forecasts/recommendation_schemas.py",
-        "services/rules-service/app/forecasts/recommendations.py",
-        "services/rules-service/app/routes/recommendations_derived.py",
-        "services/rules-service/tests/test_recommendation_schemas.py",
-        "services/rules-service/tests/test_routes_recommendations_derived.py",
-        "docs/10-roadmap/PROJECT_STATUS.json",
-        "docs/10-roadmap/PROJECT_STATUS.md"
-      ],
-      "phase_id": "phase-3",
-      "risk_tier": "high",
-      "status": "in_progress",
-      "tests": [
-        "Focused Rules Service recommendation, decision-journal, outcome-evaluation, route, model, and migration tests; relevant full Rules Service suite"
-      ],
-      "title": "Phase 3: Recommendation linkage and approvals"
-    }
-  ],
+  "active_work": [],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -596,11 +573,42 @@
         "Full Rules Service suite: 1174 passed, 10 skipped, 1 xfailed"
       ],
       "title": "Phase 3 Slice 1: Privacy-safe outcome-evaluation substrate (evidence reference replacement)"
+    },
+    {
+      "branch": "codex/phase-3-recommendation-linkage-and-approvals",
+      "ci_evidence": {
+        "check": "cheap (lint + unit, no browser)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31354498609"
+      },
+      "commit": "86ea65fc8c27224ec209249218fb6ccbe74b4178",
+      "id": "work-p3-recommendation-linkage-and-approvals",
+      "issue": "",
+      "objective": "Close the Phase 3 recommendation contract by linking accepted deterministic recommendations to goal, privacy-safe evidence, risks, confidence, approvals, and outcome evaluations without weakening authorization, append-only, idempotency, or fail-closed constraints.",
+      "paths": [
+        "services/rules-service/app/forecasts/recommendation_schemas.py",
+        "services/rules-service/app/forecasts/recommendations.py",
+        "services/rules-service/app/routes/recommendations_derived.py",
+        "services/rules-service/tests/test_recommendation_schemas.py",
+        "services/rules-service/tests/test_routes_recommendations_derived.py",
+        "docs/10-roadmap/PROJECT_STATUS.json",
+        "docs/10-roadmap/PROJECT_STATUS.md"
+      ],
+      "phase_id": "phase-3",
+      "pr": "33",
+      "review_evidence": "Fresh independent code review: cycle 1 found two MEDIUM test-evidence gaps (true cross-user indistinguishability and explicit default-off gate coverage); both corrected. Cycle 2 approved with no remaining CRITICAL/HIGH/MEDIUM findings. Review cycle cap: 2/2.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Focused Rules Service recommendation-contract, decision-journal, outcome-evaluation, route, schema, and migration tests: 181 passed.",
+        "Full Rules Service suite: 1179 passed, 10 skipped, 1 xfailed."
+      ],
+      "title": "Phase 3: Recommendation linkage and approvals"
     }
   ],
   "current_objective": "Phase 3 Slice 1 OUTCOME-EVALUATION SUBSTRATE COMPLETE. PR #32 (head e4ab0bd) squash-merged to main at 8955e40 with an independent code-reviewer review of the PR head (zero CRITICAL/HIGH findings; two MEDIUM items \u2014 privacy-contract docstring scope overclaim and race-recovery fallback for cross-row UNIQUE collisions \u2014 both addressed in the review-fix commit e4ab0bd, with a regression test) and status + cheap CI checks green on the fix commit (heavy correctly skipped: no-UI backend slice). The substrate delivers: immutable append-only outcome_evaluations ORM + migration (U9a1b2c3d4e5) with SQLite + PostgreSQL UPDATE/DELETE triggers, allowlisted evidence_source_kind enum (forecast_projection / account_balance_delta / transaction_pattern), server-derived hash-only evidence_reference_hash (64-char lowercase SHA-256) so no raw URLs, filenames, account IDs, or transaction identifiers are ever accepted from end-user requests, persisted, logged, echoed, or exposed in errors, lifecycle states (pending / not_yet_measurable / measured) with the measured evidence contract enforced by CHECK constraints, deterministic PK + (user, recommendation, decision, idempotency-key) idempotent replay, sanitized OutcomeConflictError carrying only the current etag, ownership-before-existence verification, UNIQUE-collision race recovery with cross-row idempotency-key fallback, and a row-count-guarded migration downgrade that refuses to destroy immutable outcome history. Phase 3 exit criterion ec-p3-recommendation-contract remains open: recommendations still need the goals/evidence/risks/confidence/approvals linkage. External multi-user production enablement remains BLOCKED pending retention and user-deletion policy (risk-p1-retention-rollout-gate open). Currency uncertainty continues to fail closed (risk-p1-account-currency-authority open). The next bounded task continues Phase 3 goal-linked recommendations.",
   "current_phase_id": "phase-3",
-  "last_updated": "2026-08-09T21:49:33Z",
+  "last_updated": "2026-08-10T04:12:30Z",
   "next_bounded_task": {
     "description": "Continue Phase 3 goal-linked recommendations. Slice 1 (privacy-safe outcome-evaluation substrate) is complete and merged via PR #32 at 8955e40. The next bounded slice closes the remaining ec-p3-recommendation-contract scope: wire recommendations to goals, evidence, risks, confidence, and approvals \u2014 extend the Phase 2 deterministic recommendation + append-only decision-journal substrate (PR #21) so accepted decisions surface their supporting goal/evidence/risk/confidence linkage and the outcome evaluations recorded by the Phase 3 Slice 1 substrate. Do not begin until the user explicitly authorizes the next slice. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.",
     "id": "work-p3-recommendation-linkage-and-approvals",
