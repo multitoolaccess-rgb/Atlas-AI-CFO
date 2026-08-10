@@ -5,10 +5,10 @@
 - Current phase: **phase-4 — Decision journal** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 4 Slice 1 is in progress: implement the owner-scoped, append-only decision-history substrate for alternatives, rationale, audit events, correction recovery, and bounded default-off APIs. Phase 3 remains complete. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.
-- Last updated: 2026-08-10T04:56:57Z
+- Last updated: 2026-08-10T07:55:35Z
 
 ## Active work
-- work-p4-decision-history-substrate: Phase 4 Slice 1 decision-history substrate (in_progress, high)
+- work-p4-decision-history-substrate: Phase 4 Slice 1 decision-history substrate (blocked, high)
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}

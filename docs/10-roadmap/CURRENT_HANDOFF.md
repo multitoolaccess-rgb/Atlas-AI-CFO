@@ -9,11 +9,11 @@
 - Overall status: in_progress
 - Objective: Phase 4 Slice 1 is in progress: implement the owner-scoped, append-only decision-history substrate for alternatives, rationale, audit events, correction recovery, and bounded default-off APIs. Phase 3 remains complete. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.
 - Phase exit criteria: 0/1 complete
-- Tracker updated: 2026-08-10T04:56:57Z
+- Tracker updated: 2026-08-10T07:55:35Z
 
 ## Active work
 
-- work-p4-decision-history-substrate: Phase 4 Slice 1 decision-history substrate [in_progress/high]
+- work-p4-decision-history-substrate: Phase 4 Slice 1 decision-history substrate [blocked/high]
   - Objective: Implement append-only, owner-scoped decision history, alternatives, audit, correction recovery, and bounded API behind a default-off rollout flag.
   - Branch: work-p4-decision-history-substrate
   - Paths: services/rules-service/app/models,services/rules-service/app/forecasts,services/rules-service/app/routes,services/rules-service/alembic/versions,services/rules-service/tests
