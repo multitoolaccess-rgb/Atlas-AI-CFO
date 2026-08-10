@@ -55,11 +55,21 @@ from app.forecasts.recommendation_schemas import (
     RecommendationNotFoundEnvelope,
 )
 from app.forecasts.recommendations import (
+    MapperError,
     build_journal_entry_envelope,
+    build_recommendation_contract_envelope,
     build_recommendation_envelope,
 )
 from app.forecasts.schemas import ValidationErrorEntry, ValidationErrorEnvelope
-from app.models import Forecast, ForecastVersion, Recommendation, User
+from app.models import (
+    DecisionJournalEntry,
+    Forecast,
+    ForecastVersion,
+    Goal,
+    OutcomeEvaluation,
+    Recommendation,
+    User,
+)
 
 
 router = APIRouter(tags=["recommendations"], prefix="/api/v1")
@@ -228,7 +238,99 @@ async def get_recommendation_for_forecast(
 
 
 # ----------------------------------------------------------------------
-# Route 2: POST /api/v1/recommendations/{recommendation_id}/decisions
+# Route 2: GET /api/v1/recommendations/{recommendation_id}/contract
+# ----------------------------------------------------------------------
+
+@router.get(
+    "/recommendations/{recommendation_id}/contract",
+    status_code=status.HTTP_200_OK,
+    response_model=None,
+)
+async def get_recommendation_contract(
+    user_sub: Annotated[str, Depends(require_user)],
+    db: Annotated[Session, Depends(_get_db)],
+    recommendation_id: str = Path(min_length=1, max_length=36),
+) -> JSONResponse:
+    """Return the owner-scoped, read-only Phase 3 recommendation contract.
+
+    Raw evidence locations and outcome payloads are never loaded into this
+    response.  The only outcome evidence pointer remains the existing opaque,
+    server-derived hash.
+    """
+    if not settings.atlas_forecast_read_api_enabled:
+        return _disabled_response()
+
+    user_id = _resolve_db_user_id(db, user_sub)
+    recommendation = db.get(Recommendation, recommendation_id)
+    if recommendation is None or int(recommendation.user_id) != user_id:
+        return _recommendation_not_found_response()
+
+    # Verify every parent ownership/link before composing any child rows.
+    goal = db.get(Goal, recommendation.goal_id)
+    version = db.get(ForecastVersion, recommendation.forecast_version_id)
+    if goal is None or int(goal.user_id) != user_id or version is None:
+        return _recommendation_not_found_response()
+    forecast = db.get(Forecast, version.forecast_id)
+    if (
+        forecast is None
+        or int(forecast.user_id) != user_id
+        or int(forecast.goal_id) != int(recommendation.goal_id)
+    ):
+        return _recommendation_not_found_response()
+
+    accepted_decisions = tuple(db.scalars(
+        select(DecisionJournalEntry)
+        .where(
+            DecisionJournalEntry.user_id == user_id,
+            DecisionJournalEntry.goal_id == recommendation.goal_id,
+            DecisionJournalEntry.recommendation_id == recommendation.id,
+            DecisionJournalEntry.decision_action == "accept",
+        )
+        .order_by(DecisionJournalEntry.decided_at.asc(), DecisionJournalEntry.id.asc())
+    ))
+    accepted_decision_ids = tuple(str(entry.id) for entry in accepted_decisions)
+    evaluations_by_decision_id: dict[str, tuple[OutcomeEvaluation, ...]] = {
+        decision_id: () for decision_id in accepted_decision_ids
+    }
+    if accepted_decision_ids:
+        grouped: dict[str, list[OutcomeEvaluation]] = {
+            decision_id: [] for decision_id in accepted_decision_ids
+        }
+        for evaluation in db.scalars(
+            select(OutcomeEvaluation)
+            .where(
+                OutcomeEvaluation.user_id == user_id,
+                OutcomeEvaluation.goal_id == recommendation.goal_id,
+                OutcomeEvaluation.recommendation_id == recommendation.id,
+                OutcomeEvaluation.decision_journal_entry_id.in_(accepted_decision_ids),
+            )
+            .order_by(OutcomeEvaluation.recorded_at.asc(), OutcomeEvaluation.id.asc())
+        ):
+            grouped[str(evaluation.decision_journal_entry_id)].append(evaluation)
+        evaluations_by_decision_id = {
+            decision_id: tuple(items) for decision_id, items in grouped.items()
+        }
+
+    try:
+        envelope = build_recommendation_contract_envelope(
+            recommendation=recommendation,
+            forecast_id=str(forecast.id),
+            forecast_version_model_version=str(version.model_version),
+            forecast_version_calculation_version=str(version.calculation_version),
+            forecast_version_input_state_hash=str(version.input_state_hash),
+            forecast_version_data_as_of=version.data_as_of,
+            forecast_version_number=int(version.version_number),
+            accepted_decisions=accepted_decisions,
+            outcome_evaluations_by_decision_id=evaluations_by_decision_id,
+        )
+    except MapperError:
+        # Persisted rows that violate this bounded contract are not surfaced.
+        return _recommendation_not_found_response()
+    return JSONResponse(status_code=200, content=envelope.model_dump())
+
+
+# ----------------------------------------------------------------------
+# Route 3: POST /api/v1/recommendations/{recommendation_id}/decisions
 # ----------------------------------------------------------------------
 
 @router.post(

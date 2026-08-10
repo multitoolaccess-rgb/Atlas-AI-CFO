@@ -51,6 +51,7 @@ from app.forecasts.schemas import (
 
 RECOMMENDATION_SCHEMA_VERSION: Final[str] = "atlas-derived-recommendation/v1"
 DECISION_JOURNAL_SCHEMA_VERSION: Final[str] = "atlas-decision-journal-entry/v1"
+RECOMMENDATION_CONTRACT_SCHEMA_VERSION: Final[str] = "atlas-recommendation-contract/v1"
 
 # Issuer literal for the deterministic (no-LLM) recommendation engine.
 DETERMINISTIC_RULES_ISSUER: Final[Literal["atlas-deterministic-rules/v1"]] = (
@@ -406,6 +407,88 @@ class DecisionJournalEntryEnvelope(BaseModel):
 
 
 # ============================================================
+# Phase 3 goal-linked recommendation contract (read-only)
+# ============================================================
+
+class GoalReferenceEntry(BaseModel):
+    """Bounded goal linkage; financial goal detail stays in its own API."""
+
+    model_config = _phase1_response_config()
+    goal_id: int = Field(..., ge=1, le=9_223_372_036_854_775_807)
+
+
+class OutcomeEvaluationLinkEntry(BaseModel):
+    """Privacy-safe linkage to an immutable outcome evaluation.
+
+    The reference is an opaque server-derived SHA-256 hash. Raw evidence
+    locations and measured result payloads are deliberately absent.
+    """
+
+    model_config = _phase1_response_config()
+    evaluation_id: str = Field(..., min_length=36, max_length=36)
+    lifecycle: Literal["pending", "not_yet_measurable", "measured"]
+    evidence_source_kind: Literal[
+        "forecast_projection", "account_balance_delta", "transaction_pattern"
+    ] | None = None
+    evidence_reference_hash: str | None = Field(default=None, min_length=64, max_length=64)
+    confidence: RecommendationConfidence | None = None
+    recorded_at: str = Field(..., min_length=20, max_length=32)
+
+    @field_validator("evaluation_id")
+    @classmethod
+    def _evaluation_id_uuid(cls, value: Any) -> str:
+        return _check_uuid_lower(value)
+
+    @field_validator("evidence_reference_hash")
+    @classmethod
+    def _evidence_reference_hash_sha(cls, value: Any) -> str | None:
+        return None if value is None else _check_sha256_hex(value)
+
+    @field_validator("recorded_at")
+    @classmethod
+    def _recorded_at_rfc3339(cls, value: Any) -> str:
+        return _check_utc_rfc3339_z(value)
+
+
+class RecommendationApprovalEntry(BaseModel):
+    """One accepted append-only decision and its linked evaluations."""
+
+    model_config = _phase1_response_config()
+    decision_journal_entry_id: str = Field(..., min_length=36, max_length=36)
+    action: Literal["accept"] = "accept"
+    decided_at: str = Field(..., min_length=20, max_length=32)
+    outcome_evaluations: tuple[OutcomeEvaluationLinkEntry, ...] = Field(default_factory=tuple)
+
+    @field_validator("decision_journal_entry_id")
+    @classmethod
+    def _decision_id_uuid(cls, value: Any) -> str:
+        return _check_uuid_lower(value)
+
+    @field_validator("decided_at")
+    @classmethod
+    def _approval_decided_at_rfc3339(cls, value: Any) -> str:
+        return _check_utc_rfc3339_z(value)
+
+
+class RecommendationContractEnvelope(BaseModel):
+    """Read-only Phase 3 linkage across immutable recommendation ledgers."""
+
+    model_config = _phase1_response_config()
+    schema_version: Literal[RECOMMENDATION_CONTRACT_SCHEMA_VERSION] = RECOMMENDATION_CONTRACT_SCHEMA_VERSION
+    recommendation_id: str = Field(..., min_length=36, max_length=36)
+    goal: GoalReferenceEntry
+    evidence: EvidenceReferenceEntry
+    risks: tuple[RecommendationRiskToken, ...] = Field(default_factory=tuple, max_length=4)
+    confidence: RecommendationConfidence
+    approvals: tuple[RecommendationApprovalEntry, ...] = Field(default_factory=tuple)
+
+    @field_validator("recommendation_id")
+    @classmethod
+    def _recommendation_id_uuid(cls, value: Any) -> str:
+        return _check_uuid_lower(value)
+
+
+# ============================================================
 # Recommendation-not-found envelope (planning nit 1)
 # ============================================================
 
@@ -452,6 +535,7 @@ class DecisionConflictEnvelope(BaseModel):
 __all__ = [
     "RECOMMENDATION_SCHEMA_VERSION",
     "DECISION_JOURNAL_SCHEMA_VERSION",
+    "RECOMMENDATION_CONTRACT_SCHEMA_VERSION",
     "DETERMINISTIC_RULES_ISSUER",
     "ERROR_CODE_RECOMMENDATION_NOT_FOUND",
     "ERROR_CODE_DECISION_CONFLICT",
@@ -465,6 +549,10 @@ __all__ = [
     "DeterministicRecommendationEnvelope",
     "DecisionJournalSubmitRequest",
     "DecisionJournalEntryEnvelope",
+    "GoalReferenceEntry",
+    "OutcomeEvaluationLinkEntry",
+    "RecommendationApprovalEntry",
+    "RecommendationContractEnvelope",
     "RecommendationNotFoundEnvelope",
     "DecisionConflictEnvelope",
 ]

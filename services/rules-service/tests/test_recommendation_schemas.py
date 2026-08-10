@@ -46,6 +46,7 @@ from app.forecasts.recommendation_schemas import (
     ImpactRangeEntry,
     LinkEntry,
     RecommendationNotFoundEnvelope,
+    RecommendationContractEnvelope,
 )
 from app.forecasts.schemas import (
     ERROR_CODE_FORECAST_NOT_FOUND,
@@ -117,6 +118,32 @@ def _valid_journal_entry_payload(**overrides) -> dict[str, object]:
     return payload
 
 
+def _valid_recommendation_contract_payload(**overrides) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "schema_version": "atlas-recommendation-contract/v1",
+        "recommendation_id": RECOMMENDATION_ID,
+        "goal": {"goal_id": 42},
+        "evidence": _valid_recommendation_payload()["evidence_references"],
+        "risks": ("liquidity_reduction",),
+        "confidence": "medium",
+        "approvals": [{
+            "decision_journal_entry_id": JOURNAL_ENTRY_ID,
+            "action": "accept",
+            "decided_at": "2026-08-01T12:34:56.789012Z",
+            "outcome_evaluations": [{
+                "evaluation_id": str(uuid.uuid5(uuid.NAMESPACE_DNS, "atlas-test/evaluation/1")),
+                "lifecycle": "measured",
+                "evidence_source_kind": "account_balance_delta",
+                "evidence_reference_hash": "b" * 64,
+                "confidence": "high",
+                "recorded_at": "2026-08-02T12:34:56.789012Z",
+            }],
+        }],
+    }
+    payload.update(overrides)
+    return payload
+
+
 # ============================================================
 # 1. Top-level schema_version convention (planning nit 2)
 # ============================================================
@@ -162,6 +189,21 @@ def test_recommendation_and_journal_versions_are_distinct() -> None:
     j_payload = _valid_journal_entry_payload()
     with pytest.raises(ValidationError):
         DeterministicRecommendationEnvelope.model_validate(j_payload)
+
+
+def test_recommendation_contract_is_read_only_and_hash_only() -> None:
+    contract = RecommendationContractEnvelope.model_validate(
+        _valid_recommendation_contract_payload()
+    )
+    dumped = contract.model_dump(mode="json")
+    evaluation = dumped["approvals"][0]["outcome_evaluations"][0]
+    assert evaluation["evidence_reference_hash"] == "b" * 64
+    assert "result_json" not in evaluation
+    assert "explanation" not in evaluation
+    with pytest.raises(ValidationError):
+        RecommendationContractEnvelope.model_validate(
+            _valid_recommendation_contract_payload(raw_evidence_reference="https://example.test/evidence")
+        )
 
 
 # ============================================================

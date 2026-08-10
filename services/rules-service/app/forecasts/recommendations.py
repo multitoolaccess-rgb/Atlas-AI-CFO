@@ -41,13 +41,18 @@ from app.forecasts.recommendation_schemas import (
     DecisionJournalEntryEnvelope,
     DeterministicRecommendationEnvelope,
     EvidenceReferenceEntry,
+    GoalReferenceEntry,
     ImpactRangeEntry,
     LinkEntry,
+    OutcomeEvaluationLinkEntry,
+    RecommendationApprovalEntry,
+    RecommendationContractEnvelope,
     RecommendationConfidence,
     RecommendationKind,
     RecommendationRiskToken,
 )
 from app.models.decision_journal_entry import DecisionJournalEntry
+from app.models.outcome_evaluation import OutcomeEvaluation
 from app.models.recommendation import Recommendation
 
 
@@ -327,3 +332,62 @@ def build_journal_entry_envelope(
         links=links,
     )
     return envelope
+
+
+# ----------------------------------------------------------------------
+# Phase 3 recommendation contract mapper (read-only composition)
+# ----------------------------------------------------------------------
+
+def build_recommendation_contract_envelope(
+    *,
+    recommendation: Recommendation,
+    forecast_id: str,
+    forecast_version_model_version: str,
+    forecast_version_calculation_version: str,
+    forecast_version_input_state_hash: str,
+    forecast_version_data_as_of: datetime,
+    forecast_version_number: int,
+    accepted_decisions: tuple[DecisionJournalEntry, ...],
+    outcome_evaluations_by_decision_id: dict[str, tuple[OutcomeEvaluation, ...]],
+) -> RecommendationContractEnvelope:
+    """Compose the Phase 3 contract from already-authorized immutable rows.
+
+    This read-only mapper never includes raw evidence locations, measured
+    result JSON, explanatory text, idempotency keys, or user identities.
+    """
+    recommendation_envelope = build_recommendation_envelope(
+        recommendation=recommendation,
+        forecast_id=forecast_id,
+        forecast_version_model_version=forecast_version_model_version,
+        forecast_version_calculation_version=forecast_version_calculation_version,
+        forecast_version_input_state_hash=forecast_version_input_state_hash,
+        forecast_version_data_as_of=forecast_version_data_as_of,
+        forecast_version_number=forecast_version_number,
+    )
+    approvals = tuple(
+        RecommendationApprovalEntry(
+            decision_journal_entry_id=str(decision.id),
+            action="accept",
+            decided_at=_as_utc_z(decision.decided_at),
+            outcome_evaluations=tuple(
+                OutcomeEvaluationLinkEntry(
+                    evaluation_id=str(evaluation.id),
+                    lifecycle=str(evaluation.lifecycle),
+                    evidence_source_kind=evaluation.evidence_source_kind,
+                    evidence_reference_hash=evaluation.evidence_reference_hash,
+                    confidence=evaluation.confidence,
+                    recorded_at=_as_utc_z(evaluation.recorded_at),
+                )
+                for evaluation in outcome_evaluations_by_decision_id.get(str(decision.id), ())
+            ),
+        )
+        for decision in accepted_decisions
+    )
+    return RecommendationContractEnvelope(
+        recommendation_id=str(recommendation.id),
+        goal=GoalReferenceEntry(goal_id=int(recommendation.goal_id)),
+        evidence=recommendation_envelope.evidence_references,
+        risks=recommendation_envelope.risks,
+        confidence=recommendation_envelope.confidence,
+        approvals=approvals,
+    )
