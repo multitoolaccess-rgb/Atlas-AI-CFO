@@ -7,16 +7,13 @@
 - Phase: phase-4 — Decision journal
 - Phase status: in_progress
 - Overall status: in_progress
-- Objective: Phase 4 Slice 1 is in progress: implement the owner-scoped, append-only decision-history substrate for alternatives, rationale, audit events, correction recovery, and bounded default-off APIs. Phase 3 remains complete. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.
+- Objective: Phase 4 Slice 1 COMPLETE: PR #34 squash-merged at 13da914, providing owner-scoped append-only decision history, bounded alternatives and rationale, audited outcome linkage, correction recovery, default-off APIs, and cross-dialect safeguards. Phase 4 Slice 2 UI/accessibility/end-to-end integration is the next bounded task and has not started. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.
 - Phase exit criteria: 0/1 complete
-- Tracker updated: 2026-08-10T07:55:35Z
+- Tracker updated: 2026-08-10T15:18:46Z
 
 ## Active work
 
-- work-p4-decision-history-substrate: Phase 4 Slice 1 decision-history substrate [in_progress/high]
-  - Objective: Final authorized correction cycle: enforce outcome-linked audit event semantics and outcome-aware idempotent replay/race equivalence without widening Slice 1 scope.
-  - Branch: work-p4-decision-history-substrate
-  - Paths: services/rules-service/app/models,services/rules-service/app/forecasts,services/rules-service/app/routes,services/rules-service/alembic/versions,services/rules-service/tests
+- None
 
 ## Blockers
 
@@ -38,14 +35,14 @@
 
 ## Recently completed
 
-- work-p2-dashboard-auth-error-classification: Dashboard/auth error classification correction — commit 1aaaeb9, PR 26
 - work-p2-merchant-rule-priority-correction: Merchant-rule priority omission correction — commit 2a3ac51, PR 27
 - work-p2-repository-health-stabilization: Phase 2 repository-health stabilization — commit c62b1ac9f34ade417aa4a0b50e4c6c4d3b956278, PR 28
 - work-p3-outcome-evidence-reference-replacement: Phase 3 Slice 1: Privacy-safe outcome-evaluation substrate (evidence reference replacement) — commit 8955e40a74926d76bed7cd93f5fb31a8508d40c9, PR 32
 - work-p3-recommendation-linkage-and-approvals: Phase 3: Recommendation linkage and approvals — commit 86ea65fc8c27224ec209249218fb6ccbe74b4178, PR 33
+- work-p4-decision-history-substrate: Phase 4 Slice 1 decision-history substrate — commit 13da914cf1db78d02219eb72c9f4f5b0aca9e86f, PR 34
 
 ## Next bounded task
 
-- ec-p4-decision-history: Active authorized work is work-p4-decision-history-substrate. It is the first bounded contribution to ec-p4-decision-history; do not mark the criterion complete until the planned UI, accessibility, end-to-end, and final certification evidence also exist.
+- work-p4-decision-history-ui: Phase 4 Slice 2: integrate the merged owner-scoped decision-history API into the existing goals recommendation surface with typed client coverage, accessible chronological history and correction flow, privacy-safe outcome lifecycle display, and mocked end-to-end coverage. Do not begin without explicit authorization.
 
 Do not begin the next task automatically.
