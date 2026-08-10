@@ -43,6 +43,7 @@ class DecisionAuditEvent(Base):
         UniqueConstraint("history_entry_id", "event_action", name="uq_decision_audit_history_action"),
         CheckConstraint("length(id) = 36 AND id = lower(id)", name="ck_decision_audit_id_shape"),
         CheckConstraint("event_action IN ('recorded', 'corrected', 'evaluated')", name="ck_decision_audit_action"),
+        CheckConstraint("(event_action = 'evaluated' AND outcome_evaluation_id IS NOT NULL) OR (event_action IN ('recorded', 'corrected') AND outcome_evaluation_id IS NULL)", name="ck_decision_audit_outcome_semantics"),
         CheckConstraint("policy_result = 'recorded'", name="ck_decision_audit_policy"),
         CheckConstraint("actor_scope = 'owner'", name="ck_decision_audit_actor_scope"),
         CheckConstraint("length(correlation_hash) = 64 AND correlation_hash = lower(correlation_hash)", name="ck_decision_audit_correlation_hash"),

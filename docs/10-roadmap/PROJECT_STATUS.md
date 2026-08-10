@@ -8,7 +8,7 @@
 - Last updated: 2026-08-10T07:55:35Z
 
 ## Active work
-- work-p4-decision-history-substrate: Phase 4 Slice 1 decision-history substrate (blocked, high)
+- work-p4-decision-history-substrate: Phase 4 Slice 1 decision-history substrate (in_progress, high)
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}

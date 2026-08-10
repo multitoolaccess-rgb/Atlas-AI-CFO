@@ -4,14 +4,13 @@
       "branch": "work-p4-decision-history-substrate",
       "id": "work-p4-decision-history-substrate",
       "issue": "",
-      "objective": "Implement append-only, owner-scoped decision history, alternatives, audit, correction recovery, and bounded API behind a default-off rollout flag.",
+      "objective": "Final authorized correction cycle: enforce outcome-linked audit event semantics and outcome-aware idempotent replay/race equivalence without widening Slice 1 scope.",
       "paths": [
         "services/rules-service/app/models,services/rules-service/app/forecasts,services/rules-service/app/routes,services/rules-service/alembic/versions,services/rules-service/tests"
       ],
       "phase_id": "phase-4",
-      "reason": "Review cycle 2 found unresolved MEDIUM decision: include outcome_evaluation_id in idempotent replay/race equivalence, enforce evaluated iff outcome reference audit invariant, and define combined correction-plus-outcome audit semantics. Governance cap reached (2/2); do not begin a third correction cycle without explicit authorization.",
       "risk_tier": "high",
-      "status": "blocked",
+      "status": "in_progress",
       "tests": [
         ".venv-rules/bin/python -m pytest services/rules-service/tests/test_decision_history* services/rules-service/tests/test_routes_decision_history*"
       ],

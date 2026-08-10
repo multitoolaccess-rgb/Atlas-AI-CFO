@@ -117,8 +117,7 @@ class DecisionHistoryService:
         if existing_by_key is not None and existing_by_key.id != history_id:
             raise DecisionHistoryConflictError("idempotency conflict")
         if existing is not None:
-            if (existing.alternatives_json == encoded and existing.rationale == rationale
-                    and existing.supersedes_history_entry_id == supersedes_history_entry_id):
+            if self._equivalent(existing, encoded, rationale, supersedes_history_entry_id, outcome_evaluation_id):
                 return DecisionHistoryWriteResult(existing, True)
             raise DecisionHistoryConflictError("idempotency conflict")
         entry = DecisionHistoryEntry(id=history_id, user_id=user_id, goal_id=goal_id,
@@ -126,21 +125,39 @@ class DecisionHistoryService:
             supersedes_history_entry_id=supersedes_history_entry_id, decision_action=decision.decision_action,
             alternatives_json=encoded, rationale=rationale, schema_version=DECISION_HISTORY_SCHEMA_VERSION,
             idempotency_key_hash=key_hash, currency="USD", recorded_at=_now())
-        event_action = "evaluated" if outcome_evaluation_id else ("corrected" if supersedes_history_entry_id else "recorded")
-        audit = DecisionAuditEvent(id=decision_audit_id_for(history_entry_id=history_id, event_action=event_action),
+        base_action = "corrected" if supersedes_history_entry_id else "recorded"
+        audit = DecisionAuditEvent(id=decision_audit_id_for(history_entry_id=history_id, event_action=base_action),
             history_entry_id=history_id, user_id=user_id, goal_id=goal_id, recommendation_id=recommendation_id,
-            decision_journal_entry_id=decision_journal_entry_id, outcome_evaluation_id=outcome_evaluation_id, event_action=event_action, actor_scope="owner",
+            decision_journal_entry_id=decision_journal_entry_id, event_action=base_action, actor_scope="owner",
             correlation_hash=key_hash, policy_result="recorded", occurred_at=_now())
+        audits = [audit]
+        if outcome_evaluation_id is not None:
+            audits.append(DecisionAuditEvent(id=decision_audit_id_for(history_entry_id=history_id, event_action="evaluated"),
+                history_entry_id=history_id, user_id=user_id, goal_id=goal_id, recommendation_id=recommendation_id,
+                decision_journal_entry_id=decision_journal_entry_id, outcome_evaluation_id=outcome_evaluation_id,
+                event_action="evaluated", actor_scope="owner", correlation_hash=key_hash,
+                policy_result="recorded", occurred_at=_now()))
         try:
-            self._session.add_all((entry, audit))
+            self._session.add_all((entry, *audits))
             self._session.commit()
         except (IntegrityError, OperationalError):
             self._session.rollback()
             winner = self._session.get(DecisionHistoryEntry, history_id)
-            if winner is not None and winner.alternatives_json == encoded and winner.rationale == rationale and winner.supersedes_history_entry_id == supersedes_history_entry_id:
+            if winner is not None and self._equivalent(winner, encoded, rationale, supersedes_history_entry_id, outcome_evaluation_id):
                 return DecisionHistoryWriteResult(winner, True)
             raise DecisionHistoryConflictError("idempotency conflict")
         return DecisionHistoryWriteResult(entry, False)
+
+    def _equivalent(self, entry: DecisionHistoryEntry, alternatives_json: str, rationale: str,
+                    supersedes_history_entry_id: str | None, outcome_evaluation_id: str | None) -> bool:
+        if (entry.alternatives_json != alternatives_json or entry.rationale != rationale
+                or entry.supersedes_history_entry_id != supersedes_history_entry_id):
+            return False
+        linked_outcome = self._session.scalar(select(DecisionAuditEvent.outcome_evaluation_id).where(
+            DecisionAuditEvent.history_entry_id == entry.id,
+            DecisionAuditEvent.event_action == "evaluated",
+        ))
+        return linked_outcome == outcome_evaluation_id
 
     def list_for_goal(self, *, user_id: int, goal_id: int) -> tuple[DecisionHistoryEntry, ...]:
         goal = self._session.get(Goal, goal_id)

@@ -87,6 +87,15 @@ def test_owner_indistinguishability_and_append_only_guards(world):
             session.execute(text("INSERT INTO decision_audit_events (id, history_entry_id, user_id, goal_id, recommendation_id, decision_journal_entry_id, event_action, actor_scope, correlation_hash, policy_result, occurred_at) VALUES ('00000000-0000-4000-8000-000000000099', :history, 999, :goal, :rec, :decision, 'recorded', 'owner', :hash, 'recorded', CURRENT_TIMESTAMP)"), {"history": entry_id, "goal": ids["goal"], "rec": ids["recommendation"], "decision": ids["decision"], "hash": "c" * 64})
             session.commit()
         session.rollback()
+        with pytest.raises(IntegrityError):
+            session.execute(text("INSERT INTO decision_audit_events (id, history_entry_id, user_id, goal_id, recommendation_id, decision_journal_entry_id, event_action, actor_scope, correlation_hash, policy_result, occurred_at) VALUES ('00000000-0000-4000-8000-000000000097', :history, :user, :goal, :rec, :decision, 'evaluated', 'owner', :hash, 'recorded', CURRENT_TIMESTAMP)"), {"history": entry_id, "user": ids["user"], "goal": ids["goal"], "rec": ids["recommendation"], "decision": ids["decision"], "hash": "e" * 64})
+            session.commit()
+        session.rollback()
+        outcome = OutcomeEvaluationService(session).record(user_id=ids["user"], goal_id=ids["goal"], recommendation_id=ids["recommendation"], decision_journal_entry_id=ids["decision"], lifecycle="pending", raw_idempotency_key="sql-audit-outcome").entry
+        with pytest.raises(IntegrityError):
+            session.execute(text("INSERT INTO decision_audit_events (id, history_entry_id, user_id, goal_id, recommendation_id, decision_journal_entry_id, outcome_evaluation_id, event_action, actor_scope, correlation_hash, policy_result, occurred_at) VALUES ('00000000-0000-4000-8000-000000000096', :history, :user, :goal, :rec, :decision, :outcome, 'corrected', 'owner', :hash, 'recorded', CURRENT_TIMESTAMP)"), {"history": entry_id, "user": ids["user"], "goal": ids["goal"], "rec": ids["recommendation"], "decision": ids["decision"], "outcome": outcome.id, "hash": "f" * 64})
+            session.commit()
+        session.rollback()
         other_goal = Goal(user_id=ids["user"], name="Same owner, other goal", target_amount=1, priority=0)
         session.add(other_goal); session.commit()
         # Same user is not sufficient: the recommendation and decision tuple
@@ -114,9 +123,27 @@ def test_evaluated_audit_links_only_matching_safe_outcome(world):
         # A linked outcome creates an immutable, bounded evaluated audit event;
         # no outcome content enters this service's contract.
         linked = DecisionHistoryService(session).record(user_id=ids["user"], goal_id=ids["goal"], recommendation_id=ids["recommendation"], decision_journal_entry_id=ids["decision"], alternatives=["do_nothing", "accept"], rationale="Measured later", raw_idempotency_key="history-evaluated-2", outcome_evaluation_id=outcome.id)
-        event = session.query(DecisionAuditEvent).filter_by(history_entry_id=linked.entry.id).one()
+        event = session.query(DecisionAuditEvent).filter_by(history_entry_id=linked.entry.id, event_action="evaluated").one()
         assert result.entry.id != linked.entry.id
         assert event.event_action == "evaluated" and event.outcome_evaluation_id == outcome.id
+        # Same replay key cannot silently add/remove/change outcome linkage.
+        with pytest.raises(DecisionHistoryConflictError):
+            DecisionHistoryService(session).record(user_id=ids["user"], goal_id=ids["goal"], recommendation_id=ids["recommendation"], decision_journal_entry_id=ids["decision"], alternatives=["do_nothing", "accept"], rationale="Measured later", raw_idempotency_key="history-evaluated-2")
+
+
+def test_correction_with_outcome_keeps_both_append_only_audit_events(world):
+    engine, ids = world
+    with Session(engine) as session:
+        prior = _record(session, ids, key="prior-correction")
+        outcome = OutcomeEvaluationService(session).record(user_id=ids["user"], goal_id=ids["goal"], recommendation_id=ids["recommendation"], decision_journal_entry_id=ids["decision"], lifecycle="pending", raw_idempotency_key="correction-outcome").entry
+        corrected = _record(session, ids, key="corrected-with-outcome", supersedes=prior.entry.id, rationale="Corrected with later measurement")
+        # record the correction-linked outcome as the same canonical request
+        # (new idempotency key is intentional; it is a second immutable row).
+        linked = DecisionHistoryService(session).record(user_id=ids["user"], goal_id=ids["goal"], recommendation_id=ids["recommendation"], decision_journal_entry_id=ids["decision"], alternatives=["do_nothing", "accept"], rationale="Corrected and measured", raw_idempotency_key="corrected-measured", supersedes_history_entry_id=prior.entry.id, outcome_evaluation_id=outcome.id)
+        events = session.query(DecisionAuditEvent).filter_by(history_entry_id=linked.entry.id).all()
+        assert corrected.entry.supersedes_history_entry_id == prior.entry.id
+        assert {event.event_action for event in events} == {"corrected", "evaluated"}
+        assert next(event for event in events if event.event_action == "evaluated").outcome_evaluation_id == outcome.id
 
 
 def test_operational_race_recovers_canonical_winner_without_details():
@@ -141,3 +168,38 @@ def test_operational_race_recovers_canonical_winner_without_details():
 
     result = DecisionHistoryService(RaceSession()).record(user_id=1, goal_id=1, recommendation_id="00000000-0000-4000-8000-000000000001", decision_journal_entry_id="00000000-0000-4000-8000-000000000002", alternatives=["do_nothing", "accept"], rationale="Race-safe", raw_idempotency_key="race-key")
     assert result.replayed is True
+
+
+def test_operational_race_winner_requires_equivalent_outcome_linkage():
+    """A retry after an operational race compares the opaque outcome ID too."""
+    from types import SimpleNamespace
+    from app.models import Recommendation
+
+    outcome_id = "00000000-0000-4000-8000-000000000003"
+
+    class RaceSession:
+        failed = False
+        added = ()
+        scalar_calls = 0
+        def get(self, model, ident):
+            if model is Goal: return SimpleNamespace(user_id=1)
+            if model is Recommendation: return SimpleNamespace(user_id=1, goal_id=1)
+            if model is DecisionJournalEntry: return SimpleNamespace(user_id=1, goal_id=1, recommendation_id="00000000-0000-4000-8000-000000000001", decision_action="accept")
+            if model.__name__ == "OutcomeEvaluation": return SimpleNamespace(user_id=1, goal_id=1, recommendation_id="00000000-0000-4000-8000-000000000001", decision_journal_entry_id="00000000-0000-4000-8000-000000000002")
+            if model is DecisionHistoryEntry: return self.added[0] if self.failed and self.added else None
+            return None
+        def scalar(self, statement):
+            self.scalar_calls += 1
+            return outcome_id if self.failed else None
+        def add_all(self, entries): self.added = tuple(entries)
+        def commit(self): self.failed = True; raise OperationalError("INSERT", {}, RuntimeError("locked"))
+        def rollback(self): pass
+
+    kwargs = dict(user_id=1, goal_id=1, recommendation_id="00000000-0000-4000-8000-000000000001", decision_journal_entry_id="00000000-0000-4000-8000-000000000002", alternatives=["do_nothing", "accept"], rationale="Race-safe", raw_idempotency_key="race-outcome", outcome_evaluation_id=outcome_id)
+    assert DecisionHistoryService(RaceSession()).record(**kwargs).replayed is True
+    absent = {key: value for key, value in kwargs.items() if key != "outcome_evaluation_id"}
+    with pytest.raises(DecisionHistoryConflictError):
+        DecisionHistoryService(RaceSession()).record(**absent)
+    changed = {**kwargs, "outcome_evaluation_id": "00000000-0000-4000-8000-000000000004"}
+    with pytest.raises(DecisionHistoryConflictError):
+        DecisionHistoryService(RaceSession()).record(**changed)

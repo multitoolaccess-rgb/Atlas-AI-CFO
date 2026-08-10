@@ -13,8 +13,8 @@
 
 ## Active work
 
-- work-p4-decision-history-substrate: Phase 4 Slice 1 decision-history substrate [blocked/high]
-  - Objective: Implement append-only, owner-scoped decision history, alternatives, audit, correction recovery, and bounded API behind a default-off rollout flag.
+- work-p4-decision-history-substrate: Phase 4 Slice 1 decision-history substrate [in_progress/high]
+  - Objective: Final authorized correction cycle: enforce outcome-linked audit event semantics and outcome-aware idempotent replay/race equivalence without widening Slice 1 scope.
   - Branch: work-p4-decision-history-substrate
   - Paths: services/rules-service/app/models,services/rules-service/app/forecasts,services/rules-service/app/routes,services/rules-service/alembic/versions,services/rules-service/tests
 
