@@ -11,10 +11,10 @@ from datetime import datetime, timezone
 from typing import Final, Sequence
 
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
-from app.models import DecisionAuditEvent, DecisionHistoryEntry, DecisionJournalEntry, Goal, Recommendation
+from app.models import DecisionAuditEvent, DecisionHistoryEntry, DecisionJournalEntry, Goal, OutcomeEvaluation, Recommendation
 from app.models.decision_journal_identities import canonical_idempotency_key_hash, decision_audit_id_for, decision_history_id_for
 
 DECISION_HISTORY_SCHEMA_VERSION: Final[str] = "atlas-decision-history/v1"
@@ -84,7 +84,8 @@ class DecisionHistoryService:
 
     def record(self, *, user_id: int, goal_id: int, recommendation_id: str,
                decision_journal_entry_id: str, alternatives: Sequence[str], rationale: str,
-               raw_idempotency_key: str, supersedes_history_entry_id: str | None = None) -> DecisionHistoryWriteResult:
+               raw_idempotency_key: str, supersedes_history_entry_id: str | None = None,
+               outcome_evaluation_id: str | None = None) -> DecisionHistoryWriteResult:
         key_hash = self._key_hash(raw_idempotency_key)
         decision = self._parents(user_id=user_id, goal_id=goal_id, recommendation_id=recommendation_id, decision_id=decision_journal_entry_id)
         alternatives_value = self._alternatives(alternatives)
@@ -94,6 +95,12 @@ class DecisionHistoryService:
             prior = self._session.get(DecisionHistoryEntry, supersedes_history_entry_id)
             if (prior is None or prior.user_id != user_id or prior.goal_id != goal_id
                     or prior.recommendation_id != recommendation_id):
+                raise DecisionHistoryNotFoundError("not accessible")
+        if outcome_evaluation_id is not None:
+            outcome = self._session.get(OutcomeEvaluation, outcome_evaluation_id)
+            if (outcome is None or outcome.user_id != user_id or outcome.goal_id != goal_id
+                    or outcome.recommendation_id != recommendation_id
+                    or outcome.decision_journal_entry_id != decision_journal_entry_id):
                 raise DecisionHistoryNotFoundError("not accessible")
         history_id = decision_history_id_for(user_id=user_id, goal_id=goal_id, recommendation_id=recommendation_id,
                                               decision_journal_entry_id=decision_journal_entry_id,
@@ -119,15 +126,15 @@ class DecisionHistoryService:
             supersedes_history_entry_id=supersedes_history_entry_id, decision_action=decision.decision_action,
             alternatives_json=encoded, rationale=rationale, schema_version=DECISION_HISTORY_SCHEMA_VERSION,
             idempotency_key_hash=key_hash, currency="USD", recorded_at=_now())
-        event_action = "corrected" if supersedes_history_entry_id else "recorded"
+        event_action = "evaluated" if outcome_evaluation_id else ("corrected" if supersedes_history_entry_id else "recorded")
         audit = DecisionAuditEvent(id=decision_audit_id_for(history_entry_id=history_id, event_action=event_action),
             history_entry_id=history_id, user_id=user_id, goal_id=goal_id, recommendation_id=recommendation_id,
-            decision_journal_entry_id=decision_journal_entry_id, event_action=event_action, actor_scope="owner",
+            decision_journal_entry_id=decision_journal_entry_id, outcome_evaluation_id=outcome_evaluation_id, event_action=event_action, actor_scope="owner",
             correlation_hash=key_hash, policy_result="recorded", occurred_at=_now())
         try:
             self._session.add_all((entry, audit))
             self._session.commit()
-        except IntegrityError:
+        except (IntegrityError, OperationalError):
             self._session.rollback()
             winner = self._session.get(DecisionHistoryEntry, history_id)
             if winner is not None and winner.alternatives_json == encoded and winner.rationale == rationale and winner.supersedes_history_entry_id == supersedes_history_entry_id:

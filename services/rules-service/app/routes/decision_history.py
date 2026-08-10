@@ -44,12 +44,12 @@ async def record_history(request: Request, user_sub: Annotated[str, Depends(requ
         return _disabled()
     payload = await _body(request)
     required = {"recommendation_id", "decision_journal_entry_id", "alternatives", "rationale"}
-    allowed = required | {"supersedes_history_entry_id"}
+    allowed = required | {"supersedes_history_entry_id", "outcome_evaluation_id"}
     if payload is None or set(payload) - allowed or not required.issubset(payload) or idempotency_key is None:
         return _invalid()
     user_id = _resolve_db_user_id(db, user_sub)
     try:
-        result = DecisionHistoryService(db).record(user_id=user_id, goal_id=goal_id, recommendation_id=payload["recommendation_id"], decision_journal_entry_id=payload["decision_journal_entry_id"], alternatives=payload["alternatives"], rationale=payload["rationale"], raw_idempotency_key=idempotency_key, supersedes_history_entry_id=payload.get("supersedes_history_entry_id"))
+        result = DecisionHistoryService(db).record(user_id=user_id, goal_id=goal_id, recommendation_id=payload["recommendation_id"], decision_journal_entry_id=payload["decision_journal_entry_id"], alternatives=payload["alternatives"], rationale=payload["rationale"], raw_idempotency_key=idempotency_key, supersedes_history_entry_id=payload.get("supersedes_history_entry_id"), outcome_evaluation_id=payload.get("outcome_evaluation_id"))
     except DecisionHistoryNotFoundError:
         return _missing()
     except DecisionHistoryConflictError:
