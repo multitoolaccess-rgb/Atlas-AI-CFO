@@ -73,6 +73,8 @@ class Settings(BaseSettings):
     # NO client-side override point: this lives only in the server Settings
     # base class; route layers MUST reject requests when this is False.
     atlas_forecast_read_api_enabled: bool = False
+    # Phase 4 history API is a separate, server-only default-off rollout gate.
+    atlas_decision_history_api_enabled: bool = False
 
     model_config = ConfigDict(extra="ignore", env_file=".env", case_sensitive=False)
 

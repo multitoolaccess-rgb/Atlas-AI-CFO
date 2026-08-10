@@ -2,13 +2,13 @@
 
 > Generated from `PROJECT_STATUS.json`; regenerate with `python3 scripts/atlas_project_status.py render`.
 
-- Current phase: **phase-4 — Decision journal** (not_started)
+- Current phase: **phase-4 — Decision journal** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Phase 3 COMPLETE: PR #33 squash-merged at 3586e2b, satisfying ec-p3-recommendation-contract with owner-scoped goal, forecast-evidence, risks, confidence, accepted approvals, and linked immutable outcome evaluations. Phase 4 decision journal is not started and requires explicit authorization. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.
-- Last updated: 2026-08-10T04:33:32Z
+- Current objective: Phase 4 Slice 1 is in progress: implement the owner-scoped, append-only decision-history substrate for alternatives, rationale, audit events, correction recovery, and bounded default-off APIs. Phase 3 remains complete. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.
+- Last updated: 2026-08-10T04:56:57Z
 
 ## Active work
-- None
+- work-p4-decision-history-substrate: Phase 4 Slice 1 decision-history substrate (in_progress, high)
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
@@ -18,7 +18,7 @@
 - phase-1 — Forecast persistence: complete (5/5 exit criteria)
 - phase-2 — Forecast UI migration: complete (1/1 exit criteria)
 - phase-3 — Goal-linked recommendations: complete (1/1 exit criteria)
-- phase-4 — Decision journal: not_started (0/1 exit criteria)
+- phase-4 — Decision journal: in_progress (0/1 exit criteria)
 
 ## Current risks
 - risk-frontend-lint-debt [medium/high, open]: Repository-wide frontend lint debt remains outside Phase 0 scope.
@@ -75,6 +75,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- ec-p4-decision-history: No Phase 3 exit criterion remains. The next authoritative unmet outcome is ec-p4-decision-history (Phase 4 decision journal), which requires Phase 3 completion and explicit authorization. Do not begin automatically.
+- ec-p4-decision-history: Active authorized work is work-p4-decision-history-substrate. It is the first bounded contribution to ec-p4-decision-history; do not mark the criterion complete until the planned UI, accessibility, end-to-end, and final certification evidence also exist.
 
 Do not begin the next phase or task automatically.

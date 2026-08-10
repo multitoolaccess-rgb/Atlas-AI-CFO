@@ -47,6 +47,8 @@ _RECOMMENDATION_NAMESPACE: Final[bytes] = b"atlas-recommendation/v1:"
 _DECISION_SLOT_NAMESPACE: Final[bytes] = b"atlas-decision-slot/v1:"
 _DECISION_JOURNAL_NAMESPACE: Final[bytes] = b"atlas-decision-journal/v1:"
 _OUTCOME_EVALUATION_NAMESPACE: Final[bytes] = b"atlas-outcome-evaluation/v1:"
+_DECISION_HISTORY_NAMESPACE: Final[bytes] = b"atlas-decision-history/v1:"
+_DECISION_AUDIT_NAMESPACE: Final[bytes] = b"atlas-decision-audit/v1:"
 _GENERIC_IDEMPOTENCY_NAMESPACE: Final[bytes] = b"atlas-idempotency-key/v1:"
 
 _CANONICAL_UUID_REGEX: Final[re.Pattern[str]] = re.compile(
@@ -198,3 +200,19 @@ def outcome_evaluation_id_for(
         "schema_version": schema_version,
     }
     return canonical_uuid_from_digest(canonical_digest(inputs, _OUTCOME_EVALUATION_NAMESPACE))
+
+
+def decision_history_id_for(*, user_id: int, goal_id: int, recommendation_id: str,
+                            decision_journal_entry_id: str, idempotency_key_hash: str,
+                            schema_version: str) -> str:
+    return canonical_uuid_from_digest(canonical_digest({
+        "user_id": user_id, "goal_id": goal_id, "recommendation_id": recommendation_id,
+        "decision_journal_entry_id": decision_journal_entry_id,
+        "idempotency_key_hash": idempotency_key_hash, "schema_version": schema_version,
+    }, _DECISION_HISTORY_NAMESPACE))
+
+
+def decision_audit_id_for(*, history_entry_id: str, event_action: str) -> str:
+    return canonical_uuid_from_digest(canonical_digest(
+        {"history_entry_id": history_entry_id, "event_action": event_action}, _DECISION_AUDIT_NAMESPACE
+    ))

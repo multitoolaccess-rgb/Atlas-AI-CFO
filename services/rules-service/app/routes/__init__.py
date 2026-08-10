@@ -87,6 +87,7 @@ from app.routes.forecasts_generation import router as forecasts_generation_route
 # indistinguishability. Append-only journal semantics. NO mutable
 # Phase 2 CRUD. NO client financial-state fields.
 from app.routes.recommendations_derived import router as recommendations_derived_router
+from app.routes.decision_history import router as decision_history_router
 from app.routes.goals import router as goals_router
 # Phase 39 — portfolio holdings (positions import + live pricing).
 from app.routes.holdings import router as holdings_router

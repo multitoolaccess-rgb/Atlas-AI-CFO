@@ -84,6 +84,7 @@ from app.routes import (
     # ``Settings.atlas_forecast_read_api_enabled`` Phase 1 gate. NO new
     # flag introduced. NO mutable Phase 2 CRUD. NO autonomous execution.
     recommendations_derived_router,
+    decision_history_router,
 )
 
 LOG = logging.getLogger("uvicorn.error")
@@ -462,6 +463,7 @@ app.include_router(forecasts_generation_router)
 # ``Settings.atlas_forecast_read_api_enabled`` Phase 1 gate. NO new
 # flag introduced. NO mutable Phase 2 CRUD. NO autonomous execution.
 app.include_router(recommendations_derived_router)
+app.include_router(decision_history_router)
 
 
 @app.on_event("startup")
