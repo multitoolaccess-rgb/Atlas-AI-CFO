@@ -136,7 +136,7 @@
       "ci_status_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31337079206",
       "commit": "8955e40a74926d76bed7cd93f5fb31a8508d40c9",
       "commit_short": "8955e40",
-      "description": "Phase 3 Slice 1: replace the unsafe String(512) authoritative_evidence_reference from closed PR #30 with a privacy-safe bounded evidence-source contract — allowlisted evidence_source_kind (forecast_projection / account_balance_delta / transaction_pattern) + server-derived hash-only evidence_reference_hash (64-char lowercase SHA-256). Raw evidence references are never accepted, persisted, logged, echoed, or exposed in errors. Append-only outcome_evaluations table + migration U9a1b2c3d4e5, lifecycle evidence contract, idempotent replay, sanitized OutcomeConflictError, ownership-before-existence, UNIQUE-collision race recovery, row-count-guarded downgrade. Squash-merged to main; heavy CI skipped (no-UI backend slice).",
+      "description": "Phase 3 Slice 1: replace the unsafe String(512) authoritative_evidence_reference from closed PR #30 with a privacy-safe bounded evidence-source contract \u2014 allowlisted evidence_source_kind (forecast_projection / account_balance_delta / transaction_pattern) + server-derived hash-only evidence_reference_hash (64-char lowercase SHA-256). Raw evidence references are never accepted, persisted, logged, echoed, or exposed in errors. Append-only outcome_evaluations table + migration U9a1b2c3d4e5, lifecycle evidence contract, idempotent replay, sanitized OutcomeConflictError, ownership-before-existence, UNIQUE-collision race recovery, row-count-guarded downgrade. Squash-merged to main; heavy CI skipped (no-UI backend slice).",
       "governance_status_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31337079184",
       "merged_into_main": "8955e40a74926d76bed7cd93f5fb31a8508d40c9",
       "pr": 32,
@@ -564,7 +564,7 @@
       "id": "work-p3-outcome-evidence-reference-replacement",
       "phase_id": "phase-3",
       "pr": 32,
-      "review_evidence": "Fresh independent code-reviewer review of PR #32 head (853dc81): zero CRITICAL/HIGH findings. Two MEDIUM items addressed in review-fix commit e4ab0bd — (1) privacy-contract docstring scope corrected to cover only the evidence reference (hash-only, server-derived; result_json/explanation carry the measured outcome data, never evidence pointers); (2) _recover_database_winner falls back to the cross-row idempotency-key lookup when the PK lookup misses, surfacing a divergent-canonical UNIQUE-collision winner as OutcomeConflictError; regression test added.",
+      "review_evidence": "Fresh independent code-reviewer review of PR #32 head (853dc81): zero CRITICAL/HIGH findings. Two MEDIUM items addressed in review-fix commit e4ab0bd \u2014 (1) privacy-contract docstring scope corrected to cover only the evidence reference (hash-only, server-derived; result_json/explanation carry the measured outcome data, never evidence pointers); (2) _recover_database_winner falls back to the cross-row idempotency-key lookup when the PK lookup misses, surfacing a divergent-canonical UNIQUE-collision winner as OutcomeConflictError; regression test added.",
       "risk_tier": "high",
       "status": "complete",
       "tests": [
@@ -573,15 +573,46 @@
         "Full Rules Service suite: 1174 passed, 10 skipped, 1 xfailed"
       ],
       "title": "Phase 3 Slice 1: Privacy-safe outcome-evaluation substrate (evidence reference replacement)"
+    },
+    {
+      "branch": "codex/phase-3-recommendation-linkage-and-approvals",
+      "ci_evidence": {
+        "check": "cheap (lint + unit, no browser)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31354498609"
+      },
+      "commit": "86ea65fc8c27224ec209249218fb6ccbe74b4178",
+      "id": "work-p3-recommendation-linkage-and-approvals",
+      "issue": "",
+      "objective": "Close the Phase 3 recommendation contract by linking accepted deterministic recommendations to goal, privacy-safe evidence, risks, confidence, approvals, and outcome evaluations without weakening authorization, append-only, idempotency, or fail-closed constraints.",
+      "paths": [
+        "services/rules-service/app/forecasts/recommendation_schemas.py",
+        "services/rules-service/app/forecasts/recommendations.py",
+        "services/rules-service/app/routes/recommendations_derived.py",
+        "services/rules-service/tests/test_recommendation_schemas.py",
+        "services/rules-service/tests/test_routes_recommendations_derived.py",
+        "docs/10-roadmap/PROJECT_STATUS.json",
+        "docs/10-roadmap/PROJECT_STATUS.md"
+      ],
+      "phase_id": "phase-3",
+      "pr": "33",
+      "review_evidence": "Fresh independent code review: cycle 1 found two MEDIUM test-evidence gaps (true cross-user indistinguishability and explicit default-off gate coverage); both corrected. Cycle 2 approved with no remaining CRITICAL/HIGH/MEDIUM findings. Review cycle cap: 2/2.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Focused Rules Service recommendation-contract, decision-journal, outcome-evaluation, route, schema, and migration tests: 181 passed.",
+        "Full Rules Service suite: 1179 passed, 10 skipped, 1 xfailed."
+      ],
+      "title": "Phase 3: Recommendation linkage and approvals"
     }
   ],
-  "current_objective": "Phase 3 Slice 1 OUTCOME-EVALUATION SUBSTRATE COMPLETE. PR #32 (head e4ab0bd) squash-merged to main at 8955e40 with an independent code-reviewer review of the PR head (zero CRITICAL/HIGH findings; two MEDIUM items \u2014 privacy-contract docstring scope overclaim and race-recovery fallback for cross-row UNIQUE collisions \u2014 both addressed in the review-fix commit e4ab0bd, with a regression test) and status + cheap CI checks green on the fix commit (heavy correctly skipped: no-UI backend slice). The substrate delivers: immutable append-only outcome_evaluations ORM + migration (U9a1b2c3d4e5) with SQLite + PostgreSQL UPDATE/DELETE triggers, allowlisted evidence_source_kind enum (forecast_projection / account_balance_delta / transaction_pattern), server-derived hash-only evidence_reference_hash (64-char lowercase SHA-256) so no raw URLs, filenames, account IDs, or transaction identifiers are ever accepted from end-user requests, persisted, logged, echoed, or exposed in errors, lifecycle states (pending / not_yet_measurable / measured) with the measured evidence contract enforced by CHECK constraints, deterministic PK + (user, recommendation, decision, idempotency-key) idempotent replay, sanitized OutcomeConflictError carrying only the current etag, ownership-before-existence verification, UNIQUE-collision race recovery with cross-row idempotency-key fallback, and a row-count-guarded migration downgrade that refuses to destroy immutable outcome history. Phase 3 exit criterion ec-p3-recommendation-contract remains open: recommendations still need the goals/evidence/risks/confidence/approvals linkage. External multi-user production enablement remains BLOCKED pending retention and user-deletion policy (risk-p1-retention-rollout-gate open). Currency uncertainty continues to fail closed (risk-p1-account-currency-authority open). The next bounded task continues Phase 3 goal-linked recommendations.",
+  "current_objective": "Phase 3 recommendation contract IMPLEMENTED on PR #33: the Phase 2 deterministic recommendation and append-only decision-journal substrate now surfaces owner-scoped goal, forecast-evidence, risks, confidence, accepted approvals, and linked immutable outcome evaluations through a bounded read-only contract. The contract preserves the existing read gate, ownership-before-existence, append-only/idempotency behavior, USD fail-closed constraint, and hash-only evidence design; raw evidence locations, outcome result payloads, explanations, idempotency keys, and user identities remain absent. ec-p3-recommendation-contract is satisfied, subject only to the approved PR merge and phase-completion reconciliation. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.",
   "current_phase_id": "phase-3",
-  "last_updated": "2026-08-03T05:07:33Z",
+  "last_updated": "2026-08-10T04:12:30Z",
   "next_bounded_task": {
-    "description": "Continue Phase 3 goal-linked recommendations. Slice 1 (privacy-safe outcome-evaluation substrate) is complete and merged via PR #32 at 8955e40. The next bounded slice closes the remaining ec-p3-recommendation-contract scope: wire recommendations to goals, evidence, risks, confidence, and approvals \u2014 extend the Phase 2 deterministic recommendation + append-only decision-journal substrate (PR #21) so accepted decisions surface their supporting goal/evidence/risk/confidence linkage and the outcome evaluations recorded by the Phase 3 Slice 1 substrate. Do not begin until the user explicitly authorizes the next slice. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.",
-    "id": "work-p3-recommendation-linkage-and-approvals",
-    "phase_id": "phase-3"
+    "description": "No Phase 3 exit criterion remains. The next authoritative unmet outcome is ec-p4-decision-history (Phase 4 decision journal), which requires Phase 3 completion and explicit authorization. Do not begin automatically.",
+    "id": "ec-p4-decision-history",
+    "phase_id": "phase-4"
   },
   "overall_status": "in_progress",
   "phases": [
@@ -659,7 +690,7 @@
     {
       "exit_criteria": [
         {
-          "complete": false,
+          "complete": true,
           "description": "Recommendations link goals, evidence, risks, confidence, approvals, and evaluation.",
           "id": "ec-p3-recommendation-contract"
         }

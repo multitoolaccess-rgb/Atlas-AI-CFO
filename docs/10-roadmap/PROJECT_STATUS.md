@@ -4,8 +4,8 @@
 
 - Current phase: **phase-3 — Goal-linked recommendations** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Phase 3 Slice 1 OUTCOME-EVALUATION SUBSTRATE COMPLETE. PR #32 (head e4ab0bd) squash-merged to main at 8955e40 with an independent code-reviewer review of the PR head (zero CRITICAL/HIGH findings; two MEDIUM items — privacy-contract docstring scope overclaim and race-recovery fallback for cross-row UNIQUE collisions — both addressed in the review-fix commit e4ab0bd, with a regression test) and status + cheap CI checks green on the fix commit (heavy correctly skipped: no-UI backend slice). The substrate delivers: immutable append-only outcome_evaluations ORM + migration (U9a1b2c3d4e5) with SQLite + PostgreSQL UPDATE/DELETE triggers, allowlisted evidence_source_kind enum (forecast_projection / account_balance_delta / transaction_pattern), server-derived hash-only evidence_reference_hash (64-char lowercase SHA-256) so no raw URLs, filenames, account IDs, or transaction identifiers are ever accepted from end-user requests, persisted, logged, echoed, or exposed in errors, lifecycle states (pending / not_yet_measurable / measured) with the measured evidence contract enforced by CHECK constraints, deterministic PK + (user, recommendation, decision, idempotency-key) idempotent replay, sanitized OutcomeConflictError carrying only the current etag, ownership-before-existence verification, UNIQUE-collision race recovery with cross-row idempotency-key fallback, and a row-count-guarded migration downgrade that refuses to destroy immutable outcome history. Phase 3 exit criterion ec-p3-recommendation-contract remains open: recommendations still need the goals/evidence/risks/confidence/approvals linkage. External multi-user production enablement remains BLOCKED pending retention and user-deletion policy (risk-p1-retention-rollout-gate open). Currency uncertainty continues to fail closed (risk-p1-account-currency-authority open). The next bounded task continues Phase 3 goal-linked recommendations.
-- Last updated: 2026-08-03T05:07:33Z
+- Current objective: Phase 3 recommendation contract IMPLEMENTED on PR #33: the Phase 2 deterministic recommendation and append-only decision-journal substrate now surfaces owner-scoped goal, forecast-evidence, risks, confidence, accepted approvals, and linked immutable outcome evaluations through a bounded read-only contract. The contract preserves the existing read gate, ownership-before-existence, append-only/idempotency behavior, USD fail-closed constraint, and hash-only evidence design; raw evidence locations, outcome result payloads, explanations, idempotency keys, and user identities remain absent. ec-p3-recommendation-contract is satisfied, subject only to the approved PR merge and phase-completion reconciliation. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.
+- Last updated: 2026-08-10T04:12:30Z
 
 ## Active work
 - None
@@ -17,7 +17,7 @@
 - phase-0 — Projection foundation and Atlas baseline: complete (4/4 exit criteria)
 - phase-1 — Forecast persistence: complete (5/5 exit criteria)
 - phase-2 — Forecast UI migration: complete (1/1 exit criteria)
-- phase-3 — Goal-linked recommendations: in_progress (0/1 exit criteria)
+- phase-3 — Goal-linked recommendations: in_progress (1/1 exit criteria)
 - phase-4 — Decision journal: not_started (0/1 exit criteria)
 
 ## Current risks
@@ -35,11 +35,11 @@
 - risk-p1-migration-downgrade-patched [medium/low, resolved]: Alembic 1.13.x's ApplyBatchImpl.drop_index rejects the deprecated if_exists keyword argument; the Phase 1 final cert matrix surfaced this as a full upgrade -> downgrade base failure on the e9f0a1b2c3d4 migration.
 
 ## Recently completed work
-- work-p2-decision-journal-substrate: Phase 2 Slice 1: Backend deterministic recommendation + append-only decision journal substrate — commit 3ce7fe5706530d0ec68e743fff0882c76b3434cf, PR 21
 - work-p2-dashboard-auth-error-classification: Dashboard/auth error classification correction — commit 1aaaeb9, PR 26
 - work-p2-merchant-rule-priority-correction: Merchant-rule priority omission correction — commit 2a3ac51, PR 27
 - work-p2-repository-health-stabilization: Phase 2 repository-health stabilization — commit c62b1ac9f34ade417aa4a0b50e4c6c4d3b956278, PR 28
 - work-p3-outcome-evidence-reference-replacement: Phase 3 Slice 1: Privacy-safe outcome-evaluation substrate (evidence reference replacement) — commit 8955e40a74926d76bed7cd93f5fb31a8508d40c9, PR 32
+- work-p3-recommendation-linkage-and-approvals: Phase 3: Recommendation linkage and approvals — commit 86ea65fc8c27224ec209249218fb6ccbe74b4178, PR 33
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -75,6 +75,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-p3-recommendation-linkage-and-approvals: Continue Phase 3 goal-linked recommendations. Slice 1 (privacy-safe outcome-evaluation substrate) is complete and merged via PR #32 at 8955e40. The next bounded slice closes the remaining ec-p3-recommendation-contract scope: wire recommendations to goals, evidence, risks, confidence, and approvals — extend the Phase 2 deterministic recommendation + append-only decision-journal substrate (PR #21) so accepted decisions surface their supporting goal/evidence/risk/confidence linkage and the outcome evaluations recorded by the Phase 3 Slice 1 substrate. Do not begin until the user explicitly authorizes the next slice. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.
+- ec-p4-decision-history: No Phase 3 exit criterion remains. The next authoritative unmet outcome is ec-p4-decision-history (Phase 4 decision journal), which requires Phase 3 completion and explicit authorization. Do not begin automatically.
 
 Do not begin the next phase or task automatically.

@@ -48,7 +48,13 @@ def _rfc3339(dt: datetime) -> str:
     )
 
 
-def _build_world(db_session, *, currency: str = "USD"):
+def _build_world(
+    db_session,
+    *,
+    currency: str = "USD",
+    user_sub: str = "alex",
+    forecast_id: str = "11111111-1111-4111-8111-111111111111",
+):
     """Bring up a Forecast + ForecastVersion + (committed) Goal world.
 
     Returns ``(user, goal, forecast, latest_version)``.  No
@@ -58,7 +64,7 @@ def _build_world(db_session, *, currency: str = "USD"):
     from app.models import Forecast, ForecastVersion, Goal, User
     from app.routes.shared import get_or_create_local_user
 
-    user: User = get_or_create_local_user(db_session, "alex")
+    user: User = get_or_create_local_user(db_session, user_sub)
 
     goal = Goal(
         user_id=user.id,
@@ -71,7 +77,6 @@ def _build_world(db_session, *, currency: str = "USD"):
     db_session.commit()
     db_session.refresh(goal)
 
-    forecast_id = "11111111-1111-4111-8111-111111111111"
     forecast = Forecast(
         id=forecast_id,
         user_id=user.id,
@@ -503,3 +508,131 @@ def test_post_decision_201_replay_then_change_decision_writes_new_row(
     assert response_2.status_code == 201
     # Different canonical request -> different journal_entry_id (no replay)
     assert response_1.json()["journal_entry_id"] != response_2.json()["journal_entry_id"]
+
+
+# ---------------------------------------------------------------------------
+# 3. GET /api/v1/recommendations/{recommendation_id}/contract (Phase 3)
+# ---------------------------------------------------------------------------
+
+
+def test_get_recommendation_contract_503_when_disabled(client, monkeypatch):
+    monkeypatch.setattr(
+        "app.config.settings.atlas_forecast_read_api_enabled", False
+    )
+    response = client.get(
+        "/api/v1/recommendations/99999999-9999-4999-8999-999999999999/contract"
+    )
+    assert response.status_code == 503
+    assert response.json() == {
+        "code": "forecast_read_api_unavailable",
+        "message": "Forecast read API is currently disabled.",
+    }
+
+
+def test_get_recommendation_contract_links_goal_evidence_risks_confidence_and_approvals(
+    client, enable_read_flag, db_session
+):
+    """Accepted decisions expose their immutable, privacy-safe linkage."""
+    rec_id = _recommendation_id_for(client, db_session, enable_read_flag)
+    accepted = client.post(
+        f"/api/v1/recommendations/{rec_id}/decisions",
+        json={"action": "accept", "decision_etag": f"{rec_id}-d1"},
+        headers={"Idempotency-Key": "contract-accept"},
+    )
+    assert accepted.status_code == 201, accepted.text
+    decision_id = accepted.json()["journal_entry_id"]
+
+    from app.forecasts.outcome_evaluation_service import OutcomeEvaluationService
+    from app.models import Recommendation
+
+    recommendation = db_session.get(Recommendation, rec_id)
+    assert recommendation is not None
+    now = _now_utc()
+    OutcomeEvaluationService(db_session).record(
+        user_id=int(recommendation.user_id),
+        goal_id=int(recommendation.goal_id),
+        recommendation_id=rec_id,
+        decision_journal_entry_id=decision_id,
+        lifecycle="measured",
+        raw_idempotency_key="contract-outcome",
+        evidence_source_kind="account_balance_delta",
+        measurement_window_start=now,
+        measurement_window_end=now,
+        result_json='{"delta_usd":"150"}',
+        confidence="high",
+        explanation="Measured outcome recorded.",
+    )
+
+    response = client.get(f"/api/v1/recommendations/{rec_id}/contract")
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["schema_version"] == "atlas-recommendation-contract/v1"
+    assert body["recommendation_id"] == rec_id
+    assert body["goal"]["goal_id"] == recommendation.goal_id
+    assert body["evidence"]["forecast_id"]
+    assert body["risks"] == []
+    assert body["confidence"] == "high"
+    assert len(body["approvals"]) == 1
+    approval = body["approvals"][0]
+    assert approval["decision_journal_entry_id"] == decision_id
+    assert approval["action"] == "accept"
+    assert len(approval["outcome_evaluations"]) == 1
+    evaluation = approval["outcome_evaluations"][0]
+    assert evaluation["lifecycle"] == "measured"
+    assert evaluation["evidence_source_kind"] == "account_balance_delta"
+    assert len(evaluation["evidence_reference_hash"]) == 64
+    assert evaluation["confidence"] == "high"
+    # The linkage response never echoes raw evidence or measured payloads.
+    serialized = response.text
+    assert "delta_usd" not in serialized
+    assert "Measured outcome recorded" not in serialized
+
+
+def test_get_recommendation_contract_excludes_rejected_and_deferred_decisions(
+    client, enable_read_flag, db_session
+):
+    rec_id = _recommendation_id_for(client, db_session, enable_read_flag)
+    for action in ("reject", "defer"):
+        response = client.post(
+            f"/api/v1/recommendations/{rec_id}/decisions",
+            json={"action": action, "decision_etag": f"{rec_id}-d1"},
+            headers={"Idempotency-Key": f"contract-{action}"},
+        )
+        assert response.status_code == 201, response.text
+
+    response = client.get(f"/api/v1/recommendations/{rec_id}/contract")
+    assert response.status_code == 200, response.text
+    assert response.json()["approvals"] == []
+
+
+def test_get_recommendation_contract_404_is_indistinguishable_from_cross_user(
+    client, enable_read_flag, db_session
+):
+    """A real other-user recommendation is indistinguishable from missing."""
+    from app.forecasts.recommendation_repository import RecommendationRepository
+
+    other_user, other_goal, _forecast, version = _build_world(
+        db_session,
+        user_sub="contract-intruder",
+        forecast_id="44444444-4444-4444-8444-444444444444",
+    )
+    other_recommendation = RecommendationRepository(db_session).persist(
+        user_id=int(other_user.id),
+        goal_id=int(other_goal.id),
+        forecast_version_id=str(version.id),
+        recommendation_kind="hold",
+        rule_version="v1.0",
+        derivation_schema_version="atlas-recommendation/v1",
+    ).recommendation
+    cross_user = client.get(
+        f"/api/v1/recommendations/{other_recommendation.id}/contract"
+    )
+    missing = client.get(
+        "/api/v1/recommendations/99999999-9999-4999-8999-999999999999/contract"
+    )
+    expected = {
+        "code": "recommendation_not_found",
+        "message": "Recommendation not found.",
+    }
+    assert cross_user.status_code == missing.status_code == 404
+    assert cross_user.json() == missing.json() == expected
