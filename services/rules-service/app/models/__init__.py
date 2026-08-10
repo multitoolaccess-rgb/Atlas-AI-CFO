@@ -56,6 +56,7 @@ from app.models.decision_journal_entry import DecisionJournalEntry
 # decisions. Privacy-safe: allowlisted evidence_source_kind + hash-only
 # evidence_reference_hash (no raw URLs, filenames, or identifiers).
 from app.models.outcome_evaluation import OutcomeEvaluation
+from app.models.decision_history import DecisionAuditEvent, DecisionHistoryEntry
 
 __all__ = [
     "Budget",
@@ -78,4 +79,6 @@ __all__ = [
     "Recommendation",
     "DecisionJournalEntry",
     "OutcomeEvaluation",
-] 
+    "DecisionHistoryEntry",
+    "DecisionAuditEvent",
+]

@@ -50,6 +50,10 @@ EXPECTED_TABLES = {
     # Phase 3 Slice 1 — immutable outcome-evaluation substrate (privacy
     # safe: allowlisted evidence_source_kind + hash-only evidence ref).
     "outcome_evaluations",
+    # Phase 4 Slice 1 — immutable decision context, correction history,
+    # and its append-only audit stream.
+    "decision_history_entries",
+    "decision_audit_events",
 }
 
 
