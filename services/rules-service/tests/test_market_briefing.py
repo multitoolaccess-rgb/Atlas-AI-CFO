@@ -5,7 +5,7 @@ from app.market_intelligence.briefing import (
     BriefingInput, DeterministicTemplateProvider, PositionInput, build_exposure_summary, build_portfolio_changes,
     select_relevant_news,
 )
-from app.market_intelligence.contracts import CompanyNewsItem, Freshness, SourceMetadata
+from app.market_intelligence.contracts import CompanyNewsItem, Freshness, SecFilingEvent, SourceMetadata
 
 NOW = datetime(2026, 8, 10, 12, tzinfo=UTC)
 
@@ -44,7 +44,7 @@ def test_news_relevance_is_held_only_deduplicated_and_template_is_review_only() 
 
     brief = DeterministicTemplateProvider().generate(BriefingInput(
         owner_id=1, portfolio_state_hash="a" * 64, universe_hash="b" * 64,
-        report_window="2026-08-10", positions=[], news=selected, generated_at=NOW,
+        report_window="2026-08-10", positions=[PositionInput(symbol="AAPL", currency="USD", source=_source())], news=selected, generated_at=NOW,
     ))
     assert brief.schema_version == "atlas-market-intelligence-brief/v1"
     assert [section.name for section in brief.sections] == [
@@ -53,6 +53,8 @@ def test_news_relevance_is_held_only_deduplicated_and_template_is_review_only() 
     ]
     assert brief.actions[0].action.startswith("Review whether")
     assert brief.actions[0].approval_requirement == "explicit_user_approval_required"
+    news_section = next(section for section in brief.sections if section.name == "material_holding_news")
+    assert news_section.citations and news_section.citations[0].freshness == Freshness.FRESH
 
 
 def test_sector_and_cash_require_authoritative_inputs() -> None:
@@ -63,7 +65,28 @@ def test_sector_and_cash_require_authoritative_inputs() -> None:
     ])
     assert exposure.sector_weights == (("Technology", "0.3"), ("unknown", "0.1"))
     assert exposure.cash_value == "10"
+    assert exposure.cash_currency == "USD"
     assert exposure.concentration_warning
+    ambiguous_cash = build_exposure_summary([
+        PositionInput(symbol="USD", currency="USD", source=_source(), is_cash=True, cash_value="10"),
+        PositionInput(symbol="EUR", currency="EUR", source=_source(), is_cash=True, cash_value="10"),
+    ])
+    assert ambiguous_cash.cash_value is None and ambiguous_cash.cash_currency is None
+    assert any("currency ambiguous" in warning.lower() for warning in ambiguous_cash.warnings)
+
+
+def test_displayed_change_and_filing_claims_each_carry_citations() -> None:
+    filing = SecFilingEvent(cik="320193", form="8-K", accession_number="0001-01", filing_date=NOW,
+                            source=_source("https://sec.test/filing"))
+    brief = DeterministicTemplateProvider().generate(BriefingInput(
+        owner_id=1, portfolio_state_hash="6" * 64, universe_hash="7" * 64, report_window="2026-08-10",
+        positions=[PositionInput(symbol="AAPL", quantity="1", current_price="11", previous_close="10", currency="USD", source=_source("https://quote.test/aapl"))],
+        filings=[filing], held_ciks={"320193"}, generated_at=NOW,
+    ))
+    for name in ("portfolio_changes", "sec_filings"):
+        section = next(section for section in brief.sections if section.name == name)
+        assert section.claims and all(claim.citation.source_url for claim in section.claims)
+        assert section.citations == tuple(claim.citation for claim in section.claims)
 
 
 def test_public_generate_route_never_accepts_client_financial_facts(client, monkeypatch) -> None:
@@ -100,3 +123,32 @@ def test_repository_idempotency_is_owner_scoped_and_never_mutates(db_session) ->
     assert not replayed and duplicate_replayed and not other_replayed
     assert row.id == duplicate.id and other.id != row.id
     assert row.payload_json == duplicate.payload_json
+
+
+def test_read_route_is_owner_scoped_and_hides_bad_storage(client, db_session, monkeypatch) -> None:
+    from app.config import settings
+    from app.market_intelligence.brief_repository import MarketBriefRepository
+    from app.models import User
+
+    monkeypatch.setattr(settings, "atlas_market_brief_read_api_enabled", True)
+    owner = User(local_user_sub="alex", email="route-owner@test.local", hashed_password="x")
+    other = User(local_user_sub="other", email="route-other@test.local", hashed_password="x")
+    db_session.add_all((owner, other))
+    db_session.commit()
+    base = BriefingInput(owner_id=owner.id, portfolio_state_hash="1" * 64, universe_hash="2" * 64,
+                         report_window="2026-08-10", positions=[], generated_at=NOW)
+    row, _ = MarketBriefRepository(db_session).get_or_create(DeterministicTemplateProvider().generate(base))
+    cross, _ = MarketBriefRepository(db_session).get_or_create(DeterministicTemplateProvider().generate(base.model_copy(update={"owner_id": other.id, "portfolio_state_hash": "3" * 64})))
+    from app.models.market_brief import MarketBrief as StoredBrief
+    corrupt = StoredBrief(id="00000000-0000-4000-8000-000000000999", user_id=owner.id,
+                          portfolio_state_hash="4" * 64, universe_hash="5" * 64, report_window="2026-08-10",
+                          schema_version="atlas-market-intelligence-brief/v1", calculation_version="market-impact/v1",
+                          generated_at=NOW, payload_json='{"not":"a brief"}')
+    db_session.add(corrupt)
+    db_session.commit()
+    assert client.get(f"/api/v1/market-briefs/{row.id}").status_code == 200
+    missing = client.get("/api/v1/market-briefs/missing")
+    assert client.get(f"/api/v1/market-briefs/{cross.id}").json() == missing.json() == {"code": "market_brief_not_found"}
+    assert client.get(f"/api/v1/market-briefs/{cross.id}").status_code == missing.status_code == 404
+    assert client.get("/api/v1/market-briefs/" + "x" * 37).status_code == 404
+    assert client.get("/api/v1/market-briefs/00000000-0000-4000-8000-000000000999").json() == missing.json()

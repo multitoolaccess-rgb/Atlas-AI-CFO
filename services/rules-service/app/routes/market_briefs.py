@@ -5,6 +5,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.auth import require_user
@@ -36,7 +37,13 @@ async def generate_market_brief(_user_sub: Annotated[str, Depends(require_user)]
 async def get_market_brief(brief_id: str, user_sub: Annotated[str, Depends(require_user)], db: Annotated[Session, Depends(_get_db)]) -> JSONResponse:
     if not settings.atlas_market_brief_read_api_enabled:
         return _unavailable()
+    if not brief_id or len(brief_id) > 36:
+        return JSONResponse(status_code=404, content={"code": "market_brief_not_found"})
     row = MarketBriefRepository(db).get_owned(user_id=_resolve_db_user_id(db, user_sub), brief_id=brief_id)
     if row is None:
         return JSONResponse(status_code=404, content={"code": "market_brief_not_found"})
-    return JSONResponse(content={"brief_id": row.id, "brief": MarketBrief.model_validate_json(row.payload_json).model_dump(mode="json")})
+    try:
+        brief = MarketBrief.model_validate_json(row.payload_json)
+    except ValidationError:
+        return JSONResponse(status_code=404, content={"code": "market_brief_not_found"})
+    return JSONResponse(content={"brief_id": row.id, "brief": brief.model_dump(mode="json")})

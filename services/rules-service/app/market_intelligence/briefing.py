@@ -64,6 +64,7 @@ class ExposureSummary(StrictModel):
     sector_weights: tuple[tuple[str, str], ...]
     concentration_warning: str | None = None
     cash_value: str | None = None
+    cash_currency: str | None = None
     warnings: tuple[str, ...] = ()
 
 
@@ -72,12 +73,14 @@ def build_exposure_summary(positions: list[PositionInput], *, concentration_thre
     warnings: list[str] = []
     cash_total = Decimal(0)
     has_cash = False
+    cash_currencies: set[str] = set()
     for position in positions:
         if position.is_cash:
             value = _decimal(position.cash_value)
             if value is None or value < 0:
                 warnings.append("Cash omitted: no authoritative cash value.")
             else:
+                cash_currencies.add(position.currency)
                 cash_total += value
                 has_cash = True
             continue
@@ -88,7 +91,10 @@ def build_exposure_summary(positions: list[PositionInput], *, concentration_thre
         sectors[sector] = sectors.get(sector, Decimal(0)) + weight
     ordered = tuple((sector, _canonical(weight)) for sector, weight in sorted(sectors.items()))
     concentration = next((f"Concentration review: {sector} weight {weight}." for sector, weight in ordered if Decimal(weight) >= concentration_threshold), None)
-    return ExposureSummary(sector_weights=ordered, concentration_warning=concentration, cash_value=_canonical(cash_total) if has_cash else None, warnings=tuple(warnings))
+    if len(cash_currencies) > 1:
+        warnings.append("Cash omitted: currency ambiguous.")
+        has_cash = False
+    return ExposureSummary(sector_weights=ordered, concentration_warning=concentration, cash_value=_canonical(cash_total) if has_cash else None, cash_currency=next(iter(cash_currencies)) if has_cash else None, warnings=tuple(warnings))
 
 
 def build_portfolio_changes(positions: list[PositionInput]) -> PortfolioChanges:
@@ -151,6 +157,13 @@ class BriefSection(StrictModel):
     name: str
     content: tuple[str, ...]
     citations: tuple[Citation, ...] = ()
+    claims: tuple["BriefClaim", ...] = ()
+
+
+class BriefClaim(StrictModel):
+    """A displayed claim cannot exist without its source and freshness."""
+    text: str
+    citation: Citation
 
 
 class ActionToReview(StrictModel):
@@ -197,14 +210,17 @@ class DeterministicTemplateProvider:
         changes = build_portfolio_changes(input.positions)
         news = select_relevant_news(input.news, held_symbols={p.symbol for p in input.positions})
         filings = select_relevant_filings(input.filings, held_ciks=input.held_ciks)
-        citations = tuple(Citation.from_source(item.source) for item in news)
+        news_citations = tuple(Citation.from_source(item.source) for item in news)
+        portfolio_claims = tuple(BriefClaim(text=f"{row.symbol}: {row.daily_change}", citation=Citation.from_source(row.source)) for row in changes.rows)
+        filing_claims = tuple(BriefClaim(text=f"{item.form}: {item.accession_number}", citation=Citation.from_source(item.source)) for item in filings)
+        citations = tuple((*news_citations, *(claim.citation for claim in portfolio_claims), *(claim.citation for claim in filing_claims)))
         action = ActionToReview(action="Review whether material portfolio changes warrant follow-up.", why="The briefing reports deterministic market data only.", goal_linkage="No goal linkage is inferred.", evidence=tuple(row.symbol for row in changes.rows), expected_impact="No execution or return is implied.", risks=("Market data may be incomplete or stale.",), alternatives=("Do nothing.",), confidence="low", approval_requirement="explicit_user_approval_required")
         sections = (
             BriefSection(name="executive_summary", content=("Portfolio-specific market briefing; review-only.",)),
-            BriefSection(name="portfolio_changes", content=tuple(f"{row.symbol}: {row.daily_change}" for row in changes.rows)),
-            BriefSection(name="material_holding_news", content=tuple(item.headline for item in news), citations=citations),
+            BriefSection(name="portfolio_changes", content=tuple(claim.text for claim in portfolio_claims), citations=tuple(claim.citation for claim in portfolio_claims), claims=portfolio_claims),
+            BriefSection(name="material_holding_news", content=tuple(item.headline for item in news), citations=news_citations),
             BriefSection(name="earnings", content=()),
-            BriefSection(name="sec_filings", content=tuple(item.form for item in filings)),
+            BriefSection(name="sec_filings", content=tuple(claim.text for claim in filing_claims), citations=tuple(claim.citation for claim in filing_claims), claims=filing_claims),
             BriefSection(name="risks_and_opportunities", content=("Missing or stale inputs are disclosed.",)),
             BriefSection(name="actions_to_review", content=(action.action,)),
             BriefSection(name="sources", content=tuple(c.source_url for c in citations), citations=citations),
