@@ -9,11 +9,14 @@
 - Overall status: in_progress
 - Objective: Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.
 - Phase exit criteria: 0/1 complete
-- Tracker updated: 2026-08-11T05:09:30Z
+- Tracker updated: 2026-08-11T05:09:44Z
 
 ## Active work
 
-- None
+- work-p5-deterministic-briefing-engine: Phase 5 Slice 2 deterministic portfolio-impact and briefing engine [in_progress/high]
+  - Objective: Build Decimal-safe portfolio impact, immutable versioned source-cited briefing records, deterministic action-to-review templates, and strict owner-scoped generation/read behavior without LLMs or execution.
+  - Branch: codex/phase-5-deterministic-briefing-engine
+  - Paths: services/rules-service/app/market_intelligence, services/rules-service/app/models, services/rules-service/app/forecasts, services/rules-service/app/routes, services/rules-service/alembic/versions, services/rules-service/tests, docs/10-roadmap
 
 ## Blockers
 
@@ -43,6 +46,6 @@
 
 ## Next bounded task
 
-- work-p5-deterministic-briefing-engine: Start the bounded high-risk Slice 2 deterministic portfolio-impact and briefing-engine PR.
+- work-p5-deterministic-briefing-engine: Complete the active high-risk Slice 2 deterministic portfolio-impact and briefing-engine PR with required CI and fresh independent review.
 
 Do not begin the next task automatically.

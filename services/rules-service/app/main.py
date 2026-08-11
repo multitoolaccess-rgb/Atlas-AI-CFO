@@ -85,6 +85,7 @@ from app.routes import (
     # flag introduced. NO mutable Phase 2 CRUD. NO autonomous execution.
     recommendations_derived_router,
     decision_history_router,
+    market_briefs_router,
 )
 
 LOG = logging.getLogger("uvicorn.error")
@@ -464,6 +465,7 @@ app.include_router(forecasts_generation_router)
 # flag introduced. NO mutable Phase 2 CRUD. NO autonomous execution.
 app.include_router(recommendations_derived_router)
 app.include_router(decision_history_router)
+app.include_router(market_briefs_router)
 
 
 @app.on_event("startup")
