@@ -10,6 +10,7 @@ implementation phases. `PROJECT_STATUS.json` is the current-state authority.
 | Phase 2 | Forecast UI migration | Phase 1 complete and explicitly authorized | UI uses persisted forecasts, preserves explainability, has accessibility and parity coverage. |
 | Phase 3 | Goal-linked recommendations | Phase 2 complete and explicitly authorized | Recommendations link goals, evidence, risks, confidence, approvals, and evaluation. |
 | Phase 4 | Decision journal | Phase 3 complete and explicitly authorized | Decisions, alternatives, outcomes, permissions, audit history, and recovery are tested. |
+| Phase 5 | Market Intelligence Brief | Certified Phase 4 and explicitly authorized | A versioned, source-cited, portfolio-specific market briefing reports portfolio changes, material news, earnings and filings, deterministic actions to review, privacy-safe delivery, and tested failure behavior without paid data or autonomous execution. |
 
 No phase starts automatically. Review the active phase, dependencies, and exit
 criteria before authorizing the next bounded task.

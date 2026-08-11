@@ -4,12 +4,12 @@
 
 ## Current objective
 
-- Phase: phase-4 — Decision journal
-- Phase status: complete
-- Overall status: complete
-- Objective: Phase 4 Decision Journal is certified complete: PR #34 supplied the owner-scoped append-only substrate and PR #35 supplied the accessible, privacy-safe history UI. Final isolation-safe certification CI run 31457091205 passed at 8463db1. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy; Phase 5 has not started.
-- Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-08-11T04:11:00Z
+- Phase: phase-5 — Market Intelligence Brief
+- Phase status: in_progress
+- Overall status: in_progress
+- Objective: Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.
+- Phase exit criteria: 0/1 complete
+- Tracker updated: 2026-08-11T04:24:03Z
 
 ## Active work
 
@@ -43,6 +43,6 @@
 
 ## Next bounded task
 
-- phase-5-authorization-required: Phase 5 planning remains authorization-gated. Do not begin Phase 5 implementation or planning without explicit user authorization.
+- phase-5-planning-and-slice-1: Complete the approved Phase 5 planning slice, then begin the bounded high-risk research-data foundation slice.
 
 Do not begin the next task automatically.

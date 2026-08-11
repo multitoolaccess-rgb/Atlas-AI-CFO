@@ -12,6 +12,13 @@ Recommendation contract, goal engine, decision journal, risk detection, explanat
 
 Simulation Lab, investment intelligence, opportunity discovery, household collaboration, and outcome tracking.
 
+### Phase 5 delivery milestone — Market Intelligence Brief
+
+Portfolio-first, deterministic market intelligence using Finnhub Free and
+public SEC data, archived in Atlas with optional privacy-safe, default-off
+email delivery. The milestone remains read/analyze/recommend only: no paid
+data, cloud LLM, autonomous execution, or external multi-user rollout.
+
 ## Quarter 4: Advisor and readiness
 
 Advisor sharing, review workflows, advanced permissions, production hardening, and limited prepared-action pilots.

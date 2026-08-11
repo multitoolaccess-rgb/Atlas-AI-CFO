@@ -657,15 +657,15 @@
       "title": "Phase 4 Slice 2 decision-history UI"
     }
   ],
-  "current_objective": "Phase 4 Decision Journal is certified complete: PR #34 supplied the owner-scoped append-only substrate and PR #35 supplied the accessible, privacy-safe history UI. Final isolation-safe certification CI run 31457091205 passed at 8463db1. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy; Phase 5 has not started.",
-  "current_phase_id": "phase-4",
-  "last_updated": "2026-08-11T04:11:00Z",
+  "current_objective": "Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.",
+  "current_phase_id": "phase-5",
+  "last_updated": "2026-08-11T04:24:03Z",
   "next_bounded_task": {
-    "description": "Phase 5 planning remains authorization-gated. Do not begin Phase 5 implementation or planning without explicit user authorization.",
-    "id": "phase-5-authorization-required",
-    "phase_id": "phase-4"
+    "description": "Complete the approved Phase 5 planning slice, then begin the bounded high-risk research-data foundation slice.",
+    "id": "phase-5-planning-and-slice-1",
+    "phase_id": "phase-5"
   },
-  "overall_status": "complete",
+  "overall_status": "in_progress",
   "phases": [
     {
       "exit_criteria": [
@@ -761,6 +761,18 @@
       "id": "phase-4",
       "name": "Decision journal",
       "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": false,
+          "description": "A versioned, source-cited, portfolio-specific market briefing reports portfolio changes, material news, earnings and filings, deterministic actions to review, privacy-safe delivery, and tested failure behavior without paid data or autonomous execution.",
+          "id": "ec-p5-market-intelligence-brief"
+        }
+      ],
+      "id": "phase-5",
+      "name": "Market Intelligence Brief",
+      "status": "in_progress"
     }
   ],
   "risks": [

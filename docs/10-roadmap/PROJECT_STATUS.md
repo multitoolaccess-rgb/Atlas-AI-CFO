@@ -2,10 +2,10 @@
 
 > Generated from `PROJECT_STATUS.json`; regenerate with `python3 scripts/atlas_project_status.py render`.
 
-- Current phase: **phase-4 — Decision journal** (complete)
-- Overall status: **complete**
-- Current objective: Phase 4 Decision Journal is certified complete: PR #34 supplied the owner-scoped append-only substrate and PR #35 supplied the accessible, privacy-safe history UI. Final isolation-safe certification CI run 31457091205 passed at 8463db1. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy; Phase 5 has not started.
-- Last updated: 2026-08-11T04:11:00Z
+- Current phase: **phase-5 — Market Intelligence Brief** (in_progress)
+- Overall status: **in_progress**
+- Current objective: Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.
+- Last updated: 2026-08-11T04:24:03Z
 
 ## Active work
 - None
@@ -19,6 +19,7 @@
 - phase-2 — Forecast UI migration: complete (1/1 exit criteria)
 - phase-3 — Goal-linked recommendations: complete (1/1 exit criteria)
 - phase-4 — Decision journal: complete (1/1 exit criteria)
+- phase-5 — Market Intelligence Brief: in_progress (0/1 exit criteria)
 
 ## Current risks
 - risk-frontend-lint-debt [medium/high, open]: Repository-wide frontend lint debt remains outside Phase 0 scope.
@@ -75,6 +76,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- phase-5-authorization-required: Phase 5 planning remains authorization-gated. Do not begin Phase 5 implementation or planning without explicit user authorization.
+- phase-5-planning-and-slice-1: Complete the approved Phase 5 planning slice, then begin the bounded high-risk research-data foundation slice.
 
 Do not begin the next phase or task automatically.
