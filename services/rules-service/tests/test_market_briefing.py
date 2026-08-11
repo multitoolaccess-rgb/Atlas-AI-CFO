@@ -120,6 +120,119 @@ def test_public_generate_route_never_accepts_client_financial_facts(client, monk
     assert disabled.json() == unassembled.json() == {"code": "market_brief_unavailable", "message": "Market briefing is currently disabled."}
 
 
+class _RecordingMarketProviders:
+    """Hermetic trusted-provider double: no adapter or network is involved."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str | None]] = []
+        self.now = NOW
+        self.quote_source = _source("https://quotes.test/aapl")
+        self.earnings_source = _source("https://earnings.test/aapl")
+
+    def quote(self, symbol: str):
+        self.calls.append(("quote", symbol))
+        if symbol == "AAPL":
+            from app.market_intelligence.contracts import MarketQuoteSnapshot
+            return MarketQuoteSnapshot(symbol=symbol, currency="USD", current_price="110", previous_close="100", source=self.quote_source)
+        return None
+
+    def news(self, symbol: str):
+        self.calls.append(("news", symbol))
+        return [CompanyNewsItem(symbol=symbol, headline="Apple update", source=_source("https://news.test/aapl"))]
+
+    def earnings_events(self, symbol: str):
+        self.calls.append(("earnings_events", symbol))
+        return [
+            EarningsEvent(symbol=symbol, event_date=datetime(2026, 8, 11, tzinfo=UTC), source=self.earnings_source),
+            EarningsEvent(symbol=symbol, event_date=datetime(2026, 7, 26, tzinfo=UTC), source=self.earnings_source),
+            EarningsEvent(symbol=symbol, event_date=datetime(2026, 9, 10, tzinfo=UTC), source=self.earnings_source),
+        ]
+
+    def earnings_results(self, symbol: str):
+        self.calls.append(("earnings_results", symbol))
+        return [
+            EarningsResult(symbol=symbol, actual="2", estimate="1", source=SourceMetadata(provider="synthetic", source_url="https://earnings.test/result", retrieved_at=NOW, observed_at=NOW)),
+            EarningsResult(symbol=symbol, actual="1", estimate="1", source=SourceMetadata(provider="synthetic", source_url="https://earnings.test/old-result", retrieved_at=NOW, observed_at=datetime(2026, 7, 26, tzinfo=UTC))),
+        ]
+
+    def filings(self):
+        self.calls.append(("filings", None))
+        return []
+
+
+def test_enabled_generation_uses_only_owner_holdings_and_cites_in_window_earnings(client, db_session, make_account, monkeypatch) -> None:
+    """The route composes server-side state; body financial facts cannot alter it."""
+    from app.config import settings
+    from app.market_intelligence.composition import TrustedMarketBriefComposer
+    from app.models import Holding, User
+    from app.routes.market_briefs import configure_market_brief_composer
+    from app.routes.shared import get_or_create_family_member_self, get_or_create_institution
+    from app.models import Account
+
+    owner_account = make_account(account_name="Owner brokerage", account_type="brokerage")
+    db_session.add(owner_account)
+    db_session.flush()
+    other = User(local_user_sub="other-market-owner", email="other-market-owner@test.local", hashed_password="x")
+    db_session.add(other)
+    db_session.flush()
+    other_account = Account(
+        user_id=other.id,
+        institution_id=get_or_create_institution(db_session, "Other market bank").id,
+        family_member_id=get_or_create_family_member_self(db_session, other).id,
+        account_name="Other brokerage", account_type="brokerage", is_active=True,
+    )
+    db_session.add_all((
+        other_account,
+        Holding(account_id=owner_account.id, symbol="aapl", quantity=2, current_value=200, type="Stock"),
+    ))
+    db_session.flush()
+    db_session.add(Holding(account_id=other_account.id, symbol="MSFT", quantity=99, current_value=999, type="Stock"))
+    db_session.commit()
+
+    providers = _RecordingMarketProviders()
+    configure_market_brief_composer(TrustedMarketBriefComposer(providers, now=lambda: NOW))
+    monkeypatch.setattr(settings, "atlas_market_brief_generation_enabled", True)
+    monkeypatch.setattr(settings, "atlas_market_brief_external_provider_enabled", True)
+    dangerous = {"owner_id": other.id, "positions": [{"symbol": "MSFT", "quantity": "999999"}], "earnings_events": [{"symbol": "MSFT"}]}
+    try:
+        response = client.post("/api/v1/market-briefs/generate", json=dangerous)
+    finally:
+        configure_market_brief_composer(None)
+
+    assert response.status_code == 201
+    brief = response.json()["brief"]
+    assert brief["owner_id"] != other.id
+    assert "MSFT" not in str(brief)
+    assert {symbol for _, symbol in providers.calls if symbol} == {"AAPL"}
+    changes = next(section for section in brief["sections"] if section["name"] == "portfolio_changes")
+    assert changes["content"] == ["AAPL: 20"]
+    earnings = next(section for section in brief["sections"] if section["name"] == "earnings")
+    assert earnings["content"] == ["recent result: AAPL period 2026-08-10", "upcoming: AAPL earnings on 2026-08-11"]
+    assert {citation["source_url"] for citation in earnings["citations"]} == {"https://earnings.test/aapl", "https://earnings.test/result"}
+
+
+def test_generation_unavailable_for_missing_composer_or_flags_without_provider_calls(client, monkeypatch) -> None:
+    from app.config import settings
+    from app.market_intelligence.composition import TrustedMarketBriefComposer
+    from app.routes.market_briefs import configure_market_brief_composer
+
+    providers = _RecordingMarketProviders()
+    unavailable = {"code": "market_brief_unavailable", "message": "Market briefing is currently disabled."}
+    configure_market_brief_composer(TrustedMarketBriefComposer(providers, now=lambda: NOW))
+    monkeypatch.setattr(settings, "atlas_market_brief_generation_enabled", False)
+    monkeypatch.setattr(settings, "atlas_market_brief_external_provider_enabled", True)
+    try:
+        assert client.post("/api/v1/market-briefs/generate", json={"positions": [{"symbol": "MSFT"}]}).json() == unavailable
+        monkeypatch.setattr(settings, "atlas_market_brief_generation_enabled", True)
+        monkeypatch.setattr(settings, "atlas_market_brief_external_provider_enabled", False)
+        assert client.post("/api/v1/market-briefs/generate", json={"positions": [{"symbol": "MSFT"}]}).json() == unavailable
+        configure_market_brief_composer(None)
+        assert client.post("/api/v1/market-briefs/generate").json() == unavailable
+    finally:
+        configure_market_brief_composer(None)
+    assert providers.calls == []
+
+
 def test_repository_idempotency_is_owner_scoped_and_never_mutates(db_session) -> None:
     from app.market_intelligence.brief_repository import MarketBriefRepository
     from app.models import User
