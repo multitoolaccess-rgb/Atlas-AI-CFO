@@ -42,7 +42,10 @@ class TrustedMarketBriefComposer:
             quote = self.providers.quote(symbol)
             if quote is None:
                 continue
-            matching_holdings = [item for item in holdings if (item.symbol or "").strip().upper() == symbol]
+            matching_holdings = [
+                item for item in holdings
+                if (item.symbol or "").strip().upper() == symbol and (item.type or "").lower() != "cash"
+            ]
             quantity = None if any(item.quantity is None for item in matching_holdings) else format(
                 sum((Decimal(str(item.quantity)) for item in matching_holdings), Decimal(0)).normalize(), "f"
             )
