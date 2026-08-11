@@ -1,26 +1,5 @@
 {
-  "active_work": [
-    {
-      "branch": "codex/phase-4-decision-history-ui",
-      "id": "work-p4-decision-history-ui",
-      "issue": "",
-      "objective": "Integrate the default-off owner-scoped decision-history API into the existing goals recommendation UI with accessible, privacy-safe chronological history and complete mocked browser coverage.",
-      "paths": [
-        "ui/app/goals/page.tsx",
-        "ui/components",
-        "ui/lib",
-        "ui/__tests__"
-      ],
-      "phase_id": "phase-4",
-      "pr": "35",
-      "risk_tier": "high",
-      "status": "in_review",
-      "tests": [
-        "Focused frontend component, typed-client, accessibility, mocked browser, and relevant API contract regression coverage"
-      ],
-      "title": "Phase 4 Slice 2 decision-history UI"
-    }
-  ],
+  "active_work": [],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -649,17 +628,44 @@
         "Focused final-cycle decision-history route/service tests: 11 passed; complete Rules Service suite: 1190 passed, 10 skipped, 1 xfailed."
       ],
       "title": "Phase 4 Slice 1 decision-history substrate"
+    },
+    {
+      "branch": "codex/phase-4-decision-history-ui",
+      "ci_evidence": {
+        "check": "heavy (full + Playwright)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31457091205"
+      },
+      "commit": "a81eee6",
+      "id": "work-p4-decision-history-ui",
+      "issue": "",
+      "objective": "Integrate the default-off owner-scoped decision-history API into the existing goals recommendation UI with accessible, privacy-safe chronological history and complete mocked browser coverage.",
+      "paths": [
+        "ui/app/goals/page.tsx",
+        "ui/components",
+        "ui/lib",
+        "ui/__tests__"
+      ],
+      "phase_id": "phase-4",
+      "pr": "35",
+      "review_evidence": "Fresh independent review approved PR #35 head 81e20ca with no CRITICAL/HIGH/MEDIUM findings. Final certification review corrected CI E2E isolation and verified the final isolation fix; canonical CI run 31457091205 passed for final implementation SHA 8463db1.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Focused and full evidence: Rules 1190 passed/10 skipped/1 xfailed; Finlynq 106 passed; root 22 passed; frontend 542 passed; canonical Playwright 85 passed/2 policy skips; migrations and decision-history focused tests passed."
+      ],
+      "title": "Phase 4 Slice 2 decision-history UI"
     }
   ],
-  "current_objective": "Phase 4 Slice 1 COMPLETE: PR #34 squash-merged at 13da914, providing owner-scoped append-only decision history, bounded alternatives and rationale, audited outcome linkage, correction recovery, default-off APIs, and cross-dialect safeguards. Phase 4 Slice 2 UI/accessibility/end-to-end integration is implemented in PR #35 and awaiting final merge after green CI and independent review. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.",
+  "current_objective": "Phase 4 Decision Journal is certified complete: PR #34 supplied the owner-scoped append-only substrate and PR #35 supplied the accessible, privacy-safe history UI. Final isolation-safe certification CI run 31457091205 passed at 8463db1. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy; Phase 5 has not started.",
   "current_phase_id": "phase-4",
-  "last_updated": "2026-08-11T00:42:00Z",
+  "last_updated": "2026-08-11T04:11:00Z",
   "next_bounded_task": {
-    "description": "Phase 4 Slice 2: integrate the merged owner-scoped decision-history API into the existing goals recommendation surface with typed client coverage, accessible chronological history and correction flow, privacy-safe outcome lifecycle display, and mocked end-to-end coverage. Do not begin without explicit authorization.",
-    "id": "work-p4-decision-history-ui",
+    "description": "Phase 5 planning remains authorization-gated. Do not begin Phase 5 implementation or planning without explicit user authorization.",
+    "id": "phase-5-authorization-required",
     "phase_id": "phase-4"
   },
-  "overall_status": "in_progress",
+  "overall_status": "complete",
   "phases": [
     {
       "exit_criteria": [
@@ -747,14 +753,14 @@
     {
       "exit_criteria": [
         {
-          "complete": false,
-          "description": "Decision history, alternatives, outcomes, permissions, auditability, and recovery are tested.",
+          "complete": true,
+          "description": "Decision history, alternatives, rationale, outcome lifecycle, permissions, auditability, recovery, UI accessibility, and privacy are evidenced by PR #35, final isolation-safe CI run 31457091205 at 8463db1, and Phase 4 certification tests.",
           "id": "ec-p4-decision-history"
         }
       ],
       "id": "phase-4",
       "name": "Decision journal",
-      "status": "in_progress"
+      "status": "complete"
     }
   ],
   "risks": [

@@ -62,3 +62,13 @@ criteria are complete.
 - ADRs: ADR-003-PROGRESSIVE-AUTONOMY.md, ADR-004-EVENTED-HISTORY.md
 - Known limitations: External multi-user rollout remains blocked pending retention and user-deletion policy.; Currency authority remains fail-closed pending authoritative active-account currency.
 - Authorized next phase: Phase 4 decision journal (ec-p4-decision-history) requires explicit authorization; do not begin automatically.
+
+## phase-4 — Decision journal
+
+- Completion date: 2026-08-10
+- Final commit: `8463db1`
+- Merged PRs: 35
+- Test evidence: Phase 4 certification: Rules 1190 passed/10 skipped/1 xfailed; Finlynq 106 passed; root 22 passed; frontend Vitest 542 passed; TypeScript/lint passed; dedicated decision-history Playwright passed; canonical Playwright 85 passed/2 policy skips; final isolation-safe CI heavy and cheap passed in run 31457091205 for `8463db1`.
+- ADRs: ADR-004-EVENTED-HISTORY.md
+- Known limitations: External multi-user rollout remains blocked by retention/user-deletion and authoritative currency-policy decisions; no Phase 5 work is authorized or started.
+- Authorized next phase: Phase 4 certified complete. Do not begin Phase 5 without explicit authorization.
