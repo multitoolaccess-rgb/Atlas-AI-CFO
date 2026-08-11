@@ -94,6 +94,15 @@ prepare_e2e_database() {
   )
 }
 
+require_port_available() {
+  local port="$1"
+  local service="$2"
+  if lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
+    echo "❌  Port $port is already in use; stop the local $service service before running the hermetic E2E suite."
+    return 1
+  fi
+}
+
 # ---- Pretty banner ----
 echo ""
 echo "=========================================="
@@ -115,12 +124,18 @@ if [ ! -d "$UI_DIR/node_modules/@playwright/test" ]; then
   exit 1
 fi
 
+# This suite writes test data. Never reuse a developer service at either
+# fixed endpoint: doing so would route browser mutations outside the isolated
+# E2E database.
+require_port_available 8001 "Finlynq" || exit 1
+require_port_available 8000 "Rules Service" || exit 1
+
 # Rules Service deliberately does not auto-migrate by default. Build its
 # schema before either service starts so the live browser stack never reads a
 # developer's finance.db and Finlynq shares the same canonical E2E state.
 prepare_e2e_database || exit 1
 
-# ---- Service dependencies: start only when not already running ----
+# ---- Service dependencies: start and own the entire live stack ----
 start_finlynq() {
   echo "→ Starting Finlynq on :8001..."
   cd "$FINLYNQ_DIR"
@@ -165,17 +180,8 @@ start_rules() {
   return 1
 }
 
-if curl -s -f http://localhost:8001/health >/dev/null 2>&1; then
-  echo "→ Finlynq already running on :8001 (will reuse)"
-else
-  start_finlynq || exit 1
-fi
-
-if curl -s -f http://localhost:8000/health >/dev/null 2>&1; then
-  echo "→ Rules Service already running on :8000 (will reuse)"
-else
-  start_rules || exit 1
-fi
+start_finlynq || exit 1
+start_rules || exit 1
 
 # ---- Playwright smoke test ----
 echo ""

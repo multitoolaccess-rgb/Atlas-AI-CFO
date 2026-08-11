@@ -88,6 +88,10 @@ def test_e2e_harness_provisions_the_live_service_dependencies() -> None:
     assert source.index("prepare_e2e_database || exit 1") < source.index("start_finlynq()")
     assert source.count('DATABASE_URL="$E2E_DATABASE_URL"') == 3
     assert 'rm -f -- "$E2E_DB_PATH" "${E2E_DB_PATH}-wal" "${E2E_DB_PATH}-shm"' in source
+    assert 'require_port_available 8001 "Finlynq" || exit 1' in source
+    assert 'require_port_available 8000 "Rules Service" || exit 1' in source
+    assert "lsof -nP -iTCP:" in source
+    assert "will reuse" not in source
 
 
 def _make_hermetic_atlas_root(tmp_path: Path) -> tuple[Path, Path]:
