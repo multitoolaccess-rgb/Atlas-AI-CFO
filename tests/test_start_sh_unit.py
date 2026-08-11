@@ -68,7 +68,9 @@ def test_lifecycle_scripts_are_atlas_branded_and_valid_bash() -> None:
 def test_e2e_harness_provisions_the_live_service_dependencies() -> None:
     """The canonical browser runner must not rely on developer processes."""
     source = (ROOT / "scripts/test-e2e.sh").read_text()
+    canonical_runner = (ROOT / "scripts/test.sh").read_text()
 
+    assert 'bash "$SCRIPT_DIR/test-e2e.sh"' in canonical_runner
     assert "FINLYNQ_VENV_PY" in source
     assert "uvicorn app.main:app --host 0.0.0.0 --port 8001" in source
     assert "uvicorn app.main:app --host 0.0.0.0 --port 8000" in source
