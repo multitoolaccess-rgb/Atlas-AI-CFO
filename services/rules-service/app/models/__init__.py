@@ -57,6 +57,7 @@ from app.models.decision_journal_entry import DecisionJournalEntry
 # evidence_reference_hash (no raw URLs, filenames, or identifiers).
 from app.models.outcome_evaluation import OutcomeEvaluation
 from app.models.decision_history import DecisionAuditEvent, DecisionHistoryEntry
+from app.models.market_brief import MarketBrief
 
 __all__ = [
     "Budget",
@@ -81,4 +82,5 @@ __all__ = [
     "OutcomeEvaluation",
     "DecisionHistoryEntry",
     "DecisionAuditEvent",
+    "MarketBrief",
 ]

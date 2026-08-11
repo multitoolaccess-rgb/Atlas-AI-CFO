@@ -15,10 +15,10 @@ ROOT = Path(__file__).parent.parent
 PARENT = "Q5h1i2j3k4l5"
 # Phase 3 Slice 1 adds an outcome-evaluation migration on top of the
 # Phase 2 decision-journal chain (``T8a1b2c3d4e5`` →
-# ``V0a1b2c3d4e5``). The baseline ``alembic_version.version_num``
+# ``V0a1b2c3d4e5``). Phase 5 then adds immutable market briefs. The baseline ``alembic_version.version_num``
 # constant tracks the new chain head so the round-trip assertions
 # below stay aligned with the certified migration chain.
-REVISION = "V0a1b2c3d4e5"
+REVISION = "M5a6b7c8d9e0"
 ACCOUNT_CURRENCY_PARENT = "R6f1g2h3i4j5"
 
 
@@ -75,6 +75,26 @@ def test_forecast_version_guards_and_downgrade_refusal(monkeypatch):
                 conn.execute(text("DELETE FROM forecast_versions"))
         with pytest.raises(RuntimeError, match="immutable forecast history"):
             command.downgrade(cfg, PARENT)
+
+
+def test_market_brief_migration_refuses_downgrade_when_immutable_rows_exist(monkeypatch):
+    with tempfile.TemporaryDirectory() as tmp:
+        url = f"sqlite:///{os.path.join(tmp, 'market_briefs.db')}"
+        monkeypatch.setattr("app.config.settings.database_url", url)
+        cfg = _config(url)
+        command.upgrade(cfg, "head")
+        engine = create_engine(url)
+        register_sqlite_compat(engine)
+        with engine.begin() as conn:
+            conn.execute(text("INSERT INTO users (id, local_user_sub, email, hashed_password) VALUES (1, 'brief-user', 'brief@example.com', 'x')"))
+            conn.execute(text("""INSERT INTO market_briefs (id, user_id, portfolio_state_hash, universe_hash, report_window, schema_version, calculation_version, generated_at, payload_json)
+                VALUES ('00000000-0000-4000-8000-000000000004', 1, :state, :universe, '2026-08-10', 'atlas-market-intelligence-brief/v1', 'market-impact/v1', CURRENT_TIMESTAMP, '{}')"""), {"state": "e" * 64, "universe": "f" * 64})
+            with pytest.raises(Exception):
+                conn.execute(text("UPDATE market_briefs SET report_window = 'changed'"))
+            with pytest.raises(Exception):
+                conn.execute(text("DELETE FROM market_briefs"))
+        with pytest.raises(RuntimeError, match="market brief"):
+            command.downgrade(cfg, "V0a1b2c3d4e5")
 
 
 def test_forecast_downgrade_refuses_versionless_forecast_identity(monkeypatch):

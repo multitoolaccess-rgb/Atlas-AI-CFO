@@ -108,6 +108,7 @@ from app.routes.debts import router as debts_router
 from app.routes.recommendations import router as recommendations_router
 # Phase 2 — policy-based rule evaluation.
 from app.routes.evaluate import router as evaluate_router
+from app.routes.market_briefs import router as market_briefs_router
 
 __all__ = [
     "accounts_router",
@@ -130,4 +131,5 @@ __all__ = [
     "recommendations_router",
     "evaluate_router",
     "forecasts_generation_router",
+    "market_briefs_router",
 ]
