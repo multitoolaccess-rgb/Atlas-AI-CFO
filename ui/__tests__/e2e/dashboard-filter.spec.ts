@@ -36,7 +36,9 @@ test.describe('Dashboard — interactive analytics workspace', () => {
     await expect(page.getByText('Financial Health')).toBeVisible()
 
     // Spending by Category module
-    await expect(page.getByText('Spending by Category')).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'Spending by Category', level: 2, exact: true }),
+    ).toBeVisible()
   })
 
   test('time range selector renders with all presets', async ({ page }) => {
