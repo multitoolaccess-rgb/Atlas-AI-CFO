@@ -9,14 +9,11 @@
 - Overall status: in_progress
 - Objective: Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.
 - Phase exit criteria: 0/1 complete
-- Tracker updated: 2026-08-11T05:09:44Z
+- Tracker updated: 2026-08-11T11:44:44Z
 
 ## Active work
 
-- work-p5-deterministic-briefing-engine: Phase 5 Slice 2 deterministic portfolio-impact and briefing engine [in_progress/high]
-  - Objective: Build Decimal-safe portfolio impact, immutable versioned source-cited briefing records, deterministic action-to-review templates, and strict owner-scoped generation/read behavior without LLMs or execution.
-  - Branch: codex/phase-5-deterministic-briefing-engine
-  - Paths: services/rules-service/app/market_intelligence, services/rules-service/app/models, services/rules-service/app/forecasts, services/rules-service/app/routes, services/rules-service/alembic/versions, services/rules-service/tests, docs/10-roadmap
+- None
 
 ## Blockers
 
@@ -38,14 +35,14 @@
 
 ## Recently completed
 
-- work-p3-outcome-evidence-reference-replacement: Phase 3 Slice 1: Privacy-safe outcome-evaluation substrate (evidence reference replacement) — commit 8955e40a74926d76bed7cd93f5fb31a8508d40c9, PR 32
 - work-p3-recommendation-linkage-and-approvals: Phase 3: Recommendation linkage and approvals — commit 86ea65fc8c27224ec209249218fb6ccbe74b4178, PR 33
 - work-p4-decision-history-substrate: Phase 4 Slice 1 decision-history substrate — commit 13da914cf1db78d02219eb72c9f4f5b0aca9e86f, PR 34
 - work-p4-decision-history-ui: Phase 4 Slice 2 decision-history UI — commit a81eee6, PR 35
 - work-p5-research-data-foundation: Phase 5 Slice 1 research-data foundation — commit f573ee4d5c43dfb5636c67c6f260b1decd118efe, PR 36
+- work-p5-deterministic-briefing-engine: Phase 5 Slice 2 deterministic portfolio-impact and briefing engine — commit 6cfaa80d868a0acc0d5f3dada3d915ef836bec53, PR 37
 
 ## Next bounded task
 
-- work-p5-deterministic-briefing-engine: Complete the active high-risk Slice 2 deterministic portfolio-impact and briefing-engine PR with required CI and fresh independent review.
+- work-p5-briefing-ui-delivery: Start the bounded high-risk Slice 3 in-app archive, privacy-safe delivery, and scheduling interface PR.
 
 Do not begin the next task automatically.

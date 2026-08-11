@@ -1,28 +1,5 @@
 {
-  "active_work": [
-    {
-      "branch": "codex/phase-5-deterministic-briefing-engine",
-      "id": "work-p5-deterministic-briefing-engine",
-      "issue": "",
-      "objective": "Build Decimal-safe portfolio impact, immutable versioned source-cited briefing records, deterministic action-to-review templates, and strict owner-scoped generation/read behavior without LLMs or execution.",
-      "paths": [
-        "services/rules-service/app/market_intelligence",
-        "services/rules-service/app/models",
-        "services/rules-service/app/forecasts",
-        "services/rules-service/app/routes",
-        "services/rules-service/alembic/versions",
-        "services/rules-service/tests",
-        "docs/10-roadmap"
-      ],
-      "phase_id": "phase-5",
-      "risk_tier": "high",
-      "status": "in_progress",
-      "tests": [
-        "Focused Decimal attribution, briefing contract/idempotency/citation/freshness/deduplication tests and relevant Rules Service regressions"
-      ],
-      "title": "Phase 5 Slice 2 deterministic portfolio-impact and briefing engine"
-    }
-  ],
+  "active_work": [],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -705,14 +682,44 @@
         "Focused foundation/config 31 passed; related Finnhub/holdings regressions 86 passed; hosted cheap lint + unit CI passed; status CI passed."
       ],
       "title": "Phase 5 Slice 1 research-data foundation"
+    },
+    {
+      "branch": "codex/phase-5-deterministic-briefing-engine",
+      "ci_evidence": {
+        "check": "cheap (lint + unit, no browser)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31482331930"
+      },
+      "commit": "6cfaa80d868a0acc0d5f3dada3d915ef836bec53",
+      "id": "work-p5-deterministic-briefing-engine",
+      "issue": "",
+      "objective": "Build Decimal-safe portfolio impact, immutable versioned source-cited briefing records, deterministic action-to-review templates, and strict owner-scoped generation/read behavior without LLMs or execution.",
+      "paths": [
+        "services/rules-service/app/market_intelligence",
+        "services/rules-service/app/models",
+        "services/rules-service/app/forecasts",
+        "services/rules-service/app/routes",
+        "services/rules-service/alembic/versions",
+        "services/rules-service/tests",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-5",
+      "pr": "37",
+      "review_evidence": "Fresh independent review APPROVE on corrected PR #37 head 9a51871 after two correction/review cycles; zero CRITICAL/HIGH/MEDIUM/LOW findings.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Focused briefing/migration/model/foundation/config 53 passed; hosted cheap lint + unit CI passed; status CI passed."
+      ],
+      "title": "Phase 5 Slice 2 deterministic portfolio-impact and briefing engine"
     }
   ],
   "current_objective": "Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.",
   "current_phase_id": "phase-5",
-  "last_updated": "2026-08-11T05:09:44Z",
+  "last_updated": "2026-08-11T11:44:44Z",
   "next_bounded_task": {
-    "description": "Complete the active high-risk Slice 2 deterministic portfolio-impact and briefing-engine PR with required CI and fresh independent review.",
-    "id": "work-p5-deterministic-briefing-engine",
+    "description": "Start the bounded high-risk Slice 3 in-app archive, privacy-safe delivery, and scheduling interface PR.",
+    "id": "work-p5-briefing-ui-delivery",
     "phase_id": "phase-5"
   },
   "overall_status": "in_progress",
