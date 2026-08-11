@@ -4,7 +4,7 @@
 
 - Current phase: **phase-4 — Decision journal** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Phase 4 Slice 1 COMPLETE: PR #34 squash-merged at 13da914, providing owner-scoped append-only decision history, bounded alternatives and rationale, audited outcome linkage, correction recovery, default-off APIs, and cross-dialect safeguards. Phase 4 Slice 2 UI/accessibility/end-to-end integration is the next bounded task and has not started. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.
+- Current objective: Phase 4 Slice 1 COMPLETE: PR #34 squash-merged at 13da914, providing owner-scoped append-only decision history, bounded alternatives and rationale, audited outcome linkage, correction recovery, default-off APIs, and cross-dialect safeguards. Phase 4 Slice 2 UI/accessibility/end-to-end integration is implemented in PR #35 and awaiting final merge after green CI and independent review. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.
 - Last updated: 2026-08-11T00:42:00Z
 
 ## Active work
