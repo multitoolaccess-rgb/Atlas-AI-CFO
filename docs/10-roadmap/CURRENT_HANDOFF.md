@@ -13,7 +13,7 @@
 
 ## Active work
 
-- work-p5-earnings-certification-correction: Phase 5 earnings briefing certification correction [in_progress/high]
+- work-p5-earnings-certification-correction: Phase 5 earnings briefing certification correction [blocked/high]
   - Objective: Render source-cited upcoming and recent portfolio earnings deterministically so the Phase 5 exit criterion is truthful.
   - Branch: codex/phase-5-earnings-certification-correction
   - Paths: services/rules-service/app/market_intelligence, services/rules-service/tests, docs/10-roadmap, docs/adr
@@ -21,6 +21,7 @@
 ## Blockers
 
 - external-multi-user-retention-deletion-blocker [open]: External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.
+- work-p5-earnings-certification-correction [blocked]: GitHub Actions run 31502743293 is stuck in the required cheap test step for PR #39 at `f2539dc`, despite green local `SKIP_PLAYWRIGHT=1 bash scripts/test.sh` and approving independent review. Do not merge until the exact head has a terminal successful CI check.
 
 ## Open risks
 
@@ -46,6 +47,6 @@
 
 ## Next bounded task
 
-- work-p5-earnings-certification-correction: Complete the bounded high-risk earnings-rendering correction PR, required CI, and independent review; then resume Phase 5 certification.
+- work-p5-earnings-certification-correction: When GitHub Actions recovers, rerun/verify CI for PR #39 head `f2539dc`, then merge and resume Phase 5 certification.
 
 Do not begin the next task automatically.
