@@ -12,8 +12,9 @@
         "docs/adr"
       ],
       "phase_id": "phase-5",
+      "pr": "39",
       "risk_tier": "high",
-      "status": "in_progress",
+      "status": "in_review",
       "tests": [
         "Focused deterministic earnings briefing and market-provider regression tests"
       ],
@@ -767,7 +768,7 @@
   ],
   "current_objective": "Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.",
   "current_phase_id": "phase-5",
-  "last_updated": "2026-08-11T13:46:31Z",
+  "last_updated": "2026-08-11T13:48:25Z",
   "next_bounded_task": {
     "description": "Complete the active high-risk Slice 3 archive, delivery, and scheduling PR with required CI and fresh independent review.",
     "id": "work-p5-briefing-ui-delivery",
