@@ -234,20 +234,20 @@ test('Sankey hero renders with Money Flow Engine title', async ({ page }) => {
   await expect(sankeyHero).toBeVisible({ timeout: 25_000 })
 })
 
-test('Financial Plans section shows 3 stat cards', async ({ page }) => {
+test('Financial Plans section shows its baseline stat cards', async ({ page }) => {
   await page.goto('/')
   await page.waitForURL('**/')
   await page.waitForLoadState('networkidle')
 
-  // The section is always present (loading branch shows 3
-  // skeletons, loaded branch shows 3 stat cards).
+  // The loading branch has three skeletons. Once loaded, the component
+  // renders two universal cards plus one card per server-provided goal;
+  // a valid fresh account can therefore have exactly two cards.
   const section = page.locator('section[aria-label="Financial plans"]')
   await expect(section).toBeVisible({ timeout: 25_000 })
 
-  // The section should contain 3 articles (either stat cards or
-  // skeleton placeholders).
+  // Preserve the baseline contract without assuming a seeded goal.
   const articles = section.locator('[role="article"]')
-  await expect(articles).toHaveCount(3, { timeout: 15_000 })
+  await expect.poll(() => articles.count(), { timeout: 15_000 }).toBeGreaterThanOrEqual(2)
 })
 
 test('Phase 4 — Copilot orb is visible on the dashboard', async ({ page }) => {

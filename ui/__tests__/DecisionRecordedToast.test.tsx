@@ -3,12 +3,10 @@
  *
  *  Coverage:
  *    1. ``entry=null`` renders nothing (no status element in DOM).
- *    2. ``entry`` is set → the bounded status element is in the DOM
- *       and is reachable via the journal-entry-id testid.
+ *    2. ``entry`` is set → the bounded status element is in the DOM.
  *    3. Auto-dismiss handler fires after the bounded window.
- *    4. Sanitized content: shows action_taken + first 8 chars of the
- *       journal_entry_id + the decided_at timestamp; NO money payload
- *       (the envelope does not carry one anyway).
+ *    4. Sanitized content: shows action_taken + timestamp only; neither
+ *       journal IDs nor other internal identifiers reach the DOM.
  */
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
@@ -67,14 +65,14 @@ describe('<DecisionRecordedToast />', () => {
     const status = screen.getByRole('status')
     expect(status).toBeInTheDocument()
     expect(status.getAttribute('aria-live')).toBe('polite')
-    // Keep primary text on the neutral surface: `text-primary` on the
-    // success-tint background was a serious axe contrast violation.
-    expect(status).toHaveClass('bg-surface')
-    expect(status).not.toHaveClass('bg-success-50')
-    // First 8 chars of the journal_entry_id are surfaced.
-    expect(screen.getByTestId('toast-journal-id').textContent).toBe(
-      '33333333…',
-    )
+    // Explicit positive-token pairing remains legible in light and dark
+    // themes; generic `bg-surface`/`text-primary` aliases are not.
+    expect(status).toHaveClass('bg-[var(--success-50)]')
+    expect(screen.getByText('Recorded.')).toHaveClass('text-[var(--success-700)]')
+    expect(status).toHaveTextContent('Action: accept')
+    expect(status).toHaveTextContent('Decided at 2026-08-01 00:01:00Z')
+    expect(status).not.toHaveTextContent(ENTRY.journal_entry_id)
+    expect(status.outerHTML).not.toContain(ENTRY.journal_entry_id)
   })
 
   it('calls onDismiss after the bounded auto-dismiss window', () => {

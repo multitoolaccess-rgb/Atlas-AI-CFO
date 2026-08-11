@@ -4,8 +4,8 @@
  * Phase 2 Slice 2 — Decision Recorded Toast.
  *
  * A bounded sanitized success toast tied to a freshly-appended journal
- * entry. Shows the action verb, the journal entry id (first 8 chars),
- * and the ``decided_at`` timestamp. Auto-dismisses after a bounded
+ * entry. Shows the action verb and the ``decided_at`` timestamp.
+ * Auto-dismisses after a bounded
  * window so the "Recorded" state on the parent card remains the
  * source of truth after the toast fades.
  *
@@ -49,27 +49,20 @@ export default function DecisionRecordedToast({
     <div
       role="status"
       aria-live="polite"
-      data-testid={`decision-recorded-toast-${entry.journal_entry_id}`}
-      className="fixed bottom-6 right-6 z-50 inline-flex items-start gap-3 px-4 py-3 max-w-sm bg-surface border border-success-200 rounded-lg shadow-lg animate-fadeIn"
+      data-testid="decision-recorded-toast"
+      className="fixed bottom-6 right-6 z-50 inline-flex items-start gap-3 px-4 py-3 max-w-sm bg-[var(--success-50)] border border-[var(--success-200)] rounded-lg shadow-lg animate-fadeIn"
     >
       <Check
-        className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0"
+        className="w-5 h-5 text-[var(--success-700)] mt-0.5 flex-shrink-0"
         aria-hidden="true"
       />
       <div className="flex-1">
-        <p className="text-sm font-bold text-primary">Recorded.</p>
-        <p className="text-xs text-on-surface-variant mt-0.5">
+        <p className="text-sm font-bold text-[var(--success-700)]">Recorded.</p>
+        <p className="text-xs text-[var(--success-700)] mt-0.5">
           Action:{' '}
-          <strong className="text-primary">{entry.action_taken}</strong>
-          {' '}· journal entry{' '}
-          <code
-            className="text-[10px] tabular-nums"
-            data-testid="toast-journal-id"
-          >
-            {entry.journal_entry_id.slice(0, 8)}…
-          </code>
+          <strong className="text-[var(--success-700)]">{entry.action_taken}</strong>
         </p>
-        <p className="text-[0.65rem] text-on-surface-variant mt-0.5">
+        <p className="text-[0.65rem] text-[var(--success-700)] mt-0.5">
           Decided at {compactTimestamp(entry.decided_at)}
         </p>
       </div>
@@ -77,7 +70,7 @@ export default function DecisionRecordedToast({
         type="button"
         onClick={onDismiss}
         aria-label="Dismiss notification"
-        className="text-on-surface-variant hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 transition-colors"
+        className="text-[var(--success-700)] hover:text-[var(--success-800)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--success-700)] transition-colors"
       >
         <XIcon className="w-4 h-4" aria-hidden="true" />
       </button>
