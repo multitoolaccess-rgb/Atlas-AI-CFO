@@ -1,3 +1,4 @@
+import { StrictMode } from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -69,6 +70,13 @@ describe('DecisionHistorySection', () => {
     const retry = await screen.findByRole('button', { name: 'Retry decision history' })
     fireEvent.click(retry)
     await waitFor(() => expect(screen.getByText('No decisions have been recorded for this goal yet.')).toBeInTheDocument())
+    expect(getDecisionHistory).toHaveBeenCalledTimes(2)
+  })
+
+  it('resolves history after React Strict Mode cleans up and re-runs the effect', async () => {
+    getDecisionHistory.mockResolvedValue({ schema_version: 'atlas-decision-history-envelope/v1', history: [] })
+    render(<StrictMode><DecisionHistorySection goals={goals} /></StrictMode>)
+    expect(await screen.findByText('No decisions have been recorded for this goal yet.')).toBeInTheDocument()
     expect(getDecisionHistory).toHaveBeenCalledTimes(2)
   })
 })

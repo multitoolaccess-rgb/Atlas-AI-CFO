@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   getDecisionHistory,
   readDecisionHistoryError,
@@ -48,12 +48,8 @@ export default function DecisionHistorySection({ goals }: { goals: Goal[] }) {
   const [states, setStates] = useState<Record<number, HistoryState>>({})
   const [retryVersion, setRetryVersion] = useState(0)
   const goalKey = goals.map((goal) => goal.id).join('|')
-  const loadKey = `${goalKey}:${retryVersion}`
-  const lastKey = useRef('')
 
   useEffect(() => {
-    if (lastKey.current === loadKey) return
-    lastKey.current = loadKey
     let cancelled = false
     setStates(Object.fromEntries(goals.map((goal) => [goal.id, { kind: 'loading' } as HistoryState])))
     void Promise.all(goals.map(async (goal) => {
@@ -67,7 +63,12 @@ export default function DecisionHistorySection({ goals }: { goals: Goal[] }) {
       }
     }))
     return () => { cancelled = true }
-  }, [goals, loadKey])
+  // Goal IDs and retryVersion are stable scalar dependencies. This deliberately
+  // permits React 18 Strict Mode's setup-after-cleanup probe to issue its
+  // second fetch: the first setup is cancelled, while the second resolves.
+  // Depending on the caller's mapped `goals` array would instead refetch on
+  // every parent render.
+  }, [goalKey, retryVersion])
 
   if (goals.length === 0) return null
 
