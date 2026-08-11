@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
@@ -11,10 +11,17 @@ from sqlalchemy.orm import Session
 from app.auth import require_user
 from app.config import settings
 from app.market_intelligence.brief_repository import MarketBriefRepository
-from app.market_intelligence.briefing import MarketBrief
+from app.market_intelligence.briefing import DeterministicTemplateProvider, MarketBrief
+from app.market_intelligence.composition import TrustedMarketBriefComposer
 from app.routes.recommendations_derived import _get_db, _resolve_db_user_id
 
 router = APIRouter(tags=["market-briefs"], prefix="/api/v1/market-briefs")
+_composer: TrustedMarketBriefComposer | None = None
+
+
+def configure_market_brief_composer(composer: TrustedMarketBriefComposer | None) -> None:
+    global _composer
+    _composer = composer
 
 
 def _unavailable() -> JSONResponse:
@@ -22,7 +29,7 @@ def _unavailable() -> JSONResponse:
 
 
 @router.post("/generate", response_model=None)
-async def generate_market_brief(_user_sub: Annotated[str, Depends(require_user)], _db: Annotated[Session, Depends(_get_db)]) -> JSONResponse:
+async def generate_market_brief(request: Request, user_sub: Annotated[str, Depends(require_user)], db: Annotated[Session, Depends(_get_db)]) -> JSONResponse:
     """Fail closed until a trusted server-side portfolio assembler exists.
 
     Deliberately declaring no request body means client-supplied positions,
@@ -30,7 +37,19 @@ async def generate_market_brief(_user_sub: Annotated[str, Depends(require_user)]
     persisted.  The internal deterministic provider remains available for a
     later server-only composition path.
     """
-    return _unavailable()
+    if not settings.atlas_market_brief_generation_enabled or not settings.atlas_market_brief_external_provider_enabled or _composer is None:
+        return _unavailable()
+    try:
+        raw = await request.json()
+    except Exception:
+        raw = {}
+    report_window = raw.get("report_window", "latest") if isinstance(raw, dict) else "latest"
+    if not isinstance(report_window, str) or not 1 <= len(report_window) <= 64:
+        return _unavailable()
+    user_id = _resolve_db_user_id(db, user_sub)
+    brief = DeterministicTemplateProvider().generate(_composer.assemble(db, owner_id=user_id, report_window=report_window))
+    row, replayed = MarketBriefRepository(db).get_or_create(brief)
+    return JSONResponse(status_code=200 if replayed else 201, content={"brief_id": row.id, "replayed": replayed, "brief": brief.model_dump(mode="json")})
 
 
 @router.get("/{brief_id}", response_model=None)
