@@ -5,10 +5,10 @@
 - Current phase: **phase-5 — Market Intelligence Brief** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.
-- Last updated: 2026-08-11T11:44:48Z
+- Last updated: 2026-08-11T11:52:41Z
 
 ## Active work
-- work-p5-briefing-ui-delivery: Phase 5 Slice 3 briefing archive, delivery, and scheduling (in_progress, high)
+- work-p5-briefing-ui-delivery: Phase 5 Slice 3 briefing archive, delivery, and scheduling (in_review, high)
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
