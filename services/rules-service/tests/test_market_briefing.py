@@ -5,7 +5,7 @@ from app.market_intelligence.briefing import (
     BriefingInput, DeterministicTemplateProvider, PositionInput, build_exposure_summary, build_portfolio_changes,
     select_relevant_news,
 )
-from app.market_intelligence.contracts import CompanyNewsItem, Freshness, SecFilingEvent, SourceMetadata
+from app.market_intelligence.contracts import CompanyNewsItem, EarningsEvent, EarningsResult, Freshness, SecFilingEvent, SourceMetadata
 
 NOW = datetime(2026, 8, 10, 12, tzinfo=UTC)
 
@@ -87,6 +87,24 @@ def test_displayed_change_and_filing_claims_each_carry_citations() -> None:
         section = next(section for section in brief.sections if section.name == name)
         assert section.claims and all(claim.citation.source_url for claim in section.claims)
         assert section.citations == tuple(claim.citation for claim in section.claims)
+
+
+def test_earnings_section_is_portfolio_scoped_deduplicated_and_source_cited() -> None:
+    event_source = SourceMetadata(provider="synthetic", source_url="https://earnings.test/calendar", retrieved_at=NOW)
+    result_source = SourceMetadata(provider="synthetic", source_url="https://earnings.test/result", retrieved_at=NOW, observed_at=NOW)
+    event = EarningsEvent(symbol="AAPL", event_date=datetime(2026, 8, 11, tzinfo=UTC), source=event_source)
+    result = EarningsResult(symbol="AAPL", actual="2", estimate="1", source=result_source)
+    brief = DeterministicTemplateProvider().generate(BriefingInput(
+        owner_id=1, portfolio_state_hash="8" * 64, universe_hash="9" * 64, report_window="2026-08-10",
+        positions=[PositionInput(symbol="AAPL", currency="USD", source=_source())],
+        earnings_events=[event, event, EarningsEvent(symbol="TSLA", event_date=NOW, source=event_source)],
+        earnings_results=[result, result, EarningsResult(symbol="TSLA", actual="1", estimate="1", source=result_source)], generated_at=NOW,
+    ))
+    section = next(section for section in brief.sections if section.name == "earnings")
+    assert section.content == ("recent result: AAPL period 2026-08-10", "upcoming: AAPL earnings on 2026-08-11")
+    assert len(section.claims) == len(section.citations) == 2
+    assert all(claim.citation.freshness is Freshness.FRESH for claim in section.claims)
+    assert all("TSLA" not in claim.text for claim in section.claims)
 
 
 def test_public_generate_route_never_accepts_client_financial_facts(client, monkeypatch) -> None:

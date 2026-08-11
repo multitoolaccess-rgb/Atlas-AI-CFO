@@ -1,13 +1,13 @@
 """Deterministic Phase 5 briefing contracts, relevance, and Decimal calculations."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Literal
 
 from pydantic import Field, field_validator
 
-from .contracts import CompanyNewsItem, Freshness, SecFilingEvent, SourceMetadata, StrictModel
+from .contracts import CompanyNewsItem, EarningsEvent, EarningsResult, Freshness, SecFilingEvent, SourceMetadata, StrictModel
 from .controls import deduplicate_records
 
 BRIEF_SCHEMA_VERSION = "atlas-market-intelligence-brief/v1"
@@ -141,6 +141,13 @@ def select_relevant_filings(items: list[SecFilingEvent], *, held_ciks: set[str])
     return deduplicate_records(kept, lambda item: (item.cik, item.accession_number))
 
 
+def select_relevant_earnings(events: list[EarningsEvent], results: list[EarningsResult], *, held_symbols: set[str]) -> tuple[list[EarningsEvent], list[EarningsResult]]:
+    """Portfolio-only normalized earnings, keyed by event date or reported period."""
+    selected_events = deduplicate_records((event for event in events if event.symbol in held_symbols and event.source.freshness is Freshness.FRESH), lambda event: (event.symbol, event.event_date))
+    selected_results = deduplicate_records((result for result in results if result.symbol in held_symbols and result.source.freshness is Freshness.FRESH), lambda result: (result.symbol, result.source.observed_at, result.actual, result.estimate))
+    return sorted(selected_events, key=lambda event: (event.event_date, event.symbol)), sorted(selected_results, key=lambda result: (result.source.observed_at or datetime.min.replace(tzinfo=timezone.utc), result.symbol), reverse=True)
+
+
 class Citation(StrictModel):
     provider: str
     source_url: str
@@ -186,6 +193,8 @@ class BriefingInput(StrictModel):
     positions: list[PositionInput]
     news: list[CompanyNewsItem] = []
     filings: list[SecFilingEvent] = []
+    earnings_events: list[EarningsEvent] = []
+    earnings_results: list[EarningsResult] = []
     held_ciks: set[str] = set()
     generated_at: datetime
 
@@ -210,16 +219,26 @@ class DeterministicTemplateProvider:
         changes = build_portfolio_changes(input.positions)
         news = select_relevant_news(input.news, held_symbols={p.symbol for p in input.positions})
         filings = select_relevant_filings(input.filings, held_ciks=input.held_ciks)
+        earnings_events, earnings_results = select_relevant_earnings(input.earnings_events, input.earnings_results, held_symbols={p.symbol for p in input.positions})
         news_citations = tuple(Citation.from_source(item.source) for item in news)
         portfolio_claims = tuple(BriefClaim(text=f"{row.symbol}: {row.daily_change}", citation=Citation.from_source(row.source)) for row in changes.rows)
         filing_claims = tuple(BriefClaim(text=f"{item.form}: {item.accession_number}", citation=Citation.from_source(item.source)) for item in filings)
-        citations = tuple((*news_citations, *(claim.citation for claim in portfolio_claims), *(claim.citation for claim in filing_claims)))
+        today = input.generated_at.date()
+        earnings_claims: list[BriefClaim] = []
+        for event in earnings_events:
+            label = "today" if event.event_date.date() == today else "upcoming" if event.event_date.date() > today else "recent"
+            earnings_claims.append(BriefClaim(text=f"{label}: {event.symbol} earnings on {event.event_date.date().isoformat()}", citation=Citation.from_source(event.source)))
+        for result in earnings_results:
+            period = result.source.observed_at.date().isoformat() if result.source.observed_at else "recent"
+            earnings_claims.append(BriefClaim(text=f"recent result: {result.symbol} period {period}", citation=Citation.from_source(result.source)))
+        earnings_claims.sort(key=lambda claim: (claim.text, claim.citation.source_url))
+        citations = tuple((*news_citations, *(claim.citation for claim in portfolio_claims), *(claim.citation for claim in filing_claims), *(claim.citation for claim in earnings_claims)))
         action = ActionToReview(action="Review whether material portfolio changes warrant follow-up.", why="The briefing reports deterministic market data only.", goal_linkage="No goal linkage is inferred.", evidence=tuple(row.symbol for row in changes.rows), expected_impact="No execution or return is implied.", risks=("Market data may be incomplete or stale.",), alternatives=("Do nothing.",), confidence="low", approval_requirement="explicit_user_approval_required")
         sections = (
             BriefSection(name="executive_summary", content=("Portfolio-specific market briefing; review-only.",)),
             BriefSection(name="portfolio_changes", content=tuple(claim.text for claim in portfolio_claims), citations=tuple(claim.citation for claim in portfolio_claims), claims=portfolio_claims),
             BriefSection(name="material_holding_news", content=tuple(item.headline for item in news), citations=news_citations),
-            BriefSection(name="earnings", content=()),
+            BriefSection(name="earnings", content=tuple(claim.text for claim in earnings_claims), citations=tuple(claim.citation for claim in earnings_claims), claims=tuple(earnings_claims)),
             BriefSection(name="sec_filings", content=tuple(claim.text for claim in filing_claims), citations=tuple(claim.citation for claim in filing_claims), claims=filing_claims),
             BriefSection(name="risks_and_opportunities", content=("Missing or stale inputs are disclosed.",)),
             BriefSection(name="actions_to_review", content=(action.action,)),

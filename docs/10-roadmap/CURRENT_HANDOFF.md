@@ -13,10 +13,10 @@
 
 ## Active work
 
-- work-p5-briefing-ui-delivery: Phase 5 Slice 3 briefing archive, delivery, and scheduling [in_progress/high]
-  - Objective: Build accessible in-app market-brief archive and detail views, default-off privacy-safe email delivery adapters, receipts/preferences, and local preview scheduling interface with no real delivery.
-  - Branch: codex/phase-5-briefing-ui-delivery
-  - Paths: ui, services/rules-service/app/market_intelligence, services/rules-service/app/routes, services/rules-service/app/models, services/rules-service/alembic/versions, services/rules-service/tests, docs/10-roadmap
+- work-p5-earnings-certification-correction: Phase 5 earnings briefing certification correction [in_progress/high]
+  - Objective: Render source-cited upcoming and recent portfolio earnings deterministically so the Phase 5 exit criterion is truthful.
+  - Branch: codex/phase-5-earnings-certification-correction
+  - Paths: services/rules-service/app/market_intelligence, services/rules-service/tests, docs/10-roadmap, docs/adr
 
 ## Blockers
 
@@ -46,6 +46,6 @@
 
 ## Next bounded task
 
-- work-p5-briefing-ui-delivery: Complete the active high-risk Slice 3 archive, delivery, and scheduling PR with required CI and fresh independent review.
+- work-p5-earnings-certification-correction: Complete the bounded high-risk earnings-rendering correction PR, required CI, and independent review; then resume Phase 5 certification.
 
 Do not begin the next task automatically.
