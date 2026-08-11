@@ -97,6 +97,10 @@ prepare_e2e_database() {
 require_port_available() {
   local port="$1"
   local service="$2"
+  if ! command -v lsof >/dev/null 2>&1; then
+    echo "❌  Cannot verify whether port $port is available because lsof is not installed."
+    return 1
+  fi
   if lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
     echo "❌  Port $port is already in use; stop the local $service service before running the hermetic E2E suite."
     return 1

@@ -91,6 +91,7 @@ def test_e2e_harness_provisions_the_live_service_dependencies() -> None:
     assert 'require_port_available 8001 "Finlynq" || exit 1' in source
     assert 'require_port_available 8000 "Rules Service" || exit 1' in source
     assert "lsof -nP -iTCP:" in source
+    assert "command -v lsof" in source
     assert "will reuse" not in source
 
 
