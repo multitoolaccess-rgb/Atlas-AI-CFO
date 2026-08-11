@@ -7,13 +7,16 @@
 - Phase: phase-4 — Decision journal
 - Phase status: in_progress
 - Overall status: in_progress
-- Objective: Phase 4 Slice 1 COMPLETE: PR #34 squash-merged at 13da914, providing owner-scoped append-only decision history, bounded alternatives and rationale, audited outcome linkage, correction recovery, default-off APIs, and cross-dialect safeguards. Phase 4 Slice 2 UI/accessibility/end-to-end integration is the next bounded task and has not started. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.
+- Objective: Phase 4 Slice 1 COMPLETE: PR #34 squash-merged at 13da914, providing owner-scoped append-only decision history, bounded alternatives and rationale, audited outcome linkage, correction recovery, default-off APIs, and cross-dialect safeguards. Phase 4 Slice 2 UI/accessibility/end-to-end integration is implemented in PR #35 and awaiting final merge after green CI and independent review. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.
 - Phase exit criteria: 0/1 complete
-- Tracker updated: 2026-08-10T15:18:46Z
+- Tracker updated: 2026-08-11T00:42:00Z
 
 ## Active work
 
-- None
+- work-p4-decision-history-ui: Phase 4 Slice 2 decision-history UI [in_review/high]
+  - Objective: Integrate the default-off owner-scoped decision-history API into the existing goals recommendation UI with accessible, privacy-safe chronological history and complete mocked browser coverage.
+  - Branch: codex/phase-4-decision-history-ui
+  - Paths: ui/app/goals/page.tsx, ui/components, ui/lib, ui/__tests__
 
 ## Blockers
 

@@ -99,7 +99,37 @@ const JOURNAL_ENTRY = {
   links: [{ rel: 'self', href: '/api/v1/decisions/33333333-3333-4333-8333-333333333333' }],
 }
 
-test('goal forecast → recommendation → explanation → retry-safe decision', async ({ page, request }) => {
+const DECISION_HISTORY = {
+  schema_version: 'atlas-decision-history-envelope/v1',
+  history: [
+    {
+      history_id: '44444444-4444-4444-8444-444444444444',
+      recommendation_id: RECOMMENDATION_ID,
+      decision_id: JOURNAL_ENTRY.journal_entry_id,
+      decision_action: 'accept',
+      alternatives: ['do_nothing', 'defer'],
+      rationale: 'Increasing the contribution now keeps the goal on course.',
+      supersedes_history_id: null,
+      recorded_at: '2026-08-01T10:00:00Z',
+      audit: null,
+      outcome_lifecycles: ['not_yet_measurable'],
+    },
+    {
+      history_id: '55555555-5555-4555-8555-555555555555',
+      recommendation_id: RECOMMENDATION_ID,
+      decision_id: JOURNAL_ENTRY.journal_entry_id,
+      decision_action: 'defer',
+      alternatives: ['do_nothing', 'accept'],
+      rationale: 'Outcome measurement was recorded after a correction.',
+      supersedes_history_id: '44444444-4444-4444-8444-444444444444',
+      recorded_at: '2026-08-02T10:00:00Z',
+      audit: null,
+      outcome_lifecycles: ['pending', 'measured'],
+    },
+  ],
+}
+
+test('goal forecast → recommendation → decision and read-only correction-history viewing', async ({ page, request }) => {
   const login = await request.post('http://localhost:8000/api/auth/devlogin?sub=alex')
   expect(login.ok(), 'test-only auth bootstrap should succeed').toBeTruthy()
   const token = (await login.json()).token as string
@@ -109,6 +139,7 @@ test('goal forecast → recommendation → explanation → retry-safe decision',
 
   const decisionKeys: string[] = []
   let decisionAttempts = 0
+  let historyPostAttempts = 0
 
   await page.route('**/api/goals/', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([GOAL]) }))
   await page.route('**/api/profile/', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 1, email: 'alex@test.com', full_name: 'Alex' }) }))
@@ -120,6 +151,12 @@ test('goal forecast → recommendation → explanation → retry-safe decision',
   await page.route('**/api/v1/forecasts?**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ forecasts: [FORECAST] }) }))
   await page.route(`**/api/v1/forecasts/${FORECAST_ID}/versions/${VERSION.version_number}`, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(VERSION) }))
   await page.route(`**/api/v1/forecasts/${FORECAST_ID}/recommendation`, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(RECOMMENDATION) }))
+  await page.route(`**/api/v1/goals/${GOAL.id}/decision-history`, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(DECISION_HISTORY) }))
+  await page.route(`**/api/v1/goals/${GOAL.id}/decision-history`, async (route) => {
+    if (route.request().method() !== 'POST') return route.fallback()
+    historyPostAttempts += 1
+    await route.fulfill({ status: 405, contentType: 'application/json', body: JSON.stringify({ code: 'method_not_allowed' }) })
+  })
   await page.route(`**/api/v1/recommendations/${RECOMMENDATION_ID}/decisions`, async (route) => {
     decisionKeys.push(route.request().headers()['idempotency-key'] ?? '')
     decisionAttempts += 1
@@ -131,7 +168,19 @@ test('goal forecast → recommendation → explanation → retry-safe decision',
   })
 
   await page.goto('/goals')
+  const continueToApp = page.getByRole('button', { name: 'Continue to app' })
+  if (await continueToApp.isVisible().catch(() => false)) await continueToApp.click()
   await expect(page.getByRole('heading', { name: 'Financial Goals' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Decision history', exact: true })).toBeVisible()
+  await expect(page.getByText('Not yet measurable')).toBeVisible()
+  await expect(page.getByText('Measured', { exact: true })).toBeVisible()
+  await expect(page.getByText('Corrects an earlier decision')).toBeVisible()
+  await expect(page.getByText(/Recorded acceptance is approval only/)).toBeVisible()
+  await page.getByText('View rationale and alternatives', { exact: true }).first().click()
+  await expect(page.getByText('Increasing the contribution now keeps the goal on course.')).toBeVisible()
+  await expect(page.locator('[data-testid="decision-history-section"]')).not.toContainText(DECISION_HISTORY.history[0].history_id)
+  await expect(page.locator('[data-testid="decision-history-section"]')).not.toContainText(RECOMMENDATION_ID)
+  expect(historyPostAttempts, 'decision history is intentionally a read-only UI surface').toBe(0)
   await expect(page.getByTestId('forecast-projected')).toHaveText('4,500,000.00')
   await expect(page.getByTestId('forecast-target')).toHaveText('15,000,000')
   await expect(page.getByTestId('forecast-timestamp')).toContainText('2026-08-01')
@@ -170,12 +219,14 @@ test('goal forecast → recommendation → explanation → retry-safe decision',
   await page.addScriptTag({ content: axeSource })
   const assertNoSeriousOrCriticalViolations = async () => {
     const axeResult = await page.evaluate(async () => {
-      const root = document.querySelector('[data-testid="latest-forecast-section"]')
-      if (!root) throw new Error('Phase 2 forecast section is missing')
       const axe = (window as unknown as { axe: { run: (context: Element) => Promise<{ violations: Array<{ impact?: string | null }> }> } }).axe
-      return axe.run(root)
+      const roots = Array.from(document.querySelectorAll('[data-testid="latest-forecast-section"], [data-testid="decision-history-section"]'))
+      if (roots.length !== 2) throw new Error('Forecast or decision-history section is missing')
+      const results = []
+      for (const root of roots) results.push(await axe.run(root))
+      return results
     })
-    const seriousOrCritical = axeResult.violations.filter((violation) =>
+    const seriousOrCritical = axeResult.flatMap((result) => result.violations).filter((violation) =>
       violation.impact === 'serious' || violation.impact === 'critical',
     )
     expect(seriousOrCritical, JSON.stringify(seriousOrCritical)).toHaveLength(0)
