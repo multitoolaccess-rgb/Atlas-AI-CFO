@@ -9,11 +9,14 @@
 - Overall status: in_progress
 - Objective: Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.
 - Phase exit criteria: 0/1 complete
-- Tracker updated: 2026-08-11T04:24:03Z
+- Tracker updated: 2026-08-11T04:24:57Z
 
 ## Active work
 
-- None
+- work-p5-research-data-foundation: Phase 5 Slice 1 research-data foundation [in_progress/high]
+  - Objective: Build provider-neutral, zero-dollar research-data contracts and Finnhub/SEC adapters with safe pacing, caching, normalized failures, synthetic fixtures, and no real network in tests.
+  - Branch: codex/phase-5-research-data-foundation
+  - Paths: services/rules-service/app/market_intelligence, services/rules-service/tests, services/rules-service/app/config.py, docs/10-roadmap
 
 ## Blockers
 
@@ -43,6 +46,6 @@
 
 ## Next bounded task
 
-- phase-5-planning-and-slice-1: Complete the approved Phase 5 planning slice, then begin the bounded high-risk research-data foundation slice.
+- work-p5-research-data-foundation: Complete the active high-risk Slice 1 research-data foundation PR with required CI and fresh independent review.
 
 Do not begin the next task automatically.
