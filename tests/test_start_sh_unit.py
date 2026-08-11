@@ -65,6 +65,18 @@ def test_lifecycle_scripts_are_atlas_branded_and_valid_bash() -> None:
         subprocess.run(["bash", "-n", str(ROOT / script)], check=True)
 
 
+def test_e2e_harness_provisions_the_live_service_dependencies() -> None:
+    """The canonical browser runner must not rely on developer processes."""
+    source = (ROOT / "scripts/test-e2e.sh").read_text()
+
+    assert "FINLYNQ_VENV_PY" in source
+    assert "uvicorn app.main:app --host 0.0.0.0 --port 8001" in source
+    assert "uvicorn app.main:app --host 0.0.0.0 --port 8000" in source
+    assert "FINLYNQ_BASE_URL='http://localhost:8001'" in source
+    assert source.index("start_finlynq") < source.index("start_rules")
+    assert "STARTED_FINLYNQ" in source and "STARTED_RULES" in source
+
+
 def _make_hermetic_atlas_root(tmp_path: Path) -> tuple[Path, Path]:
     root = tmp_path / "atlas"
     root.mkdir()
