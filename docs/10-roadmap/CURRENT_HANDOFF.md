@@ -9,11 +9,14 @@
 - Overall status: in_progress
 - Objective: Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.
 - Phase exit criteria: 0/1 complete
-- Tracker updated: 2026-08-11T11:44:44Z
+- Tracker updated: 2026-08-11T11:44:48Z
 
 ## Active work
 
-- None
+- work-p5-briefing-ui-delivery: Phase 5 Slice 3 briefing archive, delivery, and scheduling [in_progress/high]
+  - Objective: Build accessible in-app market-brief archive and detail views, default-off privacy-safe email delivery adapters, receipts/preferences, and local preview scheduling interface with no real delivery.
+  - Branch: codex/phase-5-briefing-ui-delivery
+  - Paths: ui, services/rules-service/app/market_intelligence, services/rules-service/app/routes, services/rules-service/app/models, services/rules-service/alembic/versions, services/rules-service/tests, docs/10-roadmap
 
 ## Blockers
 
@@ -43,6 +46,6 @@
 
 ## Next bounded task
 
-- work-p5-briefing-ui-delivery: Start the bounded high-risk Slice 3 in-app archive, privacy-safe delivery, and scheduling interface PR.
+- work-p5-briefing-ui-delivery: Complete the active high-risk Slice 3 archive, delivery, and scheduling PR with required CI and fresh independent review.
 
 Do not begin the next task automatically.

@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>Label</key><string>ai.atlas.market-brief.preview</string><key>ProgramArguments</key><array><string>REPLACE_WITH_RULES_PYTHON</string><string>-m</string><string>app.market_intelligence.cli</string><string>preview</string></array></dict></plist>

@@ -47,3 +47,15 @@ async def get_market_brief(brief_id: str, user_sub: Annotated[str, Depends(requi
     except ValidationError:
         return JSONResponse(status_code=404, content={"code": "market_brief_not_found"})
     return JSONResponse(content={"brief_id": row.id, "brief": brief.model_dump(mode="json")})
+
+
+@router.get("", response_model=None)
+async def list_market_briefs(user_sub: Annotated[str, Depends(require_user)], db: Annotated[Session, Depends(_get_db)], limit: int = 20) -> JSONResponse:
+    if not settings.atlas_market_brief_read_api_enabled:
+        return _unavailable()
+    limit = min(max(limit, 1), 50)
+    from sqlalchemy import select
+    from app.models.market_brief import MarketBrief as StoredBrief
+    user_id = _resolve_db_user_id(db, user_sub)
+    rows = db.scalars(select(StoredBrief).where(StoredBrief.user_id == user_id).order_by(StoredBrief.generated_at.desc(), StoredBrief.id.desc()).limit(limit)).all()
+    return JSONResponse(content={"briefs": [{"brief_id": row.id, "generated_at": row.generated_at.isoformat(), "report_window": row.report_window} for row in rows]})

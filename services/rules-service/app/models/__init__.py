@@ -58,6 +58,7 @@ from app.models.decision_journal_entry import DecisionJournalEntry
 from app.models.outcome_evaluation import OutcomeEvaluation
 from app.models.decision_history import DecisionAuditEvent, DecisionHistoryEntry
 from app.models.market_brief import MarketBrief
+from app.models.market_brief_delivery import MarketBriefDeliveryAttempt, MarketBriefDeliveryPreference
 
 __all__ = [
     "Budget",
@@ -83,4 +84,6 @@ __all__ = [
     "DecisionHistoryEntry",
     "DecisionAuditEvent",
     "MarketBrief",
+    "MarketBriefDeliveryAttempt",
+    "MarketBriefDeliveryPreference",
 ]
