@@ -170,7 +170,10 @@ def test_enabled_generation_uses_only_owner_holdings_and_cites_in_window_earning
     from app.models import Account
 
     owner_account = make_account(account_name="Owner brokerage", account_type="brokerage")
-    db_session.add(owner_account)
+    owner_second_account = make_account(account_name="Owner second brokerage", account_type="brokerage")
+    inactive_account = make_account(account_name="Closed brokerage", account_type="brokerage")
+    inactive_account.is_active = False
+    db_session.add_all((owner_account, owner_second_account, inactive_account))
     db_session.flush()
     other = User(local_user_sub="other-market-owner", email="other-market-owner@test.local", hashed_password="x")
     db_session.add(other)
@@ -184,6 +187,8 @@ def test_enabled_generation_uses_only_owner_holdings_and_cites_in_window_earning
     db_session.add_all((
         other_account,
         Holding(account_id=owner_account.id, symbol="aapl", quantity=2, current_value=200, type="Stock"),
+        Holding(account_id=owner_second_account.id, symbol="AAPL", quantity=3, current_value=300, type="Stock"),
+        Holding(account_id=inactive_account.id, symbol="MSFT", quantity=99, current_value=999, type="Stock"),
     ))
     db_session.flush()
     db_session.add(Holding(account_id=other_account.id, symbol="MSFT", quantity=99, current_value=999, type="Stock"))
@@ -205,7 +210,7 @@ def test_enabled_generation_uses_only_owner_holdings_and_cites_in_window_earning
     assert "MSFT" not in str(brief)
     assert {symbol for _, symbol in providers.calls if symbol} == {"AAPL"}
     changes = next(section for section in brief["sections"] if section["name"] == "portfolio_changes")
-    assert changes["content"] == ["AAPL: 20"]
+    assert changes["content"] == ["AAPL: 50"]
     earnings = next(section for section in brief["sections"] if section["name"] == "earnings")
     assert earnings["content"] == ["recent result: AAPL period 2026-08-10", "upcoming: AAPL earnings on 2026-08-11"]
     assert {citation["source_url"] for citation in earnings["citations"]} == {"https://earnings.test/aapl", "https://earnings.test/result"}
