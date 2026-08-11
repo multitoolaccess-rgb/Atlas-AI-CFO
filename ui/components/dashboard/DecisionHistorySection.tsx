@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   getDecisionHistory,
   readDecisionHistoryError,
@@ -48,27 +48,33 @@ export default function DecisionHistorySection({ goals }: { goals: Goal[] }) {
   const [states, setStates] = useState<Record<number, HistoryState>>({})
   const [retryVersion, setRetryVersion] = useState(0)
   const goalKey = goals.map((goal) => goal.id).join('|')
+  // Fetching is keyed exclusively by immutable goal IDs. Keep a stable
+  // snapshot so parent-created `goals.map(...)` arrays do not retrigger it.
+  const goalIds = useMemo(
+    () => (goalKey === '' ? [] : goalKey.split('|').map(Number)),
+    [goalKey],
+  )
 
   useEffect(() => {
     let cancelled = false
-    setStates(Object.fromEntries(goals.map((goal) => [goal.id, { kind: 'loading' } as HistoryState])))
-    void Promise.all(goals.map(async (goal) => {
+    setStates(Object.fromEntries(goalIds.map((goalId) => [goalId, { kind: 'loading' } as HistoryState])))
+    void Promise.all(goalIds.map(async (goalId) => {
       try {
-        const envelope = await getDecisionHistory(goal.id)
-        if (!cancelled) setStates((previous) => ({ ...previous, [goal.id]: { kind: 'ready', history: envelope.history } }))
+        const envelope = await getDecisionHistory(goalId)
+        if (!cancelled) setStates((previous) => ({ ...previous, [goalId]: { kind: 'ready', history: envelope.history } }))
       } catch (error) {
         if (cancelled) return
         const state = readDecisionHistoryError(error)
-        setStates((previous) => ({ ...previous, [goal.id]: { kind: state === 'unavailable' ? 'unavailable' : 'error' } }))
+        setStates((previous) => ({ ...previous, [goalId]: { kind: state === 'unavailable' ? 'unavailable' : 'error' } }))
       }
     }))
     return () => { cancelled = true }
-  // Goal IDs and retryVersion are stable scalar dependencies. This deliberately
+  // Goal IDs and retryVersion are stable dependencies. This deliberately
   // permits React 18 Strict Mode's setup-after-cleanup probe to issue its
   // second fetch: the first setup is cancelled, while the second resolves.
   // Depending on the caller's mapped `goals` array would instead refetch on
   // every parent render.
-  }, [goalKey, retryVersion])
+  }, [goalIds, retryVersion])
 
   if (goals.length === 0) return null
 
