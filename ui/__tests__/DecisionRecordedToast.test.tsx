@@ -67,6 +67,10 @@ describe('<DecisionRecordedToast />', () => {
     const status = screen.getByRole('status')
     expect(status).toBeInTheDocument()
     expect(status.getAttribute('aria-live')).toBe('polite')
+    // Keep primary text on the neutral surface: `text-primary` on the
+    // success-tint background was a serious axe contrast violation.
+    expect(status).toHaveClass('bg-surface')
+    expect(status).not.toHaveClass('bg-success-50')
     // First 8 chars of the journal_entry_id are surfaced.
     expect(screen.getByTestId('toast-journal-id').textContent).toBe(
       '33333333…',

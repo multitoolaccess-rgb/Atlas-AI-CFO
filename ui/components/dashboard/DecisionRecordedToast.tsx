@@ -50,7 +50,7 @@ export default function DecisionRecordedToast({
       role="status"
       aria-live="polite"
       data-testid={`decision-recorded-toast-${entry.journal_entry_id}`}
-      className="fixed bottom-6 right-6 z-50 inline-flex items-start gap-3 px-4 py-3 max-w-sm bg-success-50 border border-success-200 rounded-lg shadow-lg animate-fadeIn"
+      className="fixed bottom-6 right-6 z-50 inline-flex items-start gap-3 px-4 py-3 max-w-sm bg-surface border border-success-200 rounded-lg shadow-lg animate-fadeIn"
     >
       <Check
         className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0"
