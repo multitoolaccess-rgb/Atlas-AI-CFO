@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from app.market_intelligence import (
     BoundedCache,
+    CompanyNewsItem,
     EndpointClass,
     FinnhubAdapter,
     MarketQuoteSnapshot,
@@ -54,10 +55,20 @@ def test_contracts_forbid_unknown_fields_and_bound_untrusted_text() -> None:
     "https://example.test/report?auth_token=secret",
     "https://example.test/report?client_secret=secret",
     "https://example.test/report?authorization=secret",
+    "https://example.test/report#credential=secret",
 ])
 def test_source_metadata_rejects_url_credentials(url: str) -> None:
     with pytest.raises(ValidationError, match="credential-free"):
         SourceMetadata(provider="finnhub", source_url=url, retrieved_at=NOW)
+
+
+def test_control_only_news_headline_is_rejected_after_sanitization() -> None:
+    with pytest.raises(ValidationError, match="visible text"):
+        CompanyNewsItem(
+            symbol="AAPL", headline="\x00\n\t", source=SourceMetadata(
+                provider="finnhub", source_url="https://example.test", retrieved_at=NOW,
+            ),
+        )
 
 
 def test_cache_is_bounded_and_usage_never_records_sensitive_values() -> None:
@@ -171,6 +182,8 @@ def test_finnhub_normalized_records_are_deduplicated_and_cached() -> None:
 def test_sec_requires_identifying_user_agent_and_normalizes_submission() -> None:
     with pytest.raises(ProviderConfigurationError):
         SecAdapter(user_agent="", enabled=True)
+    with pytest.raises(ProviderConfigurationError):
+        SecAdapter(user_agent="x", enabled=True)
 
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.headers["User-Agent"] == "Atlas test contact@example.test"
@@ -183,6 +196,47 @@ def test_sec_requires_identifying_user_agent_and_normalizes_submission() -> None
     result = adapter.submissions("320193")
     assert result.value and result.value[0].form == "8-K"
     assert result.value[0].accession_number == "0001-01"
+
+
+def test_sec_invalid_cik_fails_before_transport() -> None:
+    calls = 0
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(200, json={})
+
+    adapter = SecAdapter(user_agent="Atlas test contact@example.test", enabled=True, transport=httpx.MockTransport(handler), now=lambda: NOW)
+    result = adapter.submissions("320193/../../etc")
+    assert result.failure and result.failure.failure_class == "invalid_payload"
+    too_long = adapter.company_facts("00000000001")
+    assert too_long.failure and too_long.failure.failure_class == "invalid_payload"
+    assert calls == 0
+
+
+def test_sec_per_second_cap_includes_retries() -> None:
+    calls = 0
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(503 if calls == 1 else 200, json={"filings": {"recent": {
+            "accessionNumber": [], "form": [], "filingDate": [], "primaryDocument": [],
+        }}})
+
+    adapter = SecAdapter(
+        user_agent="Atlas test contact@example.test", enabled=True,
+        transport=httpx.MockTransport(handler), now=lambda: NOW, sleep=lambda _: None,
+        clock=lambda: 1.0,
+    )
+    # The first logical request takes two actual calls (503 then retry), then
+    # three more distinct CIKs consume the remaining per-second budget.
+    assert adapter.submissions("1").value == []
+    for cik in ("2", "3", "4"):
+        assert adapter.submissions(cik).value == []
+    result = adapter.submissions("5")
+    assert result.failure and result.failure.failure_class == "rate_limited"
+    assert calls == 5
 
 
 def test_sec_normalized_records_are_deduplicated_and_cached() -> None:

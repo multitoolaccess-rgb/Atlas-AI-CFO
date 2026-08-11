@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import time
+import re
 from datetime import UTC, datetime
 from typing import Any, Callable, Generic, TypeVar
 
@@ -9,9 +10,9 @@ import httpx
 
 from .contracts import (
     CompanyNewsItem, EarningsEvent, EarningsResult, FailureClass, MarketQuoteSnapshot,
-    NormalizedProviderFailure, ProviderResult, SecCompanyFact, SecFilingEvent, SourceMetadata,
+    NormalizedProviderFailure, ProviderResult, SecCompanyFact, SecFilingEvent, SourceMetadata, normalize_cik,
 )
-from .controls import BoundedCache, EndpointClass, RateLimitExceeded, SlidingWindowPacer, UsageLedger, deduplicate_records
+from .controls import BoundedCache, EndpointClass, PerSecondPacer, RateLimitExceeded, SlidingWindowPacer, UsageLedger, deduplicate_records
 
 T = TypeVar("T")
 
@@ -23,13 +24,16 @@ class ProviderConfigurationError(ValueError):
 class _Adapter:
     def __init__(self, provider: str, *, enabled: bool, transport: httpx.BaseTransport | None,
                  now: Callable[[], datetime] | None, sleep: Callable[[float], None] | None,
-                 calls_per_minute: int, paid_endpoints: set[EndpointClass] | None = None) -> None:
+                 calls_per_minute: int, calls_per_second: int | None = None,
+                 clock: Callable[[], float] | None = None,
+                 paid_endpoints: set[EndpointClass] | None = None) -> None:
         self.provider, self.enabled = provider, enabled
         self._now = now or (lambda: datetime.now(UTC))
         self._sleep = sleep or time.sleep
         self._transport = transport
         self._paid_endpoints = paid_endpoints or set()
-        self._pacer = SlidingWindowPacer(calls_per_minute)
+        self._pacer = SlidingWindowPacer(calls_per_minute, clock=clock)
+        self._second_pacer = PerSecondPacer(calls_per_second, clock=clock) if calls_per_second else None
         self.cache: BoundedCache[Any] = BoundedCache(max_entries=128)
         self.usage = UsageLedger(now=self._now)
 
@@ -51,6 +55,8 @@ class _Adapter:
         for attempt in range(3):
             try:
                 # A retry is a real upstream call and must consume quota too.
+                if self._second_pacer:
+                    self._second_pacer.acquire()
                 self._pacer.acquire()
             except RateLimitExceeded:
                 return None, self._failure(endpoint, FailureClass.RATE_LIMITED, "Provider pacing ceiling reached.")
@@ -94,9 +100,10 @@ class FinnhubAdapter(_Adapter):
 
     def __init__(self, *, api_key: str | None, enabled: bool, transport: httpx.BaseTransport | None = None,
                  now: Callable[[], datetime] | None = None, sleep: Callable[[float], None] | None = None,
+                 clock: Callable[[], float] | None = None,
                  paid_endpoints: set[EndpointClass] | None = None) -> None:
         super().__init__("finnhub", enabled=enabled, transport=transport, now=now, sleep=sleep,
-                         calls_per_minute=48, paid_endpoints=paid_endpoints)
+                         calls_per_minute=48, clock=clock, paid_endpoints=paid_endpoints)
         self._api_key = (api_key or "").strip()
 
     def quote(self, symbol: str) -> ProviderResult[MarketQuoteSnapshot]:
@@ -210,19 +217,25 @@ class SecAdapter(_Adapter):
 
     def __init__(self, *, user_agent: str, enabled: bool, transport: httpx.BaseTransport | None = None,
                  now: Callable[[], datetime] | None = None, sleep: Callable[[float], None] | None = None,
+                 clock: Callable[[], float] | None = None,
                  paid_endpoints: set[EndpointClass] | None = None) -> None:
-        if not user_agent.strip():
-            raise ProviderConfigurationError("SEC User-Agent is required for fair access.")
+        normalized_user_agent = user_agent.strip()
+        contact = re.search(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", normalized_user_agent)
+        if len(normalized_user_agent) > 256 or not contact:
+            raise ProviderConfigurationError("SEC User-Agent must include a bounded contact email identifier.")
         super().__init__("sec", enabled=enabled, transport=transport, now=now, sleep=sleep,
-                         calls_per_minute=300, paid_endpoints=paid_endpoints)
-        self._user_agent = user_agent.strip()
+                         calls_per_minute=300, calls_per_second=5, clock=clock, paid_endpoints=paid_endpoints)
+        self._user_agent = normalized_user_agent
 
     def submissions(self, cik: str) -> ProviderResult[list[SecFilingEvent]]:
         endpoint = EndpointClass.SEC_SUBMISSIONS
         blocked = self._permitted(endpoint)
         if blocked:
             return blocked
-        normalized_cik = cik.strip().lstrip("0") or "0"
+        try:
+            normalized_cik = normalize_cik(cik)
+        except ValueError:
+            return self._failure(endpoint, FailureClass.INVALID_PAYLOAD, "SEC CIK was invalid.")
         key = f"submissions:{normalized_cik}"
         cached = self.cache.get(key)
         if cached is not None:
@@ -253,7 +266,10 @@ class SecAdapter(_Adapter):
         blocked = self._permitted(endpoint)
         if blocked:
             return blocked
-        normalized_cik = cik.strip().lstrip("0") or "0"
+        try:
+            normalized_cik = normalize_cik(cik)
+        except ValueError:
+            return self._failure(endpoint, FailureClass.INVALID_PAYLOAD, "SEC CIK was invalid.")
         key = f"company-facts:{normalized_cik}"
         cached = self.cache.get(key)
         if cached is not None:

@@ -88,6 +88,24 @@ class SlidingWindowPacer:
         self._timestamps.append(now)
 
 
+class PerSecondPacer:
+    """A separate fair-access ceiling composed with the provider minute cap."""
+    def __init__(self, calls_per_second: int, clock: Callable[[], float] | None = None) -> None:
+        if calls_per_second < 1:
+            raise ValueError("calls_per_second must be positive")
+        import time
+        self._ceiling, self._clock = calls_per_second, clock or time.monotonic
+        self._timestamps: deque[float] = deque()
+
+    def acquire(self) -> None:
+        now = self._clock()
+        while self._timestamps and self._timestamps[0] <= now - 1:
+            self._timestamps.popleft()
+        if len(self._timestamps) >= self._ceiling:
+            raise RateLimitExceeded("provider per-second call ceiling reached")
+        self._timestamps.append(now)
+
+
 def deduplicate_records(records: Iterable[T], identity: Callable[[T], Hashable]) -> list[T]:
     """Keep the first item for each stable normalized identity, deterministically."""
     seen: set[Hashable] = set()

@@ -10,7 +10,7 @@ from enum import StrEnum
 from typing import Generic, Literal, TypeVar
 from urllib.parse import parse_qsl, urlsplit
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
 _SYMBOL = re.compile(r"^[A-Z0-9.\-]{1,10}$")
 _CIK = re.compile(r"^\d{1,10}$")
@@ -30,6 +30,15 @@ def _is_credential_query_name(name: str) -> bool:
             "apikey", "accesskey", "signature",
         ))
     )
+
+
+def normalize_cik(value: str) -> str:
+    if not isinstance(value, str):
+        raise ValueError("CIK must contain up to ten digits")
+    raw = value.strip()
+    if not _CIK.fullmatch(raw):
+        raise ValueError("CIK must contain up to ten digits")
+    return raw.lstrip("0") or "0"
 
 
 class StrictModel(BaseModel):
@@ -72,6 +81,7 @@ class SourceMetadata(StrictModel):
             or not parsed.hostname
             or parsed.username is not None
             or parsed.password is not None
+            or parsed.fragment
             or any(_is_credential_query_name(name) for name, _ in parse_qsl(parsed.query, keep_blank_values=True))
         ):
             raise ValueError("source URL must be a credential-free HTTP(S) URL")
@@ -172,8 +182,13 @@ class CompanyNewsItem(StrictModel):
 
     @field_validator("headline", "summary", "publisher")
     @classmethod
-    def sanitize_external_text(cls, value: str | None) -> str | None:
-        return None if value is None else _untrusted_text(value, 1000)
+    def sanitize_external_text(cls, value: str | None, info: ValidationInfo) -> str | None:
+        if value is None:
+            return None
+        sanitized = _untrusted_text(value, 1000)
+        if info.field_name == "headline" and not sanitized:
+            raise ValueError("headline must contain visible text")
+        return sanitized
 
     @field_validator("symbol")
     @classmethod
@@ -217,10 +232,7 @@ class SecFilingEvent(StrictModel):
     @field_validator("cik")
     @classmethod
     def normalized_cik(cls, value: str) -> str:
-        value = value.strip().lstrip("0") or "0"
-        if not _CIK.fullmatch(value):
-            raise ValueError("CIK must contain up to ten digits")
-        return value
+        return normalize_cik(value)
 
 
 class SecCompanyFact(StrictModel):
@@ -237,7 +249,7 @@ class SecCompanyFact(StrictModel):
     @field_validator("cik")
     @classmethod
     def fact_cik(cls, value: str) -> str:
-        return SecFilingEvent(cik=value, form="8-K", accession_number="validation", filing_date=datetime.now(UTC), source=SourceMetadata(provider="sec", source_url="https://www.sec.gov", retrieved_at=datetime.now(UTC))).cik
+        return normalize_cik(value)
 
 
 T = TypeVar("T")
