@@ -1,14 +1,28 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getMarketBrief, listMarketBriefs, type BriefIndex, type MarketBrief } from '@/lib/marketBriefs'
 
 export default function MarketBriefArchive() {
   const [items, setItems] = useState<BriefIndex[]>([])
   const [brief, setBrief] = useState<MarketBrief | null>(null)
   const [message, setMessage] = useState('Loading brief archive…')
+  const detailRequest = useRef(0)
   useEffect(() => { listMarketBriefs().then(setItems).then(() => setMessage('')).catch(() => setMessage('Brief archive is unavailable.')) }, [])
-  async function open(id: string) { try { setBrief(await getMarketBrief(id)); setMessage('') } catch { setMessage('Brief is unavailable.') } }
+  async function open(id: string) {
+    const requestId = ++detailRequest.current
+    setBrief(null)
+    setMessage('Loading brief…')
+    try {
+      const nextBrief = await getMarketBrief(id)
+      if (requestId === detailRequest.current) {
+        setBrief(nextBrief)
+        setMessage('')
+      }
+    } catch {
+      if (requestId === detailRequest.current) setMessage('Brief is unavailable.')
+    }
+  }
   return <main aria-labelledby="market-brief-title" className="print:mx-0">
     <h1 id="market-brief-title">Market intelligence briefs</h1>
     {message && <p role="status">{message}</p>}
