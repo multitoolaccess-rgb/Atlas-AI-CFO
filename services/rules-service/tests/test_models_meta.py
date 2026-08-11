@@ -56,6 +56,8 @@ EXPECTED_TABLES = {
     "decision_audit_events",
     # Phase 5 — immutable, owner-scoped deterministic market brief archive.
     "market_briefs",
+    "market_brief_delivery_preferences",
+    "market_brief_delivery_attempts",
 }
 
 
