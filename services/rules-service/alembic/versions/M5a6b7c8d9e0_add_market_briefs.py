@@ -41,6 +41,8 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     bind = op.get_bind()
+    if bind.execute(sa.text("SELECT COUNT(*) FROM market_briefs")).scalar_one():
+        raise RuntimeError("cannot downgrade immutable market brief records while rows exist")
     if bind.dialect.name == "sqlite":
         op.execute("DROP TRIGGER market_briefs_no_update")
         op.execute("DROP TRIGGER market_briefs_no_delete")

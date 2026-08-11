@@ -54,6 +54,8 @@ EXPECTED_TABLES = {
     # and its append-only audit stream.
     "decision_history_entries",
     "decision_audit_events",
+    # Phase 5 — immutable, owner-scoped deterministic market brief archive.
+    "market_briefs",
 }
 
 
