@@ -26,6 +26,7 @@ import AnimatedRadialProgress from '@/components/charts/AnimatedRadialProgress'
 import TiltCard from '@/components/ui/TiltCard'
 import FinancialPlans, { GOAL_PROJECTION_ANNUAL_RETURN } from '@/components/dashboard/FinancialPlans'
 import LatestForecastSection from '@/components/dashboard/LatestForecastSection'
+import DecisionHistorySection from '@/components/dashboard/DecisionHistorySection'
 import { projectDashboardTrajectory } from '@/lib/math/projection'
 import { rulesService, type Goal, type DashboardSummary } from '@/lib/api'
 import { classifyErrorMessage } from '@/lib/errors'
@@ -570,6 +571,10 @@ export default function GoalsPage() {
           name: g.name,
           target_amount: String(g.target_amount),
         }))}
+      />
+
+      <DecisionHistorySection
+        goals={sortedGoals.map((g) => ({ id: g.id, name: g.name }))}
       />
 
       {/* Funding Plan — projected completion dates for each goal + what-if calculator */}
