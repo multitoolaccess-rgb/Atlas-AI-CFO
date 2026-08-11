@@ -72,3 +72,13 @@ criteria are complete.
 - ADRs: ADR-004-EVENTED-HISTORY.md
 - Known limitations: External multi-user rollout remains blocked by retention/user-deletion and authoritative currency-policy decisions; no Phase 5 work is authorized or started.
 - Authorized next phase: Phase 4 certified complete. Do not begin Phase 5 without explicit authorization.
+
+## phase-5 — Market Intelligence Brief
+
+- Completion date: 2026-08-11
+- Final commit: `7832d6016d91f123fea1e27fb724dd64781aa5e7`
+- Merged PRs: 36, 37, 38, 39
+- Test evidence: Hosted CI 31505665961: cheap + heavy passed; Playwright 86 passed, 1 skipped; coverage artifacts uploaded; Clean-main local full matrix: scripts/test.sh passed; provider/briefing/delivery/scheduler, Rules Service, Finlynq/cross-service, Vitest/typecheck, and browser coverage exercised using synthetic/fake data
+- ADRs: ADR-007-MARKET-INTELLIGENCE-ZERO-DOLLAR-BOUNDARY
+- Known limitations: External multi-user rollout remains blocked by retention/user-deletion policy; Google Fonts DNS prevented local next build; hosted heavy production build passed
+- Authorized next phase: Phase 6 is not started and requires separate explicit authorization.

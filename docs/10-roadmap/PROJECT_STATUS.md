@@ -2,13 +2,13 @@
 
 > Generated from `PROJECT_STATUS.json`; regenerate with `python3 scripts/atlas_project_status.py render`.
 
-- Current phase: **phase-5 — Market Intelligence Brief** (in_progress)
+- Current phase: **phase-5 — Market Intelligence Brief** (complete)
 - Overall status: **in_progress**
 - Current objective: Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.
-- Last updated: 2026-08-11T14:43:50Z
+- Last updated: 2026-08-11T15:24:54Z
 
 ## Active work
-- work-p5-earnings-certification-correction: Phase 5 earnings briefing certification correction (blocked, high)
+- None
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
@@ -19,7 +19,7 @@
 - phase-2 — Forecast UI migration: complete (1/1 exit criteria)
 - phase-3 — Goal-linked recommendations: complete (1/1 exit criteria)
 - phase-4 — Decision journal: complete (1/1 exit criteria)
-- phase-5 — Market Intelligence Brief: in_progress (0/1 exit criteria)
+- phase-5 — Market Intelligence Brief: complete (1/1 exit criteria)
 
 ## Current risks
 - risk-frontend-lint-debt [medium/high, open]: Repository-wide frontend lint debt remains outside Phase 0 scope.
@@ -36,11 +36,11 @@
 - risk-p1-migration-downgrade-patched [medium/low, resolved]: Alembic 1.13.x's ApplyBatchImpl.drop_index rejects the deprecated if_exists keyword argument; the Phase 1 final cert matrix surfaced this as a full upgrade -> downgrade base failure on the e9f0a1b2c3d4 migration.
 
 ## Recently completed work
-- work-p4-decision-history-substrate: Phase 4 Slice 1 decision-history substrate — commit 13da914cf1db78d02219eb72c9f4f5b0aca9e86f, PR 34
 - work-p4-decision-history-ui: Phase 4 Slice 2 decision-history UI — commit a81eee6, PR 35
 - work-p5-research-data-foundation: Phase 5 Slice 1 research-data foundation — commit f573ee4d5c43dfb5636c67c6f260b1decd118efe, PR 36
 - work-p5-deterministic-briefing-engine: Phase 5 Slice 2 deterministic portfolio-impact and briefing engine — commit 6cfaa80d868a0acc0d5f3dada3d915ef836bec53, PR 37
 - work-p5-briefing-ui-delivery: Phase 5 Slice 3 briefing archive, delivery, and scheduling — commit 2454a30c8a5ae789e23d9efea412fce148e3ce2f, PR 38
+- work-p5-earnings-certification-correction: Phase 5 earnings briefing certification correction — commit 7832d6016d91f123fea1e27fb724dd64781aa5e7, PR 39
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation

@@ -5,18 +5,15 @@
 ## Current objective
 
 - Phase: phase-5 — Market Intelligence Brief
-- Phase status: in_progress
+- Phase status: complete
 - Overall status: in_progress
 - Objective: Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.
-- Phase exit criteria: 0/1 complete
-- Tracker updated: 2026-08-11T14:43:50Z
+- Phase exit criteria: 1/1 complete
+- Tracker updated: 2026-08-11T15:24:54Z
 
 ## Active work
 
-- work-p5-earnings-certification-correction: Phase 5 earnings briefing certification correction [blocked/high]
-  - Objective: Render source-cited upcoming and recent portfolio earnings deterministically so the Phase 5 exit criterion is truthful.
-  - Branch: codex/phase-5-earnings-certification-correction
-  - Paths: services/rules-service/app/market_intelligence, services/rules-service/tests, docs/10-roadmap, docs/adr
+- None
 
 ## Blockers
 
@@ -38,11 +35,11 @@
 
 ## Recently completed
 
-- work-p4-decision-history-substrate: Phase 4 Slice 1 decision-history substrate — commit 13da914cf1db78d02219eb72c9f4f5b0aca9e86f, PR 34
 - work-p4-decision-history-ui: Phase 4 Slice 2 decision-history UI — commit a81eee6, PR 35
 - work-p5-research-data-foundation: Phase 5 Slice 1 research-data foundation — commit f573ee4d5c43dfb5636c67c6f260b1decd118efe, PR 36
 - work-p5-deterministic-briefing-engine: Phase 5 Slice 2 deterministic portfolio-impact and briefing engine — commit 6cfaa80d868a0acc0d5f3dada3d915ef836bec53, PR 37
 - work-p5-briefing-ui-delivery: Phase 5 Slice 3 briefing archive, delivery, and scheduling — commit 2454a30c8a5ae789e23d9efea412fce148e3ce2f, PR 38
+- work-p5-earnings-certification-correction: Phase 5 earnings briefing certification correction — commit 7832d6016d91f123fea1e27fb724dd64781aa5e7, PR 39
 
 ## Next bounded task
 
