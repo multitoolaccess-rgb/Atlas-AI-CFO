@@ -36,6 +36,9 @@ FINLYNQ_PID=""
 STARTED_RULES=0
 STARTED_FINLYNQ=0
 TEST_JWT_SECRET='dev-jwt-secret-for-tests-only-32chars-min'
+E2E_TMP_DIR="${TMPDIR:-/tmp}"
+E2E_DB_PATH=""
+E2E_DATABASE_URL=""
 # Rules Service imports the full application and can be slower than the
 # lightweight health-only Finlynq boot on cold GitHub-hosted runners.
 RULES_STARTUP_TIMEOUT_SECONDS=60
@@ -54,6 +57,17 @@ cleanup() {
     wait "$FINLYNQ_PID" 2>/dev/null || true
     echo "  Finlynq log: $FINLYNQ_LOG"
   fi
+  if [ -n "$E2E_DB_PATH" ]; then
+    case "$E2E_DB_PATH" in
+      "$E2E_TMP_DIR"/atlas-ai-cfo-e2e-*.db)
+        rm -f -- "$E2E_DB_PATH" "${E2E_DB_PATH}-wal" "${E2E_DB_PATH}-shm"
+        echo "→ Removed isolated E2E database"
+        ;;
+      *)
+        echo "→ Refusing to remove unexpected E2E database path: $E2E_DB_PATH"
+        ;;
+    esac
+  fi
 }
 trap cleanup EXIT INT TERM
 
@@ -68,6 +82,16 @@ print_rules_log_tail() {
     echo "  (Rules Service log was not created)"
   fi
   echo "----------------------------------------------"
+}
+
+prepare_e2e_database() {
+  E2E_DB_PATH="$(mktemp "$E2E_TMP_DIR/atlas-ai-cfo-e2e-XXXXXX.db")"
+  E2E_DATABASE_URL="sqlite:///$E2E_DB_PATH"
+  echo "→ Migrating isolated E2E database..."
+  (
+    cd "$RULES_DIR"
+    DATABASE_URL="$E2E_DATABASE_URL" "$RULES_VENV_PY" -m alembic -c alembic.ini upgrade head
+  )
 }
 
 # ---- Pretty banner ----
@@ -91,11 +115,16 @@ if [ ! -d "$UI_DIR/node_modules/@playwright/test" ]; then
   exit 1
 fi
 
+# Rules Service deliberately does not auto-migrate by default. Build its
+# schema before either service starts so the live browser stack never reads a
+# developer's finance.db and Finlynq shares the same canonical E2E state.
+prepare_e2e_database || exit 1
+
 # ---- Service dependencies: start only when not already running ----
 start_finlynq() {
   echo "→ Starting Finlynq on :8001..."
   cd "$FINLYNQ_DIR"
-  DATABASE_URL='sqlite:///./finance.db' \
+  DATABASE_URL="$E2E_DATABASE_URL" \
   JWT_SECRET="$TEST_JWT_SECRET" \
   LOCAL_USER='alex' \
     "$FINLYNQ_VENV_PY" -m uvicorn app.main:app --host 0.0.0.0 --port 8001 \
@@ -116,7 +145,7 @@ start_finlynq() {
 start_rules() {
   echo "→ Starting Rules Service on :8000..."
   cd "$RULES_DIR"
-  DATABASE_URL='sqlite:///./finance.db' \
+  DATABASE_URL="$E2E_DATABASE_URL" \
   JWT_SECRET="$TEST_JWT_SECRET" \
   LOCAL_USER='alex' \
   FINLYNQ_BASE_URL='http://localhost:8001' \

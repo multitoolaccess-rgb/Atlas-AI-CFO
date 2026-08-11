@@ -83,6 +83,11 @@ def test_e2e_harness_provisions_the_live_service_dependencies() -> None:
     assert "print_rules_log_tail" in source
     assert 'tail -n 80 "$RULES_LOG"' in source
     assert "[REDACTED]" in source
+    assert 'mktemp "$E2E_TMP_DIR/atlas-ai-cfo-e2e-XXXXXX.db"' in source
+    assert 'DATABASE_URL="$E2E_DATABASE_URL" "$RULES_VENV_PY" -m alembic -c alembic.ini upgrade head' in source
+    assert source.index("prepare_e2e_database || exit 1") < source.index("start_finlynq()")
+    assert source.count('DATABASE_URL="$E2E_DATABASE_URL"') == 3
+    assert 'rm -f -- "$E2E_DB_PATH" "${E2E_DB_PATH}-wal" "${E2E_DB_PATH}-shm"' in source
 
 
 def _make_hermetic_atlas_root(tmp_path: Path) -> tuple[Path, Path]:
