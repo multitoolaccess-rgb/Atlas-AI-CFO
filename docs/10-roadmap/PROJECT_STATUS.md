@@ -5,10 +5,10 @@
 - Current phase: **phase-4 — Decision journal** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 4 Slice 1 COMPLETE: PR #34 squash-merged at 13da914, providing owner-scoped append-only decision history, bounded alternatives and rationale, audited outcome linkage, correction recovery, default-off APIs, and cross-dialect safeguards. Phase 4 Slice 2 UI/accessibility/end-to-end integration is the next bounded task and has not started. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.
-- Last updated: 2026-08-10T15:18:46Z
+- Last updated: 2026-08-10T15:24:07Z
 
 ## Active work
-- None
+- work-p4-decision-history-ui: Phase 4 Slice 2 decision-history UI (in_progress, high)
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}

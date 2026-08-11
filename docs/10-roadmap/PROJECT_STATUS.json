@@ -1,5 +1,25 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "codex/phase-4-decision-history-ui",
+      "id": "work-p4-decision-history-ui",
+      "issue": "",
+      "objective": "Integrate the default-off owner-scoped decision-history API into the existing goals recommendation UI with accessible, privacy-safe chronological history and complete mocked browser coverage.",
+      "paths": [
+        "ui/app/goals/page.tsx",
+        "ui/components",
+        "ui/lib",
+        "ui/__tests__"
+      ],
+      "phase_id": "phase-4",
+      "risk_tier": "high",
+      "status": "in_progress",
+      "tests": [
+        "Focused frontend component, typed-client, accessibility, mocked browser, and relevant API contract regression coverage"
+      ],
+      "title": "Phase 4 Slice 2 decision-history UI"
+    }
+  ],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -632,7 +652,7 @@
   ],
   "current_objective": "Phase 4 Slice 1 COMPLETE: PR #34 squash-merged at 13da914, providing owner-scoped append-only decision history, bounded alternatives and rationale, audited outcome linkage, correction recovery, default-off APIs, and cross-dialect safeguards. Phase 4 Slice 2 UI/accessibility/end-to-end integration is the next bounded task and has not started. External multi-user rollout remains blocked by retention/user-deletion policy and authoritative currency policy.",
   "current_phase_id": "phase-4",
-  "last_updated": "2026-08-10T15:18:46Z",
+  "last_updated": "2026-08-10T15:24:07Z",
   "next_bounded_task": {
     "description": "Phase 4 Slice 2: integrate the merged owner-scoped decision-history API into the existing goals recommendation surface with typed client coverage, accessible chronological history and correction flow, privacy-safe outcome lifecycle display, and mocked end-to-end coverage. Do not begin without explicit authorization.",
     "id": "work-p4-decision-history-ui",
