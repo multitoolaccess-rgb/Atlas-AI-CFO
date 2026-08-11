@@ -1,5 +1,25 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "codex/phase-5-research-data-foundation",
+      "id": "work-p5-research-data-foundation",
+      "issue": "",
+      "objective": "Build provider-neutral, zero-dollar research-data contracts and Finnhub/SEC adapters with safe pacing, caching, normalized failures, synthetic fixtures, and no real network in tests.",
+      "paths": [
+        "services/rules-service/app/market_intelligence",
+        "services/rules-service/tests",
+        "services/rules-service/app/config.py",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-5",
+      "risk_tier": "high",
+      "status": "in_progress",
+      "tests": [
+        "Focused provider-contract, Finnhub, SEC, cache, rate-limit, paid-endpoint, and synthetic-fixture tests"
+      ],
+      "title": "Phase 5 Slice 1 research-data foundation"
+    }
+  ],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -659,10 +679,10 @@
   ],
   "current_objective": "Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.",
   "current_phase_id": "phase-5",
-  "last_updated": "2026-08-11T04:24:03Z",
+  "last_updated": "2026-08-11T04:24:57Z",
   "next_bounded_task": {
-    "description": "Complete the approved Phase 5 planning slice, then begin the bounded high-risk research-data foundation slice.",
-    "id": "phase-5-planning-and-slice-1",
+    "description": "Complete the active high-risk Slice 1 research-data foundation PR with required CI and fresh independent review.",
+    "id": "work-p5-research-data-foundation",
     "phase_id": "phase-5"
   },
   "overall_status": "in_progress",

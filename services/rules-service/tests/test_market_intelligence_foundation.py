@@ -1,0 +1,210 @@
+"""Hermetic contract tests for the Phase 5 research-data foundation."""
+from datetime import UTC, datetime
+
+import httpx
+import pytest
+from pydantic import ValidationError
+
+from app.market_intelligence import (
+    BoundedCache,
+    EndpointClass,
+    FinnhubAdapter,
+    MarketQuoteSnapshot,
+    PortfolioHolding,
+    PortfolioUniverse,
+    ProviderConfigurationError,
+    SecAdapter,
+    SourceMetadata,
+    SyntheticMarketTransport,
+    UsageLedger,
+)
+
+
+NOW = datetime(2026, 8, 10, 12, 0, tzinfo=UTC)
+
+
+def test_portfolio_universe_is_sorted_deduplicated_and_non_sensitive() -> None:
+    universe = PortfolioUniverse.from_holdings([
+        PortfolioHolding(symbol="msft", instrument_type="equity", quantity="2", value="100"),
+        PortfolioHolding(symbol="AAPL", instrument_type="equity", quantity="1", value="50"),
+        PortfolioHolding(symbol="MSFT", instrument_type="equity", quantity="9", value="999"),
+        PortfolioHolding(symbol=None, instrument_type="cash", quantity="1", value="5"),
+    ])
+
+    assert [holding.symbol for holding in universe.holdings] == ["AAPL", "MSFT"]
+    assert len(universe.universe_hash) == 64
+    assert "account" not in universe.model_dump_json().lower()
+
+
+def test_contracts_forbid_unknown_fields_and_bound_untrusted_text() -> None:
+    with pytest.raises(ValidationError):
+        SourceMetadata(provider="finnhub", source_url="https://example.test", retrieved_at=NOW, leaked="no")
+
+    quote = MarketQuoteSnapshot(
+        symbol="aapl", currency="USD", current_price="12.34", previous_close="11.00",
+        source=SourceMetadata(provider="finnhub", source_url="https://example.test", retrieved_at=NOW),
+    )
+    assert quote.symbol == "AAPL"
+
+
+@pytest.mark.parametrize("url", [
+    "https://user:pass@example.test/report",
+    "https://example.test/report?api_key=secret",
+    "https://example.test/report?access-token=secret",
+    "https://example.test/report?auth_token=secret",
+    "https://example.test/report?client_secret=secret",
+    "https://example.test/report?authorization=secret",
+])
+def test_source_metadata_rejects_url_credentials(url: str) -> None:
+    with pytest.raises(ValidationError, match="credential-free"):
+        SourceMetadata(provider="finnhub", source_url=url, retrieved_at=NOW)
+
+
+def test_cache_is_bounded_and_usage_never_records_sensitive_values() -> None:
+    cache = BoundedCache[str](max_entries=1, clock=lambda: 1.0)
+    cache.put("one", "value", ttl_seconds=60)
+    cache.put("two", "other", ttl_seconds=60)
+    assert cache.get("one") is None
+    assert cache.get("two") == "other"
+
+    ledger = UsageLedger()
+    ledger.record("finnhub", EndpointClass.QUOTE, cache_hit=False)
+    assert ledger.records[0].model_dump() == {
+        "provider": "finnhub", "endpoint_class": "quote", "cache_hit": False,
+        "count": 1, "period": "2026-08",
+    }
+
+
+def test_finnhub_paid_or_disabled_requests_fail_without_network() -> None:
+    called = False
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal called
+        called = True
+        return httpx.Response(200, json={})
+
+    adapter = FinnhubAdapter(api_key="synthetic-key", enabled=False, transport=httpx.MockTransport(handler), now=lambda: NOW)
+    result = adapter.quote("AAPL")
+    assert result.failure and result.failure.failure_class == "disabled"
+    assert called is False
+
+    enabled = FinnhubAdapter(api_key="synthetic-key", enabled=True, paid_endpoints={EndpointClass.QUOTE}, transport=httpx.MockTransport(handler), now=lambda: NOW)
+    result = enabled.quote("AAPL")
+    assert result.failure and result.failure.failure_class == "paid_endpoint"
+    assert called is False
+
+
+def test_finnhub_normalizes_cache_and_retries_transient_failure() -> None:
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        assert request.url.params["token"] == "synthetic-key"
+        if calls == 1:
+            return httpx.Response(503)
+        return httpx.Response(200, json={"c": 101.5, "pc": 100, "t": 1_786_032_000})
+
+    adapter = FinnhubAdapter(api_key="synthetic-key", enabled=True, transport=httpx.MockTransport(handler), now=lambda: NOW, sleep=lambda _: None)
+    first = adapter.quote("aapl")
+    second = adapter.quote("AAPL")
+    assert first.value and first.value.current_price == "101.5"
+    assert second.value and second.cache_hit is True
+    assert calls == 2
+
+
+def test_synthetic_transport_never_uses_network() -> None:
+    adapter = FinnhubAdapter(
+        api_key="synthetic-key", enabled=True,
+        transport=SyntheticMarketTransport({"/api/v1/quote": {"c": 12, "pc": 11, "t": 1_786_032_000}}),
+        now=lambda: NOW,
+    )
+    assert adapter.quote("AAPL").value is not None
+
+
+def test_finnhub_never_exceeds_48_actual_calls_per_minute() -> None:
+    adapter = FinnhubAdapter(
+        api_key="synthetic-key", enabled=True,
+        transport=SyntheticMarketTransport({"/api/v1/quote": {"c": 12, "pc": 11, "t": 1_786_032_000}}),
+        now=lambda: NOW,
+    )
+    for index in range(48):
+        assert adapter.quote(f"A{index}").value is not None
+    result = adapter.quote("LAST")
+    assert result.failure and result.failure.failure_class == "rate_limited"
+
+
+def test_finnhub_normalized_records_are_deduplicated_and_cached() -> None:
+    calls: dict[str, int] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        calls[path] = calls.get(path, 0) + 1
+        if path.endswith("company-news"):
+            return httpx.Response(200, json=[
+                {"headline": "A\x00 story", "summary": "safe", "source": "Wire", "url": "https://news.test/a", "datetime": 1_786_032_000},
+                {"headline": "Same story", "summary": "safe", "source": "Wire", "url": "https://news.test/a", "datetime": 1_786_032_000},
+            ])
+        if path.endswith("calendar/earnings"):
+            return httpx.Response(200, json={"earningsCalendar": [
+                {"symbol": "AAPL", "date": "2026-08-11"},
+                {"symbol": "AAPL", "date": "2026-08-11"},
+            ]})
+        return httpx.Response(200, json=[
+            {"actual": 2, "estimate": 1, "period": "2026-06-30"},
+            {"actual": 2, "estimate": 1, "period": "2026-06-30"},
+        ])
+
+    adapter = FinnhubAdapter(api_key="synthetic-key", enabled=True, transport=httpx.MockTransport(handler), now=lambda: NOW)
+    news = adapter.company_news("AAPL", from_date="2026-08-01", to_date="2026-08-10")
+    calendar = adapter.earnings_calendar("AAPL")
+    surprises = adapter.earnings_surprises("AAPL")
+    assert news.value and len(news.value) == 1 and "\x00" not in news.value[0].headline
+    assert calendar.value and len(calendar.value) == 1
+    assert surprises.value and len(surprises.value) == 1
+    assert adapter.company_news("AAPL", from_date="2026-08-01", to_date="2026-08-10").cache_hit
+    assert adapter.earnings_calendar("AAPL").cache_hit
+    assert adapter.earnings_surprises("AAPL").cache_hit
+    assert all(count == 1 for count in calls.values())
+
+
+def test_sec_requires_identifying_user_agent_and_normalizes_submission() -> None:
+    with pytest.raises(ProviderConfigurationError):
+        SecAdapter(user_agent="", enabled=True)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["User-Agent"] == "Atlas test contact@example.test"
+        return httpx.Response(200, json={"filings": {"recent": {
+            "accessionNumber": ["0001-01"], "form": ["8-K"], "filingDate": ["2026-08-09"],
+            "primaryDocument": ["report.htm"], "items": ["2.02"],
+        }}})
+
+    adapter = SecAdapter(user_agent="Atlas test contact@example.test", enabled=True, transport=httpx.MockTransport(handler), now=lambda: NOW)
+    result = adapter.submissions("320193")
+    assert result.value and result.value[0].form == "8-K"
+    assert result.value[0].accession_number == "0001-01"
+
+
+def test_sec_normalized_records_are_deduplicated_and_cached() -> None:
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        if "/submissions/" in request.url.path:
+            return httpx.Response(200, json={"filings": {"recent": {
+                "accessionNumber": ["0001-01", "0001-01"], "form": ["8-K", "8-K"],
+                "filingDate": ["2026-08-09", "2026-08-09"], "primaryDocument": ["report.htm", "report.htm"],
+            }}})
+        return httpx.Response(200, json={"facts": {"us-gaap": {"Revenue": {"units": {"USD": [
+            {"val": 100, "filed": "2026-08-09"}, {"val": 100, "filed": "2026-08-09"},
+        ]}}}}})
+
+    adapter = SecAdapter(user_agent="Atlas test contact@example.test", enabled=True, transport=httpx.MockTransport(handler), now=lambda: NOW)
+    filings = adapter.submissions("320193")
+    facts = adapter.company_facts("320193")
+    assert filings.value and len(filings.value) == 1
+    assert facts.value and len(facts.value) == 1
+    assert adapter.submissions("320193").cache_hit
+    assert adapter.company_facts("320193").cache_hit
+    assert calls == 2

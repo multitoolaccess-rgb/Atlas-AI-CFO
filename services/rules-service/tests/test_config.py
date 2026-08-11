@@ -142,3 +142,26 @@ def test_read_api_flag_invalid_value_fails_closed(monkeypatch: object) -> None:
         "expected ValidationError on ambiguous ATLAS_FORECAST_READ_API_ENABLED"
     )
 
+
+def test_phase5_market_brief_flags_default_off(monkeypatch: object) -> None:
+    """Phase 5 external capabilities require an explicit server env setting."""
+    names = (
+        "ATLAS_MARKET_BRIEF_GENERATION_ENABLED",
+        "ATLAS_MARKET_BRIEF_READ_API_ENABLED",
+        "ATLAS_MARKET_BRIEF_EXTERNAL_PROVIDER_ENABLED",
+        "ATLAS_MARKET_BRIEF_EMAIL_DELIVERY_ENABLED",
+        "ATLAS_MARKET_BRIEF_SCHEDULER_ENABLED",
+        "ATLAS_MARKET_BRIEF_LOCAL_SUMMARIZATION_ENABLED",
+    )
+    for name in names:
+        monkeypatch.delenv(name, raising=False)  # type: ignore[attr-defined]
+
+    settings = Settings(_env_file=None)
+    assert all((
+        settings.atlas_market_brief_generation_enabled is False,
+        settings.atlas_market_brief_read_api_enabled is False,
+        settings.atlas_market_brief_external_provider_enabled is False,
+        settings.atlas_market_brief_email_delivery_enabled is False,
+        settings.atlas_market_brief_scheduler_enabled is False,
+        settings.atlas_market_brief_local_summarization_enabled is False,
+    ))

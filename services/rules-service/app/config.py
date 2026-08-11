@@ -75,6 +75,14 @@ class Settings(BaseSettings):
     atlas_forecast_read_api_enabled: bool = False
     # Phase 4 history API is a separate, server-only default-off rollout gate.
     atlas_decision_history_api_enabled: bool = False
+    # Phase 5 market-intelligence controls are server-owned rollout gates.
+    # No request, client bundle, or provider response can override them.
+    atlas_market_brief_generation_enabled: bool = False
+    atlas_market_brief_read_api_enabled: bool = False
+    atlas_market_brief_external_provider_enabled: bool = False
+    atlas_market_brief_email_delivery_enabled: bool = False
+    atlas_market_brief_scheduler_enabled: bool = False
+    atlas_market_brief_local_summarization_enabled: bool = False
 
     model_config = ConfigDict(extra="ignore", env_file=".env", case_sensitive=False)
 
