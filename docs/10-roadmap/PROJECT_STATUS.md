@@ -5,10 +5,10 @@
 - Current phase: **phase-5 — Market Intelligence Brief** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.
-- Last updated: 2026-08-11T11:52:41Z
+- Last updated: 2026-08-11T12:31:25Z
 
 ## Active work
-- work-p5-briefing-ui-delivery: Phase 5 Slice 3 briefing archive, delivery, and scheduling (in_review, high)
+- None
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
@@ -36,11 +36,11 @@
 - risk-p1-migration-downgrade-patched [medium/low, resolved]: Alembic 1.13.x's ApplyBatchImpl.drop_index rejects the deprecated if_exists keyword argument; the Phase 1 final cert matrix surfaced this as a full upgrade -> downgrade base failure on the e9f0a1b2c3d4 migration.
 
 ## Recently completed work
-- work-p3-recommendation-linkage-and-approvals: Phase 3: Recommendation linkage and approvals — commit 86ea65fc8c27224ec209249218fb6ccbe74b4178, PR 33
 - work-p4-decision-history-substrate: Phase 4 Slice 1 decision-history substrate — commit 13da914cf1db78d02219eb72c9f4f5b0aca9e86f, PR 34
 - work-p4-decision-history-ui: Phase 4 Slice 2 decision-history UI — commit a81eee6, PR 35
 - work-p5-research-data-foundation: Phase 5 Slice 1 research-data foundation — commit f573ee4d5c43dfb5636c67c6f260b1decd118efe, PR 36
 - work-p5-deterministic-briefing-engine: Phase 5 Slice 2 deterministic portfolio-impact and briefing engine — commit 6cfaa80d868a0acc0d5f3dada3d915ef836bec53, PR 37
+- work-p5-briefing-ui-delivery: Phase 5 Slice 3 briefing archive, delivery, and scheduling — commit 2454a30c8a5ae789e23d9efea412fce148e3ce2f, PR 38
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation

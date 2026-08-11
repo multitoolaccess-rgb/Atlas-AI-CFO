@@ -1,29 +1,5 @@
 {
-  "active_work": [
-    {
-      "branch": "codex/phase-5-briefing-ui-delivery",
-      "id": "work-p5-briefing-ui-delivery",
-      "issue": "",
-      "objective": "Build accessible in-app market-brief archive and detail views, default-off privacy-safe email delivery adapters, receipts/preferences, and local preview scheduling interface with no real delivery.",
-      "paths": [
-        "ui",
-        "services/rules-service/app/market_intelligence",
-        "services/rules-service/app/routes",
-        "services/rules-service/app/models",
-        "services/rules-service/alembic/versions",
-        "services/rules-service/tests",
-        "docs/10-roadmap"
-      ],
-      "phase_id": "phase-5",
-      "pr": "38",
-      "risk_tier": "high",
-      "status": "in_review",
-      "tests": [
-        "Focused UI/archive/email/scheduler privacy/idempotency/a11y tests plus relevant regression suites"
-      ],
-      "title": "Phase 5 Slice 3 briefing archive, delivery, and scheduling"
-    }
-  ],
+  "active_work": [],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -736,11 +712,42 @@
         "Focused briefing/migration/model/foundation/config 53 passed; hosted cheap lint + unit CI passed; status CI passed."
       ],
       "title": "Phase 5 Slice 2 deterministic portfolio-impact and briefing engine"
+    },
+    {
+      "branch": "codex/phase-5-briefing-ui-delivery",
+      "ci_evidence": {
+        "check": "cheap (lint + unit, no browser)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31490080867"
+      },
+      "commit": "2454a30c8a5ae789e23d9efea412fce148e3ce2f",
+      "id": "work-p5-briefing-ui-delivery",
+      "issue": "",
+      "objective": "Build accessible in-app market-brief archive and detail views, default-off privacy-safe email delivery adapters, receipts/preferences, and local preview scheduling interface with no real delivery.",
+      "paths": [
+        "ui",
+        "services/rules-service/app/market_intelligence",
+        "services/rules-service/app/routes",
+        "services/rules-service/app/models",
+        "services/rules-service/alembic/versions",
+        "services/rules-service/tests",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-5",
+      "pr": "38",
+      "review_evidence": "Independent re-review approved exact head f277c43b86dca7407ee6b679187700aa407d4ae2: zero critical/high/medium findings; stale archive response correction verified.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Rules focused market intelligence/delivery/migration/meta/config suite: 60 passed",
+        "UI archive Vitest: 3 passed; typecheck and lint passed"
+      ],
+      "title": "Phase 5 Slice 3 briefing archive, delivery, and scheduling"
     }
   ],
   "current_objective": "Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.",
   "current_phase_id": "phase-5",
-  "last_updated": "2026-08-11T11:52:41Z",
+  "last_updated": "2026-08-11T12:31:25Z",
   "next_bounded_task": {
     "description": "Complete the active high-risk Slice 3 archive, delivery, and scheduling PR with required CI and fresh independent review.",
     "id": "work-p5-briefing-ui-delivery",
