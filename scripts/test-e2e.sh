@@ -36,6 +36,9 @@ FINLYNQ_PID=""
 STARTED_RULES=0
 STARTED_FINLYNQ=0
 TEST_JWT_SECRET='dev-jwt-secret-for-tests-only-32chars-min'
+# Rules Service imports the full application and can be slower than the
+# lightweight health-only Finlynq boot on cold GitHub-hosted runners.
+RULES_STARTUP_TIMEOUT_SECONDS=60
 
 cleanup() {
   if [ "$STARTED_RULES" = "1" ] && [ -n "$RULES_PID" ]; then
@@ -53,6 +56,19 @@ cleanup() {
   fi
 }
 trap cleanup EXIT INT TERM
+
+print_rules_log_tail() {
+  echo "---- Rules Service log tail (sanitized) ----"
+  if [ -f "$RULES_LOG" ]; then
+    tail -n 80 "$RULES_LOG" | sed -E \
+      -e 's#(postgres(ql)?|mysql)://[^[:space:]]+#\1://[REDACTED]#g' \
+      -e 's#(JWT_SECRET|DATABASE_URL|FINLYNQ_BASE_URL)=[^[:space:]]+#\1=[REDACTED]#g' \
+      -e 's#Bearer[[:space:]]+[A-Za-z0-9._-]+#Bearer [REDACTED]#g' || true
+  else
+    echo "  (Rules Service log was not created)"
+  fi
+  echo "----------------------------------------------"
+}
 
 # ---- Pretty banner ----
 echo ""
@@ -108,14 +124,15 @@ start_rules() {
       > "$RULES_LOG" 2>&1 &
   RULES_PID=$!
   STARTED_RULES=1
-  for i in $(seq 1 15); do
+  for i in $(seq 1 "$RULES_STARTUP_TIMEOUT_SECONDS"); do
     if curl -s -f http://localhost:8000/health >/dev/null 2>&1; then
       echo "  Rules Service up (pid $RULES_PID, log: $RULES_LOG)"
       return 0
     fi
     sleep 1
   done
-  echo "❌  Rules Service failed to start within 15s. See $RULES_LOG"
+  echo "❌  Rules Service failed to start within ${RULES_STARTUP_TIMEOUT_SECONDS}s. See $RULES_LOG"
+  print_rules_log_tail
   return 1
 }
 

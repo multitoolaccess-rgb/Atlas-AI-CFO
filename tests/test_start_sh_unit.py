@@ -77,6 +77,12 @@ def test_e2e_harness_provisions_the_live_service_dependencies() -> None:
     assert "FINLYNQ_BASE_URL='http://localhost:8001'" in source
     assert source.index("start_finlynq") < source.index("start_rules")
     assert "STARTED_FINLYNQ" in source and "STARTED_RULES" in source
+    assert "RULES_STARTUP_TIMEOUT_SECONDS=60" in source
+    rules_start = source[source.index("start_rules()") : source.index("if curl", source.index("start_rules()"))]
+    assert 'seq 1 "$RULES_STARTUP_TIMEOUT_SECONDS"' in rules_start
+    assert "print_rules_log_tail" in source
+    assert 'tail -n 80 "$RULES_LOG"' in source
+    assert "[REDACTED]" in source
 
 
 def _make_hermetic_atlas_root(tmp_path: Path) -> tuple[Path, Path]:
