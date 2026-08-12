@@ -23,7 +23,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<NonNullable<ButtonProps['variant']>, string> = {
   primary:
-    'bg-[var(--primary-500)] text-[var(--text-on-brand)] hover:bg-[var(--primary-600)] hover:shadow-[var(--shadow-3)] active:bg-[var(--primary-700)] disabled:bg-[var(--slate-400)]',
+    'bg-[var(--interactive-primary)] text-[var(--accent-on-primary)] hover:bg-[var(--interactive-hover)] hover:shadow-[var(--shadow-3)] active:bg-[var(--interactive-active)] disabled:bg-[var(--slate-400)]',
   secondary:
     'bg-[var(--slate-100)] text-[var(--text-primary)] hover:bg-[var(--slate-200)] active:bg-[var(--slate-300)] disabled:bg-[var(--slate-100)] disabled:opacity-50 dark:bg-[var(--slate-200)] dark:hover:bg-[var(--slate-300)] dark:active:bg-[var(--slate-400)]',
   tertiary:

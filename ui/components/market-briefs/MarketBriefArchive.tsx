@@ -488,7 +488,7 @@ export default function MarketBriefArchive() {
               type="button"
               onClick={() => void generate()}
               disabled={generating}
-              className="min-h-[44px] whitespace-nowrap !bg-[var(--interactive-primary)] !text-[var(--text-on-brand)] hover:!bg-[var(--interactive-hover)]"
+              className="min-h-[44px] whitespace-nowrap !bg-[var(--interactive-primary)] !text-[var(--accent-on-primary)] hover:!bg-[var(--interactive-hover)]"
               icon={generating ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
             >
               {generating ? 'Generating brief…' : 'Generate brief'}

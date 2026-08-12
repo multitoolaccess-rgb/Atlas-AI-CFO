@@ -21,6 +21,7 @@ import {
 } from '@/lib/api'
 import { classifyErrorMessage } from '@/lib/errors'
 import { fireDataRefresh } from '@/lib/dataRefresh'
+import AppearanceSection from '@/components/settings/AppearanceSection'
 
 /**
  * Phase F2 #2 -- delegate to the centralized classifier imported
@@ -1660,6 +1661,8 @@ export default function SettingsPage() {
       <p className="body-md text-secondary mb-6">
         Your profile, currency preference, and account preferences.
       </p>
+
+      <AppearanceSection />
 
       {error && (
         // variant="warning" (amber) — the profile-load failure is

@@ -86,7 +86,7 @@ export default function Header({ profile, loading, mobileFullBleed = false }: He
   return (
     <header
       id="header"
-      className={`flex items-center px-6 py-4 sticky top-0 z-40 bg-background/80 backdrop-blur-md transition-all duration-300 ease-in-out ${mobileFullBleed ? 'ml-0 w-full lg:ml-[var(--layout-ml)] lg:w-[var(--layout-w)]' : 'ml-[var(--layout-ml)] w-[var(--layout-w)]'}`}
+      className={`flex min-h-16 items-center px-4 py-3 sticky top-0 z-40 bg-background/90 backdrop-blur-md transition-[margin,width,background-color] duration-300 ease-out sm:px-6 ${mobileFullBleed ? 'ml-0 w-full lg:ml-[var(--layout-ml)] lg:w-[var(--layout-w)]' : 'ml-0 w-full lg:ml-[var(--layout-ml)] lg:w-[var(--layout-w)]'}`}
       style={{
         '--layout-ml': collapsed ? '4.5rem' : '16rem',
         '--layout-w': collapsed ? 'calc(100vw - 4.5rem)' : 'calc(100vw - 16rem)',
@@ -105,7 +105,7 @@ export default function Header({ profile, loading, mobileFullBleed = false }: He
               aria-hidden="true"
             />
             <span className="flex-1 text-left text-sm">Search transactions, accounts, goals…</span>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border border-[var(--border-subtle)]">
+            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-mono font-semibold bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border border-[var(--border-subtle)]">
               ⌘K
             </kbd>
           </button>
@@ -201,7 +201,7 @@ export default function Header({ profile, loading, mobileFullBleed = false }: He
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-on-surface truncate">{n.title}</p>
                             <p className="text-xs text-secondary mt-0.5 line-clamp-2">{n.message}</p>
-                            <p className="text-[10px] text-tertiary mt-1">{timeAgo(n.timestamp)}</p>
+                            <p className="text-xs text-tertiary mt-1">{timeAgo(n.timestamp)}</p>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             {!n.read && (

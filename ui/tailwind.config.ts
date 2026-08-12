@@ -117,6 +117,10 @@ module.exports = {
             high: 'var(--slate-300)',
             highest: 'var(--slate-200)',
           },
+          base: 'var(--surface-base)',
+          raised: 'var(--surface-raised)',
+          overlay: 'var(--surface-overlay)',
+          selected: 'var(--surface-selected)',
         },
 
         // === Semantic roles / text-on =====
@@ -160,6 +164,13 @@ module.exports = {
 
         // === Futuristic accent palette (Atlas design system) ===
         accent: {
+          primary: 'var(--accent-primary)',
+          hover: 'var(--accent-hover)',
+          active: 'var(--accent-active)',
+          subtle: 'var(--accent-subtle)',
+          muted: 'var(--accent-muted)',
+          border: 'var(--accent-border)',
+          focus: 'var(--accent-focus)',
           electric: 'var(--accent-electric)',
           cyan: 'var(--accent-cyan)',
           emerald: 'var(--accent-emerald)',
