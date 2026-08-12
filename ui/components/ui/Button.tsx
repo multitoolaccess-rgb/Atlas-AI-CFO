@@ -52,7 +52,7 @@ const Button: React.FC<ButtonProps> = ({
   ...rest
 }) => {
   const baseClasses =
-    'inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-500)] disabled:cursor-not-allowed';
+    'inline-flex min-h-11 items-center justify-center gap-2 font-medium transition-[background-color,border-color,box-shadow,transform,color] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-focus)] active:scale-[0.98] disabled:cursor-not-allowed';
 
   return (
     <button

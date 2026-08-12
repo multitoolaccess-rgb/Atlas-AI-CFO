@@ -5,6 +5,8 @@ import PageLayout from '@/components/layout/PageLayout'
 import AnimatedPageSection from '@/components/ui/AnimatedPageSection'
 import { GlobalFilterProvider } from '@/components/ui/GlobalFilterContext'
 import FloatingTimeRangeBar from '@/components/ui/FloatingTimeRangeBar'
+import PageHeader from '@/components/ui/PageHeader'
+import EmptyState from '@/components/ui/EmptyState'
 import { rulesService, type DebtsSummaryResponse } from '@/lib/api'
 import DebtTable from '@/components/dashboard/DebtTable'
 import PayoffProjectionChart from '@/components/dashboard/PayoffProjectionChart'
@@ -68,12 +70,10 @@ function DebtsContent() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Debts</h1>
-          <p className="text-sm text-on-surface-variant mt-1">Track loans, credit cards, and mortgages</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Debts"
+        description="Track loans, credit cards, and mortgages."
+      />
 
       {/* Floating bar — URL-synced via ?range=… (page-default YTD).
           Visual-only today: getDebtsSummary() is not range-aware yet. */}
@@ -158,14 +158,14 @@ function DebtsContent() {
           )}
 
           {data.debts.length === 0 && (
-            <div className="card p-12 text-center">
-              <CreditCard className="w-12 h-12 text-on-surface-variant/30 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-on-surface mb-2">No debt accounts found</h3>
-              <p className="text-sm text-on-surface-variant max-w-md mx-auto">
-                Add credit cards, loans, or mortgage accounts to track your debt here.
-                Go to <strong>Accounts</strong> and create an account with type &quot;Credit Card&quot;, &quot;Loan&quot;, or &quot;Mortgage&quot;.
-              </p>
-            </div>
+            <EmptyState
+              testId="debts-empty"
+              icon={<CreditCard className="h-6 w-6" />}
+              title="No debt accounts found"
+              description="Add a credit card, loan, or mortgage account to track debt here."
+              action={<a href="/accounts" className="btn-primary inline-flex items-center px-4 py-2 text-sm font-semibold">Open Accounts</a>}
+              guidance={<p className="text-sm">Atlas will use the account data you add there; no debt amount is assumed here.</p>}
+            />
           )}
 
           {/* Payoff Projections */}

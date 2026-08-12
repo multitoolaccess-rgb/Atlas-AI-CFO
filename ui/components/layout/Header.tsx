@@ -86,7 +86,7 @@ export default function Header({ profile, loading, mobileFullBleed = false }: He
   return (
     <header
       id="header"
-      className={`flex min-h-16 items-center px-4 py-3 sticky top-0 z-40 bg-background/90 backdrop-blur-md transition-[margin,width,background-color] duration-300 ease-out sm:px-6 ${mobileFullBleed ? 'ml-0 w-full lg:ml-[var(--layout-ml)] lg:w-[var(--layout-w)]' : 'ml-0 w-full lg:ml-[var(--layout-ml)] lg:w-[var(--layout-w)]'}`}
+      className={`flex min-h-16 items-center px-4 py-3 sticky top-0 z-40 transition-[margin,width,background-color] duration-300 ease-out sm:px-6 ${mobileFullBleed ? 'ml-0 w-full lg:ml-[var(--layout-ml)] lg:w-[var(--layout-w)]' : 'ml-0 w-full lg:ml-[var(--layout-ml)] lg:w-[var(--layout-w)]'}`}
       style={{
         '--layout-ml': collapsed ? '4.5rem' : '16rem',
         '--layout-w': collapsed ? 'calc(100vw - 4.5rem)' : 'calc(100vw - 16rem)',
@@ -98,13 +98,13 @@ export default function Header({ profile, loading, mobileFullBleed = false }: He
             type="button"
             onClick={togglePalette}
             aria-label="Search (⌘K)"
-            className="w-full flex items-center gap-3 pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant/50 dark:border-outline-variant/20 rounded-full text-on-surface-variant/50 hover:border-primary/50 focus:ring-2 focus:ring-primary focus:border-primary dark:focus:border-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all cursor-text"
+            className="w-full flex items-center gap-3 pl-10 pr-4 py-2.5 bg-surface-container-low border border-outline-variant/45 dark:border-outline-variant/20 rounded-[var(--radius-lg)] text-on-surface-variant/65 hover:border-accent-border focus:ring-2 focus:ring-accent-focus focus:border-accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-focus transition-[border-color,box-shadow] cursor-text"
           >
             <Search
               className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
               aria-hidden="true"
             />
-            <span className="flex-1 text-left text-sm">Search transactions, accounts, goals…</span>
+            <span className="flex-1 text-left text-[0.875rem]">Search transactions, accounts, goals…</span>
             <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-mono font-semibold bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border border-[var(--border-subtle)]">
               ⌘K
             </kbd>
@@ -144,7 +144,7 @@ export default function Header({ profile, loading, mobileFullBleed = false }: He
             >
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant/20">
-                <h3 className="label-md font-semibold text-on-surface">Notifications</h3>
+                <h3 className="text-sm font-semibold text-on-surface">Notifications</h3>
                 <div className="flex items-center gap-1">
                   {unreadCount > 0 && (
                     <button
@@ -200,7 +200,7 @@ export default function Header({ profile, loading, mobileFullBleed = false }: He
                           />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-on-surface truncate">{n.title}</p>
-                            <p className="text-xs text-secondary mt-0.5 line-clamp-2">{n.message}</p>
+                            <p className="text-sm text-secondary mt-0.5 line-clamp-2">{n.message}</p>
                             <p className="text-xs text-tertiary mt-1">{timeAgo(n.timestamp)}</p>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
@@ -247,7 +247,7 @@ export default function Header({ profile, loading, mobileFullBleed = false }: He
         </div>
         <div
           aria-label={loading ? 'Loading user profile' : profile ? `Signed in as ${profile.full_name}` : 'Signed in as Alex'}
-          className="h-9 w-9 rounded-full bg-primary text-on-primary flex-center font-bold ml-1 ring-2 ring-surface-container text-sm"
+          className="h-9 w-9 rounded-full bg-[var(--accent-primary)] text-[var(--accent-on-primary)] flex-center font-semibold ml-1 ring-2 ring-surface-container text-sm"
         >
           {initials}
         </div>

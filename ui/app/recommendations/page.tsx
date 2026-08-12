@@ -6,8 +6,10 @@ import { motion, useReducedMotion } from 'framer-motion'
 import PageLayout from '@/components/layout/PageLayout'
 import RecommendationCard from '@/components/dashboard/RecommendationCard'
 import TiltCard from '@/components/ui/TiltCard'
+import EmptyState from '@/components/ui/EmptyState'
 import { rulesService } from '@/lib/api'
 import { formatNumber } from '@/lib/format'
+import PageHeader from '@/components/ui/PageHeader'
 
 /**
  * Static AI recommendations. Kept as the "what should you do" panel;
@@ -134,17 +136,19 @@ export default function RecommendationsPage() {
 
   return (
     <PageLayout>
-      <h1 className="headline-xl text-primary mb-2">AI Recommendations</h1>
-      <p className="body-md text-secondary mb-6">
-        Personalized financial moves derived from your accounts, cash flow,
-        and goals.
-      </p>        {visible.length === 0 ? (
-        <div className="card p-8 text-center" data-testid="recs-empty">
-          <Sparkles className="w-8 h-8 text-primary mx-auto mb-2" aria-hidden="true" />
-          <p className="text-secondary">
-            All caught up. New recommendations appear here as your data changes.
-          </p>
-        </div>
+      <PageHeader
+        title="AI Recommendations"
+        description="Personalized financial moves derived from your accounts, cash flow, and goals."
+        className="mb-6"
+      />
+      {visible.length === 0 ? (
+        <EmptyState
+          testId="recs-empty"
+          icon={<Sparkles className="h-6 w-6" />}
+          title="You are all caught up"
+          description="New recommendations will appear here when Atlas has enough current data to identify a reviewable next step."
+          guidance={<p className="text-sm">Keep accounts and goals current to give future recommendations useful context.</p>}
+        />
       ) : (
         <motion.div
           className="grid grid-cols-1 lg:grid-cols-2 gap-6"

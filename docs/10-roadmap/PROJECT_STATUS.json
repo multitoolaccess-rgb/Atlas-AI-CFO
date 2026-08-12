@@ -1,5 +1,22 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "codex/atlas-art-direction-v2-1",
+      "id": "work-ui-atlas-art-direction-v2-1",
+      "issue": "",
+      "objective": "Implement the approved Luminous Financial Observatory art direction across the Atlas shell and shared page system while preserving all three accent profiles, financial semantics, functionality, and accessibility.",
+      "paths": [
+        "ui shared shell, Budgeting, empty states, theme and appearance"
+      ],
+      "phase_id": "phase-6",
+      "risk_tier": "medium",
+      "status": "in_progress",
+      "tests": [
+        "Focused appearance, shell, Budgeting, typography, motion, and accessibility tests; full frontend Vitest, TypeScript, ESLint, production build, canonical Playwright, and responsive visual evidence."
+      ],
+      "title": "Atlas Visual Art Direction v2.1"
+    }
+  ],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -882,7 +899,7 @@
   ],
   "current_objective": "Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-12T16:00:27Z",
+  "last_updated": "2026-08-12T20:47:05Z",
   "next_bounded_task": {
     "description": "Authorize and define Phase 6 Slice 2 only; do not begin implementation automatically.",
     "id": "work-p6-s2-authorization",

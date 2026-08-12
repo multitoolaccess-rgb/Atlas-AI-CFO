@@ -27,6 +27,8 @@ import PageLayout from '@/components/layout/PageLayout'
 import { AtlasFilterProvider, useAtlasFilters, dateRangeFromPreset } from '@/components/ui/AtlasFilterContext'
 import FloatingTimeRangeBar from '@/components/ui/FloatingTimeRangeBar'
 import ErrorBanner from '@/components/ui/ErrorBanner'
+import EmptyState from '@/components/ui/EmptyState'
+import PageHeader from '@/components/ui/PageHeader'
 import { Select, Button, CategoryDot } from '@/components/ui'
 import {
   rulesService,
@@ -777,17 +779,11 @@ function ActivityContent() {
 
   return (
     <>
-      <div className="flex items-end justify-between mb-6 gap-4 flex-wrap">
-        <div>
-          <h1 className="headline-xl text-primary mb-2">
-            Transaction History
-          </h1>
-          <p className="body-md text-secondary">
-            Every recorded transaction across your accounts. Filter by
-            account, type, category, status, or date; sort by any column.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Transaction History"
+        description="Every recorded transaction across your accounts. Filter by account, type, category, status, or date; sort by any column."
+        actions={(
+          <div className="flex items-center gap-2">
           <Button
             type="button"
             variant="tertiary"
@@ -853,8 +849,10 @@ function ActivityContent() {
                 ? 'AI auto-tag (none)'
                 : `AI auto-tag (${untaggedRows.length})`}
           </Button>
-        </div>
-      </div>
+          </div>
+        )}
+        className="mb-6"
+      />
 
       {/* Floating bar — URL-synced via ?range=… (page-default YTD).
           When the user picks a preset on the bar, the effect below
@@ -1347,16 +1345,13 @@ function ActivityContent() {
 
       {loading ? (
         <p className="text-sm text-secondary">Loading transactions…</p>
-      ) : displayTransactions.length === 0 ? (
-        <div className="card p-8 text-center" data-testid="activity-empty">
-          <Clock className="w-8 h-8 text-primary mx-auto mb-2" aria-hidden="true" />
-          <p className="text-secondary">
-            {queryParams && Object.keys(queryParams).filter((k) => k !== 'sort_by' && k !== 'sort_dir' && k !== 'limit').length > 1
-              ? 'No transactions match the current filters.'
-              : 'No transactions yet. Upload a statement or add an account to get started.'
-          }
-        </p>
-        </div>
+      ) : displayTransactions.length === 0 ? (<EmptyState
+              testId="activity-empty"
+              icon={<Clock className="h-6 w-6" />}
+              title={queryParams && Object.keys(queryParams).filter((k) => k !== 'sort_by' && k !== 'sort_dir' && k !== 'limit').length > 1 ? 'No matching transactions' : 'Your activity will appear here'}
+              description={queryParams && Object.keys(queryParams).filter((k) => k !== 'sort_by' && k !== 'sort_dir' && k !== 'limit').length > 1 ? 'Try widening the current filters to see more of your recorded activity.' : 'Upload a statement or add an account to start building a reliable activity history.'}
+              guidance={<p className="text-sm">Atlas only shows recorded source data here. It does not invent transactions when the source is empty.</p>}
+            />
       ) : (
         <div
           className="card p-6"
