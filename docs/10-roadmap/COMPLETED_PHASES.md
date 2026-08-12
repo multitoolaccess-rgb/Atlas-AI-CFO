@@ -82,3 +82,13 @@ criteria are complete.
 - ADRs: ADR-007-MARKET-INTELLIGENCE-ZERO-DOLLAR-BOUNDARY
 - Known limitations: External multi-user rollout remains blocked by retention/user-deletion policy; Google Fonts DNS prevented local next build; hosted heavy production build passed
 - Authorized next phase: Phase 6 is not started and requires separate explicit authorization.
+
+## phase-5 — Market Intelligence Brief
+
+- Completion date: 2026-08-11
+- Final commit: `ef2a150b47b2c81159abe7494b0c7ba446fa124e`
+- Merged PRs: 40
+- Test evidence: Hosted run 31558931309: cheap and heavy (full + Playwright) succeeded for merge commit ef2a150; local complete Rules/Finlynq/frontend and isolated synthetic Market Brief journey passed.
+- ADRs: ADR-007-MARKET-INTELLIGENCE-ZERO-DOLLAR-BOUNDARY.md
+- Known limitations: All market-brief read/generation/provider/email/scheduler/local-summarization flags remain default-off; generation requires reviewed local Finnhub key and SEC User-Agent; no authoritative holding-to-CIK mapping exists, so SEC filing events are omitted with a data-quality warning; no real provider/email/personal database was used for correction validation.
+- Authorized next phase: Phase 6 Scenario Lab remains unstarted and requires separate explicit authorization using docs/10-roadmap/PHASE6_SCENARIO_LAB_CAPABILITY_AUDIT_AND_PLAN.md.

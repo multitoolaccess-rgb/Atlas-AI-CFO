@@ -1,22 +1,5 @@
 {
-  "active_work": [
-    {
-      "branch": "codex/phase-5-operationalization",
-      "id": "work-p5-operationalization-correction",
-      "issue": "",
-      "objective": "Wire a safe server-owned local market-brief composer behind default-off flags; make archive discovery and synthetic-only generation usable without changing Phase 5 financial semantics or activating real providers/email.",
-      "paths": [
-        "services/rules-service/app/market_intelligence,services/rules-service/app/routes,services/rules-service/app/config.py,services/rules-service/tests,ui/components,ui/lib,ui/__tests__/e2e,docs/10-roadmap"
-      ],
-      "phase_id": "phase-5",
-      "risk_tier": "high",
-      "status": "in_progress",
-      "tests": [
-        "Focused synthetic-only provider/composer, owner isolation, archive UI, and deterministic mocked browser journey; relevant Rules, frontend, cross-service, and tracker/handoff validation."
-      ],
-      "title": "Phase 5 Market Brief operationalization correction"
-    }
-  ],
+  "active_work": [],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -789,14 +772,38 @@
         "Hosted run 31505665961 at 7832d60: cheap and heavy CI passed; Playwright 86 passed, 1 skipped; coverage artifacts uploaded."
       ],
       "title": "Phase 5 earnings briefing certification correction"
+    },
+    {
+      "branch": "codex/phase-5-operationalization",
+      "ci_evidence": {
+        "check": "main cheap and heavy (full + Playwright)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31558931309"
+      },
+      "commit": "ef2a150b47b2c81159abe7494b0c7ba446fa124e",
+      "id": "work-p5-operationalization-correction",
+      "issue": "",
+      "objective": "Wire a safe server-owned local market-brief composer behind default-off flags; make archive discovery and synthetic-only generation usable without changing Phase 5 financial semantics or activating real providers/email.",
+      "paths": [
+        "services/rules-service/app/market_intelligence,services/rules-service/app/routes,services/rules-service/app/config.py,services/rules-service/tests,ui/components,ui/lib,ui/__tests__/e2e,docs/10-roadmap"
+      ],
+      "phase_id": "phase-5",
+      "pr": "40",
+      "review_evidence": "Fresh independent review cycle 1 found two HIGH and one MEDIUM safety defects; correction c39b516 plus fixture alignment 3c1496b resolved all. Fresh independent re-review approved exact PR #40 head 3c1496b1508cdb7581f9d41f53561357f8b6ed65 with no CRITICAL/HIGH/MEDIUM findings. Review cycles: 2.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Focused market foundation/briefing/operational/delivery/config: 55 passed; isolated synthetic Playwright market-brief journey: 2 passed; complete Rules Service: 1233 passed, 10 skipped, 1 xfailed; Finlynq: 106 passed; frontend Vitest: 547 passed; typecheck/lint passed."
+      ],
+      "title": "Phase 5 Market Brief operationalization correction"
     }
   ],
   "current_objective": "Authorized post-certification Phase 5 operationalization correction: make the default-off, zero-dollar Market Intelligence Brief safely discoverable and usable with synthetic-only proof, without changing its financial semantics or enabling real delivery.",
   "current_phase_id": "phase-5",
-  "last_updated": "2026-08-12T02:42:29Z",
+  "last_updated": "2026-08-12T03:17:37Z",
   "next_bounded_task": {
-    "description": "Complete the active high-risk earnings certification correction PR with required CI and independent review.",
-    "id": "work-p5-earnings-certification-correction",
+    "description": "Phase 6 Scenario Lab remains unstarted. Require separate explicit authorization and reuse the audited authoritative forecast vertical; do not begin implementation automatically.",
+    "id": "phase-6-authorization-required",
     "phase_id": "phase-5"
   },
   "overall_status": "in_progress",
@@ -906,7 +913,7 @@
       ],
       "id": "phase-5",
       "name": "Market Intelligence Brief",
-      "status": "in_progress"
+      "status": "complete"
     }
   ],
   "risks": [
