@@ -5,15 +5,16 @@ import { useState, useEffect } from 'react'
 /**
  * Returns `true` when the page is in dark mode.
  *
- * Single source of truth: the `.dark` class on `<html>`, toggled by
- * DarkModeToggle.tsx. No longer checks `prefers-color-scheme` media
- * query — that caused a race condition where CSS variables flipped
- * before the `.dark` class was added by React hydration.
+ * Single source of truth: the `.dark` class on `<html>`, applied by
+ * the AppearanceProvider and its pre-hydration bootstrap. System mode
+ * is resolved there, so charts only observe the settled runtime class.
  *
  * Re-evaluates when the class attribute changes (MutationObserver).
  */
 export function useThemeMode(): boolean {
-  const [dark, setDark] = useState(false)
+  const [dark, setDark] = useState(() =>
+    typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
+  )
 
   useEffect(() => {
     const root = document.documentElement

@@ -62,7 +62,8 @@ function PageLayoutInner({ children, mobileFullBleed }: { children: React.ReactN
       <Sidebar />
       <Header profile={profile} loading={loading} mobileFullBleed={mobileFullBleed} />
       <main
-        className={`p-8 pt-4 transition-all duration-300 ease-in-out ${mobileFullBleed ? 'ml-0 lg:ml-[var(--layout-ml)]' : 'ml-[var(--layout-ml)]'}`}
+        id="main-content"
+        className={`min-w-0 px-4 py-6 pt-4 transition-[margin,padding] duration-300 ease-out sm:px-6 lg:px-8 ${mobileFullBleed ? 'ml-0 lg:ml-[var(--layout-ml)]' : 'ml-0 lg:ml-[var(--layout-ml)]'}`}
         style={{ '--layout-ml': collapsed ? '4.5rem' : '16rem' } as React.CSSProperties}
       >{children}</main>
       {/* Phase 4 — Persistent AI Copilot (orb + dock).

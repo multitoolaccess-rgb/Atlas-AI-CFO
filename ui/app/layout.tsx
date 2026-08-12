@@ -1,6 +1,7 @@
 import './globals.css'
 import { spaceGrotesk, jetbrainsMono } from '@/lib/fonts'
 import AuthBootstrapProvider from '@/components/providers/AuthBootstrapProvider'
+import AppearanceProvider from '@/components/providers/AppearanceProvider'
 import { NotificationProvider } from '@/components/providers/NotificationContext'
 import ToastContainer from '@/components/ui/ToastContainer'
 import { BackendUnavailableError } from '@/lib/backendError'
@@ -23,7 +24,7 @@ import { BackendUnavailableError } from '@/lib/backendError'
  */
 const PRE_HYDRATION_WARM_KEY = 'fc_bootstrap_warm_at'
 const PRE_HYDRATION_TOKEN_KEY = 'fc_session_token'
-const PRE_HYDRATION_WARM_SCRIPT = `(function(){try{var w=${JSON.stringify(PRE_HYDRATION_WARM_KEY)};var t=${JSON.stringify(PRE_HYDRATION_TOKEN_KEY)};var oldDm='darkMode';var newDm='atlas_theme';var tok=window.localStorage.getItem(t);var warm=window.localStorage.getItem(w);if(tok||warm){window.localStorage.setItem(w,String(Date.now()));}if(window.localStorage.getItem(oldDm)!==null){window.localStorage.removeItem(oldDm);}var stored=window.localStorage.getItem(newDm);var wantDark=stored==='enabled';if(wantDark){document.documentElement.classList.add('dark');}}catch(e){}
+const PRE_HYDRATION_WARM_SCRIPT = `(function(){try{var w=${JSON.stringify(PRE_HYDRATION_WARM_KEY)};var t=${JSON.stringify(PRE_HYDRATION_TOKEN_KEY)};var oldDm='darkMode';var legacy='atlas_theme';var modeKey='atlas_theme_mode';var accentKey='atlas_accent_profile';var tok=window.localStorage.getItem(t);var warm=window.localStorage.getItem(w);if(tok||warm){window.localStorage.setItem(w,String(Date.now()));}if(window.localStorage.getItem(oldDm)!==null){window.localStorage.removeItem(oldDm);}var mode=window.localStorage.getItem(modeKey);if(mode!=='light'&&mode!=='dark'&&mode!=='system'){var old=window.localStorage.getItem(legacy);mode=old==='enabled'?'dark':'light';}var accent=window.localStorage.getItem(accentKey);if(accent!=='indigo'&&accent!=='vermilion'&&accent!=='ion'){accent='indigo';}var wantsDark=mode==='dark'||(mode==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.atlasTheme=mode;document.documentElement.dataset.atlasAccent=accent;if(wantsDark){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}document.documentElement.style.colorScheme=wantsDark?'dark':'light';}catch(e){}
 /* Auth splash escape hatches — run BEFORE React hydrates.
    These handle the case where stale .next chunks cause 404s on
    JS bundles, preventing React from ever hydrating. Without these
@@ -162,12 +163,14 @@ export default async function RootLayout({
         >
           Skip to main content
         </a>
-        <AuthBootstrapProvider>
-          <NotificationProvider>
-            {children}
-            <ToastContainer />
-          </NotificationProvider>
-        </AuthBootstrapProvider>
+        <AppearanceProvider>
+          <AuthBootstrapProvider>
+            <NotificationProvider>
+              {children}
+              <ToastContainer />
+            </NotificationProvider>
+          </AuthBootstrapProvider>
+        </AppearanceProvider>
       </body>
     </html>
   )

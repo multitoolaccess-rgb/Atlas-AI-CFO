@@ -21,6 +21,8 @@
  */
 
 import { useThemeMode } from './useThemeMode'
+import { useAppearance } from '@/components/providers/AppearanceProvider'
+import type { AccentProfile } from './appearance'
 
 // ---------------------------------------------------------------------------
 // Color palettes — light and dark variants for every named role/series
@@ -190,6 +192,17 @@ export function getGradientSourceColor(key: string, isDark: boolean): string {
   return palette[key] ?? (isDark ? '#4A7FD4' : '#3B5BDB')
 }
 
+const ACCENT_CHART_COLORS: Record<AccentProfile, Record<'light' | 'dark', string>> = {
+  indigo: { light: '#4d50c9', dark: '#7c83ff' },
+  vermilion: { light: '#c93a1b', dark: '#ff5a36' },
+  ion: { light: '#5b7900', dark: '#c7f43d' },
+}
+
+/** Profile identity for selected/recommended chart series only. */
+export function getAccentChartColor(accent: AccentProfile, isDark: boolean): string {
+  return ACCENT_CHART_COLORS[accent][isDark ? 'dark' : 'light']
+}
+
 /** Relative luminance (WCAG 2.1 §3). Input: 8-bit sRGB hex (#RRGGBB). */
 export function luminance(hex: string): number {
   const raw = hex.replace('#', '')
@@ -225,7 +238,17 @@ export function getTextSecondaryColor(bgHex: string): string {
  */
 export function useThemeColors(): Record<string, string> {
   const isDark = useThemeMode()
-  return isDark ? DASHBOARD_COLORS.dark : DASHBOARD_COLORS.light
+  const { accent } = useAppearance()
+  const palette = { ...(isDark ? DASHBOARD_COLORS.dark : DASHBOARD_COLORS.light) }
+  const profileAccent = getAccentChartColor(accent, isDark)
+
+  // Only Atlas-selected context follows the profile. Finance semantics
+  // such as spend, earn, debt, consensus, and loss remain fixed.
+  palette.save = profileAccent
+  palette.retained_accent = profileAccent
+  palette.retained_node = profileAccent
+  palette.outcome = profileAccent
+  return palette
 }
 
 /** Canonical CashflowRole values — use this instead of hardcoding the

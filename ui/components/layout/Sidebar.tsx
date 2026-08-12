@@ -108,7 +108,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="h-screen fixed left-0 top-0 bg-surface-container-lowest shadow-sm flex flex-col border-r border-outline-variant/30 z-50 transition-all duration-300 ease-in-out dark:bg-sidebar-bg dark:border-white/[0.06]"
+      className="atlas-sidebar h-dvh min-h-dvh fixed left-0 top-0 bg-surface-container-lowest flex flex-col border-r border-outline-variant/30 z-50 transition-[width,background-color,border-color] duration-300 ease-out dark:bg-sidebar-bg dark:border-white/[0.06]"
       style={{ width: sidebarWidth }}
     >
       {/* Logo + toggle */}
@@ -122,7 +122,7 @@ export default function Sidebar() {
           <h1 className="text-3xl font-bold text-on-background dark:text-sidebar-text-active">
             Atlas
           </h1>
-          <p className="text-xs uppercase tracking-wider text-on-surface-variant opacity-70 mt-1">
+          <p className="sidebar-label mt-1 text-sm text-on-surface-variant opacity-80">
             Financial Copilot
           </p>
           </div>
@@ -152,7 +152,7 @@ export default function Sidebar() {
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.key)}
-                  className="w-full flex items-center justify-between px-4 pt-4 pb-1 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-on-surface-variant/60 hover:text-on-surface-variant transition-colors dark:text-sidebar-text-inactive/40 dark:hover:text-sidebar-text-inactive/70"
+                  className="sidebar-group-label w-full flex items-center justify-between px-4 pt-4 pb-1 text-xs font-semibold text-on-surface-variant/70 hover:text-on-surface-variant transition-colors dark:text-sidebar-text-inactive/70 dark:hover:text-sidebar-text-inactive"
                   aria-expanded={isExpanded}
                 >
                   <span>{group.label}</span>
@@ -181,7 +181,7 @@ export default function Sidebar() {
                       'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
                       collapsed ? 'justify-center px-0 py-3' : 'gap-3 px-4 py-2.5',
                       isActive
-                        ? 'bg-surface-container-high text-on-surface font-bold scale-[0.98] active:scale-95 dark:bg-sidebar-active dark:text-sidebar-text-active dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]'
+                        ? 'nav-active text-on-surface font-semibold scale-[0.99] active:scale-[0.98] dark:text-sidebar-text-active'
                         : 'text-on-surface-variant hover:bg-surface-container dark:text-sidebar-text-inactive dark:hover:bg-sidebar-hover',
                     ].join(' ');
 
@@ -198,7 +198,7 @@ export default function Sidebar() {
                           aria-hidden="true"
                         />
                         {!collapsed && (
-                          <span className="text-xs font-bold uppercase tracking-wider">
+                          <span className="sidebar-label text-sm font-medium">
                             {item.name}
                           </span>
                         )}
