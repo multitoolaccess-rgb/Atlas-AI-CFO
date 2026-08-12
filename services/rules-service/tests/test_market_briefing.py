@@ -109,6 +109,7 @@ def test_earnings_section_is_portfolio_scoped_deduplicated_and_source_cited() ->
 
 def test_public_generate_route_never_accepts_client_financial_facts(client, monkeypatch) -> None:
     from app.config import settings
+    from app.market_intelligence.composition import TrustedMarketBriefComposer
 
     dangerous = {"owner_id": 999, "portfolio_state_hash": "a" * 64, "universe_hash": "b" * 64,
                  "positions": [{"symbol": "AAPL", "quantity": "999999"}], "news": [{"headline": "buy"}]}
@@ -160,6 +161,26 @@ class _RecordingMarketProviders:
         return []
 
 
+def test_generate_route_rejects_authoritative_client_fields_before_composition_or_persistence(client, db_session, monkeypatch) -> None:
+    from app.config import settings
+    from app.market_intelligence.composition import TrustedMarketBriefComposer
+    from app.models.market_brief import MarketBrief as StoredBrief
+    from app.routes.market_briefs import configure_market_brief_composer
+
+    providers = _RecordingMarketProviders()
+    configure_market_brief_composer(TrustedMarketBriefComposer(providers, now=lambda: NOW))
+    monkeypatch.setattr(settings, "atlas_market_brief_generation_enabled", True)
+    monkeypatch.setattr(settings, "atlas_market_brief_external_provider_enabled", True)
+    try:
+        response = client.post("/api/v1/market-briefs/generate", json={"report_window": "latest", "positions": [{"symbol": "AAPL"}], "owner_id": 999})
+    finally:
+        configure_market_brief_composer(None)
+    assert response.status_code == 422
+    assert response.json() == {"code": "invalid_market_brief_control"}
+    assert providers.calls == []
+    assert db_session.query(StoredBrief).count() == 0
+
+
 def test_enabled_generation_uses_only_owner_holdings_and_cites_in_window_earnings(client, db_session, make_account, monkeypatch) -> None:
     """The route composes server-side state; body financial facts cannot alter it."""
     from app.config import settings
@@ -198,13 +219,23 @@ def test_enabled_generation_uses_only_owner_holdings_and_cites_in_window_earning
     configure_market_brief_composer(TrustedMarketBriefComposer(providers, now=lambda: NOW))
     monkeypatch.setattr(settings, "atlas_market_brief_generation_enabled", True)
     monkeypatch.setattr(settings, "atlas_market_brief_external_provider_enabled", True)
-    dangerous = {"owner_id": other.id, "positions": [{"symbol": "MSFT", "quantity": "999999"}], "earnings_events": [{"symbol": "MSFT"}]}
+    # The browser can send only this control; all portfolio facts are read
+    # from authenticated server-side state.
+    control = {"report_window": "latest"}
     try:
-        response = client.post("/api/v1/market-briefs/generate", json=dangerous)
+        response = client.post("/api/v1/market-briefs/generate", json=control)
+        replay = client.post("/api/v1/market-briefs/generate", json={"report_window": "latest"})
     finally:
         configure_market_brief_composer(None)
 
     assert response.status_code == 201
+    assert replay.status_code == 200
+    assert replay.json()["replayed"] is True
+    assert replay.json()["brief_id"] == response.json()["brief_id"]
+    from app.models.market_brief import MarketBrief as StoredBrief
+    assert db_session.query(StoredBrief).filter_by(id=response.json()["brief_id"]).one().user_id != other.id
+    monkeypatch.setattr(settings, "atlas_market_brief_read_api_enabled", True)
+    assert client.get(f"/api/v1/market-briefs/{response.json()['brief_id']}").status_code == 200
     brief = response.json()["brief"]
     assert brief["owner_id"] != other.id
     assert "MSFT" not in str(brief)
@@ -214,6 +245,9 @@ def test_enabled_generation_uses_only_owner_holdings_and_cites_in_window_earning
     earnings = next(section for section in brief["sections"] if section["name"] == "earnings")
     assert earnings["content"] == ["recent result: AAPL period 2026-08-10", "upcoming: AAPL earnings on 2026-08-11"]
     assert {citation["source_url"] for citation in earnings["citations"]} == {"https://earnings.test/aapl", "https://earnings.test/result"}
+    assert "SEC filings omitted: no authoritative holding-to-CIK mapping." in brief["warnings"]
+    quality = next(section for section in brief["sections"] if section["name"] == "data_quality")
+    assert "SEC filings omitted: no authoritative holding-to-CIK mapping." in quality["content"]
 
 
 def test_generation_unavailable_for_missing_composer_or_flags_without_provider_calls(client, monkeypatch) -> None:

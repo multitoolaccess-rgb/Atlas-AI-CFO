@@ -160,6 +160,30 @@ Server-owned, configuration-only defaults are all false:
 Rollback is immediate flag disablement; cached data and historical records are
 retained intact, while reads return the safe unavailable envelope.
 
+### Safe local operational configuration
+
+The archive is discoverable at `/market-briefs`, but every capability remains
+off until the local operator sets server environment/configuration values and
+restarts Rules Service.  To read previously archived briefs, set only
+`ATLAS_MARKET_BRIEF_READ_API_ENABLED=true`.  To generate a new brief, also set
+`ATLAS_MARKET_BRIEF_GENERATION_ENABLED=true`,
+`ATLAS_MARKET_BRIEF_EXTERNAL_PROVIDER_ENABLED=true`, a local
+`FINNHUB_API_KEY`, and `SEC_USER_AGENT` containing a bounded contact email as
+required by SEC access guidance.  The startup factory makes no network call;
+it wires no composer at all when any of these server-owned requirements is
+missing or invalid.  The browser sends only the bounded report-window control:
+holdings, owner identity, provider records, hashes, account identifiers, and
+market facts are always assembled server-side.
+
+Keep `ATLAS_MARKET_BRIEF_EMAIL_DELIVERY_ENABLED`,
+`ATLAS_MARKET_BRIEF_SCHEDULER_ENABLED`, and
+`ATLAS_MARKET_BRIEF_LOCAL_SUMMARIZATION_ENABLED` false.  Do not put secrets in
+source control.  Certification uses synthetic provider fixtures and fake
+delivery only; it neither imports into nor proves anything about a personal
+local database.  Holdings currently carry no authoritative CIK mapping, so
+the operational composer does not infer SEC filing relationships from ticker
+symbols; this limitation is disclosed rather than guessed.
+
 ## Test and certification matrix
 
 Tests are hermetic with synthetic fixtures/fakes: contracts and normalized

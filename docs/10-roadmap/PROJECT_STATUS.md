@@ -2,13 +2,13 @@
 
 > Generated from `PROJECT_STATUS.json`; regenerate with `python3 scripts/atlas_project_status.py render`.
 
-- Current phase: **phase-5 — Market Intelligence Brief** (complete)
+- Current phase: **phase-5 — Market Intelligence Brief** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.
-- Last updated: 2026-08-11T15:24:54Z
+- Current objective: Authorized post-certification Phase 5 operationalization correction: make the default-off, zero-dollar Market Intelligence Brief safely discoverable and usable with synthetic-only proof, without changing its financial semantics or enabling real delivery.
+- Last updated: 2026-08-12T02:42:29Z
 
 ## Active work
-- None
+- work-p5-operationalization-correction: Phase 5 Market Brief operationalization correction (in_progress, high)
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
@@ -19,7 +19,7 @@
 - phase-2 — Forecast UI migration: complete (1/1 exit criteria)
 - phase-3 — Goal-linked recommendations: complete (1/1 exit criteria)
 - phase-4 — Decision journal: complete (1/1 exit criteria)
-- phase-5 — Market Intelligence Brief: complete (1/1 exit criteria)
+- phase-5 — Market Intelligence Brief: in_progress (1/1 exit criteria)
 
 ## Current risks
 - risk-frontend-lint-debt [medium/high, open]: Repository-wide frontend lint debt remains outside Phase 0 scope.

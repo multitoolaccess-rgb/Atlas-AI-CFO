@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import time
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, Callable, Generic, TypeVar
 
 import httpx
 
 from .contracts import (
-    CompanyNewsItem, EarningsEvent, EarningsResult, FailureClass, MarketQuoteSnapshot,
+    CompanyNewsItem, EarningsEvent, EarningsResult, FailureClass, Freshness, MarketQuoteSnapshot,
     NormalizedProviderFailure, ProviderResult, SecCompanyFact, SecFilingEvent, SourceMetadata, normalize_cik,
 )
 from .controls import BoundedCache, EndpointClass, PerSecondPacer, RateLimitExceeded, SlidingWindowPacer, UsageLedger, deduplicate_records
@@ -97,6 +97,15 @@ class _Adapter:
 class FinnhubAdapter(_Adapter):
     """Only Phase-5 confirmed-Free endpoints are exposed by this adapter."""
     BASE_URL = "https://finnhub.io/api/v1"
+    MAX_QUOTE_AGE = timedelta(minutes=15)
+
+    def _quote_freshness(self, observed_at: datetime | None) -> Freshness:
+        if observed_at is None:
+            return Freshness.UNKNOWN
+        age = self._now() - observed_at
+        if age < timedelta(0):
+            return Freshness.UNKNOWN
+        return Freshness.FRESH if age <= self.MAX_QUOTE_AGE else Freshness.STALE
 
     def __init__(self, *, api_key: str | None, enabled: bool, transport: httpx.BaseTransport | None = None,
                  now: Callable[[], datetime] | None = None, sleep: Callable[[float], None] | None = None,
@@ -124,7 +133,8 @@ class FinnhubAdapter(_Adapter):
             return failure
         try:
             assert isinstance(payload, dict)
-            source = SourceMetadata(provider=self.provider, source_url=f"{self.BASE_URL}/quote?symbol={symbol}", retrieved_at=self._now(), observed_at=datetime.fromtimestamp(int(payload["t"]), UTC) if payload.get("t") else None)
+            observed_at = datetime.fromtimestamp(int(payload["t"]), UTC) if payload.get("t") else None
+            source = SourceMetadata(provider=self.provider, source_url=f"{self.BASE_URL}/quote?symbol={symbol}", retrieved_at=self._now(), observed_at=observed_at, freshness=self._quote_freshness(observed_at))
             quote = MarketQuoteSnapshot(symbol=symbol, currency="USD", current_price=str(payload["c"]), previous_close=str(payload["pc"]) if payload.get("pc") is not None else None, source=source)
         except (KeyError, TypeError, ValueError):
             return self._failure(endpoint, FailureClass.INVALID_PAYLOAD, "Finnhub quote payload was invalid.")

@@ -46,6 +46,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 
 from app.config import settings
+from app.market_intelligence.composition import build_operational_market_brief_composer
+from app.routes.market_briefs import configure_market_brief_composer
 from app.database import Base, SessionLocal, engine
 from app.routes import (
     accounts_router,
@@ -466,6 +468,16 @@ app.include_router(forecasts_generation_router)
 app.include_router(recommendations_derived_router)
 app.include_router(decision_history_router)
 app.include_router(market_briefs_router)
+
+
+@app.on_event("startup")
+def _configure_market_brief_composer() -> None:
+    """Wire the trusted composer only after explicit server-side opt-in.
+
+    This hook performs no external request and leaves the route unavailable
+    under checked-in default-off settings or incomplete local credentials.
+    """
+    configure_market_brief_composer(build_operational_market_brief_composer(settings))
 
 
 @app.on_event("startup")
