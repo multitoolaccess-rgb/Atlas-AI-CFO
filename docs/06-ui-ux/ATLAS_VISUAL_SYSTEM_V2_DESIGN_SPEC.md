@@ -61,9 +61,8 @@ Dials: `DESIGN_VARIANCE: 6`, `MOTION_INTENSITY: 6`, `VISUAL_DENSITY: 7`. The des
 
 - `ui-ux-pro-max`: used for the interaction architecture, state matrix, responsive behavior, chart accessibility, and semantic-color boundary.
 - `impeccable`: used for audit-first product-register guidance, contrast discipline, typography hierarchy, surface restraint, motion intent, and reduced-motion requirements. Its repository context script was unavailable, so the existing Atlas code and docs were treated as the source of truth.
-- `design-taste-frontend`: used as the closest available equivalent to the requested taste skill. Its anti-slop guidance informed the restrained, non-marketing product register, sentence-case labels, no decorative gradients, and no generic three-card treatment.
-- `high-end-visual-design`: used selectively for spatial rhythm, tactile interaction feedback, and motion choreography, rejecting its marketing-oriented glass/card defaults where they conflict with Atlas density and accessibility.
-- `taste-skill`, `frontend-patterns`, `react-patterns`, `react-testing`, and `e2e-testing` were not installed as exact skills; no replacements were installed.
+- The exact `taste-skill`, `design-taste-frontend`, `high-end-visual-design`, `frontend-patterns`, `react-patterns`, `react-testing`, and `e2e-testing` skills were unavailable in this runtime; no replacements were installed. Their requested responsibilities were not represented as completed skill evidence.
+- Visual decisions therefore rely on the loaded `ui-ux-pro-max` and `impeccable` guidance, Atlas's existing tokens/components, and the repository's accessibility/testing evidence.
 - The `ui-ux-pro-max` repository search script was not present, so its loaded quick-reference guidance was applied directly rather than persisting a generated external design system.
 
 ## Rejected alternatives
