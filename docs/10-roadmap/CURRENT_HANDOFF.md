@@ -4,12 +4,12 @@
 
 ## Current objective
 
-- Phase: phase-5 — Market Intelligence Brief
-- Phase status: complete
+- Phase: phase-6 — Scenario Lab
+- Phase status: in_progress
 - Overall status: in_progress
-- Objective: Authorized post-certification Phase 5 operationalization correction: make the default-off, zero-dollar Market Intelligence Brief safely discoverable and usable with synthetic-only proof, without changing its financial semantics or enabling real delivery.
-- Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-08-12T03:17:37Z
+- Objective: Authorized Phase 6 Slice 1 only: build the authoritative deterministic Decimal-safe goal-scoped Scenario Lab backend foundation; do not begin the Scenario Lab UI or Phase 7 work.
+- Phase exit criteria: 0/1 complete
+- Tracker updated: 2026-08-12T03:45:04Z
 
 ## Active work
 
@@ -35,14 +35,14 @@
 
 ## Recently completed
 
-- work-p5-research-data-foundation: Phase 5 Slice 1 research-data foundation — commit f573ee4d5c43dfb5636c67c6f260b1decd118efe, PR 36
 - work-p5-deterministic-briefing-engine: Phase 5 Slice 2 deterministic portfolio-impact and briefing engine — commit 6cfaa80d868a0acc0d5f3dada3d915ef836bec53, PR 37
 - work-p5-briefing-ui-delivery: Phase 5 Slice 3 briefing archive, delivery, and scheduling — commit 2454a30c8a5ae789e23d9efea412fce148e3ce2f, PR 38
 - work-p5-earnings-certification-correction: Phase 5 earnings briefing certification correction — commit 7832d6016d91f123fea1e27fb724dd64781aa5e7, PR 39
 - work-p5-operationalization-correction: Phase 5 Market Brief operationalization correction — commit ef2a150b47b2c81159abe7494b0c7ba446fa124e, PR 40
+- work-p6-s1-scenario-lab-foundation: Phase 6 Slice 1 authoritative Scenario Lab backend foundation — commit 86c272a329b83f86fd2f4118d2e1b0e0f4957d70, PR 41
 
 ## Next bounded task
 
-- phase-6-authorization-required: Phase 6 Scenario Lab remains unstarted. Require separate explicit authorization and reuse the audited authoritative forecast vertical; do not begin implementation automatically.
+- work-p6-s1-scenario-lab-foundation: Implement the cohesive high-risk Phase 6 Slice 1 Scenario Lab backend foundation against the existing authoritative forecast vertical; preserve the UI boundary.
 
 Do not begin the next task automatically.
