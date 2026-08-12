@@ -51,6 +51,35 @@ class Freshness(StrEnum):
     UNKNOWN = "unknown"
 
 
+class PriceBasis(StrEnum):
+    """The bounded price basis used by a generated brief."""
+    LIVE = "live"
+    PRIOR_CLOSE = "prior_close"
+    UNUSABLE = "unusable"
+    UNKNOWN = "unknown"
+
+
+class CoverageBasis(StrEnum):
+    VALUE_WEIGHTED = "value_weighted"
+    POSITION_COUNT = "position_count"
+
+
+class MarketBriefReasonCode(StrEnum):
+    PROVIDER_CONFIGURATION_MISSING = "provider_configuration_missing"
+    PROVIDER_TRANSPORT_FAILURE = "provider_transport_failure"
+    PROVIDER_AUTHENTICATION_FAILED = "provider_authentication_failed"
+    PROVIDER_RATE_LIMITED = "provider_rate_limited"
+    UNSUPPORTED_SYMBOL = "unsupported_symbol"
+    LIVE_QUOTE_STALE = "live_quote_stale"
+    PRIOR_CLOSE_ACCEPTED = "prior_close_accepted"
+    PRIOR_CLOSE_TOO_OLD = "prior_close_too_old"
+    INVALID_QUOTE = "invalid_quote"
+    AMBIGUOUS_CURRENCY = "ambiguous_currency"
+    INSUFFICIENT_PORTFOLIO_COVERAGE = "insufficient_portfolio_coverage"
+    NO_MARKET_ADDRESSABLE_HOLDINGS = "no_market_addressable_holdings"
+    MARKET_BRIEF_GENERATION_UNAVAILABLE = "market_brief_generation_unavailable"
+
+
 class FailureClass(StrEnum):
     DISABLED = "disabled"
     UNCONFIGURED = "unconfigured"
@@ -58,9 +87,33 @@ class FailureClass(StrEnum):
     RATE_LIMITED = "rate_limited"
     TIMEOUT = "timeout"
     UPSTREAM = "upstream"
+    AUTHENTICATION_FAILED = "authentication_failed"
     INVALID_PAYLOAD = "invalid_payload"
+    INVALID_QUOTE = "invalid_quote"
     STALE = "stale"
     NOT_FOUND = "not_found"
+
+
+class CoverageOmission(StrictModel):
+    symbol: str = Field(min_length=1, max_length=10)
+    reason_code: MarketBriefReasonCode
+
+
+class CoverageSummary(StrictModel):
+    eligible_holding_count: int = Field(ge=0, le=500)
+    covered_holding_count: int = Field(ge=0, le=500)
+    omitted_holding_count: int = Field(ge=0, le=500)
+    coverage_basis: CoverageBasis
+    coverage_percentage: str | None = Field(default=None, max_length=48)
+    minimum_required_percentage: str = Field(default="0.8", max_length=48)
+    omitted_symbols: tuple[str, ...] = ()
+    omissions: tuple[CoverageOmission, ...] = ()
+
+
+class ProviderReadiness(StrictModel):
+    provider: str = Field(min_length=1, max_length=32)
+    status: Literal["ready", "degraded", "unavailable"]
+    reason_code: MarketBriefReasonCode | None = None
 
 
 class SourceMetadata(StrictModel):
@@ -71,6 +124,7 @@ class SourceMetadata(StrictModel):
     published_at: datetime | None = None
     observed_at: datetime | None = None
     freshness: Freshness = Freshness.FRESH
+    price_basis: PriceBasis = PriceBasis.UNKNOWN
 
     @field_validator("source_url")
     @classmethod

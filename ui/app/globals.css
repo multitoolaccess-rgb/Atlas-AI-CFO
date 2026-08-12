@@ -246,3 +246,16 @@
   .progress-warning { @apply progress-fill bg-[var(--warning-500)]; }
   .progress-danger  { @apply progress-fill bg-[var(--danger-500)];  }
 }
+
+/* Citation links use the section tone in light mode and a fixed high-contrast
+   foreground on the dark document theme. */
+html.dark .market-brief-source-link,
+html.dark .market-brief-source-link:hover {
+  color: rgb(255 255 255) !important;
+}
+
+html.dark .market-brief-warning,
+html.dark .market-brief-warning > span {
+  color: rgb(255 251 235) !important;
+  background-color: rgb(120 53 15) !important;
+}

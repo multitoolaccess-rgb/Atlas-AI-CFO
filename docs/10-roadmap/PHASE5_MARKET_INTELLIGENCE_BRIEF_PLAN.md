@@ -222,3 +222,33 @@ read-only review, and no more than two correction/review cycles. A corrective
 PR is permitted only for a real safety or certification boundary. The parent
 operator owns Git, tracker, CI, merge, and certification; the single worker is
 the sole implementation writer; each reviewer is read-only and short-lived.
+
+## Market Brief reliability and UI-quality correction
+
+The reliability correction uses a standard-library `America/New_York` session
+clock and full-day holiday calendar. A quote is `live` only during 09:30–16:00
+Eastern weekday trading sessions and only when observed within 15 minutes. A
+prior close is accepted outside the session when observed at/after the close
+boundary and no more than three completed trading sessions old. Future,
+missing, invalid, zero/negative, or out-of-window quotes are unusable; early
+closes are not modeled.
+
+Coverage evaluates every active non-cash holding. It uses value-weighted
+coverage if all eligible holding values are finite and non-negative with a
+positive total, otherwise position-count coverage. The exact minimum meaningful
+threshold is 80%. No covered holdings, below-threshold coverage, ambiguous
+currency, invalid canonical evidence, and ownership violations fail closed.
+New brief payloads retain immutable/idempotent persistence while adding
+coverage counts/basis/percentage, omitted symbols/reason codes, provider
+readiness, price basis, freshness, and canonical identity inputs.
+
+The page design is evidence-first: header and readiness context, meaningful
+summary cards, a responsive archive/detail split, source-cited sections,
+review-only action cards, and an explicit data-quality panel. It reuses Atlas
+light/dark tokens and existing Button/Badge/Card/focus patterns. The state
+matrix distinguishes loading, empty, generating, replay, prior-close, partial
+coverage, configuration/auth/rate/network failures, unsupported holdings,
+insufficient coverage, and detail races. `ui-ux-pro-max` and `impeccable` were
+available as guidance (the former's executable search script was unavailable;
+the latter's context/detector/references were run); `tasteskill` was not
+installed and was not added.

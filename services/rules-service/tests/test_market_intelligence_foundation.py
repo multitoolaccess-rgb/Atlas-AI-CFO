@@ -22,7 +22,7 @@ from app.market_intelligence import (
 from app.market_intelligence.contracts import Freshness
 
 
-NOW = datetime(2026, 8, 10, 12, 0, tzinfo=UTC)
+NOW = datetime(2026, 8, 10, 16, 0, tzinfo=UTC)
 
 
 def test_portfolio_universe_is_sorted_deduplicated_and_non_sensitive() -> None:
@@ -127,16 +127,19 @@ def test_finnhub_normalizes_cache_and_retries_transient_failure() -> None:
 
 @pytest.mark.parametrize(("timestamp", "expected"), [
     (int(NOW.timestamp()), Freshness.FRESH),
-    (int((NOW.replace(hour=11, minute=44)).timestamp()), Freshness.STALE),
-    (None, Freshness.UNKNOWN),
+    (int((NOW.replace(hour=15, minute=44)).timestamp()), Freshness.STALE),
 ])
 def test_finnhub_quote_freshness_uses_market_timestamp(timestamp, expected) -> None:
-    payload = {"c": 101.5, "pc": 100}
-    if timestamp is not None:
-        payload["t"] = timestamp
+    payload = {"c": 101.5, "pc": 100, "t": timestamp}
     adapter = FinnhubAdapter(api_key="synthetic-key", enabled=True, transport=SyntheticMarketTransport({"/api/v1/quote": payload}), now=lambda: NOW)
     result = adapter.quote("AAPL")
     assert result.value and result.value.source.freshness is expected
+
+
+def test_finnhub_missing_quote_timestamp_is_invalid() -> None:
+    adapter = FinnhubAdapter(api_key="synthetic-key", enabled=True, transport=SyntheticMarketTransport({"/api/v1/quote": {"c": 101.5, "pc": 100}}), now=lambda: NOW)
+    result = adapter.quote("AAPL")
+    assert result.failure and result.failure.failure_class == "invalid_quote"
 
 
 def test_synthetic_transport_never_uses_network() -> None:
