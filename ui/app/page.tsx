@@ -293,7 +293,7 @@ function HomeInner() {
       <Header profile={profile} loading={loading} />
       <main
         id="main-content"
-        className="p-8 pt-4 transition-all duration-300 ease-in-out ml-[var(--layout-ml)]"
+        className="atlas-page-main min-w-0 px-4 py-7 pt-7 transition-[margin,padding] duration-300 ease-out sm:px-6 lg:px-10 ml-[var(--layout-ml)]"
         style={{ '--layout-ml': collapsed ? '4.5rem' : '16rem' } as React.CSSProperties}
       >
         {error && (

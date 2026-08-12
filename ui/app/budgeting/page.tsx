@@ -10,6 +10,8 @@ import {
   type Category,
 } from '@/lib/api'
 import BudgetCategoryCard from '@/components/dashboard/BudgetCategoryCard'
+import BudgetOrbit from '@/components/budgeting/BudgetOrbit'
+import EmptyState from '@/components/ui/EmptyState'
 import AnimatedKPICard from '@/components/cards/AnimatedKPICard'
 import ExpandableCard from '@/components/dashboard/ExpandableCard'
 import TiltCard from '@/components/ui/TiltCard'
@@ -25,6 +27,7 @@ import {
 import { formatNumber } from '@/lib/format'
 import { classifyErrorMessage } from '@/lib/errors'
 import FloatingTimeRangeBar from '@/components/ui/FloatingTimeRangeBar'
+import PageHeader from '@/components/ui/PageHeader'
 
 const groupLabels: Record<string, string> = {
   fixed: 'Fixed Expenses',
@@ -122,11 +125,11 @@ function BudgetingContent() {
 
   return (
     <div className="space-y-8">
-      {/* Page Header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold text-on-surface tracking-tight">Budgeting</h1>
-        <p className="text-sm text-on-surface-variant">Track planned vs actual spending</p>
-      </div>
+      {/* Planning workspace header */}
+      <PageHeader
+        title="Budgeting"
+        description="Give each month a clear plan, then adjust it with the evidence you collect."
+      />
 
       {/* Migrated from <FloatingFilterBar> children-pass-through (period input
           + Add Budget button). The floating bar's own range selector changes
@@ -135,8 +138,9 @@ function BudgetingContent() {
       <FloatingTimeRangeBar>
         <div className="flex items-center gap-2 min-w-0">
           <Calendar className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0" />
-          <span className="text-xs font-semibold text-[var(--text-secondary)]">Period</span>
+          <label htmlFor="budget-period" className="text-sm font-medium text-[var(--text-secondary)]">Period</label>
           <input
+            id="budget-period"
             type="month"
             value={newPeriod}
             onChange={(e) => setNewPeriod(e.target.value)}
@@ -146,7 +150,7 @@ function BudgetingContent() {
         <button
           onClick={() => setShowAddForm(!showAddForm)}
           data-testid="add-budget-button"
-          className="flex items-center gap-2 px-4 py-2 bg-[var(--interactive-primary)] text-white rounded-lg text-sm font-semibold hover:bg-[var(--interactive-hover)] transition-colors"
+          className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold"
         >
           <Plus className="w-4 h-4" />
           Add Budget
@@ -156,30 +160,30 @@ function BudgetingContent() {
       {/* Add Budget Form */}
       {showAddForm && (
         <div className="card p-6">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-on-surface mb-4">New Budget Entry</h3>
+          <h3 className="headline-sm text-primary mb-5">New budget entry</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2">Category</label>
+              <label className="block text-sm font-medium text-secondary mb-2">Category</label>
               <select
                 value={newCategoryId}
                 onChange={(e) => setNewCategoryId(e.target.value === '' ? '' : Number(e.target.value))}
                 className="w-full px-3 py-2 bg-surface-container border border-outline-variant/30 rounded-lg text-sm"
               >
                 <option value="" disabled={!!globalBudgetForPeriod}>
-                  Global (no category) {globalBudgetForPeriod ? '— already added' : ''}
+                  Global (no category) {globalBudgetForPeriod ? '- already added' : ''}
                 </option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
               {globalBudgetForPeriod && (
-                <p className="text-xs text-warning-600 mt-1">
+                <p className="text-sm text-warning-600 mt-1">
                   Only one Global budget is allowed per period.
                 </p>
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2">Amount</label>
+              <label className="block text-sm font-medium text-secondary mb-2">Amount</label>
               <input
                 type="number"
                 value={newAmount}
@@ -191,10 +195,10 @@ function BudgetingContent() {
               />
             </div>
             <div className="flex items-end gap-2">
-              <button onClick={handleAddBudget} className="flex items-center gap-2 px-4 py-2 bg-[var(--interactive-success)] text-white rounded-lg text-sm font-semibold hover:bg-[var(--interactive-success-hover)] active:bg-[var(--interactive-success-active)] transition-colors">
+              <button onClick={handleAddBudget} className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--interactive-success)] text-white rounded-[var(--radius-md)] text-sm font-semibold hover:bg-[var(--interactive-success-hover)] active:bg-[var(--interactive-success-active)] transition-[background-color,transform] active:scale-[0.98]">
                 <Check className="w-4 h-4" /> Save
               </button>
-              <button onClick={() => setShowAddForm(false)} className="flex items-center gap-2 px-4 py-2 bg-surface-container-high border border-outline-variant/30 rounded-lg text-sm">
+              <button onClick={() => setShowAddForm(false)} className="inline-flex items-center gap-2 px-4 py-2 bg-surface-container-high border border-outline-variant/30 rounded-[var(--radius-md)] text-sm hover:bg-surface-container transition-colors">
                 <X className="w-4 h-4" /> Cancel
               </button>
             </div>
@@ -292,16 +296,45 @@ function BudgetingContent() {
             </div>
           </>
         ) : (
-          <div className="card p-12 text-center" data-testid="budgeting-empty-state">
-            <DollarSign className="w-12 h-12 text-on-surface-variant/30 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-on-surface mb-2">No budgets configured</h3>
-            <p className="text-sm text-on-surface-variant mb-6 max-w-md mx-auto">
-              Set up budgets for your categories to track planned vs actual spending for {newPeriod}.
-            </p>
-            <button onClick={() => setShowAddForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--interactive-primary)] text-white rounded-lg text-sm font-semibold hover:bg-[var(--interactive-hover)] transition-colors">
-              <Plus className="w-4 h-4" /> Create Your First Budget
-            </button>
-          </div>
+          <EmptyState
+            testId="budgeting-empty-state"
+            focal
+            visual={<BudgetOrbit />}
+            icon={<DollarSign className="h-6 w-6" />}
+            title="Start with a plan you can see"
+            description="Choose the categories that matter to you, add a first budget entry, and use actual spending to adjust the plan over time. No forecast or balance is assumed here."
+            action={(
+              <button onClick={() => setShowAddForm(true)} className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold">
+                <Plus className="w-4 h-4" /> Create your first budget
+              </button>
+            )}
+            guidance={(
+              <div className="space-y-4 text-left">
+                <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+                  {[
+                    ['Plan', 'Choose a category and set an amount.'],
+                    ['Track', 'Compare your plan with recorded spending.'],
+                    ['Adjust', 'Change the plan when your priorities change.'],
+                  ].map(([label, copy]) => (
+                    <div key={label}>
+                      <p className="font-semibold text-primary">{label}</p>
+                      <p className="mt-1 text-secondary">{copy}</p>
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-secondary">Common starting points</p>
+                  <ul className="mt-2 flex flex-wrap gap-2" aria-label="Budgeting starting points">
+                    {['Essentials', 'Lifestyle', 'Wealth building'].map((label) => (
+                      <li key={label} className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--surface-raised)] px-3 py-1.5 text-sm text-primary">
+                        {label}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+          />
         )
       ) : null}
     </div>

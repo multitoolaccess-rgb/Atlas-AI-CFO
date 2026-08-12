@@ -1,10 +1,7 @@
 'use client'
 
 import React from 'react'
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import Surface from '@/components/ui/Surface'
 
 export interface ChartWrapperProps {
   /** Height of the chart area in pixels */
@@ -17,16 +14,13 @@ export interface ChartWrapperProps {
   emptyMessage?: string
   /** Accessible label for the chart region */
   ariaLabel?: string
-  /** Additional CSS classes on the outer container */
+  /** Additional classes on the outer container */
   className?: string
   /** Children — the actual Recharts content */
   children: React.ReactNode
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
+/** Shared chart shell: a working surface with honest loading and empty states. */
 export default function ChartWrapper({
   height = 320,
   loading = false,
@@ -38,35 +32,38 @@ export default function ChartWrapper({
 }: ChartWrapperProps) {
   if (loading) {
     return (
-      <div
+      <Surface
+        surfaceRole="working"
         className={`flex items-center justify-center ${className ?? ''}`}
         style={{ height }}
         aria-busy="true"
       >
         <div className="w-full h-full rounded-lg skeleton" />
-      </div>
+      </Surface>
     )
   }
 
   if (empty) {
     return (
-      <div
+      <Surface
+        surfaceRole="working"
         className={`flex items-center justify-center ${className ?? ''}`}
         style={{ height }}
       >
         <p className="text-sm text-[var(--text-tertiary)]">{emptyMessage}</p>
-      </div>
+      </Surface>
     )
   }
 
   return (
-    <div
+    <Surface
+      surfaceRole="working"
       className={className}
       style={{ height }}
       role="img"
       aria-label={ariaLabel}
     >
       {children}
-    </div>
+    </Surface>
   )
 }

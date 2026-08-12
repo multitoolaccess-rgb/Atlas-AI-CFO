@@ -10,6 +10,7 @@ import { rulesService, type Account, type Goal, type DebtItem } from '@/lib/api'
 import ErrorBanner from '@/components/ui/ErrorBanner'
 import { AtlasFilterProvider } from '@/components/ui/AtlasFilterContext'
 import FloatingTimeRangeBar from '@/components/ui/FloatingTimeRangeBar'
+import PageHeader from '@/components/ui/PageHeader'
 
 const FinancialUniverse = dynamic(() => import('@/components/universe/FinancialUniverse'), {
   ssr: false,
@@ -52,12 +53,11 @@ function UniverseInner() {
         className="p-8 pt-4 transition-all duration-300 ease-in-out ml-[var(--layout-ml)]"
         style={{ '--layout-ml': collapsed ? '4.5rem' : '16rem' } as React.CSSProperties}
       >
-        <div className="mb-6">
-          <h1 className="headline-xl text-primary mb-1">Financial Universe</h1>
-          <p className="body-md text-secondary">
-            Explore your accounts, goals, and debts as a 3D galaxy. Drag to rotate, scroll to zoom.
-          </p>
-        </div>
+        <PageHeader
+          title="Financial Universe"
+          description="Explore your accounts, goals, and debts as a 3D galaxy. Drag to rotate, scroll to zoom."
+          className="mb-6"
+        />
 
         {/* Floating bar — URL-synced via ?range=… (page-default YTD).
             Visual-only today: universe data is not range-aware yet. */}

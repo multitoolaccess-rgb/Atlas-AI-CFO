@@ -9,11 +9,14 @@
 - Overall status: in_progress
 - Objective: Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.
 - Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-08-12T14:37:33Z
+- Tracker updated: 2026-08-12T20:47:05Z
 
 ## Active work
 
-- None
+- work-ui-atlas-art-direction-v2-1: Atlas Visual Art Direction v2.1 [in_progress/medium]
+  - Objective: Implement the approved Luminous Financial Observatory art direction across the Atlas shell and shared page system while preserving all three accent profiles, financial semantics, functionality, and accessibility.
+  - Branch: codex/atlas-art-direction-v2-1
+  - Paths: ui shared shell, Budgeting, empty states, theme and appearance
 
 ## Blockers
 
@@ -35,14 +38,14 @@
 
 ## Recently completed
 
-- work-p5-briefing-ui-delivery: Phase 5 Slice 3 briefing archive, delivery, and scheduling — commit 2454a30c8a5ae789e23d9efea412fce148e3ce2f, PR 38
 - work-p5-earnings-certification-correction: Phase 5 earnings briefing certification correction — commit 7832d6016d91f123fea1e27fb724dd64781aa5e7, PR 39
 - work-p5-operationalization-correction: Phase 5 Market Brief operationalization correction — commit ef2a150b47b2c81159abe7494b0c7ba446fa124e, PR 40
 - work-p6-s1-scenario-lab-foundation: Phase 6 Slice 1 authoritative Scenario Lab backend foundation — commit 86c272a329b83f86fd2f4118d2e1b0e0f4957d70, PR 41
 - work-p5-market-brief-reliability-ui-correction: Phase 5 Market Brief reliability and UI-quality correction — commit 48325fda4085ce1fee7d56ded2ed5b9d56056f6c, PR 42
+- work-ui-atlas-visual-system-v2: Atlas Visual System v2 — commit 1414d62ab9f70899b4c67418046977808dfa3562, PR 43
 
 ## Next bounded task
 
-- work-ui-atlas-visual-system-v2: Implement the cohesive Atlas Visual System v2 with independent Light/Dark/System mode and Indigo Intelligence, Vermilion Energy, and Ion Future accent-profile selection; preserve all financial semantics and application behavior.
+- work-p6-s2-authorization: Authorize and define Phase 6 Slice 2 only; do not begin implementation automatically.
 
 Do not begin the next task automatically.

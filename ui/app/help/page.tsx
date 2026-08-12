@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, HelpCircle, Mail, BookOpen } from 'lucide-react'
 import PageLayout from '@/components/layout/PageLayout'
+import PageHeader from '@/components/ui/PageHeader'
 
 const FAQ = [
   {
@@ -36,10 +37,11 @@ export default function HelpPage() {
 
   return (
     <PageLayout>
-      <h1 className="headline-xl text-primary mb-2">Help Center</h1>
-      <p className="body-md text-secondary mb-6">
-        Common questions, troubleshooting tips, and pointers to the docs.
-      </p>
+      <PageHeader
+        title="Help Center"
+        description="Common questions, troubleshooting tips, and pointers to the docs."
+        className="mb-6"
+      />
 
       <div className="card p-6 mb-6" data-testid="help-faq">
         <div className="flex items-center gap-2 mb-4">

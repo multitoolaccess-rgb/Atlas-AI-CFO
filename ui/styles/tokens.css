@@ -724,3 +724,134 @@ html[data-atlas-accent="ion"] {
     -webkit-backdrop-filter: none;
   }
 }
+
+/* =====================================================================
+   VISUAL ART DIRECTION v2.1 — Luminous Financial Observatory
+   The final cascade is intentional: v2 profile identity remains intact,
+   while the application substrate moves from flat paper/black to layered
+   working environments. Finance signal tokens are not redefined here.
+   ===================================================================== */
+
+:root {
+  --canvas-base: #eceef8;
+  --canvas-ambient: #f1f3fa;
+  --surface-ambient: transparent;
+  --surface-working: #f8f9fd;
+  --surface-raised: #ffffff;
+  --surface-focal: #ffffff;
+  --text-primary: #121629;
+  --text-secondary: #4d536c;  --text-tertiary:   #59617a;
+
+  --text-disabled: #9da3b8;
+  --bg-canvas: var(--canvas-base);
+  --bg-primary: var(--surface-working);
+  --bg-secondary: var(--canvas-ambient);
+  --bg-tertiary: #e1e4f1;
+  --surface-color: var(--surface-working);
+  --surface-base: var(--surface-working);
+  --surface-overlay: var(--surface-raised);
+  --surface-selected: var(--surface-profile-selected);
+  --border-color: color-mix(in srgb, #8f96b5 42%, transparent);
+  --border-subtle: color-mix(in srgb, #8f96b5 24%, transparent);
+  --divider-color: color-mix(in srgb, #8f96b5 30%, transparent);
+  --shadow-ambient: 0 20px 55px rgb(39 45 91 / 0.08);
+  --shadow-1: 0 1px 2px rgb(39 45 91 / 0.06), 0 8px 24px rgb(39 45 91 / 0.035);
+  --shadow-2: 0 10px 28px rgb(39 45 91 / 0.10), 0 2px 6px rgb(39 45 91 / 0.05);
+  --illumination-primary: var(--atmosphere-primary);
+  --illumination-secondary: var(--atmosphere-secondary);
+  --illumination-countertone: var(--atmosphere-countertone);
+  --atmosphere-edge: rgb(77 80 201 / 0.13);
+  --atmosphere-primary: rgb(77 80 201 / 0.11);
+  --atmosphere-secondary: rgb(124 131 255 / 0.07);
+  --atmosphere-countertone: rgb(207 161 89 / 0.055);
+  --surface-profile-tint: color-mix(in srgb, var(--accent-primary) 6%, var(--surface-working));
+  --surface-profile-selected: color-mix(in srgb, var(--accent-primary) 11%, var(--surface-working));
+  --grain-opacity: 0.025;
+  --label-md-size: 0.8125rem;
+  --label-sm-size: 0.75rem;
+}
+
+.dark {
+  --canvas-base: #080a12;
+  --canvas-ambient: #0d1220;
+  --surface-ambient: transparent;
+  --surface-working: #141a2a;
+  --surface-raised: #1b2235;
+  --surface-focal: #202941;
+  --text-primary: #f4f6ff;
+  --text-secondary: #b8c0d8;
+  --text-tertiary: #808aa9;
+  --text-disabled: #5b6584;
+  --bg-canvas: var(--canvas-base);
+  --bg-primary: var(--surface-working);
+  --bg-secondary: var(--canvas-ambient);
+  --bg-tertiary: #202941;
+  --surface-color: var(--surface-working);
+  --surface-base: var(--surface-working);
+  --surface-overlay: var(--surface-raised);
+  --surface-selected: var(--surface-profile-selected);
+  --border-color: color-mix(in srgb, #6f7ca5 44%, transparent);
+  --border-subtle: color-mix(in srgb, #6f7ca5 28%, transparent);
+  --divider-color: color-mix(in srgb, #6f7ca5 34%, transparent);
+  --shadow-ambient: 0 22px 60px rgb(0 0 0 / 0.30);
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.26), 0 10px 28px rgb(0 0 0 / 0.15);
+  --shadow-2: 0 14px 36px rgb(0 0 0 / 0.28), 0 3px 8px rgb(0 0 0 / 0.18);
+  --atmosphere-edge: rgb(124 131 255 / 0.18);
+  --atmosphere-primary: rgb(124 131 255 / 0.16);
+  --atmosphere-secondary: rgb(66 88 160 / 0.16);
+  --atmosphere-countertone: rgb(218 173 96 / 0.06);
+  --surface-profile-tint: color-mix(in srgb, var(--accent-primary) 8%, var(--surface-working));
+  --surface-profile-selected: color-mix(in srgb, var(--accent-primary) 16%, var(--surface-working));
+  --grain-opacity: 0.035;
+  --label-md-size: 0.8125rem;
+  --label-sm-size: 0.75rem;
+}
+
+html[data-atlas-accent="indigo"] {
+  --atmosphere-edge: rgb(77 80 201 / 0.13);
+  --atmosphere-primary: rgb(77 80 201 / 0.11);
+  --atmosphere-secondary: rgb(124 131 255 / 0.07);
+  --atmosphere-countertone: rgb(207 161 89 / 0.055);
+}
+
+html[data-atlas-accent="vermilion"] {
+  --atmosphere-edge: rgb(201 58 27 / 0.14);
+  --atmosphere-primary: rgb(201 58 27 / 0.10);
+  --atmosphere-secondary: rgb(255 90 54 / 0.075);
+  --atmosphere-countertone: rgb(218 165 84 / 0.06);
+}
+
+html[data-atlas-accent="ion"] {
+  --atmosphere-edge: rgb(91 121 0 / 0.14);
+  --atmosphere-primary: rgb(91 121 0 / 0.09);
+  --atmosphere-secondary: rgb(199 244 61 / 0.055);
+  --atmosphere-countertone: rgb(65 68 49 / 0.06);
+}
+
+.dark[data-atlas-accent="indigo"] {
+  --atmosphere-edge: rgb(124 131 255 / 0.20);
+  --atmosphere-primary: rgb(124 131 255 / 0.19);
+  --atmosphere-secondary: rgb(68 78 170 / 0.18);
+  --atmosphere-countertone: rgb(218 173 96 / 0.07);
+}
+
+.dark[data-atlas-accent="vermilion"] {
+  --atmosphere-edge: rgb(255 90 54 / 0.20);
+  --atmosphere-primary: rgb(255 90 54 / 0.17);
+  --atmosphere-secondary: rgb(148 49 34 / 0.18);
+  --atmosphere-countertone: rgb(223 165 83 / 0.07);
+}
+
+.dark[data-atlas-accent="ion"] {
+  --atmosphere-edge: rgb(199 244 61 / 0.20);
+  --atmosphere-primary: rgb(199 244 61 / 0.13);
+  --atmosphere-secondary: rgb(88 105 17 / 0.20);
+  --atmosphere-countertone: rgb(137 142 101 / 0.065);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  .dark {
+    --grain-opacity: 0;
+  }
+}
