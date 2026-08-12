@@ -1,6 +1,6 @@
 # Phase 6 Scenario Lab: Capability Audit and Proposed Plan
 
-> **Status:** Planning only. Phase 6 implementation is **not authorized**.
+> **Status:** Slice 1 backend implementation authorized; Scenario Lab UI and later slices remain unauthorized.
 >
 > **Audit date:** 2026-08-11
 >
@@ -190,13 +190,12 @@ business forecasting.
 - A decision to retire the legacy dashboard simulation visuals entirely;
   retain them while a governed Scenario Lab reaches parity.
 
-## Planning exit criteria (not implementation authorization)
+## Planning exit criteria and Slice 1 authorization
 
-Before Phase 6 implementation can be authorized, approve a scenario ADR and
-contract covering Decimal/currency/freshness, one-time outflow semantics,
-scenario-to-forecast/recommendation/decision linkage, immutable retention,
-and client-preview labelling. Confirm the existing default-off flags and
-Phase 5 external-data boundaries remain unchanged. First complete the bounded
-Phase 5 operationalization correction documented in
-`PHASE5_OPERATIONAL_READINESS_AUDIT.md`. No active tracker item or Phase 6
-implementation branch is created by this audit.
+The Phase 6 Slice 1 authorization approved the Scenario Lab ADR and
+implementation-grade contract covering Decimal/currency/freshness, one-time
+outflow semantics, scenario-to-forecast linkage, immutable retention, and
+server authority. Existing default-off flags and Phase 5 external-data
+boundaries remain unchanged. The bounded Phase 5 operationalization correction
+was completed before this slice. The active tracker item and branch are limited
+to the backend foundation; no UI implementation branch is authorized.

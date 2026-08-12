@@ -153,6 +153,10 @@ _LIFTED_TABLES = (
     # nukes users/goals/accounts but leaves the Phase 2 rows.
     "forecasts",
     "forecast_versions",
+    # Phase 6 Slice 1 — immutable Scenario Lab rows reset child-before-parent
+    # so synthetic owner/goal fixtures remain isolated across route tests.
+    "scenario_versions",
+    "scenarios",
     # Phase 3 Slice 1 — append-only outcome evaluation records for accepted
     # decisions. FKs into recommendations / decision_journal_entries, so it
     # must be reset before either parent in the child-before-parent order.

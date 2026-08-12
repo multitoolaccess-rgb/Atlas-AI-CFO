@@ -11,6 +11,7 @@ implementation phases. `PROJECT_STATUS.json` is the current-state authority.
 | Phase 3 | Goal-linked recommendations | Phase 2 complete and explicitly authorized | Recommendations link goals, evidence, risks, confidence, approvals, and evaluation. |
 | Phase 4 | Decision journal | Phase 3 complete and explicitly authorized | Decisions, alternatives, outcomes, permissions, audit history, and recovery are tested. |
 | Phase 5 | Market Intelligence Brief | Certified Phase 4 and explicitly authorized | A versioned, source-cited, portfolio-specific market briefing reports portfolio changes, material news, earnings and filings, deterministic actions to review, privacy-safe delivery, and tested failure behavior without paid data or autonomous execution. |
+| Phase 6 | Scenario Lab | Phase 5 certified and explicit Slice 1 authorization | Slice 1: authoritative deterministic Decimal-safe owner-scoped scenario backend with immutable history, bounded comparison APIs, migration parity, and no UI. Later UI migration requires a separate authorization. |
 
 No phase starts automatically. Review the active phase, dependencies, and exit
 criteria before authorizing the next bounded task.

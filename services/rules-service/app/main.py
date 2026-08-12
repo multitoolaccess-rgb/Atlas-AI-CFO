@@ -88,6 +88,7 @@ from app.routes import (
     recommendations_derived_router,
     decision_history_router,
     market_briefs_router,
+    scenarios_router,
 )
 
 LOG = logging.getLogger("uvicorn.error")
@@ -468,6 +469,8 @@ app.include_router(forecasts_generation_router)
 app.include_router(recommendations_derived_router)
 app.include_router(decision_history_router)
 app.include_router(market_briefs_router)
+# Phase 6 Slice 1 — default-off owner-scoped Scenario Lab backend only.
+app.include_router(scenarios_router)
 
 
 @app.on_event("startup")
