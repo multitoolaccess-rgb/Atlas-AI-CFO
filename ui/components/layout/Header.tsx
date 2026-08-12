@@ -12,6 +12,8 @@ import CommandPalette, { useCommandPalette } from '@/components/ui/CommandPalett
 interface HeaderProps {
   profile?: Profile | null;
   loading?: boolean;
+  /** Allow pages with a full-bleed mobile layout to reclaim the sidebar gutter. */
+  mobileFullBleed?: boolean;
 }
 
 function variantIcon(variant: Notification['variant']) {
@@ -42,7 +44,7 @@ function timeAgo(ts: number): string {
   return `${Math.floor(hr / 24)}d ago`
 }
 
-export default function Header({ profile, loading }: HeaderProps) {
+export default function Header({ profile, loading, mobileFullBleed = false }: HeaderProps) {
   const initials = ((profile?.full_name || '') || 'Alex').slice(0, 2).toUpperCase();
   const { collapsed } = useSidebar();
   const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification, clearAll } = useNotifications();
@@ -84,7 +86,7 @@ export default function Header({ profile, loading }: HeaderProps) {
   return (
     <header
       id="header"
-      className="flex items-center px-6 py-4 sticky top-0 z-40 bg-background/80 backdrop-blur-md transition-all duration-300 ease-in-out ml-[var(--layout-ml)] w-[var(--layout-w)]"
+      className={`flex items-center px-6 py-4 sticky top-0 z-40 bg-background/80 backdrop-blur-md transition-all duration-300 ease-in-out ${mobileFullBleed ? 'ml-0 w-full lg:ml-[var(--layout-ml)] lg:w-[var(--layout-w)]' : 'ml-[var(--layout-ml)] w-[var(--layout-w)]'}`}
       style={{
         '--layout-ml': collapsed ? '4.5rem' : '16rem',
         '--layout-w': collapsed ? 'calc(100vw - 4.5rem)' : 'calc(100vw - 16rem)',

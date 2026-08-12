@@ -11,7 +11,7 @@ NOW = datetime(2026, 8, 10, 12, tzinfo=UTC)
 
 
 def _source(url: str = "https://example.test/source") -> SourceMetadata:
-    return SourceMetadata(provider="synthetic", source_url=url, retrieved_at=NOW)
+    return SourceMetadata(provider="synthetic", source_url=url, retrieved_at=NOW, observed_at=NOW)
 
 
 def test_decimal_changes_are_sorted_and_warn_on_unsafe_inputs() -> None:
@@ -118,7 +118,9 @@ def test_public_generate_route_never_accepts_client_financial_facts(client, monk
     monkeypatch.setattr(settings, "atlas_market_brief_generation_enabled", True)
     unassembled = client.post("/api/v1/market-briefs/generate", json=dangerous)
     assert disabled.status_code == unassembled.status_code == 503
-    assert disabled.json() == unassembled.json() == {"code": "market_brief_unavailable", "message": "Market briefing is currently disabled."}
+    assert disabled.json()["reason_code"] == unassembled.json()["reason_code"] == "provider_configuration_missing"
+    assert "server" in disabled.json()["message"].lower()
+    assert "retry" in disabled.json()["recovery"].lower()
 
 
 class _RecordingMarketProviders:
@@ -256,17 +258,17 @@ def test_generation_unavailable_for_missing_composer_or_flags_without_provider_c
     from app.routes.market_briefs import configure_market_brief_composer
 
     providers = _RecordingMarketProviders()
-    unavailable = {"code": "market_brief_unavailable", "message": "Market briefing is currently disabled."}
+    unavailable_reason = "provider_configuration_missing"
     configure_market_brief_composer(TrustedMarketBriefComposer(providers, now=lambda: NOW))
     monkeypatch.setattr(settings, "atlas_market_brief_generation_enabled", False)
     monkeypatch.setattr(settings, "atlas_market_brief_external_provider_enabled", True)
     try:
-        assert client.post("/api/v1/market-briefs/generate", json={"positions": [{"symbol": "MSFT"}]}).json() == unavailable
+        assert client.post("/api/v1/market-briefs/generate", json={"positions": [{"symbol": "MSFT"}]}).json()["reason_code"] == unavailable_reason
         monkeypatch.setattr(settings, "atlas_market_brief_generation_enabled", True)
         monkeypatch.setattr(settings, "atlas_market_brief_external_provider_enabled", False)
-        assert client.post("/api/v1/market-briefs/generate", json={"positions": [{"symbol": "MSFT"}]}).json() == unavailable
+        assert client.post("/api/v1/market-briefs/generate", json={"positions": [{"symbol": "MSFT"}]}).json()["reason_code"] == unavailable_reason
         configure_market_brief_composer(None)
-        assert client.post("/api/v1/market-briefs/generate").json() == unavailable
+        assert client.post("/api/v1/market-briefs/generate").json()["reason_code"] == unavailable_reason
     finally:
         configure_market_brief_composer(None)
     assert providers.calls == []

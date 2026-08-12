@@ -7,11 +7,23 @@ from typing import Literal
 
 from pydantic import Field, field_validator
 
-from .contracts import CompanyNewsItem, EarningsEvent, EarningsResult, Freshness, SecFilingEvent, SourceMetadata, StrictModel
+from .contracts import (
+    CompanyNewsItem,
+    CoverageSummary,
+    EarningsEvent,
+    EarningsResult,
+    Freshness,
+    MarketBriefReasonCode,
+    PriceBasis,
+    ProviderReadiness,
+    SecFilingEvent,
+    SourceMetadata,
+    StrictModel,
+)
 from .controls import deduplicate_records
 
 BRIEF_SCHEMA_VERSION = "atlas-market-intelligence-brief/v1"
-CALCULATION_VERSION = "market-impact/v1"
+CALCULATION_VERSION = "market-impact/v2"
 
 
 def _decimal(value: str | None) -> Decimal | None:
@@ -37,6 +49,8 @@ class PositionInput(StrictModel):
     currency: str = Field(pattern=r"^[A-Z]{3}$")
     source: SourceMetadata
     freshness: Freshness = Freshness.FRESH
+    price_basis: PriceBasis = PriceBasis.UNKNOWN
+    current_value: str | None = None
     current_weight: str | None = None
     baseline_weight: str | None = None
     sector: str | None = None
@@ -198,6 +212,9 @@ class BriefingInput(StrictModel):
     held_ciks: set[str] = set()
     composition_warnings: tuple[str, ...] = ()
     generated_at: datetime
+    coverage: CoverageSummary | None = None
+    market_data_basis: PriceBasis = PriceBasis.UNKNOWN
+    provider_readiness: ProviderReadiness = ProviderReadiness(provider="market_data", status="ready")
 
 
 class MarketBrief(StrictModel):
@@ -212,6 +229,10 @@ class MarketBrief(StrictModel):
     sections: tuple[BriefSection, ...]
     actions: tuple[ActionToReview, ...]
     warnings: tuple[str, ...]
+    coverage: CoverageSummary | None = None
+    market_data_basis: PriceBasis = PriceBasis.UNKNOWN
+    provider_readiness: ProviderReadiness = ProviderReadiness(provider="market_data", status="unavailable", reason_code=MarketBriefReasonCode.MARKET_BRIEF_GENERATION_UNAVAILABLE)
+    portfolio_daily_change: str | None = None
 
 
 class DeterministicTemplateProvider:
@@ -234,6 +255,10 @@ class DeterministicTemplateProvider:
             earnings_claims.append(BriefClaim(text=f"recent result: {result.symbol} period {period}", citation=Citation.from_source(result.source)))
         earnings_claims.sort(key=lambda claim: (claim.text, claim.citation.source_url))
         citations = tuple((*news_citations, *(claim.citation for claim in portfolio_claims), *(claim.citation for claim in filing_claims), *(claim.citation for claim in earnings_claims)))
+        coverage_warnings = tuple(
+            f"{omission.symbol}: {omission.reason_code.value}."
+            for omission in (input.coverage.omissions if input.coverage else ())
+        )
         action = ActionToReview(action="Review whether material portfolio changes warrant follow-up.", why="The briefing reports deterministic market data only.", goal_linkage="No goal linkage is inferred.", evidence=tuple(row.symbol for row in changes.rows), expected_impact="No execution or return is implied.", risks=("Market data may be incomplete or stale.",), alternatives=("Do nothing.",), confidence="low", approval_requirement="explicit_user_approval_required")
         sections = (
             BriefSection(name="executive_summary", content=("Portfolio-specific market briefing; review-only.",)),
@@ -244,10 +269,27 @@ class DeterministicTemplateProvider:
             BriefSection(name="risks_and_opportunities", content=("Missing or stale inputs are disclosed.",)),
             BriefSection(name="actions_to_review", content=(action.action,)),
             BriefSection(name="sources", content=tuple(c.source_url for c in citations), citations=citations),
-            BriefSection(name="data_quality", content=tuple((*changes.warnings, *input.composition_warnings))),
+            BriefSection(name="data_quality", content=tuple((*changes.warnings, *input.composition_warnings, *coverage_warnings))),
         )
-        warnings = tuple((*changes.warnings, *input.composition_warnings))
-        return MarketBrief(owner_id=input.owner_id, portfolio_state_hash=input.portfolio_state_hash, universe_hash=input.universe_hash, report_window=input.report_window, generated_at=input.generated_at, as_of=input.generated_at, sections=sections, actions=(action,), warnings=warnings)
+        warnings = tuple((*changes.warnings, *input.composition_warnings, *coverage_warnings))
+        provider_readiness = input.provider_readiness
+        if warnings and provider_readiness.status == "ready":
+            provider_readiness = provider_readiness.model_copy(update={"status": "degraded"})
+        return MarketBrief(
+            owner_id=input.owner_id,
+            portfolio_state_hash=input.portfolio_state_hash,
+            universe_hash=input.universe_hash,
+            report_window=input.report_window,
+            generated_at=input.generated_at,
+            as_of=input.generated_at,
+            sections=sections,
+            actions=(action,),
+            warnings=warnings,
+            coverage=input.coverage,
+            market_data_basis=input.market_data_basis,
+            provider_readiness=provider_readiness,
+            portfolio_daily_change=changes.total_daily_change,
+        )
 
 
 class OllamaProvider:

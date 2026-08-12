@@ -48,3 +48,28 @@ local scheduler artifact is an uninstalled template.
 - A paid provider, real delivery activation, local LLM activation, multi-user
   rollout, brokerage integration, or expanded data universe requires a new
   reviewed decision and authorization.
+
+## Reliability correction amendment (2026-08-12)
+
+The accepted zero-dollar boundary now uses a deterministic standard-library US
+market-session policy. During regular US sessions (09:30–16:00 Eastern on
+weekday trading days, excluding the documented full-day holiday set), Finnhub
+quotes must be observed within 15 minutes to be labelled `live`. Outside the
+session, a quote observed at or after the close boundary may be labelled
+`prior_close` only when it is within three completed trading sessions. Weekend,
+holiday, premarket, and after-hours behavior therefore remains bounded without
+introducing a paid calendar dependency. Early closes are intentionally not
+modeled.
+
+The operational composer evaluates every active non-cash holding independently.
+It uses value-weighted coverage when all eligible current values are finite and
+usable, otherwise position-count coverage, and requires at least 80% coverage.
+Partial briefs disclose omitted symbols and stable sanitized reason codes;
+zero-coverage, below-threshold, mixed-currency, and invalid-evidence cases fail
+closed. Coverage basis, percentage, omission reasons, and price basis are part
+of new canonical hashes so idempotent replay cannot change the data basis.
+
+This amendment changes no provider cost boundary, ownership boundary,
+immutability rule, delivery behavior, execution capability, or Phase 6 Scenario
+Lab contract. It remains deterministic, source-cited, review-only, and default-
+off.
