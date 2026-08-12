@@ -196,6 +196,7 @@ class BriefingInput(StrictModel):
     earnings_events: list[EarningsEvent] = []
     earnings_results: list[EarningsResult] = []
     held_ciks: set[str] = set()
+    composition_warnings: tuple[str, ...] = ()
     generated_at: datetime
 
 
@@ -243,9 +244,10 @@ class DeterministicTemplateProvider:
             BriefSection(name="risks_and_opportunities", content=("Missing or stale inputs are disclosed.",)),
             BriefSection(name="actions_to_review", content=(action.action,)),
             BriefSection(name="sources", content=tuple(c.source_url for c in citations), citations=citations),
-            BriefSection(name="data_quality", content=changes.warnings),
+            BriefSection(name="data_quality", content=tuple((*changes.warnings, *input.composition_warnings))),
         )
-        return MarketBrief(owner_id=input.owner_id, portfolio_state_hash=input.portfolio_state_hash, universe_hash=input.universe_hash, report_window=input.report_window, generated_at=input.generated_at, as_of=input.generated_at, sections=sections, actions=(action,), warnings=changes.warnings)
+        warnings = tuple((*changes.warnings, *input.composition_warnings))
+        return MarketBrief(owner_id=input.owner_id, portfolio_state_hash=input.portfolio_state_hash, universe_hash=input.universe_hash, report_window=input.report_window, generated_at=input.generated_at, as_of=input.generated_at, sections=sections, actions=(action,), warnings=warnings)
 
 
 class OllamaProvider:

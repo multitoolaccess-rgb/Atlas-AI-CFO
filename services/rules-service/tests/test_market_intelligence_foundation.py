@@ -19,6 +19,7 @@ from app.market_intelligence import (
     SyntheticMarketTransport,
     UsageLedger,
 )
+from app.market_intelligence.contracts import Freshness
 
 
 NOW = datetime(2026, 8, 10, 12, 0, tzinfo=UTC)
@@ -122,6 +123,20 @@ def test_finnhub_normalizes_cache_and_retries_transient_failure() -> None:
     assert first.value and first.value.current_price == "101.5"
     assert second.value and second.cache_hit is True
     assert calls == 2
+
+
+@pytest.mark.parametrize(("timestamp", "expected"), [
+    (int(NOW.timestamp()), Freshness.FRESH),
+    (int((NOW.replace(hour=11, minute=44)).timestamp()), Freshness.STALE),
+    (None, Freshness.UNKNOWN),
+])
+def test_finnhub_quote_freshness_uses_market_timestamp(timestamp, expected) -> None:
+    payload = {"c": 101.5, "pc": 100}
+    if timestamp is not None:
+        payload["t"] = timestamp
+    adapter = FinnhubAdapter(api_key="synthetic-key", enabled=True, transport=SyntheticMarketTransport({"/api/v1/quote": payload}), now=lambda: NOW)
+    result = adapter.quote("AAPL")
+    assert result.value and result.value.source.freshness is expected
 
 
 def test_synthetic_transport_never_uses_network() -> None:

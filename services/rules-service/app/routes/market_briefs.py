@@ -12,11 +12,17 @@ from app.auth import require_user
 from app.config import settings
 from app.market_intelligence.brief_repository import MarketBriefRepository
 from app.market_intelligence.briefing import DeterministicTemplateProvider, MarketBrief
+from app.market_intelligence.contracts import StrictModel
 from app.market_intelligence.composition import MarketBriefCompositionError, TrustedMarketBriefComposer
 from app.routes.recommendations_derived import _get_db, _resolve_db_user_id
 
 router = APIRouter(tags=["market-briefs"], prefix="/api/v1/market-briefs")
 _composer: TrustedMarketBriefComposer | None = None
+
+
+class GenerateMarketBriefControl(StrictModel):
+    """The public generate payload deliberately contains no financial facts."""
+    report_window: str = "latest"
 
 
 def configure_market_brief_composer(composer: TrustedMarketBriefComposer | None) -> None:
@@ -43,12 +49,15 @@ async def generate_market_brief(request: Request, user_sub: Annotated[str, Depen
         raw = await request.json()
     except Exception:
         raw = {}
-    report_window = raw.get("report_window", "latest") if isinstance(raw, dict) else "latest"
-    if not isinstance(report_window, str) or not 1 <= len(report_window) <= 64:
-        return _unavailable()
+    try:
+        control = GenerateMarketBriefControl.model_validate(raw)
+    except ValidationError:
+        return JSONResponse(status_code=422, content={"code": "invalid_market_brief_control"})
+    if not 1 <= len(control.report_window) <= 64:
+        return JSONResponse(status_code=422, content={"code": "invalid_market_brief_control"})
     user_id = _resolve_db_user_id(db, user_sub)
     try:
-        brief = DeterministicTemplateProvider().generate(_composer.assemble(db, owner_id=user_id, report_window=report_window))
+        brief = DeterministicTemplateProvider().generate(_composer.assemble(db, owner_id=user_id, report_window=control.report_window))
     except MarketBriefCompositionError:
         return _unavailable()
     row, replayed = MarketBriefRepository(db).get_or_create(brief)

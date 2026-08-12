@@ -125,4 +125,6 @@ class TrustedMarketBriefComposer:
         canonical = "|".join(f"{position.symbol}:{position.quantity}:{position.current_price}" for position in positions)
         state_hash = hashlib.sha256(canonical.encode()).hexdigest()
         universe_hash = hashlib.sha256("|".join(symbols).encode()).hexdigest()
-        return BriefingInput(owner_id=owner_id, portfolio_state_hash=state_hash, universe_hash=universe_hash, report_window=report_window, positions=positions, news=news, earnings_events=events, earnings_results=results, filings=self.providers.filings()[:50], generated_at=now)
+        # Holdings have no authoritative CIK field.  Never infer an issuer
+        # identifier from a ticker; expose the deliberate filing limitation.
+        return BriefingInput(owner_id=owner_id, portfolio_state_hash=state_hash, universe_hash=universe_hash, report_window=report_window, positions=positions, news=news, earnings_events=events, earnings_results=results, filings=self.providers.filings()[:50], composition_warnings=("SEC filings omitted: no authoritative holding-to-CIK mapping.",), generated_at=now)
