@@ -58,6 +58,9 @@ EXPECTED_TABLES = {
     "market_briefs",
     "market_brief_delivery_preferences",
     "market_brief_delivery_attempts",
+    # Phase 6 Slice 1 — owner-scoped immutable Scenario Lab identity/history.
+    "scenarios",
+    "scenario_versions",
 }
 
 

@@ -1,5 +1,28 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "codex/phase-6-scenario-lab-foundation",
+      "id": "work-p6-s1-scenario-lab-foundation",
+      "issue": "",
+      "objective": "Build a deterministic Decimal-safe owner-scoped Scenario Lab backend by extending the immutable authoritative forecast vertical; support bounded contribution changes, dated contribution start/stop, and one dated outflow without UI or execution.",
+      "paths": [
+        "services/rules-service/app",
+        "services/rules-service/alembic/versions",
+        "services/rules-service/tests",
+        "docs/adr",
+        "docs/07-engineering",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-6",
+      "risk_tier": "high",
+      "status": "in_progress",
+      "tests": [
+        "Scenario engine, persistence, API, migration, owner isolation, Decimal, idempotency, concurrency, SQLite/PostgreSQL parity, and full relevant regression suites",
+        "Tracker, render, and handoff validation"
+      ],
+      "title": "Phase 6 Slice 1 authoritative Scenario Lab backend foundation"
+    }
+  ],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -798,13 +821,13 @@
       "title": "Phase 5 Market Brief operationalization correction"
     }
   ],
-  "current_objective": "Authorized post-certification Phase 5 operationalization correction: make the default-off, zero-dollar Market Intelligence Brief safely discoverable and usable with synthetic-only proof, without changing its financial semantics or enabling real delivery.",
-  "current_phase_id": "phase-5",
-  "last_updated": "2026-08-12T03:17:37Z",
+  "current_objective": "Authorized Phase 6 Slice 1 only: build the authoritative deterministic Decimal-safe goal-scoped Scenario Lab backend foundation; do not begin the Scenario Lab UI or Phase 7 work.",
+  "current_phase_id": "phase-6",
+  "last_updated": "2026-08-12T03:23:17Z",
   "next_bounded_task": {
-    "description": "Phase 6 Scenario Lab remains unstarted. Require separate explicit authorization and reuse the audited authoritative forecast vertical; do not begin implementation automatically.",
-    "id": "phase-6-authorization-required",
-    "phase_id": "phase-5"
+    "description": "Implement the cohesive high-risk Phase 6 Slice 1 Scenario Lab backend foundation against the existing authoritative forecast vertical; preserve the UI boundary.",
+    "id": "work-p6-s1-scenario-lab-foundation",
+    "phase_id": "phase-6"
   },
   "overall_status": "in_progress",
   "phases": [
@@ -914,6 +937,18 @@
       "id": "phase-5",
       "name": "Market Intelligence Brief",
       "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": false,
+          "description": "Phase 6 Slice 1 provides a deterministic Decimal-safe goal-scoped Scenario Lab backend extending the immutable authoritative forecast system, with bounded scenario inputs, immutable version history, owner-scoped APIs, migration parity, and no UI or execution surface.",
+          "id": "ec-p6-s1-authoritative-scenario-lab"
+        }
+      ],
+      "id": "phase-6",
+      "name": "Scenario Lab",
+      "status": "in_progress"
     }
   ],
   "risks": [

@@ -2,13 +2,13 @@
 
 > Generated from `PROJECT_STATUS.json`; regenerate with `python3 scripts/atlas_project_status.py render`.
 
-- Current phase: **phase-5 — Market Intelligence Brief** (complete)
+- Current phase: **phase-6 — Scenario Lab** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Authorized post-certification Phase 5 operationalization correction: make the default-off, zero-dollar Market Intelligence Brief safely discoverable and usable with synthetic-only proof, without changing its financial semantics or enabling real delivery.
-- Last updated: 2026-08-12T03:17:37Z
+- Current objective: Authorized Phase 6 Slice 1 only: build the authoritative deterministic Decimal-safe goal-scoped Scenario Lab backend foundation; do not begin the Scenario Lab UI or Phase 7 work.
+- Last updated: 2026-08-12T03:23:17Z
 
 ## Active work
-- None
+- work-p6-s1-scenario-lab-foundation: Phase 6 Slice 1 authoritative Scenario Lab backend foundation (in_progress, high)
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
@@ -20,6 +20,7 @@
 - phase-3 — Goal-linked recommendations: complete (1/1 exit criteria)
 - phase-4 — Decision journal: complete (1/1 exit criteria)
 - phase-5 — Market Intelligence Brief: complete (1/1 exit criteria)
+- phase-6 — Scenario Lab: in_progress (0/1 exit criteria)
 
 ## Current risks
 - risk-frontend-lint-debt [medium/high, open]: Repository-wide frontend lint debt remains outside Phase 0 scope.
@@ -76,6 +77,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- phase-6-authorization-required: Phase 6 Scenario Lab remains unstarted. Require separate explicit authorization and reuse the audited authoritative forecast vertical; do not begin implementation automatically.
+- work-p6-s1-scenario-lab-foundation: Implement the cohesive high-risk Phase 6 Slice 1 Scenario Lab backend foundation against the existing authoritative forecast vertical; preserve the UI boundary.
 
 Do not begin the next phase or task automatically.

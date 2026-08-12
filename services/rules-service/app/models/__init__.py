@@ -59,6 +59,8 @@ from app.models.outcome_evaluation import OutcomeEvaluation
 from app.models.decision_history import DecisionAuditEvent, DecisionHistoryEntry
 from app.models.market_brief import MarketBrief
 from app.models.market_brief_delivery import MarketBriefDeliveryAttempt, MarketBriefDeliveryPreference
+# Phase 6 Slice 1 — owner-scoped immutable Scenario Lab identity/version history.
+from app.models.scenario import Scenario, ScenarioVersion
 
 __all__ = [
     "Budget",
@@ -86,4 +88,6 @@ __all__ = [
     "MarketBrief",
     "MarketBriefDeliveryAttempt",
     "MarketBriefDeliveryPreference",
+    "Scenario",
+    "ScenarioVersion",
 ]

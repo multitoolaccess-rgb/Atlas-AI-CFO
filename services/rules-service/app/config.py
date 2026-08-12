@@ -88,6 +88,9 @@ class Settings(BaseSettings):
     atlas_market_brief_email_delivery_enabled: bool = False
     atlas_market_brief_scheduler_enabled: bool = False
     atlas_market_brief_local_summarization_enabled: bool = False
+    # Phase 6 Scenario Lab is a server-owned, default-off backend gate.
+    # No client request may enable or override it.
+    atlas_scenario_lab_enabled: bool = False
 
     model_config = ConfigDict(extra="ignore", env_file=".env", case_sensitive=False)
 
