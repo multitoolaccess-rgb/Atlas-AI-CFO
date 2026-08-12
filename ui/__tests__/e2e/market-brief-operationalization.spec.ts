@@ -11,7 +11,7 @@ const brief = {
     { name: 'portfolio_changes', content: ['AAPL: 10'], citations: [{ provider: 'synthetic', source_url: 'https://source.test/quote', freshness: 'fresh' }] },
     { name: 'earnings', content: ['upcoming: AAPL earnings on 2026-08-12'], citations: [{ provider: 'synthetic', source_url: 'https://source.test/earnings', freshness: 'fresh' }] },
   ],
-  warnings: ['SEC filings unavailable: no authoritative CIK mapping.'],
+  warnings: ['SEC filings omitted: no authoritative holding-to-CIK mapping.'],
   actions: [{ action: 'Review AAPL', why: 'Deterministic review only.', goal_linkage: 'No goal linkage is inferred.', evidence: ['AAPL'], expected_impact: 'No execution or return is implied.', risks: ['Market data may be incomplete.'], alternatives: ['Do nothing.'], confidence: 'low', approval_requirement: 'explicit_user_approval_required' }],
 }
 
@@ -48,7 +48,7 @@ test('Market Briefs is discoverable and generates a synthetic archived detail', 
   await expect(page.getByText('AAPL: 10')).toBeVisible()
   await expect(page.getByText(/upcoming: AAPL earnings/i)).toBeVisible()
   await expect(page.getByRole('link', { name: /source: synthetic/i }).first()).toHaveAttribute('href', 'https://source.test/quote')
-  await expect(page.getByLabel(/data quality warnings/i)).toContainText(/CIK mapping/i)
+  await expect(page.getByLabel(/data quality warnings/i)).toContainText('SEC filings omitted: no authoritative holding-to-CIK mapping.')
   await expect(page.getByRole('heading', { name: /actions to review/i })).toBeVisible()
   await expect(page.getByText('Review AAPL')).toBeVisible()
 })
