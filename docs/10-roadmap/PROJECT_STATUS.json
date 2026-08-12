@@ -826,14 +826,47 @@
         "Scenario focused bundle 20 passed; UI Vitest 547 passed; typecheck passed; Playwright 88 passed, 1 skipped."
       ],
       "title": "Phase 6 Slice 1 authoritative Scenario Lab backend foundation"
+    },
+    {
+      "branch": "codex/phase-5-market-brief-reliability-ui-correction",
+      "ci_evidence": {
+        "check": "project-governance/status SUCCESS; tests/cheap SUCCESS; tests/heavy SKIPPED by workflow policy",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31568024045"
+      },
+      "commit": "48325fda4085ce1fee7d56ded2ed5b9d56056f6c",
+      "id": "work-p5-market-brief-reliability-ui-correction",
+      "issue": "",
+      "objective": "Correct bounded market-session quote freshness, portfolio coverage accounting, sanitized operational reason codes, and the accessible responsive Market Brief archive/detail UI without changing Scenario Lab, financial math, execution, or provider safety boundaries.",
+      "paths": [
+        "services/rules-service/app/market_intelligence",
+        "services/rules-service/app/routes",
+        "services/rules-service/tests",
+        "ui/components/market-briefs",
+        "ui/components/layout",
+        "ui/lib",
+        "ui/__tests__/e2e",
+        "docs"
+      ],
+      "phase_id": "phase-5",
+      "pr": "42",
+      "review_evidence": "Fresh independent read-only review of exact merged PR #42 diff at 48325fda: APPROVE; no remaining CRITICAL, HIGH, or MEDIUM findings. GitHub has no review object; this tracker entry records the genuine independent agent review without fabricating one.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Rules Service: 1,268 passed, 10 skipped, 1 xfailed; Finlynq: 106 passed; cross-service: 4 passed; frontend Vitest: 551 passed; targeted Market Brief Playwright: 4 passed with scoped axe 0 serious/critical; typecheck, lint, and production build passed.",
+        "Six-case synthetic visual matrix passed across desktop/tablet/mobile and light/dark with zero console errors, zero horizontal overflow, and zero scoped axe serious/critical findings. Full E2E: 89 passed, 1 skipped; one unrelated enhanced-pages navigation/resource-404 failure remained outside Market Brief scope.",
+        "Hosted PR #42: project-governance/status SUCCESS; tests/cheap SUCCESS; tests/heavy SKIPPED by workflow policy (not treated as passed or failed)."
+      ],
+      "title": "Phase 5 Market Brief reliability and UI-quality correction"
     }
   ],
-  "current_objective": "Authorized Phase 6 Slice 1 only: build the authoritative deterministic Decimal-safe goal-scoped Scenario Lab backend foundation; do not begin the Scenario Lab UI or Phase 7 work.",
+  "current_objective": "Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-12T03:45:04Z",
+  "last_updated": "2026-08-12T14:37:33Z",
   "next_bounded_task": {
-    "description": "Implement the cohesive high-risk Phase 6 Slice 1 Scenario Lab backend foundation against the existing authoritative forecast vertical; preserve the UI boundary.",
-    "id": "work-p6-s1-scenario-lab-foundation",
+    "description": "Implement the cohesive Atlas Visual System v2 with independent Light/Dark/System mode and Indigo Intelligence, Vermilion Energy, and Ion Future accent-profile selection; preserve all financial semantics and application behavior.",
+    "id": "work-ui-atlas-visual-system-v2",
     "phase_id": "phase-6"
   },
   "overall_status": "in_progress",
@@ -948,8 +981,8 @@
     {
       "exit_criteria": [
         {
-          "complete": false,
-          "description": "Phase 6 Slice 1 provides a deterministic Decimal-safe goal-scoped Scenario Lab backend extending the immutable authoritative forecast system, with bounded scenario inputs, immutable version history, owner-scoped APIs, migration parity, and no UI or execution surface.",
+          "complete": true,
+          "description": "Phase 6 Slice 1 provides a deterministic Decimal-safe goal-scoped Scenario Lab backend extending the immutable authoritative forecast system, with bounded scenario inputs, immutable version history, owner-scoped APIs, migration parity, and no UI or execution surface. Evidence: PR #41 merged at 86c272a329b83f86fd2f4118d2e1b0e0f4957d70; required governance and cheap checks passed; heavy check skipped by established workflow policy; focused and regression evidence recorded below.",
           "id": "ec-p6-s1-authoritative-scenario-lab"
         }
       ],
