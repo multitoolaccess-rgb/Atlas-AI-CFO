@@ -46,6 +46,7 @@ import {
   type Profile,
 } from '@/lib/api'
 import { classifyErrorMessage } from '@/lib/errors'
+import { analystCoverageEmptyMessage } from '@/lib/analystCoverage'
 import { useThemeColors } from '@/lib/themeColors'
 import { onDataRefresh } from '@/lib/dataRefresh'
 import {
@@ -682,6 +683,7 @@ export default function PortfolioPage() {
     const aggregate = {
       covered: 0,
       excluded: 0,
+      requestErrors: 0,
       strongBuy: 0,
       buy: 0,
       hold: 0,
@@ -700,7 +702,12 @@ export default function PortfolioPage() {
       }
       const sym = h.symbol!.toUpperCase()
       const entry = ratingsByTicker[sym]
-      if (!entry || entry.state !== 'ok') continue
+      if (!entry) continue
+      if (entry.state === 'error') {
+        aggregate.requestErrors += 1
+        continue
+      }
+      if (entry.state !== 'ok') continue
       const trends = entry.data.recommendation_trends ?? []
       const months4 = trends.slice(0, 4).reverse()
       // Only count as "covered" when we have at least one monthly row
@@ -1164,8 +1171,7 @@ export default function PortfolioPage() {
                     className="text-xs text-tertiary mt-3"
                     data-testid="analyst-coverage-empty"
                   >
-                    No analyst coverage available — Finnhub may be unreachable
-                    or missing an API key.
+                    {analystCoverageEmptyMessage(analystCoverageAggregate.requestErrors)}
                     {analystCoverageAggregate.excluded > 0 && ` ${analystCoverageAggregate.excluded} excluded (no consensus).`}
                   </p>
                 ) : (

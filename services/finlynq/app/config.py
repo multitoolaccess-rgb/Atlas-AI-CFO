@@ -19,10 +19,15 @@ validator. Differences:
 - ``finlynq.version`` is bumped to ``0.2.0`` from rules-service's ``0.1.0``
   so the response shape on ``GET /health`` differentiates the two.
 """
+from pathlib import Path
 from typing import Optional
 
 from pydantic import ConfigDict, model_validator
 from pydantic_settings import BaseSettings
+
+
+FINLYNQ_SERVICE_DIR = Path(__file__).resolve().parents[1]
+FINLYNQ_SERVICE_ENV_FILE = FINLYNQ_SERVICE_DIR / ".env"
 
 
 class Settings(BaseSettings):
@@ -53,7 +58,7 @@ class Settings(BaseSettings):
 
     model_config = ConfigDict(
         extra="ignore",
-        env_file=".env",
+        env_file=FINLYNQ_SERVICE_ENV_FILE,
         case_sensitive=False,
     )
 

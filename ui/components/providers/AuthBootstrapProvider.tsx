@@ -134,7 +134,7 @@ async function ensureAuth(): Promise<void> {
         )
       }
       throw new AuthBootstrapError(
-        'The backend is not reachable. Make sure rules-service is running on :8000.',
+        'The backend is not reachable. Start Atlas with `./start.sh`, then retry.',
         'down',
       )
     }
@@ -581,7 +581,7 @@ export default function AuthBootstrapProvider({
           : {
             title: 'Authentication bootstrap failed',
             message:
-              'The rules-service refused to issue a local JWT. Make sure the backend is running on :8000 (`bash scripts/start.sh`), then click Retry.',
+              'The Rules Service refused to issue a local session. Start Atlas with `./start.sh`, then click Retry.',
           }
 
     return (

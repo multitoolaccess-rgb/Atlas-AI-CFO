@@ -11,14 +11,20 @@ Adapts applied:
   ``docs/wealthiq-merge-plan.md`` §10 decision 4. ``app/auth.py`` validates the
   JWT signer's ``sub`` claim against this field.
 
-Env precedence: ``os.environ`` via ``pydantic_settings.BaseSettings``; a
-``services/rules-service/.env`` file (if present) is loaded but optional
-(``env_file=None`` in tests via ``Settings(_env_file=None)`` to be hermetic).
+Env precedence: ``os.environ`` via ``pydantic_settings.BaseSettings``; the
+service-relative ``services/rules-service/.env`` file (if present) is loaded
+from an absolute path, independent of the caller's current working directory.
+Tests pass ``_env_file=None`` to remain hermetic.
 """
+from pathlib import Path
 from typing import Optional
 
 from pydantic import ConfigDict, model_validator
 from pydantic_settings import BaseSettings  # noqa: F401 (re-exported for app.routes.* consumers)
+
+
+RULES_SERVICE_DIR = Path(__file__).resolve().parents[1]
+RULES_SERVICE_ENV_FILE = RULES_SERVICE_DIR / ".env"
 
 
 class Settings(BaseSettings):
@@ -57,10 +63,10 @@ class Settings(BaseSettings):
     # Phase 9 / Phase 39.2 — Finnhub free-tier API key for
     # ``GET /api/analyst-ratings/{ticker}`` and the
     # ``POST /api/holdings/refresh-prices`` caller. pydantic-settings
-    # reads ``services/rules-service/.env`` (via ``env_file=".env"``)
-    # at instantiation, so a developer who pastes their key into the
-    # .env file is wired up automatically on the next ``uvicorn``
-    # cold-start — no shell ``export FINNHUB_API_KEY=...`` required.
+    # reads the service-relative ``services/rules-service/.env`` at
+    # instantiation, so a developer who pastes their key into that file
+    # is wired up automatically on the next ``uvicorn`` cold-start —
+    # no shell ``export FINNHUB_API_KEY=...`` required.
     #
     # Routes should read this via the ``os.environ OR settings``
     # fallback chain — see Phase 39.2 comment in
@@ -92,7 +98,11 @@ class Settings(BaseSettings):
     # No client request may enable or override it.
     atlas_scenario_lab_enabled: bool = False
 
-    model_config = ConfigDict(extra="ignore", env_file=".env", case_sensitive=False)
+    model_config = ConfigDict(
+        extra="ignore",
+        env_file=RULES_SERVICE_ENV_FILE,
+        case_sensitive=False,
+    )
 
     @model_validator(mode="after")
     def _refuse_dev_secret_in_non_development(self) -> "Settings":

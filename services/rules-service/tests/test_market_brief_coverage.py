@@ -79,6 +79,16 @@ def test_value_weighted_coverage_accepts_partial_portfolio_at_documented_thresho
     assert brief_input.portfolio_state_hash != "" and len(brief_input.portfolio_state_hash) == 64
 
 
+def test_non_market_holding_labels_are_omitted_without_provider_requests() -> None:
+    brief_input = TrustedMarketBriefComposer(Providers(), now=lambda: NOW).assemble(
+        session_for(holding("AAPL", 95), holding("PENDING ACTIVITY", 5)), owner_id=1, report_window="latest"
+    )
+    assert brief_input.coverage is not None
+    assert brief_input.coverage.coverage_percentage == "0.95"
+    assert brief_input.coverage.omitted_symbols == ("UNKNOWN",)
+    assert brief_input.coverage.omissions[0].reason_code is MarketBriefReasonCode.UNSUPPORTED_SYMBOL
+
+
 def test_position_count_coverage_is_used_when_current_values_are_not_complete() -> None:
     holdings = [holding("AAPL", None), holding("MSFT", None), holding("NVDA", None), holding("TSLA", None), holding("BAD", None)]
     brief_input = TrustedMarketBriefComposer(Providers(missing={"BAD"}), now=lambda: NOW).assemble(
@@ -100,13 +110,21 @@ def test_below_threshold_no_coverage_and_mixed_currency_fail_closed() -> None:
         TrustedMarketBriefComposer(Providers(missing={"AAPL"}), now=lambda: NOW).assemble(
             session_for(holding("AAPL", 100)), owner_id=1, report_window="latest"
         )
-    assert none.value.reason_code is MarketBriefReasonCode.NO_MARKET_ADDRESSABLE_HOLDINGS
+    assert none.value.reason_code is MarketBriefReasonCode.UNSUPPORTED_SYMBOL
 
     with pytest.raises(MarketBriefCompositionError) as currency:
         TrustedMarketBriefComposer(Providers(currencies={"AAPL": "USD", "MSFT": "EUR"}), now=lambda: NOW).assemble(
             session_for(holding("AAPL", 50), holding("MSFT", 50)), owner_id=1, report_window="latest"
         )
     assert currency.value.reason_code is MarketBriefReasonCode.AMBIGUOUS_CURRENCY
+
+
+def test_all_unsupported_symbols_report_an_actionable_reason() -> None:
+    with pytest.raises(MarketBriefCompositionError) as unsupported:
+        TrustedMarketBriefComposer(Providers(missing={"AAPL", "MSFT"}), now=lambda: NOW).assemble(
+            session_for(holding("AAPL", 50), holding("MSFT", 50)), owner_id=1, report_window="latest"
+        )
+    assert unsupported.value.reason_code is MarketBriefReasonCode.UNSUPPORTED_SYMBOL
 
 
 def test_canonical_identity_includes_price_basis_and_coverage() -> None:

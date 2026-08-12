@@ -52,7 +52,21 @@ test('renders an accessible empty archive and generate action', async () => {
   render(<MarketBriefArchive />)
   expect(screen.getByRole('heading', { name: /market intelligence briefs/i })).toBeInTheDocument()
   expect(await screen.findByText(/no saved briefs yet/i)).toBeInTheDocument()
+  expect(screen.getByText('Provider not checked')).toBeInTheDocument()
+  expect(screen.getByText('Generate a brief to verify current portfolio coverage and market-data availability.')).toBeInTheDocument()
   expect(screen.getByRole('button', { name: /generate brief/i })).toBeInTheDocument()
+})
+
+test('announces the checking state and disables duplicate generation', async () => {
+  let resolveGeneration!: (value: any) => void
+  vi.mocked(generateMarketBrief).mockImplementation(() => new Promise(resolve => { resolveGeneration = resolve }))
+  render(<MarketBriefArchive />)
+  const button = await screen.findByRole('button', { name: /^generate brief$/i })
+  fireEvent.click(button)
+  expect(await screen.findByText('Checking market data')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /generating brief/i })).toBeDisabled()
+  resolveGeneration({ brief_id: 'generated', replayed: false, brief })
+  expect(await screen.findByText(/generated and added/i)).toBeInTheDocument()
 })
 
 test('generates, selects, and archives a server-composed brief without client financial data', async () => {
@@ -60,6 +74,8 @@ test('generates, selects, and archives a server-composed brief without client fi
   render(<MarketBriefArchive />)
   fireEvent.click(await screen.findByRole('button', { name: /^generate brief$/i }))
   expect(await screen.findByText(/generated and added/i)).toBeInTheDocument()
+  expect(screen.getByText('Provider ready')).toBeInTheDocument()
+  expect(screen.getByText(/provider readiness was verified by the server/i)).toBeInTheDocument()
   expect(screen.getAllByText(/prior close/i).length).toBeGreaterThan(0)
   expect(screen.getByText(/100% covered/i)).toBeInTheDocument()
   expect(screen.getByText(/upcoming: AAPL earnings/i)).toBeInTheDocument()
@@ -68,20 +84,49 @@ test('generates, selects, and archives a server-composed brief without client fi
   expect(generateMarketBrief).toHaveBeenCalledOnce()
 })
 
+test('shows coverage limited for a degraded server brief', async () => {
+  vi.mocked(generateMarketBrief).mockResolvedValue({
+    brief_id: 'degraded',
+    replayed: false,
+    brief: { ...brief, provider_readiness: { provider: 'market_data', status: 'degraded' as const } },
+  })
+  render(<MarketBriefArchive />)
+  fireEvent.click(await screen.findByRole('button', { name: /^generate brief$/i }))
+  expect(await screen.findByText('Coverage limited')).toBeInTheDocument()
+  expect(screen.getByText(/limited portfolio coverage for this brief/i)).toBeInTheDocument()
+})
+
 test('explains a fail-closed provider configuration response', async () => {
   vi.mocked(generateMarketBrief).mockRejectedValue({ response: { status: 503, data: { reason_code: 'provider_configuration_missing' } } })
   render(<MarketBriefArchive />)
   fireEvent.click(await screen.findByRole('button', { name: /^generate brief$/i }))
-  expect(await screen.findByText(/approved market-data provider is not ready/i)).toBeInTheDocument()
+  expect((await screen.findAllByText(/approved market-data provider is not ready/i)).length).toBeGreaterThanOrEqual(1)
+  expect(screen.getByText('Provider unavailable')).toBeInTheDocument()
   expect(screen.getByText(/ask the local operator to configure/i)).toBeInTheDocument()
+  expect(screen.queryByText(/raw_provider_error|api key|secret/i)).not.toBeInTheDocument()
 })
 
 test('renders a distinct rate-limit recovery state', async () => {
   vi.mocked(generateMarketBrief).mockRejectedValue({ response: { status: 503, data: { reason_code: 'provider_rate_limited' } } })
   render(<MarketBriefArchive />)
   fireEvent.click(await screen.findByRole('button', { name: /^generate brief$/i }))
-  expect(await screen.findByText(/provider asked Atlas to slow down/i)).toBeInTheDocument()
+  expect((await screen.findAllByText(/provider asked Atlas to slow down/i)).length).toBeGreaterThanOrEqual(1)
   expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
+})
+
+test('clears a generation error when an archived brief is opened', async () => {
+  vi.mocked(listMarketBriefs).mockResolvedValue([
+    { brief_id: 'archived', report_window: 'latest', generated_at: '2026-08-11T12:00:00Z' },
+  ])
+  vi.mocked(generateMarketBrief).mockRejectedValue({ response: { status: 503, data: { reason_code: 'provider_configuration_missing' } } })
+  vi.mocked(getMarketBrief).mockResolvedValue({ ...brief, generated_at: 'archived' })
+  render(<MarketBriefArchive />)
+  fireEvent.click(await screen.findByRole('button', { name: /^generate brief$/i }))
+  expect(await screen.findByText('Provider unavailable')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: /brief for latest/i }))
+  expect(await screen.findByText('archived', { exact: true })).toBeInTheDocument()
+  expect(screen.getByText('Provider ready')).toBeInTheDocument()
+  expect(screen.queryByText('Provider unavailable')).not.toBeInTheDocument()
 })
 
 test('clears a prior brief when a later selection fails', async () => {

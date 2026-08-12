@@ -406,6 +406,7 @@ export default function MarketBriefArchive() {
 
   const open = useCallback(async (id: string) => {
     const requestId = ++detailRequest.current
+    setGenerationError(null)
     setSelectedId(id)
     setBrief(null)
     setDetailError(null)
@@ -462,6 +463,31 @@ export default function MarketBriefArchive() {
   const selectedMetadata = useMemo(() => items.find(item => item.brief_id === selectedId), [items, selectedId])
   const hasArchive = archiveStatus === 'ready' && items.length > 0
   const pageError = generationError ?? (detailStatus === 'error' ? detailError : null)
+  const providerStatus = generating
+    ? 'checking'
+    : generationError
+      ? 'unavailable'
+      : brief?.provider_readiness?.status ?? 'not_checked'
+  const providerStatusLabel = providerStatus === 'checking'
+    ? 'Checking market data'
+    : providerStatus === 'ready'
+      ? 'Provider ready'
+      : providerStatus === 'degraded'
+        ? 'Coverage limited'
+        : providerStatus === 'unavailable'
+          ? 'Provider unavailable'
+          : 'Provider not checked'
+  const providerStatusExplanation = generating
+    ? 'Atlas is checking current portfolio coverage and market-data availability.'
+    : generationError
+      ? generationError.message
+      : brief?.provider_readiness?.status === 'ready'
+        ? 'Provider readiness was verified by the server for this brief.'
+        : brief?.provider_readiness?.status === 'degraded'
+          ? 'The server reported limited portfolio coverage for this brief.'
+          : brief?.provider_readiness?.status === 'unavailable'
+            ? 'The server reported that market-data availability is unavailable for this brief.'
+            : 'Generate a brief to verify current portfolio coverage and market-data availability.'
 
   return (
     <main aria-labelledby="market-brief-title" className="min-h-[calc(100vh-6rem)] print:mx-0">
@@ -474,15 +500,18 @@ export default function MarketBriefArchive() {
             {brief && <p className="mt-3 text-sm text-[var(--text-secondary)]">Last generated <time dateTime={brief.generated_at} className="font-medium text-[var(--text-primary)]">{formatDateTime(brief.generated_at)}</time></p>}
           </div>
           <div className="flex shrink-0 flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-            <div className="flex flex-wrap items-center gap-2" aria-label="Market data status">
-              <Badge
-                variant={brief?.provider_readiness?.status === 'ready' ? 'success' : brief?.provider_readiness?.status === 'degraded' ? 'warning' : 'neutral'}
-                size="md"
-                className={brief?.provider_readiness?.status === 'degraded' ? 'market-brief-warning !bg-amber-100 !text-amber-900 dark:!bg-amber-900 dark:!text-amber-100' : ''}
-              >
-                {brief?.provider_readiness?.status === 'ready' ? 'Provider ready' : brief?.provider_readiness?.status === 'degraded' ? 'Coverage limited' : 'Provider status unknown'}
-              </Badge>
-              {brief?.market_data_basis && brief.market_data_basis !== 'unknown' && <Badge variant={brief.market_data_basis === 'prior_close' ? 'warning' : 'info'} size="md" className={brief.market_data_basis === 'prior_close' ? 'market-brief-warning !bg-amber-100 !text-amber-900 dark:!bg-amber-900 dark:!text-amber-100' : ''}>{basisLabel(brief.market_data_basis)}</Badge>}
+            <div className="min-w-0" aria-label="Market data status">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge
+                  variant={providerStatus === 'ready' ? 'success' : providerStatus === 'degraded' ? 'warning' : providerStatus === 'unavailable' ? 'danger' : 'neutral'}
+                  size="md"
+                  className={`normal-case tracking-normal ${providerStatus === 'degraded' ? 'market-brief-warning !bg-amber-100 !text-amber-900 dark:!bg-amber-900 dark:!text-amber-100' : ''}`}
+                >
+                  {providerStatusLabel}
+                </Badge>
+                {brief?.market_data_basis && brief.market_data_basis !== 'unknown' && <Badge variant={brief.market_data_basis === 'prior_close' ? 'warning' : 'info'} size="md" className={brief.market_data_basis === 'prior_close' ? 'market-brief-warning !bg-amber-100 !text-amber-900 dark:!bg-amber-900 dark:!text-amber-100' : ''}>{basisLabel(brief.market_data_basis)}</Badge>}
+              </div>
+              <p className="mt-2 max-w-sm text-xs leading-relaxed text-[var(--text-secondary)]">{providerStatusExplanation}</p>
             </div>
             <Button
               type="button"

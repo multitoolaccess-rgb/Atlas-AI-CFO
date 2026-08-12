@@ -75,6 +75,16 @@ def test_module_level_settings_is_a_settings_instance():
     assert settings.app_name == "Finance Copilot"
 
 
+def test_default_env_file_is_anchored_to_rules_service_directory():
+    """Runtime config must not depend on whether uvicorn was launched from repo root."""
+    from pathlib import Path
+
+    from app.config import RULES_SERVICE_ENV_FILE
+
+    expected = Path(__file__).resolve().parents[1] / ".env"
+    assert RULES_SERVICE_ENV_FILE.resolve() == expected.resolve()
+
+
 def test_production_environment_refuses_dev_default_jwt_secret(monkeypatch):
     """Hardening raised by Phase 2 code-review: a production deploy with the
     dev-default ``jwt_secret`` must raise, not silently ship a forge-any-token cookie."""

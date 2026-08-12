@@ -133,6 +133,7 @@ def test_start_launches_resolved_ports_and_dependent_urls_with_fake_services(tmp
     assert "http://127.0.0.1:9889" in launches
     assert "http://127.0.0.1:9888" in launches
     assert "http://127.0.0.1:4333" in result.stdout
+    assert "rules env:" in result.stdout
     start_source = (root / "start.sh").read_text().lower()
     assert "-m alembic" not in start_source
     assert "upgrade head" not in start_source

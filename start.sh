@@ -190,6 +190,11 @@ wait_for_health() {
 hr 'Atlas AI CFO — Dev Server (Finlynq + Rules + UI)'
 note "root : $PROJECT_ROOT"
 note "ports: UI=$ATLAS_UI_PORT Rules=$ATLAS_RULES_PORT Finlynq=$ATLAS_FINLYNQ_PORT"
+if [ -f "$BE_DIR/.env" ]; then
+  note "rules env: $BE_DIR/.env (service-relative configuration)"
+else
+  note "rules env: $BE_DIR/.env not found (server-only provider features may be unavailable)"
+fi
 
 if [ ! -d "$UI_DIR/node_modules" ]; then
   hr 'Installing ui/node_modules'

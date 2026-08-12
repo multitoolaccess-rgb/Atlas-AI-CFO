@@ -26,6 +26,7 @@ from .contracts import (
     Freshness,
     MarketBriefReasonCode,
     MarketQuoteSnapshot,
+    PortfolioHolding,
     PriceBasis,
     ProviderReadiness,
     SecFilingEvent,
@@ -254,6 +255,19 @@ class TrustedMarketBriefComposer:
             if not symbol:
                 omissions.append(CoverageOmission(symbol="UNKNOWN", reason_code=MarketBriefReasonCode.UNSUPPORTED_SYMBOL))
                 continue
+            # Imported portfolios can contain human-readable pending-activity
+            # labels in the symbol column. Treat those as non-addressable
+            # holdings before calling the provider; never let an unbounded
+            # database label violate the bounded omission contract or escape
+            # into an external request.
+            try:
+                normalized_symbol = PortfolioHolding(symbol=symbol, instrument_type="equity").symbol
+            except (TypeError, ValueError):
+                normalized_symbol = None
+            if not normalized_symbol:
+                omissions.append(CoverageOmission(symbol="UNKNOWN", reason_code=MarketBriefReasonCode.UNSUPPORTED_SYMBOL))
+                continue
+            symbol = normalized_symbol
             if symbol not in quotes and symbol not in quote_errors:
                 try:
                     quote = self.providers.quote(symbol)
@@ -275,6 +289,20 @@ class TrustedMarketBriefComposer:
         coverage = self._coverage(eligible, covered, omissions)
         percentage = _decimal(coverage.coverage_percentage) or Decimal(0)
         if coverage.covered_holding_count == 0:
+            # Preserve the actionable provider boundary when every
+            # non-empty symbol was rejected as unsupported. The old
+            # generic no-priced-holdings code hid the distinction
+            # between an empty portfolio and symbols Finnhub cannot
+            # address (for example, fund or internal position labels).
+            only_unsupported_symbols = bool(omissions) and all(
+                omission.reason_code is MarketBriefReasonCode.UNSUPPORTED_SYMBOL
+                for omission in omissions
+            )
+            if only_unsupported_symbols:
+                raise MarketBriefCompositionError(
+                    "No eligible holding is supported by the configured market-data provider.",
+                    MarketBriefReasonCode.UNSUPPORTED_SYMBOL,
+                )
             raise MarketBriefCompositionError(
                 "No trustworthy priced holdings remain for this brief.",
                 MarketBriefReasonCode.NO_MARKET_ADDRESSABLE_HOLDINGS,
