@@ -201,10 +201,18 @@ def test_enabled_generation_uses_only_owner_holdings_and_cites_in_window_earning
     dangerous = {"owner_id": other.id, "positions": [{"symbol": "MSFT", "quantity": "999999"}], "earnings_events": [{"symbol": "MSFT"}]}
     try:
         response = client.post("/api/v1/market-briefs/generate", json=dangerous)
+        replay = client.post("/api/v1/market-briefs/generate", json={"report_window": "latest"})
     finally:
         configure_market_brief_composer(None)
 
     assert response.status_code == 201
+    assert replay.status_code == 200
+    assert replay.json()["replayed"] is True
+    assert replay.json()["brief_id"] == response.json()["brief_id"]
+    from app.models.market_brief import MarketBrief as StoredBrief
+    assert db_session.query(StoredBrief).filter_by(id=response.json()["brief_id"]).one().user_id != other.id
+    monkeypatch.setattr(settings, "atlas_market_brief_read_api_enabled", True)
+    assert client.get(f"/api/v1/market-briefs/{response.json()['brief_id']}").status_code == 200
     brief = response.json()["brief"]
     assert brief["owner_id"] != other.id
     assert "MSFT" not in str(brief)

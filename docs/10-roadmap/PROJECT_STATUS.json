@@ -1,5 +1,22 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "codex/phase-5-operationalization",
+      "id": "work-p5-operationalization-correction",
+      "issue": "",
+      "objective": "Wire a safe server-owned local market-brief composer behind default-off flags; make archive discovery and synthetic-only generation usable without changing Phase 5 financial semantics or activating real providers/email.",
+      "paths": [
+        "services/rules-service/app/market_intelligence,services/rules-service/app/routes,services/rules-service/app/config.py,services/rules-service/tests,ui/components,ui/lib,ui/__tests__/e2e,docs/10-roadmap"
+      ],
+      "phase_id": "phase-5",
+      "risk_tier": "high",
+      "status": "in_progress",
+      "tests": [
+        "Focused synthetic-only provider/composer, owner isolation, archive UI, and deterministic mocked browser journey; relevant Rules, frontend, cross-service, and tracker/handoff validation."
+      ],
+      "title": "Phase 5 Market Brief operationalization correction"
+    }
+  ],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -774,9 +791,9 @@
       "title": "Phase 5 earnings briefing certification correction"
     }
   ],
-  "current_objective": "Phase 5 Market Intelligence Brief planning is authorized after certified Phase 4. Build a zero-dollar, deterministic, portfolio-first briefing with source citations, in-app history, privacy-safe default-off delivery, and no autonomous execution.",
+  "current_objective": "Authorized post-certification Phase 5 operationalization correction: make the default-off, zero-dollar Market Intelligence Brief safely discoverable and usable with synthetic-only proof, without changing its financial semantics or enabling real delivery.",
   "current_phase_id": "phase-5",
-  "last_updated": "2026-08-11T15:24:54Z",
+  "last_updated": "2026-08-12T02:42:29Z",
   "next_bounded_task": {
     "description": "Complete the active high-risk earnings certification correction PR with required CI and independent review.",
     "id": "work-p5-earnings-certification-correction",
@@ -889,7 +906,7 @@
       ],
       "id": "phase-5",
       "name": "Market Intelligence Brief",
-      "status": "complete"
+      "status": "in_progress"
     }
   ],
   "risks": [

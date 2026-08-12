@@ -66,6 +66,11 @@ class Settings(BaseSettings):
     # fallback chain — see Phase 39.2 comment in
     # ``app/routes/analyst_ratings.py`` and ``app/routes/holdings.py``.
     finnhub_api_key: Optional[str] = None
+    # Phase 5 operational market-brief composition requires an SEC-compliant
+    # contact User-Agent even though filing enrichment is skipped when a
+    # holding has no authoritative CIK.  This value is server-only and must
+    # never be supplied by a browser request.
+    sec_user_agent: Optional[str] = None
     # Phase 1 forecast persistence flag (default off)
     atlas_forecast_persistence_enabled: bool = False
     # Phase 1 read-API flag (default off — peer to the persistence flag).

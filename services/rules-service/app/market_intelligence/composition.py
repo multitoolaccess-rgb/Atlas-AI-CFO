@@ -10,7 +10,70 @@ from sqlalchemy.orm import Session
 from app.models.account import Account
 from app.models.holding import Holding
 from .briefing import BriefingInput, PositionInput
-from .contracts import CompanyNewsItem, EarningsEvent, EarningsResult, MarketQuoteSnapshot, SecFilingEvent
+from .adapters import FinnhubAdapter, ProviderConfigurationError, SecAdapter
+from .contracts import CompanyNewsItem, EarningsEvent, EarningsResult, Freshness, MarketQuoteSnapshot, SecFilingEvent
+
+
+class MarketBriefCompositionError(ValueError):
+    """A server-owned market input was incomplete or not safe to brief."""
+
+
+class OperationalMarketResearchProviders:
+    """Narrow, server-owned adapter composition for the operational route.
+
+    Construction performs no network I/O.  Every provider result is unwrapped
+    here so an upstream failure can never become a partial, authoritative
+    briefing.  SEC filing lookup is deliberately deferred until Atlas has a
+    trusted holding-to-CIK mapping; guessing from a symbol would weaken
+    provenance.
+    """
+    def __init__(self, *, finnhub_api_key: str, sec_user_agent: str) -> None:
+        self._finnhub = FinnhubAdapter(api_key=finnhub_api_key, enabled=True)
+        # Validate the required SEC operator configuration at startup.  Do
+        # not make a network request until a future authoritative CIK mapping
+        # exists.
+        self._sec = SecAdapter(user_agent=sec_user_agent, enabled=True)
+
+    @staticmethod
+    def _value(result, label: str):
+        if result.value is None:
+            detail = result.failure.message if result.failure else "provider returned no usable record"
+            raise MarketBriefCompositionError(f"{label} is unavailable: {detail}")
+        return result.value
+
+    def quote(self, symbol: str) -> MarketQuoteSnapshot:
+        return self._value(self._finnhub.quote(symbol), f"Quote for {symbol}")
+
+    def news(self, symbol: str) -> list[CompanyNewsItem]:
+        today = datetime.now(UTC).date()
+        return self._value(self._finnhub.company_news(symbol, from_date=(today - timedelta(days=14)).isoformat(), to_date=today.isoformat()), f"News for {symbol}")
+
+    def earnings_events(self, symbol: str) -> list[EarningsEvent]:
+        return self._value(self._finnhub.earnings_calendar(symbol), f"Earnings calendar for {symbol}")
+
+    def earnings_results(self, symbol: str) -> list[EarningsResult]:
+        return self._value(self._finnhub.earnings_surprises(symbol), f"Earnings results for {symbol}")
+
+    def filings(self) -> list[SecFilingEvent]:
+        return []
+
+
+def build_operational_market_brief_composer(settings: object) -> "TrustedMarketBriefComposer | None":
+    """Build only when all server-owned rollout/configuration gates are true.
+
+    No browser input, default configuration, or missing credential can cause
+    a provider client to be wired.  Invalid SEC configuration fails closed.
+    """
+    if not (getattr(settings, "atlas_market_brief_generation_enabled", False) and getattr(settings, "atlas_market_brief_external_provider_enabled", False)):
+        return None
+    api_key = (getattr(settings, "finnhub_api_key", None) or "").strip()
+    sec_user_agent = (getattr(settings, "sec_user_agent", None) or "").strip()
+    if not api_key or not sec_user_agent:
+        return None
+    try:
+        return TrustedMarketBriefComposer(OperationalMarketResearchProviders(finnhub_api_key=api_key, sec_user_agent=sec_user_agent))
+    except ProviderConfigurationError:
+        return None
 
 
 class MarketResearchProviders(Protocol):
@@ -33,6 +96,8 @@ class TrustedMarketBriefComposer:
             .order_by(Holding.symbol.asc(), Holding.id.asc())
         ).all()
         symbols = sorted({holding.symbol.strip().upper() for holding in holdings if holding.symbol and (holding.type or "").lower() != "cash"})[:50]
+        if not symbols:
+            raise MarketBriefCompositionError("No active, market-addressable portfolio holdings are available.")
         positions: list[PositionInput] = []
         news: list[CompanyNewsItem] = []
         events: list[EarningsEvent] = []
@@ -41,7 +106,9 @@ class TrustedMarketBriefComposer:
         for symbol in symbols:
             quote = self.providers.quote(symbol)
             if quote is None:
-                continue
+                raise MarketBriefCompositionError(f"Quote for {symbol} is unavailable.")
+            if quote.source.freshness is not Freshness.FRESH or not quote.source.source_url or quote.previous_close is None:
+                raise MarketBriefCompositionError(f"Quote for {symbol} is stale or incomplete.")
             matching_holdings = [
                 item for item in holdings
                 if (item.symbol or "").strip().upper() == symbol and (item.type or "").lower() != "cash"
@@ -53,6 +120,8 @@ class TrustedMarketBriefComposer:
             news.extend(self.providers.news(symbol)[:20])
             events.extend(event for event in self.providers.earnings_events(symbol) if now.date() - timedelta(days=14) <= event.event_date.date() <= now.date() + timedelta(days=30))
             results.extend(result for result in self.providers.earnings_results(symbol) if result.source.observed_at and now.date() - timedelta(days=14) <= result.source.observed_at.date() <= now.date())
+        if len({position.currency for position in positions}) != 1:
+            raise MarketBriefCompositionError("Portfolio currency is ambiguous.")
         canonical = "|".join(f"{position.symbol}:{position.quantity}:{position.current_price}" for position in positions)
         state_hash = hashlib.sha256(canonical.encode()).hexdigest()
         universe_hash = hashlib.sha256("|".join(symbols).encode()).hexdigest()

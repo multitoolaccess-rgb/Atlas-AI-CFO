@@ -20,6 +20,7 @@ import {
   CreditCard,
   ChevronDown,
   Orbit,
+  Newspaper,
 } from 'lucide-react';
 import { useSidebar } from './SidebarContext';
 
@@ -66,6 +67,7 @@ const navGroups: NavGroup[] = [
     label: 'Tools',
     items: [
       { name: 'Recommendations', href: '/recommendations', icon: Sparkles },
+      { name: 'Market Briefs', href: '/market-briefs', icon: Newspaper },
       { name: 'Scout', href: '/assistant', icon: Bot },
       { name: 'Activity', href: '/activity', icon: History },
       { name: 'Accounts', href: '/accounts', icon: Landmark },

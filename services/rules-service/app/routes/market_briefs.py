@@ -12,7 +12,7 @@ from app.auth import require_user
 from app.config import settings
 from app.market_intelligence.brief_repository import MarketBriefRepository
 from app.market_intelligence.briefing import DeterministicTemplateProvider, MarketBrief
-from app.market_intelligence.composition import TrustedMarketBriefComposer
+from app.market_intelligence.composition import MarketBriefCompositionError, TrustedMarketBriefComposer
 from app.routes.recommendations_derived import _get_db, _resolve_db_user_id
 
 router = APIRouter(tags=["market-briefs"], prefix="/api/v1/market-briefs")
@@ -47,7 +47,10 @@ async def generate_market_brief(request: Request, user_sub: Annotated[str, Depen
     if not isinstance(report_window, str) or not 1 <= len(report_window) <= 64:
         return _unavailable()
     user_id = _resolve_db_user_id(db, user_sub)
-    brief = DeterministicTemplateProvider().generate(_composer.assemble(db, owner_id=user_id, report_window=report_window))
+    try:
+        brief = DeterministicTemplateProvider().generate(_composer.assemble(db, owner_id=user_id, report_window=report_window))
+    except MarketBriefCompositionError:
+        return _unavailable()
     row, replayed = MarketBriefRepository(db).get_or_create(brief)
     return JSONResponse(status_code=200 if replayed else 201, content={"brief_id": row.id, "replayed": replayed, "brief": brief.model_dump(mode="json")})
 
