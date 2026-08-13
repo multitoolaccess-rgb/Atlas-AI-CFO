@@ -9,8 +9,8 @@ broader market" without paid endpoints:
 - market-wide earnings calendar for a bounded window;
 - a bounded S&P 500 scanner: the bundled factual symbol list is NEVER
   requested wholesale. Quotes are fetched for a bounded sample with the
-  provider pacer and cache, portfolio holdings take priority, and every
-  unavailable category is exposed truthfully.
+  provider pacer and its bounded TTL cache, portfolio holdings take
+  priority, and every unavailable category is exposed truthfully.
 
 This module never fabricates data and never calls a paid endpoint.
 """
@@ -41,7 +41,6 @@ INDEX_PROXIES: tuple[tuple[str, str], ...] = (
 )
 
 MAX_SCAN_SYMBOLS = 20
-SCAN_TTL_SECONDS = 300
 
 
 def load_sp500_symbols() -> tuple[str, ...]:
