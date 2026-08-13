@@ -7,10 +7,13 @@ vi.mock('@/lib/marketBriefs', () => ({
   listMarketBriefs: vi.fn().mockResolvedValue([]),
   getMarketBrief: vi.fn(),
   generateMarketBrief: vi.fn(),
-  classifyMarketBriefError: vi.fn((error: { response?: { data?: { reason_code?: string } } }) => {
+  classifyMarketBriefError: vi.fn((error: { response?: { data?: { reason_code?: string, omitted_symbols?: string[] } } }) => {
     const reason = error?.response?.data?.reason_code
     if (reason === 'provider_rate_limited') {
       return { reasonCode: reason, title: 'Provider rate limit reached', message: 'The provider asked Atlas to slow down.', recovery: 'Wait briefly, then retry.', retryable: true }
+    }
+    if (reason === 'unsupported_symbol') {
+      return { reasonCode: reason, title: 'Some holdings are not addressable', message: 'One or more eligible holdings are not supported by the approved provider.', recovery: 'Review the coverage details and correct the holding symbols before retrying.', retryable: false, omittedSymbols: error?.response?.data?.omitted_symbols ?? [] }
     }
     if (!error?.response) {
       return { reasonCode: 'provider_transport_failure', title: 'Market data is unreachable', message: 'The provider could not be reached, so no market data was saved.', recovery: 'Check the provider connection and retry.', retryable: true }
@@ -112,6 +115,24 @@ test('renders a distinct rate-limit recovery state', async () => {
   fireEvent.click(await screen.findByRole('button', { name: /^generate brief$/i }))
   expect((await screen.findAllByText(/provider asked Atlas to slow down/i)).length).toBeGreaterThanOrEqual(1)
   expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
+})
+
+test('lists the actual omitted symbols instead of a dead review instruction', async () => {
+  vi.mocked(generateMarketBrief).mockRejectedValue({
+    response: {
+      status: 503,
+      data: {
+        reason_code: 'unsupported_symbol',
+        omitted_symbols: ['NON40OJJ2', 'NON40OXLT'],
+      },
+    },
+  })
+  render(<MarketBriefArchive />)
+  fireEvent.click(await screen.findByRole('button', { name: /^generate brief$/i }))
+  const panel = await screen.findByTestId('omitted-symbols')
+  expect(panel).toHaveTextContent('NON40OJJ2')
+  expect(panel).toHaveTextContent('NON40OXLT')
+  expect(screen.getByText('Provider unavailable')).toBeInTheDocument()
 })
 
 test('clears a generation error when an archived brief is opened', async () => {

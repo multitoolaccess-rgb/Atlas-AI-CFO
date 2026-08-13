@@ -106,6 +106,12 @@ function ErrorPanel({
       <div className="min-w-0 flex-1">
         <h2 className="text-sm font-semibold">{error.title}</h2>
         <p className="mt-1 text-sm leading-relaxed">{error.message}</p>
+        {error.omittedSymbols && error.omittedSymbols.length > 0 && (
+          <p className="mt-2 text-sm leading-relaxed" data-testid="omitted-symbols">
+            <span className="font-medium">Symbols not addressable:</span>{' '}
+            {error.omittedSymbols.join(', ')}
+          </p>
+        )}
         <p className="mt-2 text-sm font-medium">Recovery: {error.recovery}</p>
         {onRetry && (
           <Button

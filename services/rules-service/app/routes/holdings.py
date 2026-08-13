@@ -199,6 +199,69 @@ def _parse_float(value: str | None) -> float | None:
         return None
 
 
+# Fidelity's "Portfolio Positions" export labels every position in a cash
+# account with the ACCOUNT type ("Cash", "Margin", "Short", "Long", or an
+# option type like "Call"/"Put") in its "Type" column — NOT the asset
+# class. Storing that value verbatim as ``holding.type`` makes every real
+# stock/ETF/fund in a Fidelity cash account look like a cash position,
+# which silently excludes the entire portfolio from analyst coverage and
+# market briefing. We therefore normalize the column:
+#
+#   * values that are clearly Fidelity account/position types are dropped
+#     (None) unless the row has no usable ticker (a genuine sweep/cash
+#     position such as ``CORE**`` keeps the "Cash" label),
+#   * a genuine asset-class value from another export shape is preserved,
+#   * otherwise the asset class is inferred conservatively from the row
+#     description (fund/ETF markers) so downstream "no consensus" labels
+#     keep working for rows that were only mislabeled.
+
+_FIDELITY_POSITION_TYPES = {
+    "cash", "margin", "short", "long", "call", "put", "option",
+}
+
+# Mirrors the market-intelligence symbol contract: 1-10 uppercase letters,
+# digits, ``.`` or ``-``. Sweep labels like ``CORE**`` / ``SPAXX**`` fail
+# this and stay classified as cash.
+_IMPORT_TICKER_RE = re.compile(r"^[A-Z0-9.\-]{1,10}$")
+
+
+def _normalize_import_type(raw_type: str | None, symbol: str | None, description: str | None) -> str | None:
+    """Map a Fidelity portfolio-export ``Type`` cell to a holding asset class.
+
+    Fidelity's export puts the account type (``Cash``/``Margin``) in this
+    column for every position, so persisting it verbatim misclassifies
+    stocks as cash and hides the whole portfolio from coverage features.
+    Rows with a real ticker get a conservatively inferred class (or None);
+    rows without a usable ticker (genuine sweeps) keep the ``Cash`` label.
+    """
+    value = (raw_type or "").strip()
+    if not value:
+        return None
+    lowered = value.lower()
+    if lowered not in _FIDELITY_POSITION_TYPES:
+        # A genuine asset-class value (e.g. an export that already says
+        # "Stock", "ETF", "Mutual Fund", "Bond", "Crypto") — preserve it.
+        return value
+    if lowered != "cash":
+        # Margin/short/long/option types never describe the asset class.
+        return None
+    sym = (symbol or "").strip().upper()
+    if not sym or not _IMPORT_TICKER_RE.fullmatch(sym):
+        # No usable ticker — this is a genuine sweep/cash position.
+        return "Cash"
+    # A real ticker labeled "Cash" is a mislabeled position. Infer a
+    # conservative asset class from the description so downstream
+    # "no consensus" labels keep working; unknown shapes stay None.
+    # Word-boundary matching: a plain substring test would classify
+    # NFLX ("netflix") as an ETF because "etf" appears inside the name.
+    text = (description or "").lower()
+    if re.search(r"\betf\b", text) or "exchange-traded" in text:
+        return "ETF"
+    if re.search(r"\bfund\b", text):
+        return "Mutual Fund"
+    return None
+
+
 def _parse_robinhood_pdf(text: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[str]]:
     """Parse Robinhood holdings PDF text into stocks and crypto holdings.
 
@@ -501,7 +564,10 @@ async def import_portfolio(
                 "last_price": _parse_float(price),
                 "current_value": value,
                 "cost_basis_total": _parse_float(cost),
-                "type": htype or None,
+                # Fidelity's "Type" column is the ACCOUNT type (Cash/Margin),
+                # not the asset class; normalize so real stocks are not stored
+                # as "Cash" and silently excluded from coverage features.
+                "type": _normalize_import_type(htype, symbol, description),
             })
 
         if not raw_account_holdings:

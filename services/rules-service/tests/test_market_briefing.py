@@ -274,6 +274,46 @@ def test_generation_unavailable_for_missing_composer_or_flags_without_provider_c
     assert providers.calls == []
 
 
+def test_unsupported_symbol_generation_error_lists_omitted_symbols(client, db_session, make_account, monkeypatch) -> None:
+    """When composition fails because every eligible holding is unsupported,
+    the error response must name the offending symbols so the UI can show
+    the user exactly which holdings to correct (not a dead "review details").
+    """
+    from app.config import settings
+    from app.market_intelligence.composition import TrustedMarketBriefComposer
+    from app.models import Holding, User
+    from app.routes.market_briefs import configure_market_brief_composer
+    from app.routes.shared import get_or_create_family_member_self, get_or_create_institution
+    from app.models import Account
+
+    owner_account = make_account(account_name="Owner", account_type="brokerage")
+    owner_account.is_active = True
+    db_session.add(owner_account)
+    db_session.flush()
+    db_session.add_all((
+        Holding(account_id=owner_account.id, symbol="NON40OJJ2", quantity=1, current_value=100, type=None),
+        Holding(account_id=owner_account.id, symbol="NON40OXLT", quantity=1, current_value=100, type=None),
+    ))
+    db_session.commit()
+
+    class _RejectingProviders(_RecordingMarketProviders):
+        def quote(self, symbol: str):
+            self.calls.append(("quote", symbol))
+            return None  # provider cannot resolve these plan codes
+
+    configure_market_brief_composer(TrustedMarketBriefComposer(_RejectingProviders(), now=lambda: NOW))
+    monkeypatch.setattr(settings, "atlas_market_brief_generation_enabled", True)
+    monkeypatch.setattr(settings, "atlas_market_brief_external_provider_enabled", True)
+    try:
+        response = client.post("/api/v1/market-briefs/generate", json={"report_window": "latest"})
+    finally:
+        configure_market_brief_composer(None)
+    assert response.status_code == 503
+    payload = response.json()
+    assert payload["reason_code"] == "unsupported_symbol"
+    assert set(payload["omitted_symbols"]) == {"NON40OJJ2", "NON40OXLT"}
+
+
 def test_repository_idempotency_is_owner_scoped_and_never_mutates(db_session) -> None:
     from app.market_intelligence.brief_repository import MarketBriefRepository
     from app.models import User

@@ -21,3 +21,31 @@ test('maps a network failure to retryable transport guidance', () => {
   expect(result.retryable).toBe(true)
   expect(result.message).not.toContain('raw provider payload')
 })
+
+test('carries bounded omitted symbols from the server response', () => {
+  const result = classifyMarketBriefError({
+    response: {
+      status: 503,
+      data: {
+        reason_code: 'unsupported_symbol',
+        omitted_symbols: ['NON40OJJ2', 'NON40OXLT', 'PENDING ACTIVITY'],
+      },
+    },
+  })
+  expect(result.reasonCode).toBe('unsupported_symbol')
+  expect(result.omittedSymbols).toEqual(['NON40OJJ2', 'NON40OXLT', 'PENDING ACTIVITY'])
+  expect(result.title).toMatch(/addressable/i)
+})
+
+test('drops malformed or oversized omitted symbols defensively', () => {
+  const result = classifyMarketBriefError({
+    response: {
+      status: 503,
+      data: {
+        reason_code: 'unsupported_symbol',
+        omitted_symbols: ['AAPL', 42, null, '', 'B', 'C', 'D', 'E', 'F'],
+      },
+    },
+  })
+  expect(result.omittedSymbols).toEqual(['AAPL', 'B', 'C', 'D', 'E', 'F'])
+})
