@@ -14,6 +14,7 @@ from .contracts import (
     EarningsResult,
     EvidenceAvailability,
     Freshness,
+    HoldingEvidence,
     MarketBriefReasonCode,
     PriceBasis,
     ProviderReadiness,
@@ -212,6 +213,8 @@ class BriefingInput(StrictModel):
     earnings_results: list[EarningsResult] = []
     held_ciks: set[str] = set()
     evidence_availability: tuple[EvidenceAvailability, ...] = ()
+    # Market Intelligence v2: ranked per-holding intelligence packets.
+    holding_evidence: tuple[HoldingEvidence, ...] = ()
     composition_warnings: tuple[str, ...] = ()
     generated_at: datetime
     coverage: CoverageSummary | None = None
@@ -237,6 +240,8 @@ class MarketBrief(StrictModel):
     portfolio_daily_change: str | None = None
     # Market Intelligence v2: per-holding per-category evidence availability.
     evidence_availability: tuple[EvidenceAvailability, ...] = ()
+    # Market Intelligence v2: ranked per-holding intelligence packets.
+    holding_evidence: tuple[HoldingEvidence, ...] = ()
 
 
 class DeterministicTemplateProvider:
@@ -264,12 +269,27 @@ class DeterministicTemplateProvider:
             for omission in (input.coverage.omissions if input.coverage else ())
         )
         action = ActionToReview(action="Review whether material portfolio changes warrant follow-up.", why="The briefing reports deterministic market data only.", goal_linkage="No goal linkage is inferred.", evidence=tuple(row.symbol for row in changes.rows), expected_impact="No execution or return is implied.", risks=("Market data may be incomplete or stale.",), alternatives=("Do nothing.",), confidence="low", approval_requirement="explicit_user_approval_required")
+        catalyst_rows: list[str] = []
+        catalyst_citations: list[Citation] = []
+        for packet in input.holding_evidence:
+            if packet.materiality == "informational" and not (packet.news or packet.dividends):
+                continue
+            catalyst_rows.append(
+                f"{packet.materiality}: {packet.symbol} — {packet.materiality_reason or 'Evidence available.'}"
+            )
+            for item in (*packet.news[:3], *packet.dividends[:2]):
+                catalyst_citations.append(Citation.from_source(item.source))
+        catalyst_claims = tuple(
+            BriefClaim(text=text, citation=source)
+            for text, source in zip(catalyst_rows, catalyst_citations, strict=False)
+        ) if catalyst_rows and catalyst_citations else ()
         sections = (
             BriefSection(name="executive_summary", content=("Portfolio-specific market briefing; review-only.",)),
             BriefSection(name="portfolio_changes", content=tuple(claim.text for claim in portfolio_claims), citations=tuple(claim.citation for claim in portfolio_claims), claims=portfolio_claims),
             BriefSection(name="material_holding_news", content=tuple(item.headline for item in news), citations=news_citations),
             BriefSection(name="earnings", content=tuple(claim.text for claim in earnings_claims), citations=tuple(claim.citation for claim in earnings_claims), claims=tuple(earnings_claims)),
             BriefSection(name="sec_filings", content=tuple(claim.text for claim in filing_claims), citations=tuple(claim.citation for claim in filing_claims), claims=filing_claims),
+            BriefSection(name="catalyst_stream", content=tuple(catalyst_rows), citations=tuple(catalyst_citations), claims=catalyst_claims),
             BriefSection(name="risks_and_opportunities", content=("Missing or stale inputs are disclosed.",)),
             BriefSection(name="actions_to_review", content=(action.action,)),
             BriefSection(name="sources", content=tuple(c.source_url for c in citations), citations=citations),
@@ -294,6 +314,7 @@ class DeterministicTemplateProvider:
             provider_readiness=provider_readiness,
             portfolio_daily_change=changes.total_daily_change,
             evidence_availability=input.evidence_availability,
+            holding_evidence=input.holding_evidence,
         )
 
 

@@ -17,6 +17,10 @@ class EndpointClass(StrEnum):
     EARNINGS_SURPRISE = "earnings_surprise"
     SEC_SUBMISSIONS = "sec_submissions"
     SEC_COMPANY_FACTS = "sec_company_facts"
+    COMPANY_PROFILE = "company_profile"
+    ANALYST_RECOMMENDATION = "analyst_recommendation"
+    PRICE_TARGET = "price_target"
+    DIVIDENDS = "dividends"
 
 
 class UsageRecord(StrictModel):

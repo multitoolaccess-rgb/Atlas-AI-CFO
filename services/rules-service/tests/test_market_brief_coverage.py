@@ -57,6 +57,21 @@ class Providers:
     def filings(self):
         return []
 
+    def profile(self, _symbol: str):
+        return None
+
+    def analyst_recommendations(self, _symbol: str) -> list:
+        return []
+
+    def price_target(self, _symbol: str):
+        return None
+
+    def dividends(self, _symbol: str) -> list:
+        return []
+
+    def filings_for_cik(self, _cik: str) -> list:
+        return []
+
 
 def holding(symbol: str, value: float | None) -> SimpleNamespace:
     return SimpleNamespace(symbol=symbol, type="Stock", current_value=value, quantity=1, id=symbol)
@@ -130,6 +145,86 @@ def test_all_unsupported_symbols_report_an_actionable_reason() -> None:
         )
     assert unsupported.value.reason_code is MarketBriefReasonCode.UNSUPPORTED_SYMBOL
     assert unsupported.value.omitted_symbols == ("AAPL", "MSFT")
+
+
+def test_evidence_ranking_marks_high_impact_for_upcoming_earnings() -> None:
+    from app.market_intelligence.composition import TrustedMarketBriefComposer
+    from app.market_intelligence.contracts import EarningsEvent
+
+    composer = TrustedMarketBriefComposer(Providers(), now=lambda: NOW)
+    packet = composer._rank_evidence(
+        symbol="AAPL",
+        quote=None,
+        profile=None,
+        news=(),
+        earnings_events=(EarningsEvent(symbol="AAPL", event_date=datetime(2026, 8, 15, tzinfo=UTC), source=source("AAPL")),),
+        earnings_results=(),
+        filings=(),
+        recommendations=(),
+        price_target=None,
+        dividends=(),
+        now=NOW,
+    )
+    assert packet.materiality == "high"
+    assert "7 days" in (packet.materiality_reason or "")
+
+
+def test_evidence_ranking_marks_watch_for_large_price_movement() -> None:
+    from app.market_intelligence.composition import TrustedMarketBriefComposer
+
+    composer = TrustedMarketBriefComposer(Providers(), now=lambda: NOW)
+    packet = composer._rank_evidence(
+        symbol="AAPL",
+        quote=MarketQuoteSnapshot(symbol="AAPL", currency="USD", current_price="104", previous_close="100", source=source("AAPL")),
+        profile=None,
+        news=(),
+        earnings_events=(),
+        earnings_results=(),
+        filings=(),
+        recommendations=(),
+        price_target=None,
+        dividends=(),
+        now=NOW,
+    )
+    assert packet.materiality == "watch"
+    assert "3%" in (packet.materiality_reason or "")
+
+
+def test_evidence_ranking_keeps_informational_when_no_catalyst() -> None:
+    from app.market_intelligence.composition import TrustedMarketBriefComposer
+
+    composer = TrustedMarketBriefComposer(Providers(), now=lambda: NOW)
+    packet = composer._rank_evidence(
+        symbol="AAPL",
+        quote=MarketQuoteSnapshot(symbol="AAPL", currency="USD", current_price="100.5", previous_close="100", source=source("AAPL")),
+        profile=None,
+        news=(),
+        earnings_events=(),
+        earnings_results=(),
+        filings=(),
+        recommendations=(),
+        price_target=None,
+        dividends=(),
+        now=NOW,
+    )
+    assert packet.materiality == "informational"
+
+
+def test_evidence_ranking_marks_watch_for_8k_filing() -> None:
+    from app.market_intelligence.composition import TrustedMarketBriefComposer
+    from app.market_intelligence.contracts import SecFilingEvent
+
+    composer = TrustedMarketBriefComposer(Providers(), now=lambda: NOW)
+    filing = SecFilingEvent(
+        cik="320193", form="8-K", accession_number="0001-01",
+        filing_date=datetime(2026, 8, 11, tzinfo=UTC), source=source("AAPL"),
+    )
+    packet = composer._rank_evidence(
+        symbol="AAPL", quote=None, profile=None, news=(), earnings_events=(), earnings_results=(),
+        filings=(filing,), recommendations=(), price_target=None, dividends=(), now=NOW,
+    )
+    assert packet.materiality == "high"
+    assert "8-K" in (packet.materiality_reason or "")
 
 
 def test_canonical_identity_includes_price_basis_and_coverage() -> None:

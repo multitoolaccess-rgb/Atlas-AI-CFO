@@ -88,6 +88,26 @@ class _LiveProviders:
         self.calls.append(("filings", None))
         return []
 
+    def profile(self, symbol: str):
+        self.calls.append(("profile", symbol))
+        return None
+
+    def analyst_recommendations(self, symbol: str):
+        self.calls.append(("analyst_recommendations", symbol))
+        return []
+
+    def price_target(self, symbol: str):
+        self.calls.append(("price_target", symbol))
+        return None
+
+    def dividends(self, symbol: str):
+        self.calls.append(("dividends", symbol))
+        return []
+
+    def filings_for_cik(self, cik: str):
+        self.calls.append(("filings_for_cik", cik))
+        return []
+
 
 def _holding(symbol: str, value: float | None = 100.0) -> SimpleNamespace:
     return SimpleNamespace(symbol=symbol, type="Stock", current_value=value, quantity=1, id=symbol)

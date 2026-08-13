@@ -10,8 +10,9 @@ from typing import Any, Callable, Generic, TypeVar
 import httpx
 
 from .contracts import (
-    CompanyNewsItem, EarningsEvent, EarningsResult, FailureClass, Freshness, MarketQuoteSnapshot,
-    NormalizedProviderFailure, ProviderResult, SecCompanyFact, SecFilingEvent, SourceMetadata, normalize_cik,
+    AnalystRecommendation, CompanyNewsItem, CompanyProfile, DividendEvent, EarningsEvent, EarningsResult,
+    FailureClass, Freshness, MarketQuoteSnapshot, NormalizedProviderFailure, PriceTarget, ProviderResult,
+    SecCompanyFact, SecFilingEvent, SourceMetadata, normalize_cik,
 )
 from .controls import BoundedCache, EndpointClass, PerSecondPacer, RateLimitExceeded, SlidingWindowPacer, UsageLedger, deduplicate_records
 from .market_calendar import LIVE_QUOTE_MAX_AGE, classify_quote
@@ -245,6 +246,155 @@ class FinnhubAdapter(_Adapter):
         self.cache.put(key, results, ttl_seconds=3600)
         self.usage.record(self.provider, endpoint, cache_hit=False)
         return ProviderResult(value=results)
+
+    def company_profile(self, symbol: str) -> ProviderResult[CompanyProfile]:
+        """Resolve a bounded company profile (used for CIK labeling only)."""
+        endpoint = EndpointClass.COMPANY_PROFILE
+        blocked = self._permitted(endpoint)
+        if blocked:
+            return blocked
+        if not self._api_key:
+            return self._failure(endpoint, FailureClass.UNCONFIGURED, "Finnhub API key is not configured.")
+        symbol = symbol.strip().upper()
+        key = f"profile:{symbol}"
+        cached = self.cache.get(key)
+        if cached is not None:
+            self.usage.record(self.provider, endpoint, cache_hit=True)
+            return ProviderResult(value=cached, cache_hit=True)
+        payload, failure = self._request(endpoint, f"{self.BASE_URL}/stock/profile2", params={"symbol": symbol, "token": self._api_key})
+        if failure:
+            return failure
+        try:
+            assert isinstance(payload, dict)
+            profile = CompanyProfile(
+                symbol=symbol,
+                cik=str(payload["cik"]) if payload.get("cik") else None,
+                company_name=str(payload.get("name")) if payload.get("name") else None,
+                exchange=str(payload.get("exchange")) if payload.get("exchange") else None,
+                sector=str(payload.get("finnhubIndustry")) if payload.get("finnhubIndustry") else None,
+                source=SourceMetadata(provider=self.provider, source_url=f"{self.BASE_URL}/stock/profile2?symbol={symbol}", retrieved_at=self._now()),
+            )
+        except (KeyError, TypeError, ValueError):
+            return self._failure(endpoint, FailureClass.INVALID_PAYLOAD, "Finnhub profile payload was invalid.")
+        self.cache.put(key, profile, ttl_seconds=86400)
+        self.usage.record(self.provider, endpoint, cache_hit=False)
+        return ProviderResult(value=profile)
+
+    def analyst_recommendation(self, symbol: str) -> ProviderResult[list[AnalystRecommendation]]:
+        endpoint = EndpointClass.ANALYST_RECOMMENDATION
+        blocked = self._permitted(endpoint)
+        if blocked:
+            return blocked
+        if not self._api_key:
+            return self._failure(endpoint, FailureClass.UNCONFIGURED, "Finnhub API key is not configured.")
+        symbol = symbol.strip().upper()
+        key = f"recommendation:{symbol}"
+        cached = self.cache.get(key)
+        if cached is not None:
+            self.usage.record(self.provider, endpoint, cache_hit=True)
+            return ProviderResult(value=cached, cache_hit=True)
+        payload, failure = self._request(endpoint, f"{self.BASE_URL}/stock/recommendation", params={"symbol": symbol, "token": self._api_key})
+        if failure:
+            return failure
+        try:
+            assert isinstance(payload, list)
+            items = [
+                AnalystRecommendation(
+                    symbol=symbol,
+                    period=str(row["period"]),
+                    strong_buy=int(row.get("strongBuy", 0)),
+                    buy=int(row.get("buy", 0)),
+                    hold=int(row.get("hold", 0)),
+                    sell=int(row.get("sell", 0)),
+                    strong_sell=int(row.get("strongSell", 0)),
+                    source=SourceMetadata(provider=self.provider, source_url=f"{self.BASE_URL}/stock/recommendation?symbol={symbol}", retrieved_at=self._now()),
+                )
+                for row in payload[:12]
+                if isinstance(row, dict) and row.get("period")
+            ]
+            items = deduplicate_records(items, lambda item: (item.symbol, item.period))
+        except (KeyError, TypeError, ValueError, OverflowError):
+            return self._failure(endpoint, FailureClass.INVALID_PAYLOAD, "Finnhub recommendation payload was invalid.")
+        self.cache.put(key, items, ttl_seconds=86400)
+        self.usage.record(self.provider, endpoint, cache_hit=False)
+        return ProviderResult(value=items)
+
+    def price_target(self, symbol: str) -> ProviderResult[PriceTarget | None]:
+        """Soft-fail 403 on free tier so a missing target never blocks the brief."""
+        endpoint = EndpointClass.PRICE_TARGET
+        blocked = self._permitted(endpoint)
+        if blocked:
+            return blocked
+        if not self._api_key:
+            return self._failure(endpoint, FailureClass.UNCONFIGURED, "Finnhub API key is not configured.")
+        symbol = symbol.strip().upper()
+        key = f"price-target:{symbol}"
+        cached = self.cache.get(key)
+        if cached is not None:
+            self.usage.record(self.provider, endpoint, cache_hit=True)
+            return ProviderResult(value=cached, cache_hit=True)
+        payload, failure = self._request(endpoint, f"{self.BASE_URL}/stock/price-target", params={"symbol": symbol, "token": self._api_key})
+        if failure:
+            # Free-tier 403 on price-target is a per-ticker restriction, not
+            # a transient failure: the brief continues without a target.
+            if failure.failure is not None and failure.failure.failure_class is FailureClass.AUTHENTICATION_FAILED:
+                empty = PriceTarget(symbol=symbol, source=SourceMetadata(provider=self.provider, source_url=f"{self.BASE_URL}/stock/price-target?symbol={symbol}", retrieved_at=self._now()))
+                self.cache.put(key, empty, ttl_seconds=86400)
+                return ProviderResult(value=empty, cache_hit=False)
+            return failure
+        try:
+            assert isinstance(payload, dict)
+            target = PriceTarget(
+                symbol=symbol,
+                target_high=str(payload["targetHigh"]) if payload.get("targetHigh") is not None else None,
+                target_low=str(payload["targetLow"]) if payload.get("targetLow") is not None else None,
+                target_mean=str(payload["targetMean"]) if payload.get("targetMean") is not None else None,
+                target_median=str(payload["targetMedian"]) if payload.get("targetMedian") is not None else None,
+                source=SourceMetadata(provider=self.provider, source_url=f"{self.BASE_URL}/stock/price-target?symbol={symbol}", retrieved_at=self._now()),
+            )
+        except (KeyError, TypeError, ValueError, OverflowError):
+            return self._failure(endpoint, FailureClass.INVALID_PAYLOAD, "Finnhub price-target payload was invalid.")
+        self.cache.put(key, target, ttl_seconds=86400)
+        self.usage.record(self.provider, endpoint, cache_hit=False)
+        return ProviderResult(value=target)
+
+    def dividends(self, symbol: str) -> ProviderResult[list[DividendEvent]]:
+        endpoint = EndpointClass.DIVIDENDS
+        blocked = self._permitted(endpoint)
+        if blocked:
+            return blocked
+        if not self._api_key:
+            return self._failure(endpoint, FailureClass.UNCONFIGURED, "Finnhub API key is not configured.")
+        symbol = symbol.strip().upper()
+        key = f"dividends:{symbol}"
+        cached = self.cache.get(key)
+        if cached is not None:
+            self.usage.record(self.provider, endpoint, cache_hit=True)
+            return ProviderResult(value=cached, cache_hit=True)
+        payload, failure = self._request(endpoint, f"{self.BASE_URL}/stock/dividend", params={"symbol": symbol, "from": "2020-01-01", "to": "2030-12-31", "token": self._api_key})
+        if failure:
+            return failure
+        try:
+            assert isinstance(payload, list)
+            events = []
+            for row in payload[:40]:
+                if not isinstance(row, dict):
+                    continue
+                events.append(DividendEvent(
+                    symbol=symbol,
+                    ex_date=datetime.fromisoformat(f"{row['exDate']}T00:00:00+00:00") if row.get("exDate") else None,
+                    declared_date=datetime.fromisoformat(f"{row['declaredDate']}T00:00:00+00:00") if row.get("declaredDate") else None,
+                    record_date=datetime.fromisoformat(f"{row['recordDate']}T00:00:00+00:00") if row.get("recordDate") else None,
+                    payable_date=datetime.fromisoformat(f"{row['payableDate']}T00:00:00+00:00") if row.get("payableDate") else None,
+                    amount=str(row["amount"]) if row.get("amount") is not None else None,
+                    source=SourceMetadata(provider=self.provider, source_url=f"{self.BASE_URL}/stock/dividend?symbol={symbol}", retrieved_at=self._now()),
+                ))
+            events = deduplicate_records(events, lambda event: (event.symbol, event.ex_date, event.amount))
+        except (KeyError, TypeError, ValueError, OverflowError):
+            return self._failure(endpoint, FailureClass.INVALID_PAYLOAD, "Finnhub dividend payload was invalid.")
+        self.cache.put(key, events, ttl_seconds=3600)
+        self.usage.record(self.provider, endpoint, cache_hit=False)
+        return ProviderResult(value=events)
 
 
 class SecAdapter(_Adapter):

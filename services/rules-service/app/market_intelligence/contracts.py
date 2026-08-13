@@ -125,6 +125,135 @@ class EvidenceAvailability(StrictModel):
     recovery: str | None = Field(default=None, max_length=200)
 
 
+class AnalystRecommendation(StrictModel):
+    """A bounded sell-side recommendation snapshot (period-scoped rows)."""
+    schema_version: Literal["AnalystRecommendation/v1"] = "AnalystRecommendation/v1"
+    symbol: str
+    period: str = Field(min_length=4, max_length=10)
+    strong_buy: int = Field(ge=0, le=10000)
+    buy: int = Field(ge=0, le=10000)
+    hold: int = Field(ge=0, le=10000)
+    sell: int = Field(ge=0, le=10000)
+    strong_sell: int = Field(ge=0, le=10000)
+    source: SourceMetadata
+
+    @field_validator("symbol")
+    @classmethod
+    def recommendation_symbol(cls, value: str) -> str:
+        return PortfolioHolding(symbol=value, instrument_type="equity").symbol or ""
+
+
+class PriceTarget(StrictModel):
+    """A bounded analyst price-target snapshot with no guidance claim."""
+    schema_version: Literal["PriceTarget/v1"] = "PriceTarget/v1"
+    symbol: str
+    target_high: str | None = Field(default=None, max_length=48)
+    target_low: str | None = Field(default=None, max_length=48)
+    target_mean: str | None = Field(default=None, max_length=48)
+    target_median: str | None = Field(default=None, max_length=48)
+    source: SourceMetadata
+
+    @field_validator("symbol")
+    @classmethod
+    def price_target_symbol(cls, value: str) -> str:
+        return PortfolioHolding(symbol=value, instrument_type="equity").symbol or ""
+
+    @field_validator("target_high", "target_low", "target_mean", "target_median")
+    @classmethod
+    def canonical_target(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        decimal = Decimal(value)
+        if not decimal.is_finite() or decimal <= 0:
+            raise ValueError("price target must be a positive finite decimal")
+        return format(decimal.normalize(), "f")
+
+
+class DividendEvent(StrictModel):
+    """A bounded dividend event (ex-date, declared, record, payable)."""
+    schema_version: Literal["DividendEvent/v1"] = "DividendEvent/v1"
+    symbol: str
+    ex_date: datetime | None = None
+    declared_date: datetime | None = None
+    record_date: datetime | None = None
+    payable_date: datetime | None = None
+    amount: str | None = Field(default=None, max_length=48)
+    source: SourceMetadata
+
+    @field_validator("symbol")
+    @classmethod
+    def dividend_symbol(cls, value: str) -> str:
+        return PortfolioHolding(symbol=value, instrument_type="equity").symbol or ""
+
+    @field_validator("amount")
+    @classmethod
+    def canonical_dividend_amount(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        decimal = Decimal(value)
+        if not decimal.is_finite() or decimal < 0:
+            raise ValueError("dividend amount must be a non-negative finite decimal")
+        return format(decimal.normalize(), "f")
+
+
+class CompanyProfile(StrictModel):
+    """A bounded company-profile record used only for CIK resolution and labeling."""
+    schema_version: Literal["CompanyProfile/v1"] = "CompanyProfile/v1"
+    symbol: str
+    cik: str | None = Field(default=None, max_length=10)
+    company_name: str | None = Field(default=None, max_length=200)
+    exchange: str | None = Field(default=None, max_length=64)
+    sector: str | None = Field(default=None, max_length=80)
+    source: SourceMetadata
+
+    @field_validator("symbol")
+    @classmethod
+    def profile_symbol(cls, value: str) -> str:
+        return PortfolioHolding(symbol=value, instrument_type="equity").symbol or ""
+
+    @field_validator("company_name", "exchange", "sector")
+    @classmethod
+    def sanitize_profile_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return _untrusted_text(value, 200)
+
+    @field_validator("cik")
+    @classmethod
+    def normalized_cik(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        try:
+            return normalize_cik(value)
+        except ValueError:
+            return None
+
+
+class HoldingEvidence(StrictModel):
+    """Market Intelligence v2 per-holding intelligence packet.
+
+    All records are bounded and source-cited; every claim carries provenance.
+    """
+    schema_version: Literal["HoldingEvidence/v1"] = "HoldingEvidence/v1"
+    symbol: str
+    quote: MarketQuoteSnapshot | None = None
+    profile: CompanyProfile | None = None
+    news: tuple[CompanyNewsItem, ...] = ()
+    earnings_events: tuple[EarningsEvent, ...] = ()
+    earnings_results: tuple[EarningsResult, ...] = ()
+    filings: tuple[SecFilingEvent, ...] = ()
+    recommendations: tuple[AnalystRecommendation, ...] = ()
+    price_target: PriceTarget | None = None
+    dividends: tuple[DividendEvent, ...] = ()
+    materiality: Literal["high", "watch", "informational"] = "informational"
+    materiality_reason: str | None = Field(default=None, max_length=200)
+
+    @field_validator("symbol")
+    @classmethod
+    def evidence_symbol(cls, value: str) -> str:
+        return PortfolioHolding(symbol=value, instrument_type="equity").symbol or ""
+
+
 class CoverageSummary(StrictModel):
     eligible_holding_count: int = Field(ge=0, le=500)
     covered_holding_count: int = Field(ge=0, le=500)
