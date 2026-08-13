@@ -1,6 +1,7 @@
 """Default-off owner-scoped deterministic Market Intelligence brief routes."""
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
@@ -17,6 +18,8 @@ from app.market_intelligence.contracts import MarketBriefReasonCode, StrictModel
 from app.market_intelligence.composition import MarketBriefCompositionError, TrustedMarketBriefComposer
 from app.models.market_brief import MarketBrief as StoredBrief
 from app.routes.recommendations_derived import _get_db, _resolve_db_user_id
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["market-briefs"], prefix="/api/v1/market-briefs")
 _composer: TrustedMarketBriefComposer | None = None
@@ -129,7 +132,17 @@ async def generate_market_brief(
     try:
         brief = DeterministicTemplateProvider().generate(_composer.assemble(db, owner_id=user_id, report_window=control.report_window))
     except MarketBriefCompositionError as error:
+        # A server-owned composition failure with a stable sanitized reason.
         return _error_response(error.reason_code, omitted_symbols=error.omitted_symbols)
+    except Exception as error:  # noqa: BLE001 - sanitizing composition boundary
+        # Market Intelligence v2 reliability boundary: any exception escaping
+        # server-owned composition or provider normalization must never
+        # surface as a raw 500 or leak provider internals. Log the bounded
+        # class name only, and return a stable sanitized unavailable response.
+        # ``MarketBriefCompositionError`` (a ``ValueError`` subclass) is
+        # already handled above with its stable reason code.
+        logger.warning("bounded market-brief composition failure on generate: %s", type(error).__name__)
+        return _error_response(MarketBriefReasonCode.MARKET_BRIEF_GENERATION_UNAVAILABLE)
     row, replayed = MarketBriefRepository(db).get_or_create(brief)
     return JSONResponse(status_code=200 if replayed else 201, content={"brief_id": row.id, "replayed": replayed, "brief": brief.model_dump(mode="json")})
 

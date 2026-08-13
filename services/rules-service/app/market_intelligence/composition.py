@@ -22,6 +22,8 @@ from .contracts import (
     CoverageSummary,
     EarningsEvent,
     EarningsResult,
+    EvidenceAvailability,
+    EvidenceCategory,
     FailureClass,
     Freshness,
     MarketBriefReasonCode,
@@ -53,6 +55,23 @@ _SAFE_FAILURE_MESSAGES = {
     MarketBriefReasonCode.PROVIDER_RATE_LIMITED: "The market-data provider is rate limiting requests.",
     MarketBriefReasonCode.UNSUPPORTED_SYMBOL: "This holding is not supported by the configured market-data provider.",
     MarketBriefReasonCode.INVALID_QUOTE: "The market-data provider returned an invalid quote.",
+}
+
+# User-safe recovery guidance per reason code, shared by omissions and the
+# evidence-availability records. Never raw provider text or secrets.
+_SAFE_RECOVERY_GUIDANCE = {
+    MarketBriefReasonCode.PROVIDER_CONFIGURATION_MISSING: "Ask the local operator to configure market data, then retry.",
+    MarketBriefReasonCode.PROVIDER_TRANSPORT_FAILURE: "Check the provider connection and retry later.",
+    MarketBriefReasonCode.PROVIDER_AUTHENTICATION_FAILED: "Ask the local operator to verify server-side provider credentials.",
+    MarketBriefReasonCode.PROVIDER_RATE_LIMITED: "Wait briefly, then retry.",
+    MarketBriefReasonCode.UNSUPPORTED_SYMBOL: "Review the holding symbol and correct it before retrying.",
+    MarketBriefReasonCode.INVALID_QUOTE: "Ask the local operator to verify the provider response, then retry.",
+    MarketBriefReasonCode.LIVE_QUOTE_STALE: "Retry during market hours or use the accepted prior-close mode outside the session.",
+    MarketBriefReasonCode.PRIOR_CLOSE_TOO_OLD: "Refresh provider data before generating another brief.",
+    MarketBriefReasonCode.INSUFFICIENT_PORTFOLIO_COVERAGE: "Resolve the omitted holdings before generating a complete portfolio brief.",
+    MarketBriefReasonCode.NO_MARKET_ADDRESSABLE_HOLDINGS: "Add or correct an eligible holding before generating a brief.",
+    MarketBriefReasonCode.AMBIGUOUS_CURRENCY: "Resolve the portfolio currency ambiguity before generating a brief.",
+    MarketBriefReasonCode.MARKET_BRIEF_GENERATION_UNAVAILABLE: "Retry after the local operator resolves the reported readiness issue.",
 }
 
 
@@ -258,7 +277,12 @@ class TrustedMarketBriefComposer:
         for holding in eligible:
             symbol = (holding.symbol or "").strip().upper()
             if not symbol:
-                omissions.append(CoverageOmission(symbol="UNKNOWN", reason_code=MarketBriefReasonCode.UNSUPPORTED_SYMBOL))
+                omissions.append(CoverageOmission(
+                    symbol="UNKNOWN",
+                    evidence_category=EvidenceCategory.QUOTE,
+                    reason_code=MarketBriefReasonCode.UNSUPPORTED_SYMBOL,
+                    recovery=_SAFE_RECOVERY_GUIDANCE[MarketBriefReasonCode.UNSUPPORTED_SYMBOL],
+                ))
                 continue
             # Imported portfolios can contain human-readable pending-activity
             # labels in the symbol column. Treat those as non-addressable
@@ -270,7 +294,12 @@ class TrustedMarketBriefComposer:
             except (TypeError, ValueError):
                 normalized_symbol = None
             if not normalized_symbol:
-                omissions.append(CoverageOmission(symbol="UNKNOWN", reason_code=MarketBriefReasonCode.UNSUPPORTED_SYMBOL))
+                omissions.append(CoverageOmission(
+                    symbol="UNKNOWN",
+                    evidence_category=EvidenceCategory.QUOTE,
+                    reason_code=MarketBriefReasonCode.UNSUPPORTED_SYMBOL,
+                    recovery=_SAFE_RECOVERY_GUIDANCE[MarketBriefReasonCode.UNSUPPORTED_SYMBOL],
+                ))
                 continue
             symbol = normalized_symbol
             if symbol not in quotes and symbol not in quote_errors:
@@ -287,7 +316,12 @@ class TrustedMarketBriefComposer:
                 except MarketBriefCompositionError as error:
                     quote_errors[symbol] = error.reason_code
             if symbol in quote_errors:
-                omissions.append(CoverageOmission(symbol=symbol, reason_code=quote_errors[symbol]))
+                omissions.append(CoverageOmission(
+                    symbol=symbol,
+                    evidence_category=EvidenceCategory.QUOTE,
+                    reason_code=quote_errors[symbol],
+                    recovery=_SAFE_RECOVERY_GUIDANCE.get(quote_errors[symbol]),
+                ))
             else:
                 covered.append(holding)
 
@@ -360,15 +394,16 @@ class TrustedMarketBriefComposer:
             )
 
         optional_warnings: list[str] = []
+        evidence_availability: list[EvidenceAvailability] = []
         news: list[CompanyNewsItem] = []
         earnings_events: list[EarningsEvent] = []
         earnings_results: list[EarningsResult] = []
         now = self._now()
         for symbol in sorted(grouped):
-            for label, loader, target in (
-                ("news", self.providers.news, news),
-                ("earnings_events", self.providers.earnings_events, earnings_events),
-                ("earnings_results", self.providers.earnings_results, earnings_results),
+            for label, category, loader, target in (
+                ("news", EvidenceCategory.NEWS, self.providers.news, news),
+                ("earnings_events", EvidenceCategory.EARNINGS, self.providers.earnings_events, earnings_events),
+                ("earnings_results", EvidenceCategory.EARNINGS, self.providers.earnings_results, earnings_results),
             ):
                 try:
                     records = loader(symbol)
@@ -386,7 +421,16 @@ class TrustedMarketBriefComposer:
                             and now.date() - timedelta(days=14) <= result.source.observed_at.date() <= now.date()
                         )
                 except MarketBriefCompositionError as error:
-                    optional_warnings.append(f"{error.reason_code.value}: optional {label} unavailable.")
+                    # A single unavailable evidence category never kills the
+                    # complete brief; it is recorded per holding per category
+                    # with a stable reason code and safe recovery guidance.
+                    evidence_availability.append(EvidenceAvailability(
+                        symbol=symbol,
+                        evidence_category=category,
+                        reason_code=error.reason_code,
+                        recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
+                    ))
+                    optional_warnings.append(f"{error.reason_code.value}: optional {label} unavailable for {symbol}.")
 
         composition_warnings = tuple(
             (
@@ -394,6 +438,10 @@ class TrustedMarketBriefComposer:
                 *optional_warnings,
             )
         )
+        evidence_availability_records = tuple(sorted(
+            evidence_availability,
+            key=lambda item: (item.symbol, item.evidence_category.value, item.reason_code.value),
+        ))
         canonical_positions = [
             {
                 "symbol": position.symbol,
@@ -439,6 +487,7 @@ class TrustedMarketBriefComposer:
             earnings_events=earnings_events,
             earnings_results=earnings_results,
             filings=self.providers.filings()[:50],
+            evidence_availability=evidence_availability_records,
             composition_warnings=composition_warnings,
             generated_at=now,
             coverage=coverage,

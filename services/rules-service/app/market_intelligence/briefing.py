@@ -12,6 +12,7 @@ from .contracts import (
     CoverageSummary,
     EarningsEvent,
     EarningsResult,
+    EvidenceAvailability,
     Freshness,
     MarketBriefReasonCode,
     PriceBasis,
@@ -210,6 +211,7 @@ class BriefingInput(StrictModel):
     earnings_events: list[EarningsEvent] = []
     earnings_results: list[EarningsResult] = []
     held_ciks: set[str] = set()
+    evidence_availability: tuple[EvidenceAvailability, ...] = ()
     composition_warnings: tuple[str, ...] = ()
     generated_at: datetime
     coverage: CoverageSummary | None = None
@@ -233,6 +235,8 @@ class MarketBrief(StrictModel):
     market_data_basis: PriceBasis = PriceBasis.UNKNOWN
     provider_readiness: ProviderReadiness = ProviderReadiness(provider="market_data", status="unavailable", reason_code=MarketBriefReasonCode.MARKET_BRIEF_GENERATION_UNAVAILABLE)
     portfolio_daily_change: str | None = None
+    # Market Intelligence v2: per-holding per-category evidence availability.
+    evidence_availability: tuple[EvidenceAvailability, ...] = ()
 
 
 class DeterministicTemplateProvider:
@@ -289,6 +293,7 @@ class DeterministicTemplateProvider:
             market_data_basis=input.market_data_basis,
             provider_readiness=provider_readiness,
             portfolio_daily_change=changes.total_daily_change,
+            evidence_availability=input.evidence_availability,
         )
 
 

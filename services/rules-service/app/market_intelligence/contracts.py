@@ -94,9 +94,35 @@ class FailureClass(StrEnum):
     NOT_FOUND = "not_found"
 
 
+class EvidenceCategory(StrEnum):
+    """The bounded evidence category a holding omission or availability refers to."""
+    QUOTE = "quote"
+    NEWS = "news"
+    EARNINGS = "earnings"
+    FILINGS = "filings"
+    ANALYST = "analyst"
+
+
 class CoverageOmission(StrictModel):
     symbol: str = Field(min_length=1, max_length=10)
+    evidence_category: EvidenceCategory = EvidenceCategory.QUOTE
     reason_code: MarketBriefReasonCode
+    # User-safe recovery guidance; never raw provider text. Optional so
+    # existing persisted v1 briefs remain readable (backward compatible).
+    recovery: str | None = Field(default=None, max_length=200)
+
+
+class EvidenceAvailability(StrictModel):
+    """Per-holding, per-evidence-category availability for the v2 brief.
+
+    Records WHICH evidence category failed for WHICH holding with a stable
+    reason code and safe recovery guidance, so a single unavailable category
+    never kills the complete brief and the UI can explain it precisely.
+    """
+    symbol: str = Field(min_length=1, max_length=10)
+    evidence_category: EvidenceCategory
+    reason_code: MarketBriefReasonCode
+    recovery: str | None = Field(default=None, max_length=200)
 
 
 class CoverageSummary(StrictModel):

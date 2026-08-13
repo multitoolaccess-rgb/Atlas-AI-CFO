@@ -143,6 +143,12 @@ _LIFTED_TABLES = (
     # holdings here makes every test start from a clean ledger so
     # the assertions on sum + count actually mean what they claim.
     "holdings",
+    # Phase 5 — immutable market briefs. Without resetting this
+    # table, a brief persisted by one generation test leaks into
+    # the next and breaks ``count() == 0`` failure assertions
+    # (``Market Intelligence v2`` reliability tests observed a
+    # leftover brief from an earlier test in the same file).
+    "market_briefs",
     # Phase 2 Slice 1 commit-4 — add the four new tables so the
     # hardcoded Forecast / ForecastVersion / Recommendation /
     # DecisionJournalEntry ids used in the bounded test world
