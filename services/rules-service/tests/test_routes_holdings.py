@@ -168,6 +168,58 @@ def test_import_csv_with_utf8_bom_parses_cleanly(client, db_session):
     assert r.json()["holdings_count"] == 1
 
 
+# ---------------------------------------------------------------------
+# Phase 45 -- Fidelity "Type" column is the ACCOUNT type, not the asset
+# class. A stock in a cash account exports as Type="Cash"; persisting
+# that verbatim makes every real position look like cash and silently
+# excludes the whole portfolio from analyst coverage and market briefs.
+# ---------------------------------------------------------------------
+
+
+def test_import_does_not_label_stocks_as_cash_type(client, db_session):
+    """Fidelity's "Type" column means the account type (Cash/Margin), so
+    a stock row like ``MU,...,Cash`` must NOT be persisted with
+    ``type="Cash"`` — that hides it from coverage features. The row keeps
+    a None (unknown) asset class so it stays eligible for analyst
+    coverage and market briefing.
+    """
+    body = _build_body()  # MU row already ends in ``,Cash``
+    r = client.post(
+        "/api/holdings/import",
+        files={
+            "file": ("Portfolio_Positions_Jul-05-2026.csv", io.BytesIO(body), "text/csv"),
+        },
+    )
+    assert r.status_code == 200, r.text
+
+    from app.models import Holding
+
+    holding = db_session.query(Holding).one()
+    assert holding.symbol == "MU"
+    assert (holding.type or "").lower() != "cash"
+
+
+def test_import_infers_etf_and_fund_classes_from_description(client, db_session):
+    """When a real ticker carries Type="Cash", the importer infers a
+    conservative asset class from the description so downstream
+    "no consensus" labels keep working (VOO → ETF, FXAIX → Mutual
+    Fund). Word-boundary matching prevents ``NFLX``/``netflix`` from
+    being misread as an ETF.
+    """
+    from app.routes.holdings import _normalize_import_type
+
+    assert _normalize_import_type("Cash", "VOO", "VANGUARD INDEX FDS S&P 500 ETF") == "ETF"
+    assert _normalize_import_type("Cash", "FXAIX", "FIDELITY 500 INDEX FUND") == "Mutual Fund"
+    assert _normalize_import_type("Cash", "NFLX", "NETFLIX INC") is None
+    assert _normalize_import_type("Cash", "AAPL", "APPLE INC") is None
+    # Sweep labels with no usable ticker keep the Cash classification.
+    assert _normalize_import_type("Cash", "SPAXX**", "HELD IN MONEY MARKET") == "Cash"
+    assert _normalize_import_type("Cash", "", "MOODYS RATE FUND") == "Cash"
+    # Margin/option types never describe the asset class.
+    assert _normalize_import_type("Margin", "MU", "MICRON") is None
+    assert _normalize_import_type("Call", "SPY", "OPTION") is None
+
+
 def test_import_tsv_with_utf8_bom_parses_cleanly(client, db_session):
     """TSV + BOM (the worst case — Excel exports sometimes combine
     both). Both layers of defense must work together.

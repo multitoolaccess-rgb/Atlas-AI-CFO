@@ -102,6 +102,8 @@ export type MarketBriefErrorState = {
   message: string
   recovery: string
   retryable: boolean
+  /** Bounded list of symbols the provider could not address, from the server. */
+  omittedSymbols?: string[]
 }
 
 const REASON_CODES = new Set<MarketBriefReasonCode>([
@@ -207,7 +209,7 @@ const ERROR_COPY: Record<MarketBriefReasonCode, Omit<MarketBriefErrorState, 'rea
 
 export function classifyMarketBriefError(error: unknown): MarketBriefErrorState {
   const candidate = error as {
-    response?: { status?: number; data?: { reason_code?: unknown } }
+    response?: { status?: number; data?: { reason_code?: unknown; omitted_symbols?: unknown } }
   }
   const status = candidate?.response?.status
   const serverReason = candidate?.response?.data?.reason_code
@@ -223,7 +225,15 @@ export function classifyMarketBriefError(error: unknown): MarketBriefErrorState 
   } else {
     reasonCode = 'market_brief_generation_unavailable'
   }
-  return { reasonCode, ...ERROR_COPY[reasonCode] }
+  const rawSymbols = candidate?.response?.data?.omitted_symbols
+  const omittedSymbols = Array.isArray(rawSymbols)
+    ? rawSymbols
+        .filter((item): item is string => typeof item === 'string' && item.length > 0)
+        .slice(0, 50)
+    : undefined
+  return omittedSymbols && omittedSymbols.length > 0
+    ? { reasonCode, ...ERROR_COPY[reasonCode], omittedSymbols }
+    : { reasonCode, ...ERROR_COPY[reasonCode] }
 }
 
 export async function listMarketBriefs(): Promise<BriefIndex[]> {

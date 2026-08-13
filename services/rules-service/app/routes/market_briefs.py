@@ -84,17 +84,22 @@ def configure_market_brief_composer(composer: TrustedMarketBriefComposer | None)
     _composer = composer
 
 
-def _error_response(reason_code: MarketBriefReasonCode, *, status_code: int = 503) -> JSONResponse:
+def _error_response(
+    reason_code: MarketBriefReasonCode,
+    *,
+    status_code: int = 503,
+    omitted_symbols: tuple[str, ...] = (),
+) -> JSONResponse:
     message, recovery = _REASON_MESSAGES[reason_code]
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "code": "market_brief_generation_unavailable",
-            "reason_code": reason_code.value,
-            "message": message,
-            "recovery": recovery,
-        },
-    )
+    content: dict[str, object] = {
+        "code": "market_brief_generation_unavailable",
+        "reason_code": reason_code.value,
+        "message": message,
+        "recovery": recovery,
+    }
+    if omitted_symbols:
+        content["omitted_symbols"] = list(omitted_symbols)
+    return JSONResponse(status_code=status_code, content=content)
 
 
 def _read_unavailable() -> JSONResponse:
@@ -124,7 +129,7 @@ async def generate_market_brief(
     try:
         brief = DeterministicTemplateProvider().generate(_composer.assemble(db, owner_id=user_id, report_window=control.report_window))
     except MarketBriefCompositionError as error:
-        return _error_response(error.reason_code)
+        return _error_response(error.reason_code, omitted_symbols=error.omitted_symbols)
     row, replayed = MarketBriefRepository(db).get_or_create(brief)
     return JSONResponse(status_code=200 if replayed else 201, content={"brief_id": row.id, "replayed": replayed, "brief": brief.model_dump(mode="json")})
 

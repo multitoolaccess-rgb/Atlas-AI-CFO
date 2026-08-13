@@ -63,9 +63,14 @@ class MarketBriefCompositionError(ValueError):
         self,
         message: str,
         reason_code: MarketBriefReasonCode = MarketBriefReasonCode.MARKET_BRIEF_GENERATION_UNAVAILABLE,
+        omitted_symbols: tuple[str, ...] = (),
     ) -> None:
         super().__init__(message)
         self.reason_code = reason_code
+        # Bounded, sanitized symbols that the provider could not address.
+        # Carried on the error so the API can tell the user WHICH holdings
+        # blocked the brief instead of a dead "review the coverage details".
+        self.omitted_symbols = omitted_symbols
 
 
 class OperationalMarketResearchProviders:
@@ -288,6 +293,9 @@ class TrustedMarketBriefComposer:
 
         coverage = self._coverage(eligible, covered, omissions)
         percentage = _decimal(coverage.coverage_percentage) or Decimal(0)
+        omitted_symbols = tuple(
+            sorted({item.symbol for item in omissions if item.symbol != "UNKNOWN"})
+        )
         if coverage.covered_holding_count == 0:
             # Preserve the actionable provider boundary when every
             # non-empty symbol was rejected as unsupported. The old
@@ -302,15 +310,18 @@ class TrustedMarketBriefComposer:
                 raise MarketBriefCompositionError(
                     "No eligible holding is supported by the configured market-data provider.",
                     MarketBriefReasonCode.UNSUPPORTED_SYMBOL,
+                    omitted_symbols,
                 )
             raise MarketBriefCompositionError(
                 "No trustworthy priced holdings remain for this brief.",
                 MarketBriefReasonCode.NO_MARKET_ADDRESSABLE_HOLDINGS,
+                omitted_symbols,
             )
         if percentage < MINIMUM_COVERAGE:
             raise MarketBriefCompositionError(
                 "Portfolio coverage is below the minimum meaningful threshold.",
                 MarketBriefReasonCode.INSUFFICIENT_PORTFOLIO_COVERAGE,
+                omitted_symbols,
             )
 
         currencies = {covered_by_symbol[(holding.symbol or "").strip().upper()].currency for holding in covered}

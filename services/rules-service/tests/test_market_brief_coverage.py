@@ -105,12 +105,16 @@ def test_below_threshold_no_coverage_and_mixed_currency_fail_closed() -> None:
             session_for(holding("AAPL", 50), holding("MSFT", 50)), owner_id=1, report_window="latest"
         )
     assert below.value.reason_code is MarketBriefReasonCode.INSUFFICIENT_PORTFOLIO_COVERAGE
+    # The omitted symbols travel with the error so the API can tell the
+    # user WHICH holdings blocked the brief (not a dead "review details").
+    assert below.value.omitted_symbols == ("MSFT",)
 
     with pytest.raises(MarketBriefCompositionError) as none:
         TrustedMarketBriefComposer(Providers(missing={"AAPL"}), now=lambda: NOW).assemble(
             session_for(holding("AAPL", 100)), owner_id=1, report_window="latest"
         )
     assert none.value.reason_code is MarketBriefReasonCode.UNSUPPORTED_SYMBOL
+    assert none.value.omitted_symbols == ("AAPL",)
 
     with pytest.raises(MarketBriefCompositionError) as currency:
         TrustedMarketBriefComposer(Providers(currencies={"AAPL": "USD", "MSFT": "EUR"}), now=lambda: NOW).assemble(
@@ -125,6 +129,7 @@ def test_all_unsupported_symbols_report_an_actionable_reason() -> None:
             session_for(holding("AAPL", 50), holding("MSFT", 50)), owner_id=1, report_window="latest"
         )
     assert unsupported.value.reason_code is MarketBriefReasonCode.UNSUPPORTED_SYMBOL
+    assert unsupported.value.omitted_symbols == ("AAPL", "MSFT")
 
 
 def test_canonical_identity_includes_price_basis_and_coverage() -> None:

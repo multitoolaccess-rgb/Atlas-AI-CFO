@@ -57,4 +57,21 @@ describe('AnalystCoverageStatus', () => {
     expect(empty).toHaveTextContent('did not return usable analyst data')
     expect(empty).not.toHaveTextContent(/missing an API key|server configuration/i)
   })
+
+  it('does not claim every holding failed when only some requests errored', () => {
+    render(
+      <AnalystCoverageStatus
+        {...baseProps}
+        eligible={8}
+        covered={0}
+        requestErrors={1}
+      />,
+    )
+
+    const empty = screen.getByTestId('analyst-coverage-empty')
+    expect(empty).toHaveTextContent('could not be retrieved for 1 holding of 8 eligible holdings')
+    expect(empty).toHaveTextContent('the remaining 7 holdings returned no published consensus')
+    expect(empty).not.toHaveTextContent(/any of the 8/i)
+    expect(empty).not.toHaveTextContent(/missing an API key|server configuration/i)
+  })
 })

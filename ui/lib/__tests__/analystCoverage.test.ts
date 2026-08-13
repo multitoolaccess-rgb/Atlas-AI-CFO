@@ -25,4 +25,16 @@ describe('analystCoverageEmptyMessage', () => {
       'Analyst coverage could not be retrieved for any of the 1 eligible holding. 1 request did not return usable analyst data. Review holding symbols or retry later.',
     )
   })
+
+  it('does not say “any of the N” when only some requests failed', () => {
+    // Regression: the user's portfolio reported "8 eligible holdings, 1
+    // request did not return usable data" — the old copy claimed ALL 8
+    // failed. With 1 error + 7 no-consensus results, the message must
+    // not contradict its own count.
+    expect(
+      analystCoverageEmptyMessage({ eligible: 8, covered: 0, requestErrors: 1 }),
+    ).toBe(
+      'Analyst coverage could not be retrieved for 1 holding of 8 eligible holdings; the remaining 7 holdings returned no published consensus. Review holding symbols or retry later.',
+    )
+  })
 })
