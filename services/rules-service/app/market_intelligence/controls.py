@@ -21,6 +21,8 @@ class EndpointClass(StrEnum):
     ANALYST_RECOMMENDATION = "analyst_recommendation"
     PRICE_TARGET = "price_target"
     DIVIDENDS = "dividends"
+    MARKET_NEWS = "market_news"
+    MARKET_EARNINGS_CALENDAR = "market_earnings_calendar"
 
 
 class UsageRecord(StrictModel):

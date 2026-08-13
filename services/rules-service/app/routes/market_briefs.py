@@ -16,6 +16,7 @@ from app.market_intelligence.brief_repository import MarketBriefRepository
 from app.market_intelligence.briefing import DeterministicTemplateProvider, MarketBrief
 from app.market_intelligence.contracts import MarketBriefReasonCode, StrictModel
 from app.market_intelligence.composition import MarketBriefCompositionError, TrustedMarketBriefComposer
+from app.market_intelligence.pulse import MarketPulseComposer, MarketPulseSnapshot, build_operational_market_pulse
 from app.models.market_brief import MarketBrief as StoredBrief
 from app.routes.recommendations_derived import _get_db, _resolve_db_user_id
 
@@ -23,6 +24,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["market-briefs"], prefix="/api/v1/market-briefs")
 _composer: TrustedMarketBriefComposer | None = None
+_pulse: MarketPulseComposer | None = None
+
+
+def configure_market_pulse(pulse: MarketPulseComposer | None) -> None:
+    global _pulse
+    _pulse = pulse
 
 
 class GenerateMarketBriefControl(StrictModel):
@@ -145,6 +152,25 @@ async def generate_market_brief(
         return _error_response(MarketBriefReasonCode.MARKET_BRIEF_GENERATION_UNAVAILABLE)
     row, replayed = MarketBriefRepository(db).get_or_create(brief)
     return JSONResponse(status_code=200 if replayed else 201, content={"brief_id": row.id, "replayed": replayed, "brief": brief.model_dump(mode="json")})
+
+
+@router.get("/pulse", response_model=None)
+async def get_market_pulse(
+    user_sub: Annotated[str, Depends(require_user)],
+) -> JSONResponse:
+    """Zero-dollar, quota-aware market pulse (indices, news, earnings, scanner).
+
+    The response is composed server-side from approved free endpoints only;
+    unavailable categories are listed truthfully in ``categories_unavailable``.
+    """
+    if _pulse is None:
+        return _error_response(MarketBriefReasonCode.PROVIDER_CONFIGURATION_MISSING)
+    try:
+        pulse: MarketPulseSnapshot = _pulse.assemble()
+    except Exception as error:  # noqa: BLE001 - sanitizing pulse boundary
+        logger.warning("bounded market-pulse failure: %s", type(error).__name__)
+        return _error_response(MarketBriefReasonCode.MARKET_BRIEF_GENERATION_UNAVAILABLE)
+    return JSONResponse(content=pulse.model_dump(mode="json"))
 
 
 @router.get("/{brief_id}", response_model=None)

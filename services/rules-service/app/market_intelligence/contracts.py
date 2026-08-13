@@ -229,6 +229,67 @@ class CompanyProfile(StrictModel):
             return None
 
 
+class MarketIndexQuote(StrictModel):
+    """A bounded index-direction record. ``symbol`` is an approved ETF proxy
+    when the free tier cannot quote the raw index (e.g. SPY for S&P 500),
+    and ``label`` states exactly what it represents.
+    """
+    schema_version: Literal["MarketIndexQuote/v1"] = "MarketIndexQuote/v1"
+    label: str = Field(min_length=1, max_length=64)
+    symbol: str = Field(min_length=1, max_length=10)
+    current_price: str = Field(max_length=48)
+    previous_close: str | None = Field(default=None, max_length=48)
+    direction: Literal["up", "down", "flat", "unavailable"] = "unavailable"
+    is_etf_proxy: bool = False
+    source: SourceMetadata
+
+    @field_validator("current_price", "previous_close")
+    @classmethod
+    def canonical_index_decimal(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        decimal = Decimal(value)
+        if not decimal.is_finite() or decimal <= 0:
+            raise ValueError("index price must be a positive finite decimal")
+        return format(decimal.normalize(), "f")
+
+
+class MarketNewsItem(StrictModel):
+    """A bounded market-wide news headline with source and freshness."""
+    schema_version: Literal["MarketNewsItem/v1"] = "MarketNewsItem/v1"
+    headline: str = Field(min_length=1, max_length=300)
+    summary: str | None = Field(default=None, max_length=1000)
+    publisher: str | None = Field(default=None, max_length=120)
+    source: SourceMetadata
+
+    @field_validator("headline", "summary", "publisher")
+    @classmethod
+    def sanitize_market_news_text(cls, value: str | None, info: ValidationInfo) -> str | None:
+        if value is None:
+            return None
+        cleaned = _CONTROL.sub(" ", value).strip()
+        if info.field_name == "headline" and not cleaned:
+            raise ValueError("headline must contain visible text")
+        return cleaned[:1000]
+
+
+class MarketPulseSnapshot(StrictModel):
+    """The bounded, zero-dollar market-pulse layer (Market Intelligence v2).
+
+    Every category is truthful: unavailable categories expose their
+    limitation instead of fabricating data.
+    """
+    schema_version: Literal["MarketPulseSnapshot/v1"] = "MarketPulseSnapshot/v1"
+    indices: tuple[MarketIndexQuote, ...] = ()
+    news: tuple[MarketNewsItem, ...] = ()
+    earnings_calendar: tuple[EarningsEvent, ...] = ()
+    scanner: tuple[MarketQuoteSnapshot, ...] = ()
+    scanned_symbol_count: int = Field(default=0, ge=0, le=502)
+    total_universe_size: int = Field(default=0, ge=0, le=502)
+    categories_unavailable: tuple[str, ...] = ()
+    generated_at: datetime
+
+
 class HoldingEvidence(StrictModel):
     """Market Intelligence v2 per-holding intelligence packet.
 

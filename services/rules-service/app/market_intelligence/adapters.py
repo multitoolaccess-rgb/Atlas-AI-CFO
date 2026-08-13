@@ -11,8 +11,8 @@ import httpx
 
 from .contracts import (
     AnalystRecommendation, CompanyNewsItem, CompanyProfile, DividendEvent, EarningsEvent, EarningsResult,
-    FailureClass, Freshness, MarketQuoteSnapshot, NormalizedProviderFailure, PriceTarget, ProviderResult,
-    SecCompanyFact, SecFilingEvent, SourceMetadata, normalize_cik,
+    FailureClass, Freshness, MarketNewsItem, MarketQuoteSnapshot, NormalizedProviderFailure, PriceTarget,
+    ProviderResult, SecCompanyFact, SecFilingEvent, SourceMetadata, normalize_cik,
 )
 from .controls import BoundedCache, EndpointClass, PerSecondPacer, RateLimitExceeded, SlidingWindowPacer, UsageLedger, deduplicate_records
 from .market_calendar import LIVE_QUOTE_MAX_AGE, classify_quote
@@ -393,6 +393,82 @@ class FinnhubAdapter(_Adapter):
         except (KeyError, TypeError, ValueError, OverflowError):
             return self._failure(endpoint, FailureClass.INVALID_PAYLOAD, "Finnhub dividend payload was invalid.")
         self.cache.put(key, events, ttl_seconds=3600)
+        self.usage.record(self.provider, endpoint, cache_hit=False)
+        return ProviderResult(value=events)
+
+
+    def market_news(self, *, limit: int = 15) -> ProviderResult[list[MarketNewsItem]]:
+        """Free-tier general market news (single call, bounded)."""
+        endpoint = EndpointClass.MARKET_NEWS
+        blocked = self._permitted(endpoint)
+        if blocked:
+            return blocked
+        if not self._api_key:
+            return self._failure(endpoint, FailureClass.UNCONFIGURED, "Finnhub API key is not configured.")
+        key = "market-news:general"
+        cached = self.cache.get(key)
+        if cached is not None:
+            self.usage.record(self.provider, endpoint, cache_hit=True)
+            return ProviderResult(value=cached, cache_hit=True)
+        payload, failure = self._request(endpoint, f"{self.BASE_URL}/news", params={"category": "general", "token": self._api_key})
+        if failure:
+            return failure
+        try:
+            assert isinstance(payload, list)
+            items = [
+                MarketNewsItem(
+                    headline=str(row["headline"]),
+                    summary=str(row["summary"]) if row.get("summary") else None,
+                    publisher=str(row["source"]) if row.get("source") else None,
+                    source=SourceMetadata(
+                        provider=self.provider,
+                        source_url=str(row["url"]),
+                        retrieved_at=self._now(),
+                        published_at=datetime.fromtimestamp(int(row["datetime"]), UTC) if row.get("datetime") else None,
+                    ),
+                )
+                for row in payload[:limit]
+                if isinstance(row, dict) and row.get("headline")
+            ]
+            items = deduplicate_records(items, lambda item: item.source.source_url)
+        except (KeyError, TypeError, ValueError, OverflowError):
+            return self._failure(endpoint, FailureClass.INVALID_PAYLOAD, "Finnhub market news payload was invalid.")
+        self.cache.put(key, items, ttl_seconds=900)
+        self.usage.record(self.provider, endpoint, cache_hit=False)
+        return ProviderResult(value=items)
+
+    def market_earnings_calendar(self, *, from_date: str, to_date: str) -> ProviderResult[list[EarningsEvent]]:
+        """Market-wide earnings calendar (symbol-less) for a bounded window."""
+        endpoint = EndpointClass.MARKET_EARNINGS_CALENDAR
+        blocked = self._permitted(endpoint)
+        if blocked:
+            return blocked
+        if not self._api_key:
+            return self._failure(endpoint, FailureClass.UNCONFIGURED, "Finnhub API key is not configured.")
+        key = f"market-earnings:{from_date}:{to_date}"
+        cached = self.cache.get(key)
+        if cached is not None:
+            self.usage.record(self.provider, endpoint, cache_hit=True)
+            return ProviderResult(value=cached, cache_hit=True)
+        payload, failure = self._request(endpoint, f"{self.BASE_URL}/calendar/earnings", params={"from": from_date, "to": to_date, "token": self._api_key})
+        if failure:
+            return failure
+        try:
+            assert isinstance(payload, dict)
+            events = []
+            for row in payload.get("earningsCalendar", [])[:60]:
+                if not isinstance(row, dict) or not row.get("symbol"):
+                    continue
+                symbol = row["symbol"]
+                events.append(EarningsEvent(
+                    symbol=symbol,
+                    event_date=datetime.fromisoformat(f"{row['date']}T00:00:00+00:00") if row.get("date") else self._now(),
+                    source=SourceMetadata(provider=self.provider, source_url=f"{self.BASE_URL}/calendar/earnings", retrieved_at=self._now()),
+                ))
+            events = deduplicate_records(events, lambda event: (event.symbol, event.event_date))
+        except (KeyError, TypeError, ValueError):
+            return self._failure(endpoint, FailureClass.INVALID_PAYLOAD, "Finnhub earnings calendar payload was invalid.")
+        self.cache.put(key, events, ttl_seconds=1800)
         self.usage.record(self.provider, endpoint, cache_hit=False)
         return ProviderResult(value=events)
 
