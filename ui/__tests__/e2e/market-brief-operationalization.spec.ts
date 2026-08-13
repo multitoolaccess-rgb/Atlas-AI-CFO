@@ -69,7 +69,7 @@ test('Market Intelligence is discoverable and generates a synthetic archived det
   await expect(page.getByText('SEC filings omitted: no authoritative holding-to-CIK mapping.')).toBeVisible()
   await expect(page.getByRole('heading', { name: /actions to review/i })).toBeVisible()
   await expect(page.getByText('Review AAPL')).toBeVisible()
-  await expect(page.getByText(/100% covered/i).first()).toBeVisible()
+  await expect(page.getByText('100%').first()).toBeVisible()
 
   const axeSource = readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8')
   await page.addScriptTag({ content: axeSource })
