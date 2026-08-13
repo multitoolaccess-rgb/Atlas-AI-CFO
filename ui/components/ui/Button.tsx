@@ -23,7 +23,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<NonNullable<ButtonProps['variant']>, string> = {
   primary:
-    'bg-[var(--primary-500)] text-[var(--text-on-brand)] hover:bg-[var(--primary-600)] hover:shadow-[var(--shadow-3)] active:bg-[var(--primary-700)] disabled:bg-[var(--slate-400)]',
+    'bg-[var(--interactive-primary)] text-[var(--accent-on-primary)] hover:bg-[var(--interactive-hover)] hover:shadow-[var(--shadow-3)] active:bg-[var(--interactive-active)] disabled:bg-[var(--slate-400)]',
   secondary:
     'bg-[var(--slate-100)] text-[var(--text-primary)] hover:bg-[var(--slate-200)] active:bg-[var(--slate-300)] disabled:bg-[var(--slate-100)] disabled:opacity-50 dark:bg-[var(--slate-200)] dark:hover:bg-[var(--slate-300)] dark:active:bg-[var(--slate-400)]',
   tertiary:
@@ -52,7 +52,7 @@ const Button: React.FC<ButtonProps> = ({
   ...rest
 }) => {
   const baseClasses =
-    'inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-500)] disabled:cursor-not-allowed';
+    'inline-flex min-h-11 items-center justify-center gap-2 font-medium transition-[background-color,border-color,box-shadow,transform,color] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-focus)] active:scale-[0.98] disabled:cursor-not-allowed';
 
   return (
     <button

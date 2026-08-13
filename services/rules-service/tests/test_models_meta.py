@@ -42,6 +42,25 @@ EXPECTED_TABLES = {
     # Phase 1 — immutable forecast identity and version history.
     "forecasts",
     "forecast_versions",
+    # Phase 2 Slice 1 — deterministic recommendation ledger and
+    # append-only decision journal. These models are now part of the
+    # merged metadata contract and must remain inside the FK closure.
+    "recommendations",
+    "decision_journal_entries",
+    # Phase 3 Slice 1 — immutable outcome-evaluation substrate (privacy
+    # safe: allowlisted evidence_source_kind + hash-only evidence ref).
+    "outcome_evaluations",
+    # Phase 4 Slice 1 — immutable decision context, correction history,
+    # and its append-only audit stream.
+    "decision_history_entries",
+    "decision_audit_events",
+    # Phase 5 — immutable, owner-scoped deterministic market brief archive.
+    "market_briefs",
+    "market_brief_delivery_preferences",
+    "market_brief_delivery_attempts",
+    # Phase 6 Slice 1 — owner-scoped immutable Scenario Lab identity/history.
+    "scenarios",
+    "scenario_versions",
 }
 
 

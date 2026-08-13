@@ -23,6 +23,20 @@ beforeEach(() => {
 })
 
 describe('useCachedFetch — cache key is scoped by deps', () => {
+  it('preserves the original failure for status-aware callers', async () => {
+    const failure = Object.assign(new Error('Request failed with status code 502'), {
+      response: { status: 502, data: { detail: 'upstream unavailable' } },
+    })
+    const fetcher = vi.fn().mockRejectedValue(failure)
+
+    const { result } = renderHook(() =>
+      useCachedFetch('dashboard-summary', fetcher, []),
+    )
+
+    await waitFor(() => expect(result.current.errorCause).toBe(failure))
+    expect(result.current.error).toBe('Request failed with status code 502')
+  })
+
   it('refetches when the deps array changes (time-range change)', async () => {
     const fetcher = vi
       .fn()

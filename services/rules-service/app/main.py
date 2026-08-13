@@ -20,13 +20,9 @@ Settings-page "Network Error" report).
 Phase 2-+: ``create_all`` was replaced by alembic migrations (Phase 3)
 + a startup health probe + a SMART CORS policy (excludes :5173).
 
-Phase 11 (self-healing): on app boot we run ``alembic upgrade head``
-programmatically — if the developer added + committed an alembic
-revision but forgot to run it locally, the next ``uvicorn`` cold
-start applies the missing migration instead of 500-ing on the first
-write that hits the new column (the original ``OperationalError`` on
-``import_batches.preview_lines``). Idempotent — a re-start against
-an already-at-head DB is a no-op.
+Schema migrations are an explicit operator action. The development lifecycle
+must not advance a database merely because a service is started; this prevents
+an unmerged migration from being applied accidentally.
 
 Phase 11 (reviewer #1 hardening): multi-worker uvicorn runs the
 startup hook once per worker. To avoid the same migration running
@@ -50,6 +46,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 
 from app.config import settings
+from app.market_intelligence.composition import build_operational_market_brief_composer
+from app.routes.market_briefs import configure_market_brief_composer
 from app.database import Base, SessionLocal, engine
 from app.routes import (
     accounts_router,
@@ -83,6 +81,14 @@ from app.routes import (
     transactions_router,
     users_router,
     recommendations_router,
+    # Phase 2 Slice 1 commit-4 — deterministic recommendation GET +
+    # append-only decision-journal POST routes. Re-uses the existing
+    # ``Settings.atlas_forecast_read_api_enabled`` Phase 1 gate. NO new
+    # flag introduced. NO mutable Phase 2 CRUD. NO autonomous execution.
+    recommendations_derived_router,
+    decision_history_router,
+    market_briefs_router,
+    scenarios_router,
 )
 
 LOG = logging.getLogger("uvicorn.error")
@@ -140,11 +146,13 @@ app = FastAPI(
     ),
 )
 
-# CORS -- explicitly allow the Next.js dev server (3000) + the
+# CORS -- explicitly allow the Atlas Next.js dev server (3333) + the
 # rules-service itself (8000) + the wealthiq dev server (3001 for
 # legacy baseline). The :5173 from the Phase 3 lift was a Vite dev
 # port that the wealthiq project no longer uses (Phase 4 dropped it).
 ALLOWED_CORS_ORIGINS = {
+    "http://localhost:3333",
+    "http://127.0.0.1:3333",
     "http://localhost:3000",
     "http://localhost:8000",
     "http://localhost:3001",
@@ -152,6 +160,18 @@ ALLOWED_CORS_ORIGINS = {
     "http://127.0.0.1:8000",
     "http://127.0.0.1:3001",
 }
+
+# A developer may override the Atlas UI port through the lifecycle scripts.
+# Keep this bounded to explicit local origins; an arbitrary environment value
+# must never turn into a remote CORS origin.
+_atlas_ui_port = os.environ.get("ATLAS_UI_PORT", "3333")
+if _atlas_ui_port.isdecimal() and 0 < int(_atlas_ui_port) <= 65535:
+    ALLOWED_CORS_ORIGINS.update(
+        {
+            f"http://localhost:{_atlas_ui_port}",
+            f"http://127.0.0.1:{_atlas_ui_port}",
+        }
+    )
 
 app.add_middleware(
     CORSMiddleware,
@@ -277,6 +297,10 @@ def _run_alembic_upgrade_on_boot() -> None:
     re-enters at head — a no-op as confirmed by
     ``test_alembic_alembic_version_at_head_after_upgrade``.
     """
+    if os.environ.get("ATLAS_AUTO_MIGRATE") != "1":
+        LOG.info("Automatic migrations are disabled; run Alembic explicitly when approved.")
+        return
+
     try:
         from alembic import command as _alembic_cmd
         from alembic.config import Config as _AlembicConfig
@@ -438,6 +462,25 @@ app.include_router(recommendations_router)
 # Phase 2 — policy-based rule evaluation.
 app.include_router(evaluate_router)
 app.include_router(forecasts_generation_router)
+# Phase 2 Slice 1 commit-4 — deterministic recommendation GET +
+# append-only decision-journal POST routes. Re-uses the existing
+# ``Settings.atlas_forecast_read_api_enabled`` Phase 1 gate. NO new
+# flag introduced. NO mutable Phase 2 CRUD. NO autonomous execution.
+app.include_router(recommendations_derived_router)
+app.include_router(decision_history_router)
+app.include_router(market_briefs_router)
+# Phase 6 Slice 1 — default-off owner-scoped Scenario Lab backend only.
+app.include_router(scenarios_router)
+
+
+@app.on_event("startup")
+def _configure_market_brief_composer() -> None:
+    """Wire the trusted composer only after explicit server-side opt-in.
+
+    This hook performs no external request and leaves the route unavailable
+    under checked-in default-off settings or incomplete local credentials.
+    """
+    configure_market_brief_composer(build_operational_market_brief_composer(settings))
 
 
 @app.on_event("startup")

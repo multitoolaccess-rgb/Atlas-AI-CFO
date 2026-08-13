@@ -134,7 +134,7 @@ async function ensureAuth(): Promise<void> {
         )
       }
       throw new AuthBootstrapError(
-        'The backend is not reachable. Make sure rules-service is running on :8000.',
+        'The backend is not reachable. Start Atlas with `./start.sh`, then retry.',
         'down',
       )
     }
@@ -581,7 +581,7 @@ export default function AuthBootstrapProvider({
           : {
             title: 'Authentication bootstrap failed',
             message:
-              'The rules-service refused to issue a local JWT. Make sure the backend is running on :8000 (`bash scripts/start.sh`), then click Retry.',
+              'The Rules Service refused to issue a local session. Start Atlas with `./start.sh`, then click Retry.',
           }
 
     return (
@@ -611,7 +611,7 @@ export default function AuthBootstrapProvider({
         )}
         <div className="mt-6 flex flex-col gap-2 border-t border-outline-variant/20 pt-4">
           <p className="text-xs text-on-surface-variant">
-            If Retry doesn't work, your stored session key may be corrupted
+            If Retry doesn&apos;t work, your stored session key may be corrupted
             or the interceptor is locked. Clear the local session and reload
             to start fresh.
           </p>

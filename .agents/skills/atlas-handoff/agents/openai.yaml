@@ -1,0 +1,4 @@
+interface:
+  display_name: "Atlas Handoff"
+  short_description: "Load and close authoritative Atlas task handoffs"
+  default_prompt: "Use $atlas-handoff to load the current Atlas project handoff before continuing material work."

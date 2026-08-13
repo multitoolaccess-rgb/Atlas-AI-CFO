@@ -121,8 +121,10 @@ step_typecheck() {
 
 # ---- Step 4: Playwright browser smoke test ----
 step_playwright() {
-  cd "$UI_DIR"
-  ./node_modules/.bin/playwright test
+  # The browser suite exercises the real authenticated dashboard. Delegate
+  # to the service-owning harness so canonical CI does not rely on
+  # pre-existing local processes.
+  bash "$SCRIPT_DIR/test-e2e.sh"
 }
 
 # ---- Run the enabled steps ----

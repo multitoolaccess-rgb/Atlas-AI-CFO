@@ -33,6 +33,8 @@ import AnimatedRadialProgress from '@/components/charts/AnimatedRadialProgress'
 import TiltCard from '@/components/ui/TiltCard'
 import Button from '@/components/ui/Button'
 import ErrorBanner from '@/components/ui/ErrorBanner'
+import EmptyState from '@/components/ui/EmptyState'
+import PageHeader from '@/components/ui/PageHeader'
 import { CountUp, Input, Select, Modal } from '@/components/ui'
 import {
   rulesService,
@@ -44,6 +46,7 @@ import {
   type Profile,
 } from '@/lib/api'
 import { classifyErrorMessage } from '@/lib/errors'
+import { analystCoverageEmptyMessage } from '@/lib/analystCoverage'
 import { useThemeColors } from '@/lib/themeColors'
 import { onDataRefresh } from '@/lib/dataRefresh'
 import {
@@ -680,6 +683,7 @@ export default function PortfolioPage() {
     const aggregate = {
       covered: 0,
       excluded: 0,
+      requestErrors: 0,
       strongBuy: 0,
       buy: 0,
       hold: 0,
@@ -698,7 +702,12 @@ export default function PortfolioPage() {
       }
       const sym = h.symbol!.toUpperCase()
       const entry = ratingsByTicker[sym]
-      if (!entry || entry.state !== 'ok') continue
+      if (!entry) continue
+      if (entry.state === 'error') {
+        aggregate.requestErrors += 1
+        continue
+      }
+      if (entry.state !== 'ok') continue
       const trends = entry.data.recommendation_trends ?? []
       const months4 = trends.slice(0, 4).reverse()
       // Only count as "covered" when we have at least one monthly row
@@ -830,10 +839,11 @@ export default function PortfolioPage() {
   return (
     <PageLayout>
       <AtlasFilterProvider>
-      <h1 className="headline-xl text-primary mb-2">Portfolio</h1>
-      <p className="body-md text-secondary mb-6">
-        Your holdings, allocation, and real-time values.
-      </p>
+      <PageHeader
+        title="Portfolio"
+        description="Your holdings, allocation, and real-time values."
+        className="mb-6"
+      />
 
       {/* Floating bar — URL-synced via ?range=… (page-default YTD).
           Visual-only today: portfolio monthly-trend logic is not
@@ -1019,16 +1029,12 @@ export default function PortfolioPage() {
             </div>
           ))}
         </div>
-      ) : Object.keys(holdingsByAccount).length === 0 ? (
-        <div className="card p-8 text-center">
-          <Landmark className="w-8 h-8 text-tertiary mx-auto mb-2" aria-hidden="true" />
-          <p className="text-secondary mb-2">No holdings yet.</p>
-          <p className="text-sm text-tertiary">
-            Export your Fidelity Portfolio Positions as CSV and click{' '}
-            <strong>Import Portfolio CSV</strong> above, or click{' '}
-            <strong>Add Holding</strong> to record one manually.
-          </p>
-        </div>
+      ) : Object.keys(holdingsByAccount).length === 0 ? (<EmptyState
+            icon={<Landmark className="h-6 w-6" />}
+            title="Build your portfolio view"
+            description="Add a holding or import a position file so Atlas can organize the investments you choose to review."
+            guidance={<p className="text-sm">Use Import Portfolio CSV or Add Holding above. This empty state does not assume positions or performance.</p>}
+          />
       ) : (
         <motion.div
           className="space-y-8"
@@ -1049,7 +1055,7 @@ export default function PortfolioPage() {
           {(tradableHoldingsForCoverage.length - analystCoverageAggregate.excluded) > 0 && (
             <TiltCard className="h-full">
             <section
-              className="card p-6 border-l-4 border-l-[var(--primary-400)] h-full"
+              className="surface-focal card p-6 border-l-4 border-l-[var(--primary-400)] h-full"
               data-testid="analyst-coverage-card"
             >
               <div className="flex items-center gap-2 mb-4">
@@ -1165,8 +1171,7 @@ export default function PortfolioPage() {
                     className="text-xs text-tertiary mt-3"
                     data-testid="analyst-coverage-empty"
                   >
-                    No analyst coverage available — Finnhub may be unreachable
-                    or missing an API key.
+                    {analystCoverageEmptyMessage(analystCoverageAggregate.requestErrors)}
                     {analystCoverageAggregate.excluded > 0 && ` ${analystCoverageAggregate.excluded} excluded (no consensus).`}
                   </p>
                 ) : (
@@ -1926,7 +1931,7 @@ export default function PortfolioPage() {
           </div>
           <p className="text-xs text-tertiary">
             Server auto-derives position value as <code>last price × quantity</code>{' '}
-            when both are updated. The parent account's balance is recomputed
+            when both are updated. The parent account&apos;s balance is recomputed
             when the patch lands.
           </p>
           {editError && (
@@ -1985,7 +1990,7 @@ export default function PortfolioPage() {
         <div className="space-y-4" data-testid="delete-holding-modal">
           <p className="text-sm">
             This permanently removes the position from your portfolio. The
-            parent account's balance is recomputed after the row is gone —
+            parent account&apos;s balance is recomputed after the row is gone —
             there is no undo.
           </p>
           {deleteHoldingRow && (

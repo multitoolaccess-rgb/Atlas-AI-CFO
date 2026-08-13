@@ -21,6 +21,8 @@ import {
 } from '@/lib/api'
 import { classifyErrorMessage } from '@/lib/errors'
 import { fireDataRefresh } from '@/lib/dataRefresh'
+import AppearanceSection from '@/components/settings/AppearanceSection'
+import PageHeader from '@/components/ui/PageHeader'
 
 /**
  * Phase F2 #2 -- delegate to the centralized classifier imported
@@ -44,11 +46,11 @@ const CURRENCY_OPTIONS = [
  *  Kept in one place so a future tweak (e.g. greener "imported")
  *  lands at one site, not five. */
 const SOURCE_COLOR: Record<MerchantRuleSource, string> = {
-  system: '#64748b',     // slate — neutral, the "always there" baseline
-  manual: '#0ea5e9',     // sky — user-initiated
-  'tag-rule': '#14b8a6', // teal — Activity page's promote flow
-  llm: '#f97316',        // orange — forward-compat for Pass-4 writes
-  imported: '#16a34a',   // green — CSV audit trail
+  system: '#475569',     // slate — neutral, the "always there" baseline
+  manual: '#0369a1',     // deep sky — user-initiated, readable on light canvas
+  'tag-rule': '#0f766e', // deep teal — Activity page's promote flow
+  llm: '#c2410c',        // deep orange — forward-compat for Pass-4 writes
+  imported: '#15803d',   // deep green — CSV audit trail
 }
 
 /** Phase 27 — label text for the per-source chip + filter pill.
@@ -395,7 +397,7 @@ function MerchantRulesCard({
         {sourceFilterOptions.map((opt) => {
           const isActive = sourceFilter === opt.value
           const tint =
-            opt.value === 'all' ? '#94a3b8' : SOURCE_COLOR[opt.value]
+            opt.value === 'all' ? '#475569' : SOURCE_COLOR[opt.value]
           return (
             <button
               key={opt.value}
@@ -463,8 +465,8 @@ function MerchantRulesCard({
           {(() => {
             // Phase D — render group headers between category groups.
             const GROUP_COLORS: Record<string, string> = {
-              Income: '#059669', Expenses: '#DC2626', Debt: '#F59E0B',
-              Investments: '#0EA5E9', Transfer: '#9CA3AF',
+              Income: '#047857', Expenses: '#B91C1C', Debt: '#B45309',
+              Investments: '#0369A1', Transfer: '#4B5563',
             }
             const elements: React.ReactNode[] = []
             let lastGroup = ''
@@ -616,7 +618,7 @@ function MerchantRulesCard({
           {showCategoryForm ? 'Cancel' : 'Add new category'}
         </Button>
         <span className="label-sm text-tertiary">
-          Need a category the rules dropdown doesn't list? Create one
+          Need a category the rules dropdown doesn&apos;t list? Create one
           here first, then add the rule.
         </span>
       </div>
@@ -1656,10 +1658,13 @@ export default function SettingsPage() {
 
   return (
     <PageLayout>
-      <h1 className="headline-xl text-primary mb-2">Settings</h1>
-      <p className="body-md text-secondary mb-6">
-        Your profile, currency preference, and account preferences.
-      </p>
+      <PageHeader
+        title="Settings"
+        description="Your profile, currency preference, and account preferences."
+        className="mb-6"
+      />
+
+      <AppearanceSection />
 
       {error && (
         // variant="warning" (amber) — the profile-load failure is
@@ -2244,7 +2249,7 @@ export default function SettingsPage() {
               <strong className="text-primary">
                 {confirmingMemberDelete.name}
               </strong>
-              . They'll stop appearing in the Accounts page member select.
+              . They&apos;ll stop appearing in the Accounts page member select.
               Linked accounts are NOT reassigned — archive only succeeds when
               zero active accounts reference this member.
             </p>
@@ -2341,7 +2346,7 @@ export default function SettingsPage() {
             </p>
             <p className="text-sm text-tertiary">
               You can restore it later from the archived filter
-              toggle (set it to "Archived only" or "All rules").
+              toggle (set it to &quot;Archived only&quot; or &quot;All rules&quot;).
               The boot-time seed helper will not re-insert
               this keyword on the next BE restart.
             </p>

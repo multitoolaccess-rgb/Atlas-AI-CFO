@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react
 import PageLayout from '@/components/layout/PageLayout'
 import { GlobalFilterProvider, useGlobalFilters, dateRangeFromPreset } from '@/components/ui/GlobalFilterContext'
 import FloatingTimeRangeBar from '@/components/ui/FloatingTimeRangeBar'
+import PageHeader from '@/components/ui/PageHeader'
 import {
   rulesService,
   type IncomeBreakdownResponse,
@@ -103,11 +104,10 @@ function IncomeContent() {
 
   return (
     <div className="space-y-8">
-      {/* Page Header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold text-on-surface tracking-tight">Income</h1>
-        <p className="text-sm text-on-surface-variant">Track all income sources and trends</p>
-      </div>
+      <PageHeader
+        title="Income"
+        description="Track all income sources and trends."
+      />
 
       {/* Migrated from <FloatingFilterBar> colocated selector — bar provides its own. */}
       <FloatingTimeRangeBar />

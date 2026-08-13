@@ -60,6 +60,15 @@ coverage/
 ui/coverage/
 ui/playwright-report/
 ui/test-results/
+# Retain only curated Indigo light/dark 1440px route evidence. Responsive,
+# alternate-profile, traces, videos, and full-matrix captures stay local/CI.
+ui/artifacts/v2.1/*-390.png
+ui/artifacts/v2.1/*-768.png
+ui/artifacts/v2.1/*-1024.png
+ui/artifacts/v2.1/*-1728.png
+ui/artifacts/v2.1/*-vermilion-*.png
+ui/artifacts/v2.1/*-ion-*.png
+ui/artifacts/v2.1/*-indigo-system-*.png
 *.tsbuildinfo
 .swc/
 

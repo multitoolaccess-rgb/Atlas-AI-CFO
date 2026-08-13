@@ -180,7 +180,11 @@ test('Debts page loads without errors', async ({ page }) => {
   await page.waitForLoadState('networkidle')
 
   await expect(page.locator('h1:has-text("Debts")')).toBeVisible({ timeout: 10_000 })
-  await expect(page.locator('text=Total Debt').or(page.locator('text=No debt accounts'))).toBeVisible({ timeout: 5_000 })
+  await expect(
+    page.getByText('Total Debt', { exact: true }).first().or(
+      page.getByText('No debt accounts', { exact: true }),
+    ),
+  ).toBeVisible({ timeout: 5_000 })
 
   expect(errors).toEqual([])
 })

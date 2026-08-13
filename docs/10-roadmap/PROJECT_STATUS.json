@@ -1,38 +1,14 @@
 {
-  "active_work": [
+  "active_work": [],
+  "blockers": [
     {
-      "branch": "codex/phase-1-forecast-generation-route",
-      "id": "work-p1-forecast-generation-route",
-      "issue": "",
-      "objective": "Implement only the bounded authenticated POST /api/v1/goals/{goal_id}/forecasts route with ownership authorization, idempotency, conditional headers, default-off persistence 503, sanitized 4xx/5xx envelopes, and HATEOAS links. NO mutable forecast CRUD. NO request-path shadowing. NO early Slice E.",
-      "paths": [
-        "services/rules-service/app/routes/forecasts_generation.py",
-        "services/rules-service/app/main.py",
-        "services/rules-service/tests/test_routes_forecast_generation.py"
-      ],
-      "phase_id": "phase-1",
-      "pr": null,
-      "risk_tier": "high",
-      "status": "in_progress",
-      "tests": [
-        "9-case status/header/body matrix (200 idempotent replay / 201 new generation / 400 conditional mismatch / 404 cross-user indistinguishability / 409 stable 409 / 412 precondition / 422 sanitized validation / 503 persistence disabled)",
-        "Idempotency + If-None-Match + If-Match regression",
-        "Ownership-before-adapter + cross-user 404 indistinguishability",
-        "Default-off persistence 503 + early-disabled-stop before adapter invocation"
-      ],
-      "title": "Phase 1 Slice D-post: Authenticated forecast generation HTTP route"
-    },
-    {
-      "branch": "codex/planned-slice-e",
-      "id": "work-p1-flags-observability-shadow-validation",
-      "phase_id": "phase-1",
-      "pr": null,
-      "risk_tier": "high",
-      "status": "planned",
-      "title": "Phase 1 Slice E: Flags, Observability, Shadow Validation"
+      "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
+      "id": "external-multi-user-retention-deletion-blocker",
+      "owner": "product-security",
+      "related": "ADR-006, issue #3, PR #4",
+      "status": "open"
     }
   ],
-  "blockers": [],
   "commit_pr_evidence": [
     {
       "commit": "c0f5287",
@@ -122,6 +98,51 @@
       "review_evidence": "code-reviewer-minimax-m3 (fresh independent review of new head) APPROVE_FOR_MERGE on commit 175ac8c \u2014 bounded mapper-only fix A + fix B, scope disciplined to mapper + mapper tests only.",
       "slice": "D-post",
       "work_id": "work-p1-forecast-generation-route"
+    },
+    {
+      "commit": "feeb14171cfed45c8a575627a1759d5a414e5e51",
+      "description": "PR #20 cycle-1 cert corrections: Class A observability + Class B dashboard half-open interval + new regression tests + docs/10-roadmap/phase-1-evidence/alembic-round-trip-evidence.md"
+    },
+    {
+      "commit": "efe972d41a8290647280405b9b09ab938673f23e",
+      "description": "PR #20 cycle-5 mirror: function-scoped autouse _observability_isolation fixture in test_observability.py + identical mirror in test_shadow_validate.py"
+    },
+    {
+      "commit": "02bbd58f62e32c13362680c9a31dc9710c132d1c",
+      "description": "PR #20 squash on main with audit-clear amended subject: 'fix(phase1): PR #20 cert rollup (cycle-1 corrections + cycle-5 scoped test)'"
+    },
+    {
+      "commit": "1032ec9998b96046030b700e3f84a73b3797a776",
+      "description": "PR #20-followup migration downgrade corrective: drops deprecated if_exists=True kwarg from batch_op.drop_index(...) inside downgrade() of services/rules-service/alembic/versions/e9f0a1b2c3d4_add_family_members_and_backfill.py"
+    },
+    {
+      "commit": "08f6f811da7c325da8a3d60adae9f2d9c2d210e8",
+      "description": "Final certified main SHA: 'fix(db): correct Phase 1 finlynq-compatible alembic downgrade path' (annotated tag phase-1-complete resolves to this SHA on remote)"
+    },
+    {
+      "branch": "codex/phase-2-decision-journal-substrate",
+      "ci_status_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/30712524084",
+      "commit": "642b3d488af16cd737e28ceca63c576a1238d2e1",
+      "commit_short": "642b3d4",
+      "description": "Phase 2 Slice 1 backend cohesive PR -- four bounded commits (commit-1 schemas, commit-2 models+migration+parity, commit-3 service+engine+repo, commit-4 routes+flags+integration) accepted by user across the slice. PR opened as cohesive package; code-reviewer-minimax-m3 returned VERDICT: GREEN against PR #21 head 642b3d4 with full 13-item plan section 3/4/5/8 matrix (determinism, append-only journal, ownership-before-disclosure, default-off flags, currency fail-closed, Decimal preservation, ETags/cursors, strict bodies, real app wiring, privacy, schema_version convention, RecommendationNotFound envelope, test_decision_journal_parity): zero HIGH findings, no residual LOW items. status CI gate PASSED in 9s. Branch squash-merged to main as 3ce7fe5706530d0ec68e743fff0882c76b3434cf; local + remote branches cleaned; local main fast-forward synced.",
+      "merged_into_main": "3ce7fe5706530d0ec68e743fff0882c76b3434cf",
+      "pr": 21,
+      "review_evidence": "code-reviewer-minimax-m3 VERDICT: GREEN with full 13-item matrix (determinism, append-only journal, ownership-before-disclosure, default-off flags, currency fail-closed, Decimal preservation, ETags/cursors, strict bodies, real app wiring, privacy, schema_version, RecommendationNotFound envelope, test_decision_journal_parity): zero HIGH findings.",
+      "slice": "P2-S1",
+      "work_id": "work-p2-decision-journal-substrate"
+    },
+    {
+      "branch": "codex/phase-3-outcome-evidence-reference-replacement",
+      "ci_status_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31337079206",
+      "commit": "8955e40a74926d76bed7cd93f5fb31a8508d40c9",
+      "commit_short": "8955e40",
+      "description": "Phase 3 Slice 1: replace the unsafe String(512) authoritative_evidence_reference from closed PR #30 with a privacy-safe bounded evidence-source contract \u2014 allowlisted evidence_source_kind (forecast_projection / account_balance_delta / transaction_pattern) + server-derived hash-only evidence_reference_hash (64-char lowercase SHA-256). Raw evidence references are never accepted, persisted, logged, echoed, or exposed in errors. Append-only outcome_evaluations table + migration U9a1b2c3d4e5, lifecycle evidence contract, idempotent replay, sanitized OutcomeConflictError, ownership-before-existence, UNIQUE-collision race recovery, row-count-guarded downgrade. Squash-merged to main; heavy CI skipped (no-UI backend slice).",
+      "governance_status_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31337079184",
+      "merged_into_main": "8955e40a74926d76bed7cd93f5fb31a8508d40c9",
+      "pr": 32,
+      "review_evidence": "Fresh independent code-reviewer review of PR #32 head: zero CRITICAL/HIGH; two MEDIUM items addressed in review-fix commit e4ab0bd (docstring privacy scope + race-recovery fallback).",
+      "slice": "P3-S1",
+      "work_id": "work-p3-outcome-evidence-reference-replacement"
     }
   ],
   "completed_phase1_slices": [
@@ -421,15 +442,470 @@
       "status": "complete",
       "tests": "48/48 focused test_routes_forecasts.py ; 229/229 broader Slice A/B/C/D regression",
       "title": "Phase 1 Slice D: Authenticated versioned read routes"
+    },
+    {
+      "commit": "02bbd58f62e32c13362680c9a31dc9710c132d1c",
+      "id": "work-p1-cert-rollup",
+      "phase_id": "phase-1",
+      "review_evidence": "code-reviewer-minimax-m3 APPROVE on feeb1417 + efe972d4",
+      "risk_tier": "medium",
+      "status": "complete",
+      "tests": [
+        "Privacy/observability tests: 74 passed in 0.10s"
+      ],
+      "title": "Phase 1 PR #20 cert rollup (cycle-1 corrections + cycle-5 scoped test)"
+    },
+    {
+      "commit": "08f6f811da7c325da8a3d60adae9f2d9c2d210e8",
+      "id": "work-p1-final-cert",
+      "phase_id": "phase-1",
+      "review_evidence": "Three independent code-reviewer-minimax-m3 approvals: cycle-5 local diff, cycle-5 committed head efe972d4, PR #20-followup committed head 1032ec9",
+      "risk_tier": "medium",
+      "status": "complete",
+      "tests": [
+        "Migration round-trip on disposable SQLite (upgrade head -> current -> downgrade base -> re-upgrade head): CLEAN; single head S7a1b2c3d4e5",
+        "test_forecast_migration.py: 7 passed in 0.42s",
+        "Full Rules Service suite (services/rules-service/tests/): 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s",
+        "Finlynq suite (services/finlynq/tests/): 106 passed, 38 warnings in 1.16s",
+        "Cross-service (repo-root tests/): 29 passed in 6.42s",
+        "Tracker test (tests/test_atlas_project_status.py): 9 passed in 0.97s",
+        "Privacy + observability tests: 74 passed in 0.10s",
+        "UI TypeScript via 'cd ui && npm run typecheck' (tsc --noEmit): exit 0, 0 errors",
+        "UI Vitest via 'cd ui && npm test --silent -- --run': exit 0"
+      ],
+      "title": "Phase 1 final cert + migration downgrade corrective squash-merge to main"
+    },
+    {
+      "branch": "codex/phase-2-decision-journal-substrate",
+      "ci_evidence": {
+        "check": "status (project-governance) PASSED 9s on PR #21 642b3d4 (slice-no-UI by scope)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/30712524084"
+      },
+      "commit": "3ce7fe5706530d0ec68e743fff0882c76b3434cf",
+      "id": "work-p2-decision-journal-substrate",
+      "phase_id": "phase-2",
+      "pr": 21,
+      "review_evidence": "code-reviewer-minimax-m3 VERDICT: GREEN on PR #21 head 642b3d4 -- full 13-item matrix (determinism, append-only journal, ownership-before-disclosure, default-off flags, currency fail-closed, Decimal preservation, ETags/cursors, strict bodies, real app wiring, privacy, schema_version, RecommendationNotFound envelope, test_decision_journal_parity): zero HIGH findings, no residual LOW items. Scope bounded to Slice 1 backend substrate; no UI bytes, no household/advisor tenancy, no retention/deletion implementation, no autonomous actions, no brokerage/transfer/trade code, and no Phase 1 financial-math changes present in the diff.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "16/16 commit-4 route integration tests (services/rules-service/tests/test_routes_recommendations_derived.py)",
+        "238/238 cross-cut focused + broader regression covering commit-1/2/3 schemas + models + engine + repo + journal service + routes + Phase 1 forecast persistence + canonical-state + hashing + migration + currency-provenance tests on isolated SQLite DB",
+        "Sensitive-data scan ALLOWLISTED (single synthetic-stub hashed_password='x' local-user stub adjudication preserved and consistent with Phase 1 conftest pattern)"
+      ],
+      "title": "Phase 2 Slice 1: Backend deterministic recommendation + append-only decision journal substrate"
+    },
+    {
+      "branch": "codex/dashboard-auth-error-classification",
+      "commit": "1aaaeb9",
+      "id": "work-p2-dashboard-auth-error-classification",
+      "issue": "",
+      "objective": "Classify dashboard summary Axios failures through the established sanitized user-facing error contract.",
+      "paths": [
+        "ui/app/page.tsx,ui/__tests__/e2e/auth-flow.spec.ts,ui/__tests__/e2e/dashboard-banner-variant.spec.ts,ui/__tests__/errors.test.ts"
+      ],
+      "phase_id": "phase-2",
+      "pr": "26",
+      "review_evidence": "Independent code review: APPROVE, no material findings.",
+      "risk_tier": "medium",
+      "status": "complete",
+      "tests": [
+        "Focused cache/error Vitest: 21 passed; focused auth/banner Playwright: 7 passed; full UI Vitest: 536 passed; typecheck passed; full Playwright dashboard/auth group passed."
+      ],
+      "title": "Dashboard/auth error classification correction"
+    },
+    {
+      "branch": "codex/merchant-rule-priority-correction",
+      "commit": "2a3ac51",
+      "id": "work-p2-merchant-rule-priority-correction",
+      "issue": "",
+      "objective": "Allow the standard create-rule flow to omit priority so the Rules Service applies its deterministic per-category increment.",
+      "paths": [
+        "ui/lib/api.ts"
+      ],
+      "phase_id": "phase-2",
+      "pr": "27",
+      "review_evidence": "Independent code review: APPROVE, no material findings.",
+      "risk_tier": "medium",
+      "status": "complete",
+      "tests": [
+        "Rules Service omitted-priority fixture passed; frontend typecheck passed."
+      ],
+      "title": "Merchant-rule priority omission correction"
+    },
+    {
+      "branch": "codex/repository-health-stabilization",
+      "commit": "c62b1ac9f34ade417aa4a0b50e4c6c4d3b956278",
+      "id": "work-p2-repository-health-stabilization",
+      "issue": "",
+      "objective": "Restore clean-runner lint and stabilize legacy browser verification without changing Phase 2 financial behavior.",
+      "paths": [
+        "docs/10-roadmap/PHASE2_REPOSITORY_HEALTH_STABILIZATION.md"
+      ],
+      "phase_id": "phase-2",
+      "pr": "28",
+      "review_evidence": null,
+      "risk_tier": "medium",
+      "status": "complete",
+      "tests": [
+        "Clean main certification: Rules Service and Finlynq complete suites, cross-service tests, 94 focused Phase 2 parity/privacy/observability/tracker tests, UI Vitest 536, typecheck, lint, canonical Playwright 85 passed / 2 fixture-gated skips, hosted status + cheap CI passed."
+      ],
+      "title": "Phase 2 repository-health stabilization"
+    },
+    {
+      "branch": "codex/phase-3-outcome-evidence-reference-replacement",
+      "ci_evidence": {
+        "check": "cheap (lint + unit, no browser)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31337079206"
+      },
+      "commit": "8955e40a74926d76bed7cd93f5fb31a8508d40c9",
+      "id": "work-p3-outcome-evidence-reference-replacement",
+      "phase_id": "phase-3",
+      "pr": 32,
+      "review_evidence": "Fresh independent code-reviewer review of PR #32 head (853dc81): zero CRITICAL/HIGH findings. Two MEDIUM items addressed in review-fix commit e4ab0bd \u2014 (1) privacy-contract docstring scope corrected to cover only the evidence reference (hash-only, server-derived; result_json/explanation carry the measured outcome data, never evidence pointers); (2) _recover_database_winner falls back to the cross-row idempotency-key lookup when the PK lookup misses, surfacing a divergent-canonical UNIQUE-collision winner as OutcomeConflictError; regression test added.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "tests/test_outcome_evaluation_service.py: 31 passed",
+        "tests/test_outcome_evaluation_migration.py: 13 passed",
+        "Full Rules Service suite: 1174 passed, 10 skipped, 1 xfailed"
+      ],
+      "title": "Phase 3 Slice 1: Privacy-safe outcome-evaluation substrate (evidence reference replacement)"
+    },
+    {
+      "branch": "codex/phase-3-recommendation-linkage-and-approvals",
+      "ci_evidence": {
+        "check": "cheap (lint + unit, no browser)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31354498609"
+      },
+      "commit": "86ea65fc8c27224ec209249218fb6ccbe74b4178",
+      "id": "work-p3-recommendation-linkage-and-approvals",
+      "issue": "",
+      "objective": "Close the Phase 3 recommendation contract by linking accepted deterministic recommendations to goal, privacy-safe evidence, risks, confidence, approvals, and outcome evaluations without weakening authorization, append-only, idempotency, or fail-closed constraints.",
+      "paths": [
+        "services/rules-service/app/forecasts/recommendation_schemas.py",
+        "services/rules-service/app/forecasts/recommendations.py",
+        "services/rules-service/app/routes/recommendations_derived.py",
+        "services/rules-service/tests/test_recommendation_schemas.py",
+        "services/rules-service/tests/test_routes_recommendations_derived.py",
+        "docs/10-roadmap/PROJECT_STATUS.json",
+        "docs/10-roadmap/PROJECT_STATUS.md"
+      ],
+      "phase_id": "phase-3",
+      "pr": "33",
+      "review_evidence": "Fresh independent code review: cycle 1 found two MEDIUM test-evidence gaps (true cross-user indistinguishability and explicit default-off gate coverage); both corrected. Cycle 2 approved with no remaining CRITICAL/HIGH/MEDIUM findings. Review cycle cap: 2/2.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Focused Rules Service recommendation-contract, decision-journal, outcome-evaluation, route, schema, and migration tests: 181 passed.",
+        "Full Rules Service suite: 1179 passed, 10 skipped, 1 xfailed."
+      ],
+      "title": "Phase 3: Recommendation linkage and approvals"
+    },
+    {
+      "branch": "work-p4-decision-history-substrate",
+      "ci_evidence": {
+        "check": "project-governance/status SUCCESS; tests/cheap SUCCESS; tests/heavy SKIPPED by established pull-request policy",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31401056826"
+      },
+      "commit": "13da914cf1db78d02219eb72c9f4f5b0aca9e86f",
+      "id": "work-p4-decision-history-substrate",
+      "issue": "",
+      "objective": "Final authorized correction cycle: enforce outcome-linked audit event semantics and outcome-aware idempotent replay/race equivalence without widening Slice 1 scope.",
+      "paths": [
+        "services/rules-service/app/models,services/rules-service/app/forecasts,services/rules-service/app/routes,services/rules-service/alembic/versions,services/rules-service/tests"
+      ],
+      "phase_id": "phase-4",
+      "pr": "34",
+      "review_evidence": "Three fresh independent reviews: cycles 1 and 2 identified MEDIUM audit/idempotency invariants; the explicitly authorized final cycle corrected them. Final review of 919fcc3 approved with no CRITICAL/HIGH/MEDIUM findings. Review cycles: 3 total, final cycle explicitly authorized.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Focused final-cycle decision-history route/service tests: 11 passed; complete Rules Service suite: 1190 passed, 10 skipped, 1 xfailed."
+      ],
+      "title": "Phase 4 Slice 1 decision-history substrate"
+    },
+    {
+      "branch": "codex/phase-4-decision-history-ui",
+      "ci_evidence": {
+        "check": "heavy (full + Playwright)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31457091205"
+      },
+      "commit": "a81eee6",
+      "id": "work-p4-decision-history-ui",
+      "issue": "",
+      "objective": "Integrate the default-off owner-scoped decision-history API into the existing goals recommendation UI with accessible, privacy-safe chronological history and complete mocked browser coverage.",
+      "paths": [
+        "ui/app/goals/page.tsx",
+        "ui/components",
+        "ui/lib",
+        "ui/__tests__"
+      ],
+      "phase_id": "phase-4",
+      "pr": "35",
+      "review_evidence": "Fresh independent review approved PR #35 head 81e20ca with no CRITICAL/HIGH/MEDIUM findings. Final certification review corrected CI E2E isolation and verified the final isolation fix; canonical CI run 31457091205 passed for final implementation SHA 8463db1.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Focused and full evidence: Rules 1190 passed/10 skipped/1 xfailed; Finlynq 106 passed; root 22 passed; frontend 542 passed; canonical Playwright 85 passed/2 policy skips; migrations and decision-history focused tests passed."
+      ],
+      "title": "Phase 4 Slice 2 decision-history UI"
+    },
+    {
+      "branch": "codex/phase-5-research-data-foundation",
+      "ci_evidence": {
+        "check": "cheap (lint + unit, no browser)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31460346365"
+      },
+      "commit": "f573ee4d5c43dfb5636c67c6f260b1decd118efe",
+      "id": "work-p5-research-data-foundation",
+      "issue": "",
+      "objective": "Build provider-neutral, zero-dollar research-data contracts and Finnhub/SEC adapters with safe pacing, caching, normalized failures, synthetic fixtures, and no real network in tests.",
+      "paths": [
+        "services/rules-service/app/market_intelligence",
+        "services/rules-service/tests",
+        "services/rules-service/app/config.py",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-5",
+      "pr": "36",
+      "review_evidence": "Fresh independent review APPROVE on corrected PR #36 head bc1dde1 after cycle 1 safety corrections; zero CRITICAL/HIGH/MEDIUM/LOW findings (2 review cycles total).",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Focused foundation/config 31 passed; related Finnhub/holdings regressions 86 passed; hosted cheap lint + unit CI passed; status CI passed."
+      ],
+      "title": "Phase 5 Slice 1 research-data foundation"
+    },
+    {
+      "branch": "codex/phase-5-deterministic-briefing-engine",
+      "ci_evidence": {
+        "check": "cheap (lint + unit, no browser)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31482331930"
+      },
+      "commit": "6cfaa80d868a0acc0d5f3dada3d915ef836bec53",
+      "id": "work-p5-deterministic-briefing-engine",
+      "issue": "",
+      "objective": "Build Decimal-safe portfolio impact, immutable versioned source-cited briefing records, deterministic action-to-review templates, and strict owner-scoped generation/read behavior without LLMs or execution.",
+      "paths": [
+        "services/rules-service/app/market_intelligence",
+        "services/rules-service/app/models",
+        "services/rules-service/app/forecasts",
+        "services/rules-service/app/routes",
+        "services/rules-service/alembic/versions",
+        "services/rules-service/tests",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-5",
+      "pr": "37",
+      "review_evidence": "Fresh independent review APPROVE on corrected PR #37 head 9a51871 after two correction/review cycles; zero CRITICAL/HIGH/MEDIUM/LOW findings.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Focused briefing/migration/model/foundation/config 53 passed; hosted cheap lint + unit CI passed; status CI passed."
+      ],
+      "title": "Phase 5 Slice 2 deterministic portfolio-impact and briefing engine"
+    },
+    {
+      "branch": "codex/phase-5-briefing-ui-delivery",
+      "ci_evidence": {
+        "check": "cheap (lint + unit, no browser)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31490080867"
+      },
+      "commit": "2454a30c8a5ae789e23d9efea412fce148e3ce2f",
+      "id": "work-p5-briefing-ui-delivery",
+      "issue": "",
+      "objective": "Build accessible in-app market-brief archive and detail views, default-off privacy-safe email delivery adapters, receipts/preferences, and local preview scheduling interface with no real delivery.",
+      "paths": [
+        "ui",
+        "services/rules-service/app/market_intelligence",
+        "services/rules-service/app/routes",
+        "services/rules-service/app/models",
+        "services/rules-service/alembic/versions",
+        "services/rules-service/tests",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-5",
+      "pr": "38",
+      "review_evidence": "Independent re-review approved exact head f277c43b86dca7407ee6b679187700aa407d4ae2: zero critical/high/medium findings; stale archive response correction verified.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Rules focused market intelligence/delivery/migration/meta/config suite: 60 passed",
+        "UI archive Vitest: 3 passed; typecheck and lint passed"
+      ],
+      "title": "Phase 5 Slice 3 briefing archive, delivery, and scheduling"
+    },
+    {
+      "branch": "codex/phase-5-earnings-certification-correction",
+      "ci_evidence": {
+        "check": "heavy (full + Playwright)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31505665961"
+      },
+      "commit": "7832d6016d91f123fea1e27fb724dd64781aa5e7",
+      "id": "work-p5-earnings-certification-correction",
+      "issue": "",
+      "objective": "Render source-cited upcoming and recent portfolio earnings deterministically so the Phase 5 exit criterion is truthful.",
+      "paths": [
+        "services/rules-service/app/market_intelligence",
+        "services/rules-service/tests",
+        "docs/10-roadmap",
+        "docs/adr"
+      ],
+      "phase_id": "phase-5",
+      "pr": "39",
+      "reason": "GitHub Actions run 31502743293 has remained in the required cheap test step despite green local reproduction (SKIP_PLAYWRIGHT=1 bash scripts/test.sh); do not merge without a terminal successful CI check.",
+      "review_evidence": "Fresh final review approved exact PR head e166569 (no critical/high/medium findings); trusted owner-scoped earnings composition, default-off gates, citation/freshness, idempotency, and cash/inactive-account safeguards verified.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Clean-main local matrix: bash scripts/test.sh passed (Rules Service, Finlynq/cross-service, frontend Vitest/typecheck, and browser journey); local typecheck/lint passed. Production build was DNS-blocked only on pre-existing Google Fonts.",
+        "Hosted run 31505665961 at 7832d60: cheap and heavy CI passed; Playwright 86 passed, 1 skipped; coverage artifacts uploaded."
+      ],
+      "title": "Phase 5 earnings briefing certification correction"
+    },
+    {
+      "branch": "codex/phase-5-operationalization",
+      "ci_evidence": {
+        "check": "main cheap and heavy (full + Playwright)",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31558931309"
+      },
+      "commit": "ef2a150b47b2c81159abe7494b0c7ba446fa124e",
+      "id": "work-p5-operationalization-correction",
+      "issue": "",
+      "objective": "Wire a safe server-owned local market-brief composer behind default-off flags; make archive discovery and synthetic-only generation usable without changing Phase 5 financial semantics or activating real providers/email.",
+      "paths": [
+        "services/rules-service/app/market_intelligence,services/rules-service/app/routes,services/rules-service/app/config.py,services/rules-service/tests,ui/components,ui/lib,ui/__tests__/e2e,docs/10-roadmap"
+      ],
+      "phase_id": "phase-5",
+      "pr": "40",
+      "review_evidence": "Fresh independent review cycle 1 found two HIGH and one MEDIUM safety defects; correction c39b516 plus fixture alignment 3c1496b resolved all. Fresh independent re-review approved exact PR #40 head 3c1496b1508cdb7581f9d41f53561357f8b6ed65 with no CRITICAL/HIGH/MEDIUM findings. Review cycles: 2.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Focused market foundation/briefing/operational/delivery/config: 55 passed; isolated synthetic Playwright market-brief journey: 2 passed; complete Rules Service: 1233 passed, 10 skipped, 1 xfailed; Finlynq: 106 passed; frontend Vitest: 547 passed; typecheck/lint passed."
+      ],
+      "title": "Phase 5 Market Brief operationalization correction"
+    },
+    {
+      "branch": "codex/phase-6-scenario-lab-foundation",
+      "ci_evidence": {
+        "check": "tests/cheap (lint + unit, no browser): SUCCESS; heavy (full + Playwright): SKIPPED by workflow",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31560724434"
+      },
+      "commit": "86c272a329b83f86fd2f4118d2e1b0e0f4957d70",
+      "id": "work-p6-s1-scenario-lab-foundation",
+      "issue": "",
+      "objective": "Build a deterministic Decimal-safe owner-scoped Scenario Lab backend by extending the immutable authoritative forecast vertical; support bounded contribution changes, dated contribution start/stop, and one dated outflow without UI or execution.",
+      "paths": [
+        "services/rules-service/app",
+        "services/rules-service/alembic/versions",
+        "services/rules-service/tests",
+        "docs/adr",
+        "docs/07-engineering",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-6",
+      "pr": "41",
+      "review_evidence": "Fresh independent review APPROVE; no remaining HIGH findings; correction cycle 1 of 2; non-blocking follow-ups recorded.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Rules Service 1,257 passed, 10 skipped, 1 xfailed; Finlynq 106 passed; cross-service 4 passed.",
+        "Scenario focused bundle 20 passed; UI Vitest 547 passed; typecheck passed; Playwright 88 passed, 1 skipped."
+      ],
+      "title": "Phase 6 Slice 1 authoritative Scenario Lab backend foundation"
+    },
+    {
+      "branch": "codex/phase-5-market-brief-reliability-ui-correction",
+      "ci_evidence": {
+        "check": "project-governance/status SUCCESS; tests/cheap SUCCESS; tests/heavy SKIPPED by workflow policy",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31568024045"
+      },
+      "commit": "48325fda4085ce1fee7d56ded2ed5b9d56056f6c",
+      "id": "work-p5-market-brief-reliability-ui-correction",
+      "issue": "",
+      "objective": "Correct bounded market-session quote freshness, portfolio coverage accounting, sanitized operational reason codes, and the accessible responsive Market Brief archive/detail UI without changing Scenario Lab, financial math, execution, or provider safety boundaries.",
+      "paths": [
+        "services/rules-service/app/market_intelligence",
+        "services/rules-service/app/routes",
+        "services/rules-service/tests",
+        "ui/components/market-briefs",
+        "ui/components/layout",
+        "ui/lib",
+        "ui/__tests__/e2e",
+        "docs"
+      ],
+      "phase_id": "phase-5",
+      "pr": "42",
+      "review_evidence": "Fresh independent read-only review of exact merged PR #42 diff at 48325fda: APPROVE; no remaining CRITICAL, HIGH, or MEDIUM findings. GitHub has no review object; this tracker entry records the genuine independent agent review without fabricating one.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Rules Service: 1,268 passed, 10 skipped, 1 xfailed; Finlynq: 106 passed; cross-service: 4 passed; frontend Vitest: 551 passed; targeted Market Brief Playwright: 4 passed with scoped axe 0 serious/critical; typecheck, lint, and production build passed.",
+        "Six-case synthetic visual matrix passed across desktop/tablet/mobile and light/dark with zero console errors, zero horizontal overflow, and zero scoped axe serious/critical findings. Full E2E: 89 passed, 1 skipped; one unrelated enhanced-pages navigation/resource-404 failure remained outside Market Brief scope.",
+        "Hosted PR #42: project-governance/status SUCCESS; tests/cheap SUCCESS; tests/heavy SKIPPED by workflow policy (not treated as passed or failed)."
+      ],
+      "title": "Phase 5 Market Brief reliability and UI-quality correction"
+    },
+    {
+      "branch": "codex/atlas-visual-system-v2",
+      "commit": "1414d62ab9f70899b4c67418046977808dfa3562",
+      "id": "work-ui-atlas-visual-system-v2",
+      "issue": "",
+      "objective": "Implement the cohesive Atlas Visual System v2 with independent Light/Dark/System mode and Indigo Intelligence, Vermilion Energy, and Ion Future accent-profile selection; preserve all financial semantics and application behavior.",
+      "paths": [
+        "ui"
+      ],
+      "phase_id": "phase-6",
+      "pr": "43",
+      "review_evidence": "Fresh independent UI/accessibility review of final Visual System v2 head: no critical, high, or medium findings across six mode/profile combinations, contrast, persistence/hydration, semantic finance colors, responsive shell, keyboard/screen-reader behavior, motion, charts, and scope.",
+      "risk_tier": "medium",
+      "status": "complete",
+      "tests": [
+        "Frontend Vitest: 559 passed; TypeScript, lint, and production build passed; canonical Playwright E2E: 91 passed, 1 skipped by repository policy; synthetic visual matrix: 18 screenshots across 390/768/1440 widths and six mode/profile combinations with zero console/page errors, zero horizontal overflow, and zero serious/critical axe findings."
+      ],
+      "title": "Atlas Visual System v2"
+    },
+    {
+      "branch": "codex/atlas-art-direction-v2-1",
+      "commit": "659bd766eda329811e7c5950e5c6243db0b3461e",
+      "id": "work-ui-atlas-art-direction-v2-1",
+      "issue": "",
+      "objective": "Implement the approved Luminous Financial Observatory art direction across the Atlas shell and shared page system while preserving all three accent profiles, financial semantics, functionality, and accessibility.",
+      "paths": [
+        "ui shared shell, Budgeting, empty states, theme and appearance"
+      ],
+      "phase_id": "phase-6",
+      "pr": "44",
+      "review_evidence": "Fresh independent PR-head review approved; zero critical/high/medium findings; correction cycle 0.",
+      "risk_tier": "medium",
+      "status": "complete",
+      "tests": [
+        "Vitest 562/562; TypeScript; ESLint; production build; canonical Playwright 96 passed/1 skipped; auth flow 6/6; Market Briefs; axe; responsive; reduced-motion; tracker/render/handoff checks."
+      ],
+      "title": "Atlas Visual Art Direction v2.1"
     }
   ],
-  "current_objective": "Phase 1 forecast models, migration, repository transactions, Finlynq-owned canonical projection-state provider, trusted generation application service, bounded versioned API schemas (Slice C), and Slice D authenticated read routes are complete. Slice D-post (authenticated forecast generation HTTP route) is the active bounded slice: mapper sub-PR #14 (commit 175ac8c) provides partial evidence; the handler continuation PR is the remaining bounded work. Slice D-post completion (both mapper + handler PRs merged) is required before Slice E (flags, observability, shadow validation) begins.",
-  "current_phase_id": "phase-1",
-  "last_updated": "2026-07-31T01:29:51Z",
+  "current_objective": "Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.",
+  "current_phase_id": "phase-6",
+  "last_updated": "2026-08-12T23:02:16Z",
   "next_bounded_task": {
-    "description": "Phase 1 Slice E: Flags, observability, and bounded shadow validation. Blocked until Slice D-post (mapper + handler PRs) merges AND retention / user-deletion policy is approved.",
-    "id": "work-p1-flags-observability-shadow-validation",
-    "phase_id": "phase-1"
+    "description": "Authorize and define Phase 6 Slice 2 only; do not begin implementation automatically.",
+    "id": "work-p6-s2-authorization",
+    "phase_id": "phase-6"
   },
   "overall_status": "in_progress",
   "phases": [
@@ -463,70 +939,94 @@
     {
       "exit_criteria": [
         {
-          "complete": false,
+          "complete": true,
           "description": "ADR-006 and the bounded implementation plan are reviewed and accepted.",
           "id": "ec-p1-architecture"
         },
         {
-          "complete": false,
+          "complete": true,
           "description": "Stable forecast identity, immutable versions, Decimal snapshots, provenance, and additive migrations are complete.",
           "id": "ec-p1-persistence"
         },
         {
-          "complete": false,
+          "complete": true,
           "description": "Idempotent generation, input-state hashing, optimistic concurrency, and stable 409 behavior are complete.",
           "id": "ec-p1-generation"
         },
         {
-          "complete": false,
+          "complete": true,
           "description": "Versioned read APIs enforce transitional user scope and preserve historical versions.",
           "id": "ec-p1-read-api"
         },
         {
-          "complete": false,
+          "complete": true,
           "description": "Migration rollback, retention, feature flags, security review, and required test evidence are complete.",
           "id": "ec-p1-rollout-safety"
         }
       ],
       "id": "phase-1",
       "name": "Forecast persistence",
-      "status": "in_progress"
+      "status": "complete"
     },
     {
       "exit_criteria": [
         {
-          "complete": false,
+          "complete": true,
           "description": "UI uses persisted forecasts with explainability, accessibility, and parity coverage.",
           "id": "ec-p2-persisted-ui"
         }
       ],
       "id": "phase-2",
       "name": "Forecast UI migration",
-      "status": "not_started"
+      "status": "complete"
     },
     {
       "exit_criteria": [
         {
-          "complete": false,
+          "complete": true,
           "description": "Recommendations link goals, evidence, risks, confidence, approvals, and evaluation.",
           "id": "ec-p3-recommendation-contract"
         }
       ],
       "id": "phase-3",
       "name": "Goal-linked recommendations",
-      "status": "not_started"
+      "status": "complete"
     },
     {
       "exit_criteria": [
         {
-          "complete": false,
-          "description": "Decision history, alternatives, outcomes, permissions, auditability, and recovery are tested.",
+          "complete": true,
+          "description": "Decision history, alternatives, rationale, outcome lifecycle, permissions, auditability, recovery, UI accessibility, and privacy are evidenced by PR #35, final isolation-safe CI run 31457091205 at 8463db1, and Phase 4 certification tests.",
           "id": "ec-p4-decision-history"
         }
       ],
       "id": "phase-4",
       "name": "Decision journal",
-      "status": "not_started"
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "A versioned, source-cited, portfolio-specific market briefing reports portfolio changes, material news, earnings and filings, deterministic actions to review, privacy-safe delivery, and tested failure behavior without paid data or autonomous execution. Evidence: PRs #36, #37, #38, and #39; synthetic/fake provider and delivery coverage; local clean-main full suite; and hosted clean-main run 31505665961 at 7832d60 (cheap and heavy passed; Playwright 86 passed, 1 skipped; coverage artifacts uploaded). No real email, paid endpoint, or cloud LLM was used.",
+          "id": "ec-p5-market-intelligence-brief"
+        }
+      ],
+      "id": "phase-5",
+      "name": "Market Intelligence Brief",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Phase 6 Slice 1 provides a deterministic Decimal-safe goal-scoped Scenario Lab backend extending the immutable authoritative forecast system, with bounded scenario inputs, immutable version history, owner-scoped APIs, migration parity, and no UI or execution surface. Evidence: PR #41 merged at 86c272a329b83f86fd2f4118d2e1b0e0f4957d70; required governance and cheap checks passed; heavy check skipped by established workflow policy; focused and regression evidence recorded below.",
+          "id": "ec-p6-s1-authoritative-scenario-lab"
+        }
+      ],
+      "id": "phase-6",
+      "name": "Scenario Lab",
+      "status": "in_progress"
     }
   ],
   "risks": [
@@ -639,6 +1139,16 @@
       "related": "B0 provider prerequisite; ADR-006 currency rule",
       "severity": "high",
       "status": "open"
+    },
+    {
+      "description": "Alembic 1.13.x's ApplyBatchImpl.drop_index rejects the deprecated if_exists keyword argument; the Phase 1 final cert matrix surfaced this as a full upgrade -> downgrade base failure on the e9f0a1b2c3d4 migration.",
+      "id": "risk-p1-migration-downgrade-patched",
+      "likelihood": "low",
+      "mitigation": "Drops the unsupported kwarg from batch_op.drop_index(...) inside downgrade() of services/rules-service/alembic/versions/e9f0a1b2c3d4_add_family_members_and_backfill.py. By-construction safety: the upgrade path unconditionally creates the index ix_accounts_family_member_id, so any post-upgrade schema state contains it. Verified via full round-trip on disposable SQLite + canonical head S7a1b2c3d4e5.",
+      "owner": "rules-service",
+      "related": "1032ec9998b96046030b700e3f84a73b3797a776, 08f6f811da7c325da8a3d60adae9f2d9c2d210e8",
+      "severity": "medium",
+      "status": "resolved"
     }
   ],
   "schema_version": "1.0.0",
@@ -685,6 +1195,11 @@
       "id": "test-p1-slice-d-post-mapper-sub-pr",
       "result": "37/37 test_forecast_mapper.py + 226/226 broader regression + APPROVE_FOR_MERGE from fresh independent code-reviewer-minimax-m3",
       "scope": "Phase 1 Slice D-post mapper sub-PR (PR #14 commit 175ac8c) on isolated SQLite DB"
+    },
+    {
+      "id": "test-p1-cert",
+      "result": "Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s",
+      "scope": "Phase 1 final certification matrix on clean main @ 08f6f811"
     }
   ]
 }

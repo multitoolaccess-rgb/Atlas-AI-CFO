@@ -7,6 +7,8 @@ import { AtlasFilterProvider } from '@/components/ui/AtlasFilterContext'
 import FloatingTimeRangeBar from '@/components/ui/FloatingTimeRangeBar'
 import AnimatedPageSection from '@/components/ui/AnimatedPageSection'
 import ErrorBanner from '@/components/ui/ErrorBanner'
+import EmptyState from '@/components/ui/EmptyState'
+import PageHeader from '@/components/ui/PageHeader'
 import TiltCard from '@/components/ui/TiltCard'
 import { Button, Input, Select, TabsGroup, Modal } from '@/components/ui'
 import ImportStatementUpload from '@/components/imports/ImportStatementUpload'
@@ -319,43 +321,31 @@ export default function AccountsPage() {
     <PageLayout>
       <AtlasFilterProvider>
       <AnimatedPageSection>
-        <div className="flex items-end justify-between mb-6">
-          <div>
-            <h1 className="headline-xl text-primary mb-2">Connected Accounts</h1>
-            <p className="body-md text-secondary">
-              Manually added accounts are tracked alongside any Plaid-linked ones.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowAccountNumbers((v) => !v)}
-              title={showAccountNumbers ? 'Hide account numbers' : 'Show account numbers'}
-              className="
-                inline-flex items-center justify-center gap-1.5
-                px-3 py-2 rounded-lg text-xs font-medium
-                border border-outline-variant/40
-                text-secondary hover:text-primary
-                hover:bg-surface-container
-                transition-colors duration-150
-              "
-            >
-              {showAccountNumbers ? (
-                <EyeOff className="w-3.5 h-3.5" aria-hidden="true" />
-              ) : (
-                <Eye className="w-3.5 h-3.5" aria-hidden="true" />
-              )}
-              {showAccountNumbers ? 'Hide numbers' : 'Show numbers'}
-            </button>
-            <Button
-              variant="primary"
-              onClick={() => setShowForm((s) => !s)}
-              icon={<Plus className="w-4 h-4" aria-hidden="true" />}
-            >
-              {showForm ? 'Cancel' : 'Add Account'}
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title="Connected Accounts"
+          description="Manually added accounts are tracked alongside any Plaid-linked ones."
+          actions={(
+            <>
+              <button
+                type="button"
+                onClick={() => setShowAccountNumbers((v) => !v)}
+                title={showAccountNumbers ? 'Hide account numbers' : 'Show account numbers'}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-outline-variant/40 text-secondary hover:text-primary hover:bg-surface-container transition-colors duration-150"
+              >
+                {showAccountNumbers ? <EyeOff className="w-3.5 h-3.5" aria-hidden="true" /> : <Eye className="w-3.5 h-3.5" aria-hidden="true" />}
+                {showAccountNumbers ? 'Hide numbers' : 'Show numbers'}
+              </button>
+              <Button
+                variant="primary"
+                onClick={() => setShowForm((s) => !s)}
+                icon={<Plus className="w-4 h-4" aria-hidden="true" />}
+              >
+                {showForm ? 'Cancel' : 'Add Account'}
+              </Button>
+            </>
+          )}
+          className="mb-6"
+        />
 
       {/* Floating bar — URL-synced via ?range=… (page-default YTD).
           Visual-only today: accounts are not range-aware yet. */}
@@ -488,22 +478,13 @@ export default function AccountsPage() {
                     Loading accounts…
                   </p>
                 ) : accounts.length === 0 ? (
-                  <div
-                    className="card p-8 text-center"
-                    data-testid="accounts-empty"
-                  >
-                    <Landmark
-                      className="w-8 h-8 text-primary mx-auto mb-2"
-                      aria-hidden="true"
-                    />
-                    <p className="text-secondary">
-                      No accounts yet. Click &quot;Add Account&quot; to add your
-                      first one, or switch to the{' '}
-                      <strong className="text-primary">Statement</strong> tab to
-                      upload a CSV / PDF / OFX file (the server will
-                      auto-create an &quot;Imported Statements&quot; account).
-                    </p>
-                  </div>
+            <EmptyState
+              testId="accounts-empty"
+              icon={<Landmark className="h-6 w-6" />}
+              title="Connect your first account"
+              description="Add an account or upload a statement to give Atlas the source data it needs for balances, cash flow, and planning."
+              guidance={<p className="text-sm">Use the Add Account control above for a manual connection, or choose the Statement tab for CSV, PDF, or OFX import.</p>}
+            />
                 ) : (
                   <div
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"

@@ -20,11 +20,15 @@ import PageLayout from '@/components/layout/PageLayout'
 import { AtlasFilterProvider } from '@/components/ui/AtlasFilterContext'
 import FloatingTimeRangeBar from '@/components/ui/FloatingTimeRangeBar'
 import ErrorBanner from '@/components/ui/ErrorBanner'
+import EmptyState from '@/components/ui/EmptyState'
+import PageHeader from '@/components/ui/PageHeader'
 import AnimatedPageSection from '@/components/ui/AnimatedPageSection'
 import { Button, Input, Modal } from '@/components/ui'
 import AnimatedRadialProgress from '@/components/charts/AnimatedRadialProgress'
 import TiltCard from '@/components/ui/TiltCard'
 import FinancialPlans, { GOAL_PROJECTION_ANNUAL_RETURN } from '@/components/dashboard/FinancialPlans'
+import LatestForecastSection from '@/components/dashboard/LatestForecastSection'
+import DecisionHistorySection from '@/components/dashboard/DecisionHistorySection'
 import { projectDashboardTrajectory } from '@/lib/math/projection'
 import { rulesService, type Goal, type DashboardSummary } from '@/lib/api'
 import { classifyErrorMessage } from '@/lib/errors'
@@ -305,22 +309,20 @@ export default function GoalsPage() {
     <PageLayout>
       <AtlasFilterProvider>
       <AnimatedPageSection>
-      <div className="flex items-end justify-between mb-6">
-        <div>
-          <h1 className="headline-xl text-primary mb-2">Financial Goals</h1>
-          <p className="body-md text-secondary">
-            Set long-term targets and watch your projection in real time.
-            Each goal drives a tile in the Financial Plans section below.
-          </p>
-        </div>
-        <Button
-          variant="primary"
-          onClick={() => setShowCreateForm((s) => !s)}
-          icon={<Plus className="w-4 h-4" aria-hidden="true" />}
-        >
-          {showCreateForm ? 'Cancel' : 'Add Goal'}
-        </Button>
-      </div>
+      <PageHeader
+        title="Financial Goals"
+        description="Set long-term targets and watch your projection in real time. Each goal drives a tile in the Financial Plans section below."
+        actions={(
+          <Button
+            variant="primary"
+            onClick={() => setShowCreateForm((s) => !s)}
+            icon={<Plus className="w-4 h-4" aria-hidden="true" />}
+          >
+            {showCreateForm ? 'Cancel' : 'Add Goal'}
+          </Button>
+        )}
+        className="mb-6"
+      />
 
       {/* Floating bar — URL-synced via ?range=… (page-default YTD).
           Visual-only today: goals are not range-aware yet. */}
@@ -421,18 +423,13 @@ export default function GoalsPage() {
           Loading goals…
         </p>
       ) : sortedGoals.length === 0 ? (
-        <div className="card p-8 text-center" data-testid="goals-empty">
-          <Target
-            className="w-8 h-8 text-primary mx-auto mb-2"
-            aria-hidden="true"
-          />
-          <p className="text-secondary">
-            No goals yet. Click <strong className="text-primary">Add Goal</strong>{' '}
-            to set one (e.g. &quot;Retirement&quot; or &quot;Emergency fund&quot;).
-            The current $15M target from your onboarding profile will appear
-            automatically if no goals exist.
-          </p>
-        </div>
+        <EmptyState
+          testId="goals-empty"
+          icon={<Target className="h-6 w-6" />}
+          title="Give your money a destination"
+          description="Create a goal to connect today’s financial picture with a future decision. Atlas will keep the goal separate from any forecast until authoritative data is available."
+          guidance={<p className="text-sm">Use Add Goal above to set a target, horizon, or target date. No amount is assumed by this empty state.</p>}
+        />
       ) : (
         <div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
@@ -554,6 +551,26 @@ export default function GoalsPage() {
           ))}
         </div>
       )}
+
+      {/* Phase 2 Slice 2 — Latest persisted forecast + deterministic
+          recommendation + append-only decision journal. Per
+          `docs/10-roadmap/PHASE2_VERTICAL_SLICE_PLAN.md` §10 PR 2:
+          bounded extension of the existing goals page. Default-off
+          (``atlas_forecast_read_api_enabled``) surfaces a stable
+          sanitized 503 inline — never renders stale legacy data.
+          Existing list / create / edit / archive / what-if logic
+          below is NOT modified. */}
+      <LatestForecastSection
+        goals={sortedGoals.map((g) => ({
+          id: g.id,
+          name: g.name,
+          target_amount: String(g.target_amount),
+        }))}
+      />
+
+      <DecisionHistorySection
+        goals={sortedGoals.map((g) => ({ id: g.id, name: g.name }))}
+      />
 
       {/* Funding Plan — projected completion dates for each goal + what-if calculator */}
       {summary && sortedGoals.length > 0 && (() => {

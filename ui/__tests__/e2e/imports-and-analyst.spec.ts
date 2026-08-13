@@ -55,6 +55,7 @@ test('upload CSV, see in history, delete via 2-step confirm', async ({ page }) =
   // Navigate to the Accounts tab where ImportStatementUpload lives.
   await page.goto('/accounts')
   await expect(page.locator('h1', { hasText: /accounts/i }).first()).toBeVisible()
+  await page.getByRole('tab', { name: 'Statement', exact: true }).click()
 
   // Pick the file at the file input. Resolved from the project root
   // (PROJECT_ROOT env var or process.cwd()) so the test works on
@@ -68,16 +69,32 @@ test('upload CSV, see in history, delete via 2-step confirm', async ({ page }) =
 
   await page.locator('[data-testid="import-submit"]').click()
 
-  // Wait for the success banner.
-  await expect(page.locator('p[role="status"]')).toContainText(/transaction/i, { timeout: 10000 })
+  // Auto-detection intentionally pauses when the synthetic fixture does not
+  // identify an account type. Complete that explicit prompt before asserting
+  // the finalized success state.
+  const typePrompt = page.locator('[data-testid="import-type-prompt"]')
+  await expect(typePrompt).toBeVisible({ timeout: 10_000 })
+  await page.locator('[data-testid="import-type-prompt-skip"]').click()
+
+  // Warning-bearing imports render the finalized result as a preview card
+  // plus an import-warning alert rather than a role=status paragraph.
+  await expect(page.locator('[data-testid="import-preview"]')).toBeVisible({ timeout: 10_000 })
+  await expect(page.locator('[data-testid="import-preview"]')).toContainText(/Transactions saved/i)
+  await expect(page.locator('[data-testid="import-preview"]')).toContainText(/5 txns/i)
 
   // Wait for the history row.
-  const historyRow = page.locator('[data-testid="import-history-row-1"]')
+  const historyRow = page.locator('[data-testid^="import-history-row-"]').filter({
+    hasText: 'sample-bank-statement.csv',
+  }).first()
+  await expect(historyRow).toBeVisible({ timeout: 5_000 })
+  const historyTestId = await historyRow.getAttribute('data-testid')
+  const batchId = historyTestId?.replace('import-history-row-', '')
+  expect(batchId).toBeTruthy()
   await expect(historyRow).toBeVisible({ timeout: 5000 })
 
   // Click Delete \u2192 inline confirm row appears.
-  await page.locator('[data-testid="import-history-delete-1"]').click()
-  const confirmRow = page.locator('[data-testid="import-history-confirm-1"]')
+  await page.locator(`[data-testid="import-history-delete-${batchId}"]`).click()
+  const confirmRow = page.locator(`[data-testid="import-history-confirm-${batchId}"]`)
   await expect(confirmRow).toBeVisible()
 
   // Click Cancel \u2192 confirm row hides.
@@ -88,15 +105,19 @@ test('upload CSV, see in history, delete via 2-step confirm', async ({ page }) =
   await expect(historyRow).toBeVisible()
 
   // Click Delete \u2192 Confirm this time.
-  await page.locator('[data-testid="import-history-delete-1"]').click()
+  await page.locator(`[data-testid="import-history-delete-${batchId}"]`).click()
   await expect(confirmRow).toBeVisible()
-  await page.locator('[data-testid="import-history-confirm-delete-1"]').click()
+  await page.locator(`[data-testid="import-history-confirm-delete-${batchId}"]`).click()
 
   // History is now empty (the row was deleted).
   // Wait a beat for the success status / history refresh.
   await page.waitForTimeout(500)
-  // The row should be gone from the DOM.
-  await expect(historyRow).not.toBeVisible({ timeout: 5000 })
+  // The exact deleted batch row should be gone from the DOM. Do not reuse
+  // the filename filter here: older synthetic uploads may share the same
+  // filename and should remain untouched.
+  await expect(
+    page.locator(`[data-testid="import-history-row-${batchId}"]`),
+  ).toHaveCount(0, { timeout: 5_000 })
 })
 
 test('analyst-ratings panel on /recommendations loads via FE', async ({ page }) => {
@@ -138,6 +159,7 @@ test('analyst-ratings panel on /recommendations loads via FE', async ({ page }) 
 test('upload checking_stmt.csv via UI persists + auto-categorises without 500', async ({ page, request }) => {
   await login(page)
   await page.goto('/accounts')
+  await page.getByRole('tab', { name: 'Statement', exact: true }).click()
 
   const csvPath = path.join(
     PROJECT_ROOT,
@@ -147,12 +169,18 @@ test('upload checking_stmt.csv via UI persists + auto-categorises without 500', 
   await page.locator('[data-testid="import-file-input"]').setInputFiles(csvPath)
   await page.locator('[data-testid="import-submit"]').click()
 
-  // The success banner appears — proving the upload completed without
+  // Complete the explicit account-type prompt raised by this synthetic
+  // fixture before asserting the finalized success state.
+  await expect(page.locator('[data-testid="import-type-prompt"]')).toBeVisible({ timeout: 10_000 })
+  await page.locator('[data-testid="import-type-prompt-skip"]').click()
+
+  // The finalized preview appears — proving the upload completed without
   // a 5xx response. A historical NameError regression bubbled a 500 to
-  // the FE; the toast would not appear in that case.
-  const status = page.locator('p[role="status"]')
-  await expect(status).toBeVisible({ timeout: 15000 })
-  await expect(status).toContainText(/transaction|upload/i)
+  // the FE; the preview would not appear in that case.
+  const preview = page.locator('[data-testid="import-preview"]')
+  await expect(preview).toBeVisible({ timeout: 15_000 })
+  await expect(preview).toContainText(/Transactions saved/i)
+  await expect(preview).toContainText(/505 txns/i)
 
   // Round-trip: a fresh GET against the BE confirms the 505-row batch
   // was actually persisted, not just that the UI shim succeeded.

@@ -152,11 +152,13 @@ const isBenign = (text: string, url?: string): boolean => {
   return false
 }
 
-const NOT_FOUND_PATTERNS = [
-  '404',
-  'not found',
-  'could not be found',
-  'this page could not be found',
+// Match standalone not-found indicators only. Financial chart axes can
+// legitimately contain values such as "-404k"; those are not route errors.
+const NOT_FOUND_PATTERNS: RegExp[] = [
+  /\b404\b/i,
+  /\bnot found\b/i,
+  /\bcould not be found\b/i,
+  /\bthis page could not be found\b/i,
 ]
 
 for (const item of NAV_ITEMS) {
@@ -233,7 +235,7 @@ for (const item of NAV_ITEMS) {
       expect(
         bodyText,
         `${item.name} page body contains "${pattern}" (got: "${bodyText.slice(0, 200)}...")`,
-      ).not.toContain(pattern)
+      ).not.toMatch(pattern)
     }
 
     // 4) The page must have a visible <h1> or <h2> (proves the
@@ -315,6 +317,6 @@ test('dark mode toggle works on a sub-route (not just Overview)', async ({ page 
     document.documentElement.classList.contains('dark'),
   )
   expect(hasDark).toBe(true)
-  const stored = await page.evaluate(() => localStorage.getItem('darkMode'))
+  const stored = await page.evaluate(() => localStorage.getItem('atlas_theme'))
   expect(stored).toBe('enabled')
 })

@@ -75,6 +75,16 @@ def test_module_level_settings_is_a_settings_instance():
     assert settings.app_name == "Finance Copilot"
 
 
+def test_default_env_file_is_anchored_to_rules_service_directory():
+    """Runtime config must not depend on whether uvicorn was launched from repo root."""
+    from pathlib import Path
+
+    from app.config import RULES_SERVICE_ENV_FILE
+
+    expected = Path(__file__).resolve().parents[1] / ".env"
+    assert RULES_SERVICE_ENV_FILE.resolve() == expected.resolve()
+
+
 def test_production_environment_refuses_dev_default_jwt_secret(monkeypatch):
     """Hardening raised by Phase 2 code-review: a production deploy with the
     dev-default ``jwt_secret`` must raise, not silently ship a forge-any-token cookie."""
@@ -142,3 +152,26 @@ def test_read_api_flag_invalid_value_fails_closed(monkeypatch: object) -> None:
         "expected ValidationError on ambiguous ATLAS_FORECAST_READ_API_ENABLED"
     )
 
+
+def test_phase5_market_brief_flags_default_off(monkeypatch: object) -> None:
+    """Phase 5 external capabilities require an explicit server env setting."""
+    names = (
+        "ATLAS_MARKET_BRIEF_GENERATION_ENABLED",
+        "ATLAS_MARKET_BRIEF_READ_API_ENABLED",
+        "ATLAS_MARKET_BRIEF_EXTERNAL_PROVIDER_ENABLED",
+        "ATLAS_MARKET_BRIEF_EMAIL_DELIVERY_ENABLED",
+        "ATLAS_MARKET_BRIEF_SCHEDULER_ENABLED",
+        "ATLAS_MARKET_BRIEF_LOCAL_SUMMARIZATION_ENABLED",
+    )
+    for name in names:
+        monkeypatch.delenv(name, raising=False)  # type: ignore[attr-defined]
+
+    settings = Settings(_env_file=None)
+    assert all((
+        settings.atlas_market_brief_generation_enabled is False,
+        settings.atlas_market_brief_read_api_enabled is False,
+        settings.atlas_market_brief_external_provider_enabled is False,
+        settings.atlas_market_brief_email_delivery_enabled is False,
+        settings.atlas_market_brief_scheduler_enabled is False,
+        settings.atlas_market_brief_local_summarization_enabled is False,
+    ))

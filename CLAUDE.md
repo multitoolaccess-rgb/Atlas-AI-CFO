@@ -18,8 +18,23 @@ Read `docs/00-product-vision/ATLAS_MASTER_PRODUCT_SPEC.md` first, then the relev
 
 Before implementation, identify affected documents and acceptance criteria. After implementation, report tests, assumptions, risks, and unresolved decisions.
 
-Use the project-local `atlas-project-tracker` risk tiers: low work is
-lightweight, medium work requires validation, and high-risk financial, schema,
-authorization, privacy, integration, or destructive work requires branch, PR,
-successful CI evidence, independent review, and material status/risk evidence. See
-`docs/10-roadmap/PROJECT_STATUS.json` for current phase status.
+Use the project-local `atlas-project-tracker` skill for risk tier classification
+(see `.agents/skills/atlas-project-tracker/SKILL.md`):
+
+- Low work commits directly to `main` after focused validation.
+- Medium work uses one cohesive feature branch; PR and independent review
+  are optional; CI required only when shared behavior is affected.
+- High work uses one cohesive branch + PR, required relevant CI, one fresh
+  independent review, and a maximum of two correction-and-review cycles.
+  Fold final tracker evidence into the implementation commit when
+  practical.
+
+Use `$atlas-handoff` when starting, resuming, transferring, closing, or
+checking material Atlas work, or for project-status and next-task requests.
+Skip it for routine builds, tests, linting, inspection, and small edits within
+an uninterrupted task.
+
+Current phase status lives in `docs/10-roadmap/PROJECT_STATUS.json`.
+External multi-user production enablement remains blocked pending the
+approved retention + user-deletion policy; Phase 2 personal single-user
+development may proceed.

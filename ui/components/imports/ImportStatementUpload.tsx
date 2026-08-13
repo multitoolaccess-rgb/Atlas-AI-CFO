@@ -160,7 +160,7 @@ export default function ImportStatementUpload({
     ) {
       setSelectedAccountId(accounts[0].id)
     }
-  }, [accounts, selectedAccountId])
+  }, [accounts, autoDetectAccount, selectedAccountId])
 
   // Load import history on mount.
   useEffect(() => {
@@ -665,7 +665,7 @@ export default function ImportStatementUpload({
                   What type of account is this?
                 </p>
                 <p className="text-xs opacity-80 mb-3">
-                  We couldn't auto-detect the account type from the statement.
+                  We couldn&apos;t auto-detect the account type from the statement.
                   Please select the correct type so transactions are categorized correctly.
                 </p>
                 <div className="flex items-end gap-3 flex-wrap">
@@ -1313,7 +1313,7 @@ function TransactionsSection({
         >
           No structured transactions were saved for this batch.
           For CSV / Excel imports this typically means the file
-          didn't parse cleanly; for PDF / OFX / QFX imports this is
+          didn&apos;t parse cleanly; for PDF / OFX / QFX imports this is
           expected (those formats persist as a preview envelope
           only). The Preview tab below shows what was captured.
         </p>

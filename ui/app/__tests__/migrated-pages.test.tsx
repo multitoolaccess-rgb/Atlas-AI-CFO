@@ -106,6 +106,13 @@ vi.mock('@/lib/api', () => ({
   classifyCashflow: () => ({ incomeEffect: 0, expenseEffect: 0 }),
   CREDIT_ACCOUNT_TYPES: new Set(),
   ACCOUNT_SOURCE_LABELS: {},
+  // Phase 2 pages import the default API client through api_phase2.
+  // Keep the seam present even though these shallow page tests render
+  // empty data and do not exercise forecast reads.
+  default: {
+    get: () => Promise.resolve({ data: { forecasts: [] } }),
+    post: () => Promise.resolve({ data: {} }),
+  },
 }))
 
 // 4. Heavy page-specific components — render null so vibratory

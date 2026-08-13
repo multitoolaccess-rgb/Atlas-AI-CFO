@@ -46,6 +46,21 @@ from app.models.holding import Holding
 # Phase 4 — recommendation approval workflow audit trail.
 from app.models.recommendation_log import RecommendationLog
 from app.models.forecast import Forecast, ForecastVersion
+# Phase 2 Slice 1 — deterministic, derived-from-forecast-version
+# recommendation ledger (append-only; one row per derivation) and the
+# user's append-only decision journal. The two models are distinct from
+# the Phase-4 mutable ``RecommendationLog`` workflow audit trail.
+from app.models.recommendation import Recommendation
+from app.models.decision_journal_entry import DecisionJournalEntry
+# Phase 3 Slice 1 — append-only outcome evaluation records for accepted
+# decisions. Privacy-safe: allowlisted evidence_source_kind + hash-only
+# evidence_reference_hash (no raw URLs, filenames, or identifiers).
+from app.models.outcome_evaluation import OutcomeEvaluation
+from app.models.decision_history import DecisionAuditEvent, DecisionHistoryEntry
+from app.models.market_brief import MarketBrief
+from app.models.market_brief_delivery import MarketBriefDeliveryAttempt, MarketBriefDeliveryPreference
+# Phase 6 Slice 1 — owner-scoped immutable Scenario Lab identity/version history.
+from app.models.scenario import Scenario, ScenarioVersion
 
 __all__ = [
     "Budget",
@@ -65,4 +80,14 @@ __all__ = [
     "RecommendationLog",
     "Forecast",
     "ForecastVersion",
-] 
+    "Recommendation",
+    "DecisionJournalEntry",
+    "OutcomeEvaluation",
+    "DecisionHistoryEntry",
+    "DecisionAuditEvent",
+    "MarketBrief",
+    "MarketBriefDeliveryAttempt",
+    "MarketBriefDeliveryPreference",
+    "Scenario",
+    "ScenarioVersion",
+]

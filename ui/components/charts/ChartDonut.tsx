@@ -116,7 +116,6 @@ const ChartDonut = React.memo(function ChartDonut({
   const chartHeight = height - 64
 
   const renderShape = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (props: any) => {
       const isActive = activeIndex !== null && props.originalIndex === activeIndex
       const innerR = isActive ? (props.innerRadius ?? 0) - 5 : (props.innerRadius ?? 0)

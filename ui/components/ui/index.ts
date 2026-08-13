@@ -5,6 +5,8 @@
 // Existing components
 export { default as Button }       from './Button';
 export { default as GlassSurface } from './GlassSurface';
+export { default as PageHeader } from './PageHeader';
+export { default as Surface } from './Surface';
 export { default as StatCard }     from './StatCard';
 export { default as ErrorBanner }  from './ErrorBanner';
 

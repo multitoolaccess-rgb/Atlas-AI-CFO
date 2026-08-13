@@ -143,6 +143,26 @@ _LIFTED_TABLES = (
     # holdings here makes every test start from a clean ledger so
     # the assertions on sum + count actually mean what they claim.
     "holdings",
+    # Phase 2 Slice 1 commit-4 — add the four new tables so the
+    # hardcoded Forecast / ForecastVersion / Recommendation /
+    # DecisionJournalEntry ids used in the bounded test world
+    # builders do not collide on the PRIMARY KEY constraint
+    # across consecutive tests. Without this, the second test
+    # that calls ``_build_world`` (or any equivalent fixture)
+    # fails on the second INSERT because the per-test reset
+    # nukes users/goals/accounts but leaves the Phase 2 rows.
+    "forecasts",
+    "forecast_versions",
+    # Phase 6 Slice 1 — immutable Scenario Lab rows reset child-before-parent
+    # so synthetic owner/goal fixtures remain isolated across route tests.
+    "scenario_versions",
+    "scenarios",
+    # Phase 3 Slice 1 — append-only outcome evaluation records for accepted
+    # decisions. FKs into recommendations / decision_journal_entries, so it
+    # must be reset before either parent in the child-before-parent order.
+    "outcome_evaluations",
+    "recommendations",
+    "decision_journal_entries",
 )
 
 

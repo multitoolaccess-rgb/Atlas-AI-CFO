@@ -23,6 +23,7 @@ import ErrorBanner from '@/components/ui/ErrorBanner'
 import TiltCard from '@/components/ui/TiltCard'
 import { Receipt, RefreshCw, Upload, Orbit } from 'lucide-react'
 import { useCachedFetch } from '@/lib/cache'
+import { classifyErrorMessage } from '@/lib/errors'
 import AnimatedSection from '@/components/ui/AnimatedSection'
 import { formatNumber } from '@/lib/format'
 
@@ -136,7 +137,7 @@ function HomeInner() {
     [retryCount, timeRange],
     { group: 'dashboard' },
   )
-  const transactions = txnData ?? []
+  const transactions = useMemo(() => txnData ?? [], [txnData])
 
   const handleSegmentClick = useCallback((label: string) => {
     const txns = transactions.filter((t) => {
@@ -215,9 +216,9 @@ function HomeInner() {
   //   - DataRefresh integration (uploads/mutations invalidate cache)
 
   // Static endpoints — only re-fetch on manual retry
-  const { data: profileData, loading: profileLoading, error: profileError } =
+  const { data: profileData, loading: profileLoading, errorCause: profileErrorCause } =
     useCachedFetch<Profile>('dashboard-profile', () => rulesService.getProfile(), [retryCount], { group: 'dashboard' })
-  const { data: summaryData, loading: summaryLoading, error: summaryError } =
+  const { data: summaryData, loading: summaryLoading, errorCause: summaryErrorCause } =
     useCachedFetch<DashboardSummary>('dashboard-summary', () => rulesService.getDashboardSummary(), [retryCount], { group: 'dashboard' })
   const { data: accountsData, loading: accountsLoading } =
     useCachedFetch<Account[]>('dashboard-accounts', () => rulesService.listAccounts(), [retryCount], { group: 'dashboard' })
@@ -258,7 +259,7 @@ function HomeInner() {
   const profile = profileData ?? null
   const summary = summaryData ?? null
   const accounts = accountsData ?? []
-  const categories = categoriesData ?? []
+  const categories = useMemo(() => categoriesData ?? [], [categoriesData])
   const anomalies = anomaliesData?.anomalies ?? []
   const upcomingBills = billsData?.bills ?? []
   const insights = insightsData?.insights ?? []
@@ -266,7 +267,8 @@ function HomeInner() {
   const trends = trendsData ?? null
   const breakdown = breakdownData ?? null
 
-  const error = profileError ?? summaryError ?? null
+  const errorCause = profileErrorCause ?? summaryErrorCause
+  const error = errorCause ? classifyErrorMessage(errorCause) : null
   const loading = profileLoading || summaryLoading || accountsLoading
   const ready = !loading && !!summary
   const rangedRefreshing = flowsLoading || trendsLoading || breakdownLoading || txnLoading
@@ -291,7 +293,7 @@ function HomeInner() {
       <Header profile={profile} loading={loading} />
       <main
         id="main-content"
-        className="p-8 pt-4 transition-all duration-300 ease-in-out ml-[var(--layout-ml)]"
+        className="atlas-page-main min-w-0 px-4 py-7 pt-7 transition-[margin,padding] duration-300 ease-out sm:px-6 lg:px-10 ml-[var(--layout-ml)]"
         style={{ '--layout-ml': collapsed ? '4.5rem' : '16rem' } as React.CSSProperties}
       >
         {error && (
@@ -511,37 +513,23 @@ function HomeInner() {
             visual center, AlertsPanel is a smaller companion, NOT a
             parallel full-width row (which would flatten the rhythm).
             Falls back gracefully when either side has no data. */}
-        {ready && (insights.length > 0 || anomalies.length > 0 || upcomingBills.length > 0) && (
+        {ready && (
           <div className="fade-in-only mt-8 grid grid-cols-1 lg:grid-cols-12 gap-4">
-            {insights.length > 0 && (
-              <div
-                className={`min-w-0 ${
-                  anomalies.length > 0 || upcomingBills.length > 0
-                    ? 'lg:col-span-8'
-                    : 'lg:col-span-12'
-                }`}
-              >
-                <CategoryMovers
-                  insights={insights}
-                  loading={rangedRefreshing}
-                  variant="strip"
-                />
-              </div>
-            )}
-            {(anomalies.length > 0 || upcomingBills.length > 0) && (
-              <div
-                className={`min-w-0 ${
-                  insights.length > 0 ? 'lg:col-span-4' : 'lg:col-span-12'
-                }`}
-              >
-                <AlertsPanel
-                  anomalies={anomalies}
-                  upcomingBills={upcomingBills}
-                  insights={insights}
-                  loading={rangedRefreshing}
-                />
-              </div>
-            )}
+            <div className="min-w-0 lg:col-span-8">
+              <CategoryMovers
+                insights={insights}
+                loading={rangedRefreshing}
+                variant="strip"
+              />
+            </div>
+            <div className="min-w-0 lg:col-span-4">
+              <AlertsPanel
+                anomalies={anomalies}
+                upcomingBills={upcomingBills}
+                insights={insights}
+                loading={rangedRefreshing}
+              />
+            </div>
           </div>
         )}
 

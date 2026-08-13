@@ -30,8 +30,8 @@
 @layer base {
   html {
     color: var(--text-primary);
-    background-color: var(--bg-primary);
-    font-family: var(--font-primary);
+    background-color: var(--canvas-base);
+    font-family: var(--font-primary), system-ui, sans-serif;
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -40,7 +40,22 @@
   body {
     margin: 0;
     padding: 0;
-    background-color: var(--bg-secondary);
+    min-height: 100dvh;
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    font-family: var(--font-primary), system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  button, a, input, select, textarea {
+    touch-action: manipulation;
   }
 }
 
@@ -66,23 +81,11 @@
     position: relative;
     border-radius: var(--radius-lg);
 
-    /* Surface adapts automatically — light: clean fintech, dark: deep glass */
-    background:
-      linear-gradient(
-        145deg,
-        color-mix(in srgb, var(--surface-color) 92%, transparent),
-        color-mix(in srgb, var(--surface-color) 75%, transparent)
-      );
-
+    /* Tonal surface hierarchy. Scrolling cards remain opaque; blur is
+       reserved for fixed navigation and overlay layers. */
+    background: var(--surface-working);
     border: 1px solid var(--border-subtle);
-
-    /* Glass depth — only meaningful when card sits over a textured bg */
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-
-    box-shadow:
-      var(--shadow-2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: none;
 
     transition:
       transform var(--duration-fast) var(--easing-ease-out),
@@ -96,24 +99,17 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background:
-      radial-gradient(
-        circle at top right,
-        color-mix(in srgb, var(--accent-cyan) 12%, transparent),
-        transparent 45%
-      );
+    background: none;
     opacity: 0;
     transition: opacity var(--duration-normal) var(--easing-ease-out);
   }
 
-  /* Hover interaction */
+  /* Surfaces stay composed while content scrolls. Motion belongs to
+     selection, disclosure, and purposeful interactive affordances, not
+     every data card on the page. */
   .card:hover {
-    transform: translateY(-4px);
-    border-color: color-mix(in srgb, var(--accent-electric) 35%, var(--border-subtle));
-    box-shadow:
-      0 20px 50px rgba(0, 0, 0, 0.12),
-      0 0 30px color-mix(in srgb, var(--glow-primary) 45%, transparent),
-      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle));
+    box-shadow: var(--shadow-1);
   }
 
   .card:hover::before {
@@ -132,19 +128,14 @@
 
   /* Dark mode enhancement — tokens.css controls the surface */
   .dark .card {
-    background:
-      linear-gradient(145deg, rgba(18, 28, 50, 0.92), rgba(8, 15, 30, 0.96));
-    border-color: rgba(255, 255, 255, 0.08);
-    box-shadow:
-      0 20px 60px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    background: var(--surface-working);
+    border-color: var(--border-subtle);
+    box-shadow: none;
   }
 
   .dark .card:hover {
-    border-color: color-mix(in srgb, var(--accent-cyan) 35%, transparent);
-    box-shadow:
-      0 25px 70px rgba(0, 0, 0, 0.45),
-      0 0 35px color-mix(in srgb, var(--glow-cyan) 35%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary) 44%, var(--border-subtle));
+    box-shadow: var(--shadow-1);
   }
 
   /* ── Card Variants ───────────────────────────────────────────── */
@@ -152,25 +143,15 @@
   /* AI highlighted card */
   .card-ai {
     @apply card;
-    border-color: color-mix(in srgb, var(--accent-cyan) 35%, transparent);
-    box-shadow:
-      0 0 40px color-mix(in srgb, var(--glow-cyan) 25%, transparent);
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px var(--accent-selection), var(--shadow-1);
   }
 
   /* Premium hero card */
   .card-hero {
     @apply card;
-    background:
-      radial-gradient(
-        circle at top right,
-        color-mix(in srgb, var(--accent-violet) 18%, transparent),
-        transparent 40%
-      ),
-      linear-gradient(
-        145deg,
-        var(--surface-color),
-        color-mix(in srgb, var(--surface-color) 80%, var(--accent-cyan))
-      );
+    background: var(--surface-raised);
+    border-color: var(--accent-border);
   }
 
   /* Interactive dashboard tiles */
@@ -194,10 +175,8 @@
   }
 
   .btn-primary {
-    /* Phase 1 audit: use --interactive-* tokens (not --primary-500
-       directly) so the AA-contrast bump in tokens.css actually flows
-       through to the primary button. White on primary-600 = 5.17:1. */
-    @apply btn bg-[var(--interactive-primary)] text-[var(--text-on-brand)] hover:bg-[var(--interactive-hover)] active:bg-[var(--interactive-active)] disabled:bg-[var(--slate-400)] disabled:cursor-not-allowed focus-visible:outline-[var(--interactive-primary)];
+    /* Profile-aware Atlas action. Financial signal colors stay separate. */
+    @apply btn bg-[var(--interactive-primary)] text-[var(--accent-on-primary)] hover:bg-[var(--interactive-hover)] active:bg-[var(--interactive-active)] disabled:bg-[var(--slate-200)] disabled:text-[var(--text-secondary)] disabled:cursor-not-allowed focus-visible:outline-[var(--accent-focus)];
     transition:
       transform var(--duration-fast) var(--easing-ease-out),
       box-shadow var(--duration-fast) var(--easing-ease-out),
@@ -245,4 +224,317 @@
   .progress-success { @apply progress-fill bg-[var(--success-500)]; }
   .progress-warning { @apply progress-fill bg-[var(--warning-500)]; }
   .progress-danger  { @apply progress-fill bg-[var(--danger-500)];  }
+}
+
+/* Citation links use the section tone in light mode and a fixed high-contrast
+   foreground on the dark document theme. */
+html.dark .market-brief-source-link,
+html.dark .market-brief-source-link:hover {
+  color: rgb(255 255 255) !important;
+}
+
+html.dark .market-brief-warning,
+html.dark .market-brief-warning > span {
+  color: rgb(255 251 235) !important;
+  background-color: rgb(120 53 15) !important;
+}
+
+@media (max-width: 767px) {
+  .atlas-sidebar {
+    width: 4.5rem !important;
+  }
+
+  .atlas-sidebar .sidebar-label,
+  .atlas-sidebar .sidebar-group-label {
+    display: none;
+  }
+
+  .atlas-sidebar nav {
+    padding-inline: 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body,
+  .card,
+  #header {
+    scroll-behavior: auto;
+  }
+}
+
+/* =====================================================================
+   Luminous Financial Observatory composition
+   ===================================================================== */
+
+body::before,
+body::after {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+}
+
+body::before {
+  z-index: 0;
+  background:
+    radial-gradient(66rem 34rem at 12% -8%, var(--illumination-primary), transparent 68%),
+    radial-gradient(52rem 30rem at 92% 35%, var(--illumination-secondary), transparent 70%),
+    radial-gradient(44rem 26rem at 55% 112%, var(--illumination-countertone), transparent 72%);
+  box-shadow: inset 0 0 10rem var(--atmosphere-edge);
+  opacity: 0.92;
+}
+
+body::after {
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.16'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+  opacity: var(--grain-opacity);
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+.atlas-page-main {
+  width: auto;
+  max-width: 1480px;
+  margin-right: auto;
+}
+
+.atlas-sidebar {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-raised) 72%, var(--canvas-ambient)), var(--canvas-ambient));
+  border-right-color: color-mix(in srgb, var(--accent-primary) 15%, var(--border-subtle));
+  box-shadow: 18px 0 48px rgb(32 37 77 / 0.045);
+}
+
+.dark .atlas-sidebar {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-raised) 88%, var(--canvas-base)), var(--canvas-ambient));
+  border-right-color: color-mix(in srgb, var(--accent-primary) 20%, var(--border-subtle));
+  box-shadow: 18px 0 52px rgb(0 0 0 / 0.22);
+}
+
+.atlas-sidebar .nav-active {
+  position: relative;
+  background: color-mix(in srgb, var(--accent-primary) 10%, var(--surface-working));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 24%, transparent);
+}
+
+.atlas-sidebar .nav-active::before {
+  position: absolute;
+  inset-block: 8px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent-primary);
+  box-shadow: 0 0 18px var(--accent-glow);
+  content: '';
+}
+
+#header {
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary) 12%, var(--border-subtle));
+  background: color-mix(in srgb, var(--surface-raised) 84%, transparent);
+  box-shadow: 0 10px 32px rgb(36 42 83 / 0.045);
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+}
+
+.dark #header {
+  background: color-mix(in srgb, var(--surface-working) 84%, transparent);
+  box-shadow: 0 12px 34px rgb(0 0 0 / 0.18);
+}
+
+.atlas-page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.25rem;
+  min-height: 4.5rem;
+}
+
+.atlas-page-header .text-accent {
+  color: var(--accent-primary);
+}
+
+.surface-ambient,
+.surface-working,
+.surface-focal {
+  border-radius: var(--radius-lg);
+}
+
+.surface-ambient {
+  background: var(--surface-ambient);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.surface-working {
+  background: var(--surface-working);
+  border-color: var(--border-subtle);
+  box-shadow: none;
+}
+
+.surface-focal {
+  background: var(--surface-focal);
+  border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border-subtle));
+  box-shadow: var(--shadow-ambient);
+}
+
+.empty-state {
+  position: relative;
+  display: flex;
+  min-height: 15rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(145deg, var(--surface-working), var(--surface-profile-tint));
+  padding: clamp(2rem, 6vw, 4.5rem) 1.5rem;
+  text-align: center;
+  box-shadow: var(--shadow-1);
+}
+
+.empty-state-focal {
+  min-height: 23rem;
+  border-color: color-mix(in srgb, var(--accent-primary) 30%, var(--border-subtle));
+  background:
+    radial-gradient(32rem 17rem at 50% -8%, var(--illumination-primary), transparent 70%),
+    linear-gradient(145deg, var(--surface-profile-tint), var(--surface-raised));
+  box-shadow: var(--shadow-ambient);
+}
+
+.empty-state-mark {
+  display: flex;
+  width: 3.25rem;
+  height: 3.25rem;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 25%, var(--border-subtle));
+  border-radius: 1rem;
+  background: var(--surface-profile-selected);
+  color: var(--accent-primary);
+}
+
+.empty-state-guidance {
+  width: min(100%, 34rem);
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 1rem;
+  color: var(--text-secondary);
+}
+
+.budget-orbit {
+  position: relative;
+  width: min(100%, 18rem);
+  height: 9rem;
+  margin-bottom: 1.5rem;
+  color: var(--accent-primary);
+}
+
+.budget-orbit-core,
+.budget-orbit-ring,
+.budget-orbit-node {
+  position: absolute;
+  display: block;
+}
+
+.budget-orbit-core {
+  top: 50%;
+  left: 50%;
+  width: 2.25rem;
+  height: 2.25rem;
+  transform: translate(-50%, -50%);
+  border: 5px solid color-mix(in srgb, var(--accent-primary) 24%, transparent);
+  border-radius: 50%;
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent-primary) 7%, transparent), 0 0 28px var(--accent-glow);
+}
+
+.budget-orbit-ring {
+  top: 50%;
+  left: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(-18deg);
+}
+
+.budget-orbit-ring-one { width: 8rem; height: 4.8rem; }
+.budget-orbit-ring-two { width: 13rem; height: 6.8rem; transform: translate(-50%, -50%) rotate(24deg); }
+.budget-orbit-ring-three { width: 17rem; height: 8.7rem; transform: translate(-50%, -50%) rotate(-8deg); opacity: 0.55; }
+
+.budget-orbit-node {
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 2px solid var(--surface-raised);
+  border-radius: 50%;
+  background: var(--accent-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-primary) 12%, transparent);
+}
+
+.budget-orbit-node-one { top: 0.9rem; left: 35%; }
+.budget-orbit-node-two { right: 0.8rem; bottom: 1.1rem; }
+.budget-orbit-node-three { bottom: 0.25rem; left: 20%; opacity: 0.7; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .budget-orbit-ring-one { animation: budgetOrbitDrift 12s ease-in-out infinite alternate; }
+  .budget-orbit-ring-two { animation: budgetOrbitDrift 16s ease-in-out -4s infinite alternate-reverse; }
+  .budget-orbit-ring-three { animation: budgetOrbitDrift 20s ease-in-out -7s infinite alternate; }
+  .budget-orbit-node-one { animation: budgetOrbitNode 5s ease-in-out infinite; }
+  .budget-orbit-node-two { animation: budgetOrbitNode 6s ease-in-out -2s infinite; }
+}
+
+@keyframes budgetOrbitDrift {
+  from { transform: translate(-50%, -50%) rotate(-18deg) scale(0.98); opacity: 0.58; }
+  to { transform: translate(-50%, -50%) rotate(8deg) scale(1.02); opacity: 1; }
+}
+
+@keyframes budgetOrbitNode {
+  0%, 100% { opacity: 0.52; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .budget-orbit-ring,
+  .budget-orbit-node,
+  .budget-orbit-static .budget-orbit-ring,
+  .budget-orbit-static .budget-orbit-node {
+    animation: none !important;
+  }
+}
+
+/* Keep interface metadata readable on ordinary monitors. */
+html .text-xs,
+html .text-\[10px\],
+html .text-\[11px\] {
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+html .label-lg,
+html .label-md,
+html .label-sm,
+html .uppercase {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+@media (max-width: 767px) {
+  .atlas-page-main {
+    max-width: none;
+  }
+
+  .empty-state-focal {
+    min-height: 20rem;
+    padding-inline: 1rem;
+  }
+
+  .budget-orbit {
+    transform: scale(0.9);
+  }
 }

@@ -291,19 +291,39 @@ g:focus-visible > .sankey-focus-ring {
 .bg-critical    { background-color: var(--signal-critical-bg); }
 .bg-recommended { background-color: var(--signal-recommended-bg); }
 
+/* Visual System v2 semantic aliases. Brand identity is independent from
+   finance signals and resolves through the active accent profile. */
+.bg-surface-base { background-color: var(--surface-base); }
+.bg-surface-raised { background-color: var(--surface-raised); }
+.bg-surface-overlay { background-color: var(--surface-overlay); }
+.bg-surface-selected { background-color: var(--surface-selected); }
+.bg-accent-subtle { background-color: var(--accent-subtle); }
+.text-accent-primary { color: var(--accent-primary); }
+.border-accent-primary { border-color: var(--accent-primary); }
+.border-accent-border { border-color: var(--accent-border); }
+.outline-accent-focus { outline-color: var(--accent-focus); }
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.nav-active {
+  background: var(--accent-subtle);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+  color: var(--text-primary);
+}
+
 /* -----------------------------------------------------------------
    Glass surface — frosted-glass card pattern used by Recent Activity,
    SecondaryInsights, and the GlassSurface base component.
    ----------------------------------------------------------------- */
 
 .glass-surface {
-  background-color: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 0;
+  background-color: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow: none;
-  transition: border-color var(--duration-fast) var(--easing-ease-out);
+  box-shadow: var(--shadow-1);
+  transition: border-color var(--duration-fast) var(--easing-ease-out), box-shadow var(--duration-fast) var(--easing-ease-out);
 }
 
 .glass-surface:hover {
@@ -312,12 +332,12 @@ g:focus-visible > .sankey-focus-ring {
 
 /* Glass surface dark mode — .dark class only (no @media query) */
 .dark .glass-surface {
-  background-color: var(--bg-primary);
-  border: 1px solid var(--slate-300);
-  border-radius: 0;
+  background-color: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow: none;
+  box-shadow: var(--shadow-1);
 }
 .dark .glass-surface:hover {
   border-color: var(--primary-500);

@@ -18,6 +18,16 @@ COMPLETED_PATH = ROOT / "docs/10-roadmap/COMPLETED_PHASES.md"
 WORK_STATUSES = {"planned", "in_progress", "blocked", "in_review", "complete", "cancelled"}
 PHASE_STATUSES = {"not_started", "in_progress", "blocked", "in_review", "complete"}
 RISK_TIERS = {"low", "medium", "high"}
+# Risk-tier policy (simplified for solo personal-use development):
+#   low    — direct commit to main, no branch/PR/review/CI required.
+#   medium — one cohesive feature branch, PR + review optional, CI only when
+#            shared behavior changes; mapper/schema/route parts of one slice NOT
+#            split into micro-PRs unless a concrete dependency or safety
+#            reason requires it.
+#   high   — one cohesive branch + PR, required relevant CI, one fresh
+#            independent review, maximum two correction-and-review cycles,
+#            fold final tracker evidence into the implementation commit.
+# See .agents/skills/atlas-project-tracker/SKILL.md for the full text.
 CI_RUN_URL = re.compile(r"^https://github\.com/[^/]+/[^/]+/actions/runs/[0-9]+(?:/job/[0-9]+)?$")
 GENERIC_CI_CHECK_NAMES = {"passed", "success", "successful", "green", "ok"}
 

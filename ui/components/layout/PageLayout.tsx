@@ -21,7 +21,7 @@ import { rulesService, type Profile } from '@/lib/api'
  *   - Visual consistency is enforced
  *   - A future "Settings changes the layout" PR only edits one file
  */
-function PageLayoutInner({ children }: { children: React.ReactNode }) {
+function PageLayoutInner({ children, mobileFullBleed }: { children: React.ReactNode; mobileFullBleed: boolean }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const { collapsed } = useSidebar()
@@ -60,9 +60,10 @@ function PageLayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Sidebar />
-      <Header profile={profile} loading={loading} />
+      <Header profile={profile} loading={loading} mobileFullBleed={mobileFullBleed} />
       <main
-        className="p-8 pt-4 transition-all duration-300 ease-in-out ml-[var(--layout-ml)]"
+        id="main-content"
+        className={`atlas-page-main min-w-0 px-4 py-6 pt-7 transition-[margin,padding] duration-300 ease-out sm:px-6 lg:px-10 ${mobileFullBleed ? 'ml-0 lg:ml-[var(--layout-ml)]' : 'ml-0 lg:ml-[var(--layout-ml)]'}`}
         style={{ '--layout-ml': collapsed ? '4.5rem' : '16rem' } as React.CSSProperties}
       >{children}</main>
       {/* Phase 4 — Persistent AI Copilot (orb + dock).
@@ -74,10 +75,10 @@ function PageLayoutInner({ children }: { children: React.ReactNode }) {
   )
 }
 
-export default function PageLayout({ children }: { children: React.ReactNode }) {
+export default function PageLayout({ children, mobileFullBleed = false }: { children: React.ReactNode; mobileFullBleed?: boolean }) {
   return (
     <SidebarProvider>
-      <PageLayoutInner>{children}</PageLayoutInner>
+      <PageLayoutInner mobileFullBleed={mobileFullBleed}>{children}</PageLayoutInner>
     </SidebarProvider>
   )
 }

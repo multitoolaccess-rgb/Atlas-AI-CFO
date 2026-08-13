@@ -1,193 +1,130 @@
 #!/bin/bash
-# Finance Copilot - Stop Wrapper
-# --------------------------------
-# Companion to ``start.sh``. Reads ``.run/{be.pid,fe.pid}``, sends
-# SIGTERM to the process tree (so ``next dev``'s listener child is
-# also reaped via a child-walk), waits ``$STOP_GRACE_SECONDS``
-# (default 5 s), escalates to SIGKILL on any survivor, then prints a
-# status block mirroring
-# ``start.sh`` so the dev always sees the same diagnostic format.
-#
-# Stop:
-#   ./stop.sh
-#   STOP_GRACE_SECONDS=15 ./stop.sh     # longer grace (slow CI boxes)
-#
-# Status block layout mirrors ``start.sh`` so terminal scrollback reads
-# the same way stop → start → stop. Idempotent: re-running on an
-# already-stopped system is a no-op success; missing pidfile ⇒ banner
-# "already gone" rather than a hard exit. Defensive: refuses to kill
-# a PID whose cmdline does not match this project (finance-copilot /
-# rules-service / uvicorn / next-server / "next dev") — same pattern
-# as ``start.sh::reap_port``.
+# Atlas AI CFO - development server stop wrapper.
 
-set -u  # do NOT use -e: graceful_kill has its own error semantics
+set -u
 
-: "${STOP_GRACE_SECONDS:=5}"
+usage() {
+  cat <<'EOF'
+Usage: ./stop.sh [--help|--check]
 
-# ----- paths --------------------------------------------------------------
+Stop Atlas AI CFO development processes recorded in this project's .run/.
+The process working directory must be this Atlas project before any signal is
+sent. Generic process names are never trusted.
+
+Environment overrides:
+  ATLAS_UI_PORT       UI port (default: 3333)
+  ATLAS_RULES_PORT    Rules Service port (default: 8888)
+  ATLAS_FINLYNQ_PORT  Finlynq port (default: 8889)
+EOF
+}
+
+MODE=run
+case "${1:-}" in
+  '') ;;
+  --help|-h) MODE=help ;;
+  --check) MODE=check ;;
+  *) printf 'Unknown option: %s\n' "$1" >&2; usage >&2; exit 2 ;;
+esac
+
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUN_DIR="$PROJECT_ROOT/.run"
-LOG_BE="$RUN_DIR/backend.log"
-LOG_FE="$RUN_DIR/frontend.log"
-LOG_FQ="$RUN_DIR/finlynq.log"
-PID_BE="$RUN_DIR/be.pid"
-PID_FE="$RUN_DIR/fe.pid"
-PID_FQ="$RUN_DIR/fq.pid"
+: "${ATLAS_UI_PORT:=3333}"
+: "${ATLAS_RULES_PORT:=8888}"
+: "${ATLAS_FINLYNQ_PORT:=8889}"
+: "${STOP_GRACE_SECONDS:=5}"
 
-# ----- helpers (same shape as start.sh) ----------------------------------
-hr()   { printf '\n=== %s ===\n' "$1"; }
+valid_port() { [[ "$1" =~ ^[1-9][0-9]{0,4}$ ]] && [ "$1" -le 65535 ]; }
+for port_name in ATLAS_UI_PORT ATLAS_RULES_PORT ATLAS_FINLYNQ_PORT; do
+  valid_port "${!port_name}" || { printf '%s must be an integer between 1 and 65535\n' "$port_name" >&2; exit 2; }
+done
+
+if [ "$MODE" = help ]; then usage; exit 0; fi
+if [ "$MODE" = check ]; then
+  printf 'Atlas AI CFO lifecycle stop configuration (non-mutating)\n'
+  printf '  UI=%s Rules=%s Finlynq=%s\n' "$ATLAS_UI_PORT" "$ATLAS_RULES_PORT" "$ATLAS_FINLYNQ_PORT"
+  printf '  run dir: %s\n' "$RUN_DIR"
+  exit 0
+fi
+
+PID_FQ="$RUN_DIR/fq.pid"; PID_BE="$RUN_DIR/be.pid"; PID_FE="$RUN_DIR/fe.pid"
+LOG_FQ="$RUN_DIR/finlynq.log"; LOG_BE="$RUN_DIR/backend.log"; LOG_FE="$RUN_DIR/frontend.log"
+hr() { printf '\n=== %s ===\n' "$1"; }
 note() { printf '  • %s\n' "$1"; }
 
-# Confirm a pidfile owner is actually part of this project before we
-# touch it. Same cmdline allow-list as ``start.sh::reap_port`` so an
-# orphan PID file can never accidentally target an unrelated process.
-project_pid_owner() {
-  local pid=$1
-  # Guard against [ -z ] missing AND pid=0 (``kill -0 0`` would signal
-  # the calling shell's process group on Unix — never what we want).
-  [ -z "$pid" ] && return 1
-  [ "$pid" = "0" ] && return 1
-  # ``kill -0`` first: returns 1 if the pid is GONE (so we don't try
-  # to inspect a process that's already dead).
-  kill -0 "$pid" 2>/dev/null || return 1
-  local cmd
-  cmd=$(ps -p "$pid" -o command= 2>/dev/null || true)
-  case "$cmd" in
-    *finance-copilot*|*rules-service*|*uvicorn*|*next-server*|"next dev"*) return 0 ;;
-    *) return 1 ;;
-  esac
+process_cwd() { lsof -a -p "$1" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1; }
+atlas_pid_owner() {
+  local pid=$1 cwd
+  [[ "$pid" =~ ^[1-9][0-9]*$ ]] || return 1
+  cwd=$(process_cwd "$pid")
+  [ "$cwd" = "$PROJECT_ROOT" ] || [[ "$cwd" == "$PROJECT_ROOT/"* ]] || return 1
+  kill -0 "$pid" 2>/dev/null
 }
-
-# Walk the process tree rooted at $pid and signal every descendant.
-# We intentionally avoid Unix process-group semantics (negative-pid
-# kill via ``kill -SIG -PID``) because that has interop quirks on
-# macOS bash — the negative-pid form is unreliable across systems
-# (probed empirically: SIGKILL via ``kill -KILL -PID`` left the
-# listener bound). Instead we enumerate children of $pid with
-# ``pgrep -P`` and recurse, which is deterministic on every Unix.
-kill_tree() {
-  local sig=$1 pid=$2
-  # ``pid=0`` would signal the calling shell's process group via
-  # ``kill -SIG 0`` — explicit guard so a malformed pidfile can
-  # never reach that path.
-  [ -z "$pid" ] && return 0
-  [ "$pid" = "0" ] && return 0
-  if ! kill -0 "$pid" 2>/dev/null; then return 0; fi
-
-  # BFS through descendants of $pid.
-  local wave="$pid"
-  while [ -n "$wave" ]; do
-    # Signal everyone in the current wave first.
-    for node in $wave; do
-      kill -"$sig" "$node" 2>/dev/null || true
-    done
-    # Then collect children of the current wave for the next iteration.
-    local next_wave=
-    for node in $wave; do
-      local children
-      children=$(pgrep -P "$node" 2>/dev/null || true)
-      [ -n "$children" ] && next_wave="$next_wave $children"
-    done
-    wave="$next_wave"
+ATLAS_TREE_PIDS=()
+snapshot_atlas_tree() {
+  local root_pid=$1 queue= seen= node children pid index
+  ATLAS_TREE_PIDS=()
+  atlas_pid_owner "$root_pid" || return 1
+  queue=$root_pid
+  while [ -n "$queue" ]; do
+    node=${queue%% *}
+    if [ "$node" = "$queue" ]; then queue=; else queue=${queue#* }; fi
+    case " $seen " in *" $node "*) continue ;; esac
+    seen="$seen $node"
+    children=$(pgrep -P "$node" 2>/dev/null || true)
+    [ -n "$children" ] && queue="${queue:+$queue }$children"
+    atlas_pid_owner "$node" && ATLAS_TREE_PIDS+=("$node")
+  done
+  for ((index=0; index < ${#ATLAS_TREE_PIDS[@]} / 2; index++)); do
+    pid=${ATLAS_TREE_PIDS[index]}
+    ATLAS_TREE_PIDS[index]=${ATLAS_TREE_PIDS[${#ATLAS_TREE_PIDS[@]} - index - 1]}
+    ATLAS_TREE_PIDS[${#ATLAS_TREE_PIDS[@]} - index - 1]=$pid
+  done
+  [ "${#ATLAS_TREE_PIDS[@]}" -gt 0 ]
+}
+signal_atlas_snapshot() {
+  local signal=$1; shift
+  local pid
+  for pid in "$@"; do
+    atlas_pid_owner "$pid" && kill -"$signal" "$pid" 2>/dev/null || true
   done
 }
-
-# SIGTERM → wait grace → escalate survivors to SIGKILL. ``label`` is
-# only used in the bullet output so the diagnostic reads naturally.
-# Defensive: refuses to invoke ``kill -0`` (or any signal) on pid=0 —
-# ``kill -0 0`` is a permission test that addresses the calling shell's
-# own process group on Unix, so a malformed pidfile containing ``0``
-# must never reach the liveness check below.
 graceful_kill() {
-  local label=$1 pid=$2
-  if [ -z "$pid" ]; then
-    note "$label : pidfile missing/empty — already gone"
+  local label=$1 pid=$2 end
+  local -a pid_tree=()
+  if ! snapshot_atlas_tree "$pid"; then
+    note "$label : pid ${pid:-'(missing)'} is absent or not Atlas-owned — refusing to signal"
     return 0
   fi
-  if [ "$pid" = "0" ]; then
-    # ``kill -SIG 0`` targets the calling shell's own process group on
-    # Unix — a malformed pidfile ``0`` must never reach ``kill -0``.
-    note "$label : pidfile contains 0 — refusing (kill -SIG 0 addresses the calling shell's own process group)"
-    return 1
-  fi
-  # Liveness check FIRST so a dead-but-our-own pidfile short-circuits
-  # with the original ``already gone`` semantics. The cmdline allow-list
-  # check (``project_pid_owner``) can only run on PIDs that are still
-  # alive — otherwise ``ps -p`` returns empty for a dead PID, which
-  # the case-statement would mis-classify as ``NOT this project``.
-  if ! kill -0 "$pid" 2>/dev/null; then
-    note "$label : pid $pid not alive — already gone"
-    return 0
-  fi
-  if ! project_pid_owner "$pid"; then
-    note "$label : pid $pid is NOT this project (refusing to kill)"
-    return 1
-  fi
-  note "$label : SIGTERM  pid=$pid (process tree)"
-  kill_tree TERM "$pid"
-  local end=$((SECONDS + STOP_GRACE_SECONDS))
-  while [ $SECONDS -lt $end ]; do
-    if ! kill -0 "$pid" 2>/dev/null; then
-      note "$label : exited gracefully within ${STOP_GRACE_SECONDS}s"
-      return 0
-    fi
+  pid_tree=("${ATLAS_TREE_PIDS[@]}")
+  note "$label : SIGTERM pid=$pid (verified Atlas process tree)"
+  signal_atlas_snapshot TERM "${pid_tree[@]}"
+  end=$((SECONDS + STOP_GRACE_SECONDS))
+  while [ "$SECONDS" -lt "$end" ]; do
+    kill -0 "$pid" 2>/dev/null || return 0
     sleep 1
   done
-  if kill -0 "$pid" 2>/dev/null; then
-    note "$label : grace expired, escalating to SIGKILL (pid=$pid, process tree)"
-    kill_tree KILL "$pid"
-    sleep 1
-    if kill -0 "$pid" 2>/dev/null; then
-      note "$label : STILL alive after SIGKILL — manual intervention needed"
-      return 1
-    fi
-    note "$label : killed after SIGKILL"
+  if atlas_pid_owner "$pid"; then
+    note "$label : grace expired; SIGKILL verified Atlas process tree"
+    signal_atlas_snapshot KILL "${pid_tree[@]}"
   fi
-  return 0
+}
+port_state() {
+  local port=$1 pid
+  pid=$(lsof -ti:"$port" 2>/dev/null | head -1 | tr -d ' ' || true)
+  [ -z "$pid" ] && { printf '✓ stopped'; return; }
+  if atlas_pid_owner "$pid"; then printf '✗ Atlas listener (pid=%s)' "$pid"; else printf 'ℹ unrelated listener (pid=%s)' "$pid"; fi
 }
 
-# ----- intro --------------------------------------------------------------
-hr "🛑 Finance Copilot — Stop"
-note "grace window  : ${STOP_GRACE_SECONDS}s (override with STOP_GRACE_SECONDS=N)"
-note "log dir       : $RUN_DIR"
+FQ_PID=$(cat "$PID_FQ" 2>/dev/null || true)
 BE_PID=$(cat "$PID_BE" 2>/dev/null || true)
 FE_PID=$(cat "$PID_FE" 2>/dev/null || true)
-FQ_PID=$(cat "$PID_FQ" 2>/dev/null || true)
-[ -n "$BE_PID" ] && note "be.pid record : $BE_PID" || note "be.pid record : (missing)"
-[ -n "$FE_PID" ] && note "fe.pid record : $FE_PID" || note "fe.pid record : (missing)"
-[ -n "$FQ_PID" ] && note "fq.pid record : $FQ_PID" || note "fq.pid record : (missing)"
-
-# ----- terminate Finlynq, BE, then FE ------------------------------------
-# Symmetry with start.sh, which now launches THREE services (Finlynq
-# :8001 + Rules :8000 + Next dev :3000). Dropping FQ from stop.sh would
-# leave :8001 squatting on a stale pid file until the next start.sh's
-# ``reap_port`` block clears it. Order is intentional: Finlynq first
-# (it owns the rules-service schema cache), then BE, then FE.
-graceful_kill "FQ" "$FQ_PID" || true
-graceful_kill "BE" "$BE_PID" || true
-graceful_kill "FE" "$FE_PID" || true
-
-# ----- status block (mirrors start.sh) ------------------------------------
-hr "🛟 Status"
-# Verify the port-side state by checking real listeners. If something
-# else is squatting on :8000 / :3000, we surface it but do NOT kill it
-# (out of scope for stop.sh — start.sh::reap_port handles that).
-port_state() {
-  local port=$1
-  if ! lsof -ti:"$port" >/dev/null 2>&1; then
-    printf '✓ stopped'
-  else
-    printf '✗ still listening (pid=%s)' "$(lsof -ti:"$port" | head -1 | tr -d ' ')"
-  fi
-}
-# As probe for Finlynq's port too so the status block mirrors start.sh.
-fq_state=$(port_state 8001)
-be_state=$(port_state 8000)
-fe_state=$(port_state 3000)
-printf '  FQ (finlynq       :8001)  pid=%-6s  %s   log=%s\n' "${FQ_PID:-—}" "$fq_state" "$LOG_FQ"
-printf '  BE (rules-service :8000)  pid=%-6s  %s   log=%s\n' "${BE_PID:-—}" "$be_state" "$LOG_BE"
-printf '  FE (next dev      :3000)  pid=%-6s  %s   log=%s\n' "${FE_PID:-—}" "$fe_state" "$LOG_FE"
-printf '\n'
-printf '  🌐 Reload : ./start.sh\n'  printf '  📋 Tail   : tail -f %s %s %s\n' "$LOG_FQ" "$LOG_FE" "$LOG_BE"
-printf '  ⚠️  Note  : pidfiles are NOT removed — re-run ./start.sh to reuse them\n'
-hr "✨ Done"
+hr 'Atlas AI CFO — Stop'
+graceful_kill Finlynq "$FQ_PID"
+graceful_kill Rules "$BE_PID"
+graceful_kill 'Atlas UI' "$FE_PID"
+hr Status
+printf '  FQ (finlynq       :%s) %s log=%s\n' "$ATLAS_FINLYNQ_PORT" "$(port_state "$ATLAS_FINLYNQ_PORT")" "$LOG_FQ"
+printf '  BE (rules-service :%s) %s log=%s\n' "$ATLAS_RULES_PORT" "$(port_state "$ATLAS_RULES_PORT")" "$LOG_BE"
+printf '  FE (Atlas UI      :%s) %s log=%s\n' "$ATLAS_UI_PORT" "$(port_state "$ATLAS_UI_PORT")" "$LOG_FE"
+printf '  Reload: ./start.sh\n'
+hr 'Atlas AI CFO stopped'
