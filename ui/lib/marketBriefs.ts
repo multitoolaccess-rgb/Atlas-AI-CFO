@@ -18,10 +18,140 @@ export type MarketBriefReasonCode =
 export type PriceBasis = 'live' | 'prior_close' | 'unusable' | 'unknown'
 export type Freshness = 'fresh' | 'stale' | 'unknown'
 export type CoverageBasis = 'value_weighted' | 'position_count'
+export type EvidenceCategory = 'quote' | 'news' | 'earnings' | 'filings' | 'analyst'
 
 export type CoverageOmission = {
   symbol: string
+  evidence_category?: EvidenceCategory
   reason_code: MarketBriefReasonCode
+  recovery?: string | null
+}
+
+/** Per-holding, per-evidence-category availability for a v2 brief. Records
+ *  WHICH evidence category failed for WHICH holding so the UI can explain
+ *  a partial brief precisely instead of collapsing it into one message. */
+export type EvidenceAvailability = {
+  symbol: string
+  evidence_category: EvidenceCategory
+  reason_code: MarketBriefReasonCode
+  recovery?: string | null
+}
+
+export type MarketQuoteSnapshot = {
+  symbol: string
+  currency: string
+  current_price: string
+  previous_close?: string | null
+}
+
+export type CompanyProfile = {
+  symbol: string
+  cik?: string | null
+  company_name?: string | null
+  exchange?: string | null
+  sector?: string | null
+}
+
+export type CompanyNewsItem = {
+  symbol: string
+  headline: string
+  summary?: string | null
+  publisher?: string | null
+  source: Citation
+}
+
+export type EarningsEvent = {
+  symbol: string
+  event_date: string
+  source: Citation
+}
+
+export type EarningsResult = {
+  symbol: string
+  actual?: string | null
+  estimate?: string | null
+  source: Citation
+}
+
+export type SecFilingEvent = {
+  cik: string
+  form: string
+  accession_number: string
+  filing_date: string
+  source: Citation
+}
+
+export type AnalystRecommendation = {
+  symbol: string
+  period: string
+  strong_buy: number
+  buy: number
+  hold: number
+  sell: number
+  strong_sell: number
+}
+
+export type PriceTarget = {
+  symbol: string
+  target_high?: string | null
+  target_low?: string | null
+  target_mean?: string | null
+  target_median?: string | null
+}
+
+export type DividendEvent = {
+  symbol: string
+  ex_date?: string | null
+  declared_date?: string | null
+  record_date?: string | null
+  payable_date?: string | null
+  amount?: string | null
+  source: Citation
+}
+
+/** Market Intelligence v2 ranked per-holding intelligence packet. */
+export type HoldingEvidence = {
+  symbol: string
+  quote?: MarketQuoteSnapshot | null
+  profile?: CompanyProfile | null
+  news: CompanyNewsItem[]
+  earnings_events: EarningsEvent[]
+  earnings_results: EarningsResult[]
+  filings: SecFilingEvent[]
+  recommendations: AnalystRecommendation[]
+  price_target?: PriceTarget | null
+  dividends: DividendEvent[]
+  materiality: 'high' | 'watch' | 'informational'
+  materiality_reason?: string | null
+}
+
+export type MarketIndexQuote = {
+  label: string
+  symbol: string
+  current_price: string
+  previous_close?: string | null
+  direction: 'up' | 'down' | 'flat' | 'unavailable'
+  is_etf_proxy: boolean
+  source: Citation
+}
+
+export type MarketNewsItem = {
+  headline: string
+  summary?: string | null
+  publisher?: string | null
+  source: Citation
+}
+
+/** Market Intelligence v2 zero-dollar market-pulse snapshot. */
+export type MarketPulseSnapshot = {
+  indices: MarketIndexQuote[]
+  news: MarketNewsItem[]
+  earnings_calendar: EarningsEvent[]
+  scanner: MarketQuoteSnapshot[]
+  scanned_symbol_count: number
+  total_universe_size: number
+  categories_unavailable: string[]
+  generated_at: string
 }
 
 export type CoverageSummary = {
@@ -94,6 +224,8 @@ export type MarketBrief = {
   provider_readiness?: ProviderReadiness
   portfolio_daily_change?: string | null
   actions?: ActionToReview[]
+  evidence_availability?: EvidenceAvailability[]
+  holding_evidence?: HoldingEvidence[]
 }
 
 export type MarketBriefErrorState = {
@@ -247,4 +379,9 @@ export async function getMarketBrief(id: string): Promise<MarketBrief> {
 /** Sends only the bounded report-window control; financial facts remain server-owned. */
 export async function generateMarketBrief(): Promise<{ brief_id: string; replayed: boolean; brief: MarketBrief }> {
   return (await api.post<{ brief_id: string; replayed: boolean; brief: MarketBrief }>('/api/v1/market-briefs/generate', { report_window: 'latest' })).data
+}
+
+/** Server-owned, bounded, zero-dollar market pulse. Client sends no holdings. */
+export async function fetchMarketPulse(): Promise<MarketPulseSnapshot> {
+  return (await api.get<MarketPulseSnapshot>('/api/v1/market-briefs/pulse')).data
 }

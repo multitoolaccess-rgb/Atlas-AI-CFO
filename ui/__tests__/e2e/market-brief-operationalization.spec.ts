@@ -52,12 +52,13 @@ async function authenticateSyntheticBrowser(page: import('@playwright/test').Pag
   await page.addInitScript((value) => window.localStorage.setItem('fc_session_token', value), token)
 }
 
-test('Market Briefs is discoverable and generates a synthetic archived detail', async ({ page, request }) => {
+test('Market Intelligence is discoverable and generates a synthetic archived detail', async ({ page, request }) => {
   await authenticateSyntheticBrowser(page, request)
   await installBriefRoutes(page)
   await page.goto('/market-briefs')
   await expect(page.getByRole('link', { name: /market briefs/i })).toBeVisible()
-  await expect(page.getByText(/no saved briefs yet/i)).toBeVisible()
+  await expect(page.getByRole('heading', { name: /market intelligence/i })).toBeVisible()
+  await expect(page.getByText(/generate your first portfolio brief/i)).toBeVisible()
   await page.getByRole('button', { name: /^generate brief$/i }).click()
   await expect(page.getByText(/generated and added to the archive/i)).toBeVisible()
   await expect(page.getByText('AAPL: 10')).toBeVisible()
@@ -82,16 +83,16 @@ test('Market Briefs is discoverable and generates a synthetic archived detail', 
 
 })
 
-test('Market Brief header stays full-bleed and overflow-free on mobile', async ({ page, request }) => {
+test('Market Intelligence header stays full-bleed and overflow-free on mobile', async ({ page, request }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await authenticateSyntheticBrowser(page, request)
   await installBriefRoutes(page)
   await page.goto('/market-briefs')
-  await expect(page.getByRole('heading', { name: /market intelligence briefs/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /market intelligence/i })).toBeVisible()
   const mobileLayout = await page.evaluate(() => {
     const header = document.querySelector('header#header')
     const root = document.documentElement
-    if (!header) throw new Error('Market Brief header was not rendered')
+    if (!header) throw new Error('Market Intelligence header was not rendered')
     return { headerWidth: Math.round(header.getBoundingClientRect().width), viewportWidth: window.innerWidth, scrollWidth: root.scrollWidth, clientWidth: root.clientWidth }
   })
   expect(mobileLayout.headerWidth).toBe(mobileLayout.viewportWidth)

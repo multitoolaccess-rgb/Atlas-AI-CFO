@@ -1,6 +1,6 @@
 import PageLayout from '@/components/layout/PageLayout'
-import MarketBriefArchive from '@/components/market-briefs/MarketBriefArchive'
+import MarketIntelligenceCenter from '@/components/market-briefs/MarketIntelligenceCenter'
 
 export default function MarketBriefsPage() {
-  return <PageLayout mobileFullBleed><MarketBriefArchive /></PageLayout>
+  return <PageLayout mobileFullBleed><MarketIntelligenceCenter /></PageLayout>
 }
