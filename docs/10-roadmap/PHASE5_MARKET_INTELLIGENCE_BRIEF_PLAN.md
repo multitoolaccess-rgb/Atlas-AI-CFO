@@ -252,3 +252,69 @@ insufficient coverage, and detail races. `ui-ux-pro-max` and `impeccable` were
 available as guidance (the former's executable search script was unavailable;
 the latter's context/detector/references were run); `tasteskill` was not
 installed and was not added.
+
+## Market Intelligence v2 correction and redesign
+
+Market Intelligence v2 (2026-08-13) keeps the zero-dollar boundary and the
+review-only authority of Phase 5, and adds an evidence contract, an authorized
+universe expansion, and a command-center UI. It changes no financial
+mathematics, decimal handling, persistence, authorization, or execution
+capability.
+
+### Reliability and evidence contract (Part 1)
+
+- Every safely covered holding is priced and analyzed independently.
+- Each optional evidence category (quote, news, earnings, filings, analyst)
+  can fail independently: failures become `EvidenceAvailability` omissions
+  with a stable reason code and user-safe recovery guidance, and never kill
+  the complete brief.
+- The brief fails closed only when trustworthy portfolio coverage falls below
+  the tested 80% threshold (or no holding is market-addressable).
+- Anticipated provider/composition failures are converted at the route
+  boundary into sanitized stable responses; raw provider text and secrets
+  never reach the client, and nothing is persisted when complete generation
+  fails.
+- Regression coverage: all-covered, one/multiple unsupported symbols, stale
+  quote, missing CIK, timeout/rate-limit, partial above/below threshold, all
+  unsupported, malformed omission construction, no-secret guarantee,
+  deterministic replay and archive persistence.
+
+### Portfolio intelligence model (Part 2)
+
+Per-holding bounded packets (`HoldingEvidence/v1`) assemble quote, profile/CIK,
+company news, earnings events and results, SEC filings, analyst consensus and
+price target, and dividend events. Packets are ranked deterministically as
+`high` / `watch` / `informational` with a stated materiality reason. Claims
+carry source and freshness. No buy/sell instruction, predicted guaranteed move,
+or unsupported confidence score is generated; an AI summarizer is not required
+(the deterministic template is the only enabled generator).
+
+### Market pulse layer (Part 3)
+
+A server-owned, zero-dollar, quota-aware market layer:
+
+- Index direction only through approved, clearly labeled ETF proxies
+  (SPY/QQQ) — the free tier cannot quote raw indices, so the UI states the
+  proxy and never passes it off as the index.
+- Free-tier general market news (`market_news`) and the market-wide earnings
+  calendar for a bounded window.
+- A bundled factual S&P 500 symbol list (`data/sp500_symbols.json`) used only
+  as a scanner universe. The scanner requests a bounded sample per refresh
+  with provider pacing and caching; portfolio holdings always take priority;
+  the wholesale universe is never requested.
+- Categories the free tier cannot supply (raw indices, VIX, sector
+  performance, top movers) are surfaced as unavailable, never fabricated.
+
+### Command-center UI (Part 4)
+
+The Market Briefs page becomes a Market Intelligence command center with five
+views — My Portfolio (default), Market Pulse, Earnings & Events, S&P 500
+Scanner, and Archive — built on the Atlas appearance system and all three
+accent profiles. It preserves the provider-status model (not checked /
+checking market data / provider ready / coverage limited / provider
+unavailable), the sanitized error model with actionable recovery, immutable
+archive replay, stale-response race handling, keyboard-roving tabs, and
+accessible states for first load, generating, full success, partial coverage,
+no eligible holdings, provider unavailable, rate limited, no earnings events,
+empty archive, and complete generation failure. Financial semantic colors
+remain profile-independent.
