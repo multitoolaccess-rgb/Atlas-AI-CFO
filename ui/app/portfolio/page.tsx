@@ -35,6 +35,7 @@ import Button from '@/components/ui/Button'
 import ErrorBanner from '@/components/ui/ErrorBanner'
 import EmptyState from '@/components/ui/EmptyState'
 import PageHeader from '@/components/ui/PageHeader'
+import AnalystCoverageStatus from '@/components/portfolio/AnalystCoverageStatus'
 import { CountUp, Input, Select, Modal } from '@/components/ui'
 import {
   rulesService,
@@ -46,7 +47,6 @@ import {
   type Profile,
 } from '@/lib/api'
 import { classifyErrorMessage } from '@/lib/errors'
-import { analystCoverageEmptyMessage } from '@/lib/analystCoverage'
 import { useThemeColors } from '@/lib/themeColors'
 import { onDataRefresh } from '@/lib/dataRefresh'
 import {
@@ -181,10 +181,11 @@ export default function PortfolioPage() {
 
   // Phase 42 — whole-batch analyst coverage error. Distinct from
   // per-ticker `ratingsByTicker[symbol].state='error'`: this surfaces
-  // a banner when the BE 500s or the request 422s (whole-batch failure
-  // modes), while per-ticker errors render as "Uncovered" chips. The
-  // distinction matters for triage — a banner says "service is down",
-  // a chip says "this ticker is uncovered".
+  // a banner when the batch request itself fails (for example, a 500
+  // configuration failure or a 422 request-shape failure), while
+  // per-ticker errors remain visible as an honest partial-coverage
+  // summary and "Uncovered" chips.
+
   const [analystCoverageError, setAnalystCoverageError] = useState<string | null>(null)
 
   // Phase 49 (analyst-coverage loading-state fix) — flips true
@@ -824,6 +825,9 @@ export default function PortfolioPage() {
     }
   }, [tradableHoldingsForCoverage])
 
+  const analystEligibleCount =
+    tradableHoldingsForCoverage.length - analystCoverageAggregate.excluded
+
   const tc = useThemeColors()
   const accountPalette = ACCOUNT_KEYS.map(k => tc[k] ?? '#6B7280')
   const consensusColors = useMemo(() => ({
@@ -1073,11 +1077,29 @@ export default function PortfolioPage() {
                   </span>
                 </div>
                 {(() => {
-                  const stockCount = tradableHoldingsForCoverage.length - analystCoverageAggregate.excluded
+                  const stockCount = analystEligibleCount
                   if (analystCoverageError) {
                     return (
                       <span className="ml-auto text-xs text-[var(--danger-700)]" role="alert">
                         ⚠️ {analystCoverageError}
+                      </span>
+                    )
+                  }
+                  if (!analystCoverageLoaded) {
+                    return (
+                      <span className="ml-auto text-xs text-tertiary" role="status" aria-live="polite">
+                        Checking analyst coverage…
+                      </span>
+                    )
+                  }
+                  if (analystCoverageAggregate.requestErrors > 0) {
+                    return (
+                      <span className="ml-auto text-xs text-[var(--warning-700)]" role="status" aria-live="polite">
+                        {analystCoverageAggregate.covered}/{stockCount} covered · {analystCoverageAggregate.requestErrors}{' '}
+                        {analystCoverageAggregate.requestErrors === 1 ? 'request' : 'requests'} need review
+                        {analystCoverageAggregate.excluded > 0 && (
+                          <span className="opacity-60"> · {analystCoverageAggregate.excluded} excluded</span>
+                        )}
                       </span>
                     )
                   }
@@ -1156,38 +1178,14 @@ export default function PortfolioPage() {
                   </div>
                 ))}
               </div>
-              {analystCoverageAggregate.covered === 0 &&
-                !analystCoverageError &&
-                (tradableHoldingsForCoverage.length - analystCoverageAggregate.excluded) > 0 &&
-                (analystCoverageLoaded ? (
-                  // After the batch fetch resolves with zero coverage we
-                  // RENDER an honest "no coverage" footer so the user
-                  // can tell the call actually completed (vs. reading
-                  // the old "Loading coverage…" copy that implied the
-                  // call was still in flight). The per-row chips below
-                  // already carry the per-ticker error detail in their
-                  // title attribute for triage.
-                  <p
-                    className="text-xs text-tertiary mt-3"
-                    data-testid="analyst-coverage-empty"
-                  >
-                    {analystCoverageEmptyMessage(analystCoverageAggregate.requestErrors)}
-                    {analystCoverageAggregate.excluded > 0 && ` ${analystCoverageAggregate.excluded} excluded (no consensus).`}
-                  </p>
-                ) : (
-                  // Genuine in-flight window: the batch fetch is still
-                  // resolving, so "Loading…" is the correct copy. Once
-                  // ``analystCoverageLoaded`` flips (next tick) this
-                  // branch unmounts and the empty-state above takes
-                  // over if the result set is still empty.
-                  <p
-                    className="text-xs text-tertiary mt-3"
-                    data-testid="analyst-coverage-loading"
-                  >
-                    Loading coverage for {tradableHoldingsForCoverage.length - analystCoverageAggregate.excluded}{' '}
-                    {tradableHoldingsForCoverage.length - analystCoverageAggregate.excluded === 1 ? 'stock' : 'stocks'}…
-                  </p>
-                ))}
+              <AnalystCoverageStatus
+                eligible={analystEligibleCount}
+                covered={analystCoverageAggregate.covered}
+                requestErrors={analystCoverageAggregate.requestErrors}
+                excluded={analystCoverageAggregate.excluded}
+                loaded={analystCoverageLoaded}
+                batchError={analystCoverageError}
+              />
             </section>
             </TiltCard>
           )}
