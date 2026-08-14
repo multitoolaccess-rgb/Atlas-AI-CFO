@@ -65,7 +65,13 @@ function CashFlowOverview() {
     'cash-flow-breakdown', () => rulesService.getDashboardBreakdown(from, to).catch(() => null), [from, to], { group: 'cash-flow' },
   )
   const { data: transactionData, loading: transactionsLoading } = useCachedFetch<Transaction[]>(
-    'cash-flow-transactions', () => rulesService.listTransactions({ limit: 100 }), [timeRange], { group: 'cash-flow' },
+    'cash-flow-transactions', () => rulesService.listTransactions({
+      limit: 500,
+      sort_by: 'transaction_date',
+      sort_dir: 'desc',
+      from_date: from,
+      to_date: to,
+    }), [from, to], { group: 'cash-flow' },
   )
   const { data: categoryData } = useCachedFetch<Category[]>(
     'cash-flow-categories', () => rulesService.listCategories().catch(() => []), [], { group: 'cash-flow' },

@@ -48,6 +48,23 @@ test.describe('Cash Flow — interactive analytics workspace', () => {
     await expect(page).toHaveURL(/[?&]range=30D/)
   })
 
+  test('range scopes the category and drilldown transaction feed', async ({ page }) => {
+    const rangedTransactions = page.waitForRequest((request) => {
+      const url = new URL(request.url())
+      return url.pathname.includes('/api/transactions')
+        && url.searchParams.has('from_date')
+        && url.searchParams.has('to_date')
+    })
+
+    await page.getByRole('radio', { name: '7D' }).click()
+    const request = await rangedTransactions
+    const url = new URL(request.url())
+
+    expect(url.searchParams.get('limit')).toBe('500')
+    expect(url.searchParams.get('from_date')).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(url.searchParams.get('to_date')).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
   test('URL time range persists on page reload', async ({ page }) => {
     // Set to 7D
     await page.getByRole('radio', { name: '7D' }).click()
