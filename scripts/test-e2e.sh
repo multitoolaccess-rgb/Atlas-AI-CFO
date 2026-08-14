@@ -3,8 +3,9 @@
 #
 # Full E2E test runner: starts Finlynq on :8001 and rules-service on :8000
 # when they are not already running, then runs the Playwright browser suite
-# against the live stack (Next.js dev server on :3000 auto-started by
-# playwright's webServer config).
+# against a runner-owned live stack, including the Next.js dev server on
+# :3000. Playwright's webServer hook is disabled for this invocation so the
+# runner has one explicit owner and bounded readiness/timeout diagnostics.
 #
 # Why this exists alongside scripts/test.sh:
 #   scripts/test.sh runs the smoke test against a no-backend-tolerant page
@@ -33,8 +34,10 @@ RULES_LOG="/tmp/finance-copilot-e2e-rules.log"
 FINLYNQ_LOG="/tmp/finance-copilot-e2e-finlynq.log"
 RULES_PID=""
 FINLYNQ_PID=""
+UI_PID=""
 STARTED_RULES=0
 STARTED_FINLYNQ=0
+STARTED_UI=0
 TEST_JWT_SECRET='dev-jwt-secret-for-tests-only-32chars-min'
 E2E_TMP_DIR="${TMPDIR:-/tmp}"
 E2E_DB_PATH=""
@@ -42,8 +45,18 @@ E2E_DATABASE_URL=""
 # Rules Service imports the full application and can be slower than the
 # lightweight health-only Finlynq boot on cold GitHub-hosted runners.
 RULES_STARTUP_TIMEOUT_SECONDS=60
+UI_STARTUP_TIMEOUT_SECONDS=60
+PLAYWRIGHT_TIMEOUT_SECONDS="${E2E_PLAYWRIGHT_TIMEOUT_SECONDS:-900}"
+UI_LOG="/tmp/finance-copilot-e2e-ui.log"
 
 cleanup() {
+  if [ "$STARTED_UI" = "1" ] && [ -n "$UI_PID" ]; then
+    echo ""
+    echo "→ Stopping UI server (pid $UI_PID)..."
+    kill "$UI_PID" 2>/dev/null || true
+    wait "$UI_PID" 2>/dev/null || true
+    echo "  UI log: $UI_LOG"
+  fi
   if [ "$STARTED_RULES" = "1" ] && [ -n "$RULES_PID" ]; then
     echo ""
     echo "→ Stopping Rules Service (pid $RULES_PID)..."
@@ -133,6 +146,7 @@ fi
 # E2E database.
 require_port_available 8001 "Finlynq" || exit 1
 require_port_available 8000 "Rules Service" || exit 1
+require_port_available 3000 "UI server" || exit 1
 
 # Rules Service deliberately does not auto-migrate by default. Build its
 # schema before either service starts so the live browser stack never reads a
@@ -184,8 +198,26 @@ start_rules() {
   return 1
 }
 
+start_ui() {
+  echo "→ Starting isolated UI server on :3000..."
+  cd "$UI_DIR"
+  npm run dev -- --hostname 127.0.0.1 --port 3000 > "$UI_LOG" 2>&1 &
+  UI_PID=$!
+  STARTED_UI=1
+  for i in $(seq 1 "$UI_STARTUP_TIMEOUT_SECONDS"); do
+    if curl -s -f http://localhost:3000/ >/dev/null 2>&1; then
+      echo "  UI up (pid $UI_PID, log: $UI_LOG)"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "❌  UI failed to return HTTP within ${UI_STARTUP_TIMEOUT_SECONDS}s. See $UI_LOG"
+  return 1
+}
+
 start_finlynq || exit 1
 start_rules || exit 1
+start_ui || exit 1
 
 # ---- Playwright smoke test ----
 echo ""
@@ -193,8 +225,28 @@ echo "=========================================="
 echo "▶ Playwright browser smoke test (live backend)"
 echo "=========================================="
 cd "$UI_DIR"
-./node_modules/.bin/playwright test
-EXIT=$?
+PLAYWRIGHT_SKIP_WEBSERVER=1 PLAYWRIGHT_BASE_URL='http://localhost:3000' \
+  ./node_modules/.bin/playwright test "$@" > /tmp/finance-copilot-e2e-playwright.log 2>&1 &
+PLAYWRIGHT_PID=$!
+STARTED_AT=$(date +%s)
+while kill -0 "$PLAYWRIGHT_PID" 2>/dev/null; do
+  NOW=$(date +%s)
+  ELAPSED=$((NOW - STARTED_AT))
+  if [ "$ELAPSED" -ge "$PLAYWRIGHT_TIMEOUT_SECONDS" ]; then
+    echo "❌  Playwright exceeded ${PLAYWRIGHT_TIMEOUT_SECONDS}s; terminating pid $PLAYWRIGHT_PID."
+    kill "$PLAYWRIGHT_PID" 2>/dev/null || true
+    wait "$PLAYWRIGHT_PID" 2>/dev/null || true
+    EXIT=124
+    break
+  fi
+  echo "  Playwright running (${ELAPSED}s; pid $PLAYWRIGHT_PID)"
+  sleep 15
+done
+if [ -z "${EXIT:-}" ]; then
+  wait "$PLAYWRIGHT_PID"
+  EXIT=$?
+fi
+cat /tmp/finance-copilot-e2e-playwright.log
 
 if [ $EXIT -eq 0 ]; then
   echo ""

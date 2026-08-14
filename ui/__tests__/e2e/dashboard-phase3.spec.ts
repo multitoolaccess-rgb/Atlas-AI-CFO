@@ -10,35 +10,19 @@
  */
 import { test, expect } from '@playwright/test'
 
-test('Category Movers section renders on dashboard', async ({ page }) => {
-  await page.goto('/')
-  await page.waitForURL('**/')
+test('Cash Flow is the sole authoritative Money-flow visualisation', async ({ page }) => {
+  await page.goto('/cash-flow')
+  await page.waitForURL('**/cash-flow')
   await page.waitForLoadState('networkidle')
-
-  // The Category Movers heading should be visible after data loads.
-  // It renders whether there are insights or shows an empty state.
-  await expect(
-    page.locator('h3:has-text("Category Movers")'),
-  ).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByTestId('sankey-hero')).toBeVisible({ timeout: 15_000 })
 })
 
-test('Category Movers keeps its empty state when dashboard source collections are empty', async ({ page }) => {
-  await page.route('**/api/dashboard/insights', async (route) => {
-    await route.fulfill({ json: { insights: [] } })
-  })
-  await page.route('**/api/dashboard/anomalies', async (route) => {
-    await route.fulfill({ json: { anomalies: [], count: 0 } })
-  })
-  await page.route('**/api/dashboard/upcoming-bills', async (route) => {
-    await route.fulfill({ json: { bills: [], count: 0 } })
-  })
-
+test('Mission Control does not duplicate Cash Flow’s full visualisation', async ({ page }) => {
   await page.goto('/')
   await page.waitForURL('**/')
   await page.waitForLoadState('networkidle')
-
-  await expect(page.getByRole('heading', { name: 'Category Movers' })).toBeVisible()
-  await expect(page.getByText('No significant category changes detected')).toBeVisible()
+  await expect(page.getByTestId('mission-control-page')).toBeVisible()
+  await expect(page.getByTestId('sankey-hero')).toHaveCount(0)
 })
 
 test('Alerts Panel section renders on dashboard', async ({ page }) => {
@@ -71,24 +55,13 @@ test('Alerts & Insights keeps its empty state when dashboard source collections 
   await expect(page.getByText('All clear')).toBeVisible()
 })
 
-test('RecommendationCard shows data-driven content (not hardcoded)', async ({ page }) => {
+test('Mission Control keeps the actionable recommendation queue', async ({ page }) => {
   await page.goto('/')
   await page.waitForURL('**/')
   await page.waitForLoadState('networkidle')
 
-  // The AI Insight label should be present on the RecommendationCard.
-  await expect(
-    page.locator('text=AI Insight').first(),
-  ).toBeVisible({ timeout: 10_000 })
-
-  // The recommendation title should be one of the data-driven options,
-  // NOT the old hardcoded "Rebalance Emerging Markets".
-  const title = page.locator('h3').filter({ hasText: /Boost Your Savings|Almost Funded|Spending Nearing|On Track/ })
-  await expect(title.first()).toBeVisible({ timeout: 10_000 })
-
-  // The old hardcoded title should NOT appear.
-  const oldTitle = page.locator('text=Rebalance Emerging Markets')
-  await expect(oldTitle).toHaveCount(0)
+  await expect(page.getByTestId('approval-queue')).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByRole('heading', { name: 'Approval Queue' })).toBeVisible()
 })
 
 test('skip navigation link is accessible', async ({ page }) => {

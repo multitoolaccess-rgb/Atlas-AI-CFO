@@ -82,7 +82,7 @@ const isBenign = (text: string, url?: string): boolean => {
   return false
 }
 
-test('/overview top "Couldn\'t load dashboard:" banner is AMBER (warning), not RED (danger)', async ({
+test('Mission Control top warning banner is AMBER (warning), not RED (danger)', async ({
   page,
 }) => {
   const errors: string[] = []
@@ -147,7 +147,7 @@ test('/overview top "Couldn\'t load dashboard:" banner is AMBER (warning), not R
     hasText: /Downstream service is unavailable/i,
   })
   await expect(friendlyBanner).toBeVisible({ timeout: 10_000 })
-  await expect(friendlyBanner).toHaveText(/Couldn't load dashboard:/i)
+  await expect(friendlyBanner).toHaveText(/Couldn't load Mission Control:/i)
 
   // Regression lock: the banner is AMBER. We assert the explicit
   // Tailwind tokens ``border-warning-200`` + ``bg-warning-50`` +

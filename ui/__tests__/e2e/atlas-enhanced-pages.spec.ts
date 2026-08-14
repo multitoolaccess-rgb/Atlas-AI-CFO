@@ -92,7 +92,7 @@ test.describe('Budgeting page — enhanced with BudgetCategoryCard', () => {
     await page.waitForLoadState('networkidle')
 
     // Page heading
-    await expect(page.locator('h1:has-text("Budgeting")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Plan")')).toBeVisible({ timeout: 10_000 })
 
     // KPI cards should render (Total Budget, Total Spent, Remaining, % Used)
     // OR the honest guided empty state when no budgets are configured.
@@ -167,7 +167,7 @@ test.describe('Income page — enhanced with drilldown', () => {
     await page.waitForLoadState('networkidle')
 
     // Page heading
-    await expect(page.locator('h1:has-text("Income")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Cash Flow")')).toBeVisible({ timeout: 10_000 })
 
     // KPI cards or empty state
     await expect(
@@ -201,7 +201,7 @@ test.describe('Income page — enhanced with drilldown', () => {
     await page.waitForLoadState('networkidle')
 
     // Wait for data to load
-    await expect(page.locator('h1:has-text("Income")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Cash Flow")')).toBeVisible({ timeout: 10_000 })
     await page.waitForLoadState('networkidle')
 
     const groupSection = page.locator('text=Income by Group')
@@ -218,7 +218,7 @@ test.describe('Income page — enhanced with drilldown', () => {
     await page.goto('/income')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('h1:has-text("Income")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Cash Flow")')).toBeVisible({ timeout: 10_000 })
 
     // Look for "Income Sources" section
     const sourcesSection = page.getByRole('heading', { name: 'Income Sources', exact: true })
@@ -235,7 +235,7 @@ test.describe('Income page — enhanced with drilldown', () => {
     await page.goto('/income')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('h1:has-text("Income")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Cash Flow")')).toBeVisible({ timeout: 10_000 })
 
     // Wait for data to load via network
     await page.waitForLoadState('networkidle')
@@ -270,7 +270,7 @@ test.describe('Expenses page — enhanced with drilldown + insights', () => {
     await page.waitForLoadState('networkidle')
 
     // Page heading
-    await expect(page.locator('h1:has-text("Expenses")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Cash Flow")')).toBeVisible({ timeout: 10_000 })
 
     // KPI cards or empty state
     await expect(
@@ -286,7 +286,7 @@ test.describe('Expenses page — enhanced with drilldown + insights', () => {
     await page.goto('/expenses')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('h1:has-text("Expenses")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Cash Flow")')).toBeVisible({ timeout: 10_000 })
 
     // Look for "Spending by Group" section
     const groupSection = page.locator('text=Spending by Group')
@@ -303,7 +303,7 @@ test.describe('Expenses page — enhanced with drilldown + insights', () => {
     await page.goto('/expenses')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('h1:has-text("Expenses")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Cash Flow")')).toBeVisible({ timeout: 10_000 })
 
     // Look for "Expense Categories" section
     const catSection = page.locator('text=Expense Categories')
@@ -320,7 +320,7 @@ test.describe('Expenses page — enhanced with drilldown + insights', () => {
     await page.goto('/expenses')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('h1:has-text("Expenses")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Cash Flow")')).toBeVisible({ timeout: 10_000 })
     await page.waitForLoadState('networkidle')
 
     const categoryRow = page.locator('[class*="cursor-pointer"]').first()
@@ -343,7 +343,7 @@ test.describe('Expenses page — enhanced with drilldown + insights', () => {
     await page.goto('/expenses')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('h1:has-text("Expenses")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Cash Flow")')).toBeVisible({ timeout: 10_000 })
 
     // Look for "Monthly Trend" section
     const trendSection = page.locator('text=Monthly Trend')
@@ -360,7 +360,7 @@ test.describe('Expenses page — enhanced with drilldown + insights', () => {
     await page.goto('/expenses')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('h1:has-text("Expenses")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Cash Flow")')).toBeVisible({ timeout: 10_000 })
 
     // Look for "Top Merchants" section (MerchantSpendTable)
     const merchantsSection = page.locator('text=Top Merchants')
@@ -484,28 +484,21 @@ test.describe('Enhanced pages — cross-page navigation', () => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
 
-    // Navigate to Budgeting
-    await page.locator('nav a:has-text("Budgeting")').click()
-    await expect(page).toHaveURL(/\/budgeting/)
-    await expect(page.locator('h1:has-text("Budgeting")')).toBeVisible({ timeout: 10_000 })
+    await page.locator('nav a:has-text("Plan")').click()
+    await expect(page).toHaveURL(/\/plan/)
+    await expect(page.locator('h1:has-text("Plan")')).toBeVisible({ timeout: 10_000 })
 
-    // Navigate to Income
-    await page.locator('nav a:has-text("Income")').click()
-    await expect(page).toHaveURL(/\/income/)
-    await expect(page.locator('h1:has-text("Income")')).toBeVisible({ timeout: 10_000 })
-
-    // Navigate to Expenses
-    await page.locator('nav a:has-text("Expenses")').click()
-    await expect(page).toHaveURL(/\/expenses/)
-    await expect(page.locator('h1:has-text("Expenses")')).toBeVisible({ timeout: 10_000 })
+    await page.locator('nav a:has-text("Cash Flow")').click()
+    await expect(page).toHaveURL(/\/cash-flow/)
+    await expect(page.locator('h1:has-text("Cash Flow")')).toBeVisible({ timeout: 10_000 })
 
     // Navigate to Debts
     await page.locator('nav a:has-text("Debts")').click()
     await expect(page).toHaveURL(/\/debts/)
     await expect(page.locator('h1:has-text("Debts")')).toBeVisible({ timeout: 10_000 })
 
-    // Navigate back to Overview
-    await page.locator('nav a:has-text("Overview")').click()
+    // Navigate back to Mission Control
+    await page.locator('nav a:has-text("Mission Control")').click()
     await expect(page).toHaveURL(/\/$/)
     await expect(page.locator('text=Atlas').first()).toBeVisible({ timeout: 10_000 })
 
@@ -515,7 +508,7 @@ test.describe('Enhanced pages — cross-page navigation', () => {
   test('each enhanced page has consistent layout with PageLayout', async ({ page }) => {
     const errors = setupErrorCapture(page)
 
-    const pages = ['/budgeting', '/income', '/expenses', '/debts']
+    const pages = ['/plan?view=budget', '/cash-flow?view=income', '/cash-flow?view=spending', '/debts']
 
     for (const path of pages) {
       await page.goto(path)

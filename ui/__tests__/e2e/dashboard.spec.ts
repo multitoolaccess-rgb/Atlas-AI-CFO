@@ -109,7 +109,7 @@ const isBenign = (text: string, url?: string): boolean => {
   return false
 }
 
-test('dashboard loads without console errors', async ({ page }) => {
+test('Mission Control loads without console errors', async ({ page }) => {
   const errors: string[] = []
   page.on('console', (msg: ConsoleMessage) => {
     if (msg.type() === 'error') {
@@ -143,7 +143,8 @@ test('dashboard loads without console errors', async ({ page }) => {
 
   // The sidebar nav links should be present.
   await expect(page.locator('nav[aria-label="Primary"]')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Overview' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Mission Control' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Cash Flow' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Portfolio' })).toBeVisible()
 
   // The Financial Plans section should render (the loading branch
@@ -224,8 +225,8 @@ test('AI Wealth Overview hero zone renders with net worth + wealth score', async
 })
 
 test('Sankey hero renders with Money Flow Engine title', async ({ page }) => {
-  await page.goto('/')
-  await page.waitForURL('**/')
+  await page.goto('/cash-flow')
+  await page.waitForURL('**/cash-flow')
   await page.waitForLoadState('networkidle')
 
   // Phase 3: The Sankey hero should render with the new title.
@@ -275,9 +276,9 @@ test('Phase 5 — Wealth timeline + simulator + DNA + Twin render', async ({ pag
   await page.waitForURL('**/')
   await page.waitForLoadState('networkidle')
 
-  // All four new simulation components should be on the dashboard
-  // (loaded or loading branch) once the dashboard data is ready.
-  // We give the dynamic imports a generous timeout (the chunks split).
+  // The focused home keeps these existing tools in a progressive-disclosure
+  // workspace until Scenario Lab receives its authoritative route in Step 4.
+  await page.getByText('Simulation workspace', { exact: true }).click()
   await expect(page.locator('[data-testid="wealth-timeline"]')).toBeVisible({
     timeout: 15_000,
   })
@@ -300,6 +301,7 @@ test('Phase 5 — moving the Money Flow Simulator pmt slider updates the preview
   await page.waitForURL('**/')
   await page.waitForLoadState('networkidle')
 
+  await page.getByText('Simulation workspace', { exact: true }).click()
   await expect(page.locator('[data-testid="simulator-card"]')).toBeVisible({
     timeout: 15_000,
   })

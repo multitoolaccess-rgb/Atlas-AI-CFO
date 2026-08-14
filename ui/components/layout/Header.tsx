@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { Search, Bell, Bot, X, CheckCheck, Trash2, AlertTriangle, CheckCircle2, Info, AlertOctagon } from 'lucide-react';
 import { initHeadroom } from '@/lib/headroomInit';
 import DarkModeToggle from '@/components/layout/DarkModeToggle';
@@ -235,13 +236,15 @@ export default function Header({ profile, loading, mobileFullBleed = false }: He
           )}
         </div>
 
-        <button
-          type="button"
+        <Link
+          href="/assistant"
           aria-label="Open Scout"
-          className="p-2 text-on-surface-variant hover:text-primary rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="inline-flex items-center gap-2 rounded-md px-2 py-2 text-on-surface-variant transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          data-testid="header-scout-link"
         >
           <Bot className="w-5 h-5" aria-hidden="true" />
-        </button>
+          <span className="hidden lg:inline text-sm font-medium">Scout</span>
+        </Link>
         <div className="relative">
           <DarkModeToggle />
         </div>

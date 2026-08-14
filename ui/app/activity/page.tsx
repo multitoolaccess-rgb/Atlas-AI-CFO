@@ -29,6 +29,7 @@ import FloatingTimeRangeBar from '@/components/ui/FloatingTimeRangeBar'
 import ErrorBanner from '@/components/ui/ErrorBanner'
 import EmptyState from '@/components/ui/EmptyState'
 import PageHeader from '@/components/ui/PageHeader'
+import { useEmbeddedMoneyView } from '@/components/money/EmbeddedMoneyView'
 import { Select, Button, CategoryDot } from '@/components/ui'
 import {
   rulesService,
@@ -119,7 +120,7 @@ function useDistinctAccountTypes(accounts: Account[]): string[] {
 // Income → [Base Salary, Interest Earned, ...], Expenses → [Housing, ...], etc.
 const CATEGORY_GROUP_ORDER = ['Income', 'Expenses', 'Debt', 'Investments', 'Transfer'] as const
 
-function ActivityContent() {
+function ActivityContent({ embedded = false }: { embedded?: boolean }) {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -779,7 +780,7 @@ function ActivityContent() {
 
   return (
     <>
-      <PageHeader
+      {!embedded && <PageHeader
         title="Transaction History"
         description="Every recorded transaction across your accounts. Filter by account, type, category, status, or date; sort by any column."
         actions={(
@@ -852,7 +853,7 @@ function ActivityContent() {
           </div>
         )}
         className="mb-6"
-      />
+      />}
 
       {/* Floating bar — URL-synced via ?range=… (page-default YTD).
           When the user picks a preset on the bar, the effect below
@@ -860,7 +861,7 @@ function ActivityContent() {
           listTransactions query fires with the right range. The
           granular From/To inputs below still work independently for
           custom date-range filtering. */}
-      <FloatingTimeRangeBar />
+      {!embedded && <FloatingTimeRangeBar />}
 
       {error && (
         // variant="warning" (amber) — page-level data-load failure
@@ -1697,6 +1698,8 @@ function ActivityContent() {
 }
 
 export default function ActivityPage() {
+  const embedded = useEmbeddedMoneyView()
+  if (embedded) return <ActivityContent embedded />
   return (
     <PageLayout>
       <AtlasFilterProvider>

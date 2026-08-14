@@ -14,8 +14,8 @@ export interface ProposedDestination {
   path: string
   icon: NavigationIcon
   activeMatch: readonly string[]
-  /** False until the migration wave that creates the destination is activated. */
-  activated: false
+  /** True only after the migration wave that creates the destination is activated. */
+  activated: boolean
   tabs?: readonly ProposedTabDestination[]
 }
 
@@ -34,10 +34,10 @@ export interface ProposedNavigationGroup {
 const tab = (id: string, label: string): ProposedTabDestination => ({ id, label, query: { view: id } })
 
 export const PROPOSED_NAVIGATION: readonly ProposedNavigationGroup[] = [
-  { id: 'home', label: 'Home', destinations: [{ id: 'mission-control', label: 'Mission Control', path: '/', icon: 'home', activeMatch: ['/'], activated: false }] },
+  { id: 'home', label: 'Home', destinations: [{ id: 'mission-control', label: 'Mission Control', path: '/', icon: 'home', activeMatch: ['/'], activated: true }] },
   { id: 'money', label: 'Money', destinations: [
-    { id: 'cash-flow', label: 'Cash Flow', path: '/cash-flow', icon: 'cash-flow', activeMatch: ['/cash-flow'], activated: false, tabs: [tab('overview', 'Overview'), tab('income', 'Income'), tab('spending', 'Spending'), tab('transactions', 'Transactions')] },
-    { id: 'plan', label: 'Plan', path: '/plan', icon: 'plan', activeMatch: ['/plan'], activated: false, tabs: [tab('budget', 'Budget'), tab('commitments', 'Commitments'), tab('calendar', 'Calendar')] },
+    { id: 'cash-flow', label: 'Cash Flow', path: '/cash-flow', icon: 'cash-flow', activeMatch: ['/cash-flow'], activated: true, tabs: [tab('overview', 'Overview'), tab('income', 'Income'), tab('spending', 'Spending'), tab('transactions', 'Transactions')] },
+    { id: 'plan', label: 'Plan', path: '/plan', icon: 'plan', activeMatch: ['/plan'], activated: true, tabs: [tab('budget', 'Budget'), tab('commitments', 'Commitments'), tab('calendar', 'Calendar')] },
   ] },
   { id: 'wealth', label: 'Wealth', destinations: [
     { id: 'wealth', label: 'Wealth', path: '/wealth', icon: 'wealth', activeMatch: ['/wealth'], activated: false, tabs: [tab('overview', 'Overview'), tab('assets', 'Assets'), tab('debts', 'Debts'), tab('universe', 'Universe view')] },
@@ -71,7 +71,7 @@ export const COMPATIBILITY_REDIRECTS = [
 export const SCOUT_PLACEMENT_CONTRACT = {
   futureLocation: 'global-header',
   fallbackRoute: '/assistant',
-  activation: 'Step 4 only; keep the current sidebar Scout route unchanged before then.',
+  activation: 'Step 2: expose Scout in the global header while keeping /assistant as the accessible fallback route.',
 } as const
 
 export function isProposedDestinationActive(destination: ProposedDestination, pathname: string): boolean {

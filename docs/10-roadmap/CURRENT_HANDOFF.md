@@ -9,11 +9,14 @@
 - Overall status: in_progress
 - Objective: Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.
 - Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-08-14T04:22:19Z
+- Tracker updated: 2026-08-14T04:25:22Z
 
 ## Active work
 
-- None
+- work-ui-information-architecture-step-2: Activate Money information architecture migration [in_progress/high]
+  - Objective: Atomically activate the consolidated navigation, Mission Control, Cash Flow and Plan destinations, Scout header placement, and compatible Money redirects while preserving existing financial calculations, filters, and authorization.
+  - Branch: codex/ia-money-migration-step-2
+  - Paths: ui/app, ui/components/layout, ui/components/ui, ui/components/dashboard, ui/lib, docs/06-ui-ux
 
 ## Blockers
 

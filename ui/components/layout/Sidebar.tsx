@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import {
   LayoutDashboard,
   Wallet,
@@ -11,16 +11,15 @@ import {
   History,
   Settings as SettingsIcon,
   HelpCircle,
-  Bot,
   PanelLeftClose,
   PanelLeftOpen,
   Receipt,
-  TrendingUp,
-  TrendingDown,
   CreditCard,
   ChevronDown,
   Orbit,
   Newspaper,
+  ArrowDownUp,
+  CalendarDays,
 } from 'lucide-react';
 import { useSidebar } from './SidebarContext';
 
@@ -43,13 +42,18 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
+    key: 'home',
+    label: 'Home',
+    items: [
+      { name: 'Mission Control', href: '/', icon: LayoutDashboard },
+    ],
+  },
+  {
     key: 'money',
     label: 'Money',
     items: [
-      { name: 'Overview', href: '/', icon: LayoutDashboard },
-      { name: 'Budgeting', href: '/budgeting', icon: Receipt },
-      { name: 'Income', href: '/income', icon: TrendingUp },
-      { name: 'Expenses', href: '/expenses', icon: TrendingDown },
+      { name: 'Cash Flow', href: '/cash-flow', icon: ArrowDownUp },
+      { name: 'Plan', href: '/plan', icon: CalendarDays },
     ],
   },
   {
@@ -68,8 +72,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: 'Recommendations', href: '/recommendations', icon: Sparkles },
       { name: 'Market Briefs', href: '/market-briefs', icon: Newspaper },
-      { name: 'Scout', href: '/assistant', icon: Bot },
-      { name: 'Activity', href: '/activity', icon: History },
+      { name: 'Activity', href: '/cash-flow?view=transactions', icon: History },
       { name: 'Accounts', href: '/accounts', icon: Landmark },
     ],
   },
@@ -96,6 +99,7 @@ function NavTooltip({ label, visible }: { label: string; visible: boolean }) {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { collapsed, toggleCollapsed, groupStates, toggleGroup } = useSidebar();
 
   const sidebarWidth = collapsed ? '4.5rem' : '16rem';
@@ -174,7 +178,9 @@ export default function Sidebar() {
               {(collapsed || isExpanded) && (
                 <div className="space-y-0.5">
                   {group.items.map((item) => {
-                    const isActive = pathname === item.href;
+                    const [itemPath] = item.href.split('?');
+                    const itemView = new URLSearchParams(item.href.split('?')[1] ?? '').get('view');
+                    const isActive = pathname === itemPath && (!itemView || searchParams.get('view') === itemView);
                     const Icon = item.icon;
                     const linkClass = [
                       'group relative flex items-center rounded-[var(--radius-md)] transition-[color,background-color,box-shadow] duration-200',
