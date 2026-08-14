@@ -18,6 +18,9 @@ export { default as Select }       from './Select';
 export { default as Modal }        from './Modal';
 export { default as Tooltip }      from './Tooltip';
 export { default as TabsGroup }    from './TabsGroup';
+export { default as PageTabs } from './PageTabs';
+export { default as AnalyticalContextBar } from './AnalyticalContextBar';
+export { default as AnalyticalPageFrame } from './AnalyticalPageFrame';
 export { default as Dropdown }     from './Dropdown';
 
 export { default as CountUp } from './CountUp';
