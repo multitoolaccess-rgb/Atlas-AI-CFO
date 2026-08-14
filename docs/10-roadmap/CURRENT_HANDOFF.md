@@ -9,7 +9,7 @@
 - Overall status: in_progress
 - Objective: Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.
 - Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-08-13T04:31:49Z
+- Tracker updated: 2026-08-14T03:11:33Z
 
 ## Active work
 
@@ -35,11 +35,11 @@
 
 ## Recently completed
 
-- work-p5-market-brief-reliability-ui-correction: Phase 5 Market Brief reliability and UI-quality correction — commit 48325fda4085ce1fee7d56ded2ed5b9d56056f6c, PR 42
 - work-ui-atlas-visual-system-v2: Atlas Visual System v2 — commit 1414d62ab9f70899b4c67418046977808dfa3562, PR 43
 - work-ui-atlas-art-direction-v2-1: Atlas Visual Art Direction v2.1 — commit 659bd766eda329811e7c5950e5c6243db0b3461e, PR 44
 - work-analyst-coverage-clarity: Clarify partial analyst coverage states — commit 00cc0879af7bf9dfd396e64e47755d7be9a28a7f, PR 45
 - work-holdings-type-fix: Fix Fidelity import type mislabeling and repair affected portfolio data — commit 2603d5c9af7bf9dfd396e64e47755d7be9a28a7f, PR 46
+- work-market-intelligence-v2: Market Intelligence v2 (post-certification enhancement): reliable per-holding evidence, market pulse, and command-center UI — commit 4f27b6d058f26c8d89d518cc5a25258fc6d0ffa9, PR 47
 
 ## Next bounded task
 
