@@ -1,5 +1,25 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "codex/ia-wealth-migration-step-3",
+      "id": "work-ui-information-architecture-step-3",
+      "issue": "",
+      "objective": "Atomically activate Wealth, Portfolio, and Goals destinations with authoritative existing functionality, URL-compatible tabs and legacy redirects while preserving all financial calculations, market-provider behavior, history, and authorization.",
+      "paths": [
+        "ui/app",
+        "ui/components",
+        "ui/lib",
+        "docs/06-ui-ux"
+      ],
+      "phase_id": "phase-6",
+      "risk_tier": "high",
+      "status": "in_progress",
+      "tests": [
+        "Focused Wealth route, parity, accessibility, responsive, appearance, and frontend certification"
+      ],
+      "title": "Activate Wealth information architecture migration"
+    }
+  ],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -1015,7 +1035,7 @@
   ],
   "current_objective": "Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-14T18:21:12Z",
+  "last_updated": "2026-08-14T18:21:42Z",
   "next_bounded_task": {
     "description": "Step 3 - migrate Wealth atomically: Wealth Overview, Assets, Debts, Universe, Portfolio, Goals, and compatibility redirects.",
     "id": "work-ui-information-architecture-step-3",
