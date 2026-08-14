@@ -1,5 +1,26 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "codex/ia-migration-step-1",
+      "id": "work-ui-information-architecture-step-1",
+      "issue": "",
+      "objective": "Implement only inactive, tested information-architecture, navigation, analytical-frame, page-tabs, context-bar, Scout-placement, and compatibility contracts; preserve all current routes, production sidebar, financial behavior, and page ownership.",
+      "paths": [
+        "docs/06-ui-ux",
+        "ui/lib",
+        "ui/components/ui",
+        "ui/components/layout",
+        "ui/components/dashboard"
+      ],
+      "phase_id": "phase-6",
+      "risk_tier": "medium",
+      "status": "in_progress",
+      "tests": [
+        "Focused UI contract tests plus frontend regression validation"
+      ],
+      "title": "Information architecture migration Step 1 foundations"
+    }
+  ],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -963,7 +984,7 @@
   ],
   "current_objective": "Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-14T03:11:33Z",
+  "last_updated": "2026-08-14T03:47:27Z",
   "next_bounded_task": {
     "description": "Authorize and define Phase 6 Slice 2 only; do not begin implementation automatically.",
     "id": "work-p6-s2-authorization",

@@ -54,6 +54,9 @@ export interface AtlasFilterState {
   /** Global time range preset. URL-synced via ``?range=...``. */
   timeRange: TimeRangePreset
   setTimeRange: (preset: TimeRangePreset) => void
+  /** URL-synced comparison intent; pages opt in only when it changes their query. */
+  isComparing: boolean
+  setIsComparing: (enabled: boolean) => void
   /** Filter to a single account (null = all accounts). */
   selectedAccountId: number | null
   setSelectedAccountId: (id: number | null) => void
@@ -77,6 +80,7 @@ export function AtlasFilterProvider({ children }: { children: ReactNode }) {
   // Default to YTD. The useEffect below syncs from the browser URL
   // after client hydration, which is the authoritative source.
   const [timeRange, setTimeRangeRaw] = useState<TimeRangePreset>('YTD')
+  const [isComparing, setIsComparingRaw] = useState(false)
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null)
   const [selectedAccountType, setSelectedAccountType] = useState<string | null>(null)
   const [selectedBudgetGroup, setSelectedBudgetGroup] = useState<string | null>(null)
@@ -91,26 +95,48 @@ export function AtlasFilterProvider({ children }: { children: ReactNode }) {
     if (range && VALID_PRESETS.has(range)) {
       setTimeRangeRaw(range as TimeRangePreset)
     }
+    setIsComparingRaw(params.get('compare') === 'true')
   }, [])
 
   // Update both state and URL search param on change.
-  const searchParamsRef = useRef(searchParams)
-  useEffect(() => { searchParamsRef.current = searchParams }, [searchParams])
+  const searchParamString = searchParams.toString()
+  const searchParamsRef = useRef(new URLSearchParams(searchParamString))
+  useEffect(() => { searchParamsRef.current = new URLSearchParams(searchParamString) }, [searchParamString])
+
+  // Keep a local pending query snapshot so back-to-back controls cannot lose
+  // each other's change while Next refreshes useSearchParams after replace().
+  const replaceQuery = useCallback((update: (params: URLSearchParams) => void) => {
+    const params = new URLSearchParams(searchParamsRef.current.toString())
+    update(params)
+    searchParamsRef.current = params
+    router.replace(`?${params.toString()}`, { scroll: false })
+  }, [router])
 
   const setTimeRange = useCallback(
     (preset: TimeRangePreset) => {
       setTimeRangeRaw(preset)
-      const params = new URLSearchParams(searchParamsRef.current.toString())
-      params.set('range', preset)
-      router.replace(`?${params.toString()}`, { scroll: false })
+      replaceQuery((params) => params.set('range', preset))
     },
-    [router],
+    [replaceQuery],
+  )
+
+  const setIsComparing = useCallback(
+    (enabled: boolean) => {
+      setIsComparingRaw(enabled)
+      replaceQuery((params) => {
+        if (enabled) params.set('compare', 'true')
+        else params.delete('compare')
+      })
+    },
+    [replaceQuery],
   )
 
   const value = useMemo(
     () => ({
       timeRange,
       setTimeRange,
+      isComparing,
+      setIsComparing,
       selectedAccountId,
       setSelectedAccountId,
       selectedAccountType,
@@ -120,7 +146,7 @@ export function AtlasFilterProvider({ children }: { children: ReactNode }) {
       selectedCategoryId,
       setSelectedCategoryId,
     }),
-    [timeRange, setTimeRange, selectedAccountId, selectedAccountType, selectedBudgetGroup, selectedCategoryId],
+    [timeRange, setTimeRange, isComparing, setIsComparing, selectedAccountId, selectedAccountType, selectedBudgetGroup, selectedCategoryId],
   )
 
   return (
