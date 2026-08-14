@@ -94,9 +94,225 @@ class FailureClass(StrEnum):
     NOT_FOUND = "not_found"
 
 
+class EvidenceCategory(StrEnum):
+    """The bounded evidence category a holding omission or availability refers to."""
+    QUOTE = "quote"
+    NEWS = "news"
+    EARNINGS = "earnings"
+    FILINGS = "filings"
+    ANALYST = "analyst"
+
+
 class CoverageOmission(StrictModel):
     symbol: str = Field(min_length=1, max_length=10)
+    evidence_category: EvidenceCategory = EvidenceCategory.QUOTE
     reason_code: MarketBriefReasonCode
+    # User-safe recovery guidance; never raw provider text. Optional so
+    # existing persisted v1 briefs remain readable (backward compatible).
+    recovery: str | None = Field(default=None, max_length=200)
+
+
+class EvidenceAvailability(StrictModel):
+    """Per-holding, per-evidence-category availability for the v2 brief.
+
+    Records WHICH evidence category failed for WHICH holding with a stable
+    reason code and safe recovery guidance, so a single unavailable category
+    never kills the complete brief and the UI can explain it precisely.
+    """
+    symbol: str = Field(min_length=1, max_length=10)
+    evidence_category: EvidenceCategory
+    reason_code: MarketBriefReasonCode
+    recovery: str | None = Field(default=None, max_length=200)
+
+
+class AnalystRecommendation(StrictModel):
+    """A bounded sell-side recommendation snapshot (period-scoped rows)."""
+    schema_version: Literal["AnalystRecommendation/v1"] = "AnalystRecommendation/v1"
+    symbol: str
+    period: str = Field(min_length=4, max_length=10)
+    strong_buy: int = Field(ge=0, le=10000)
+    buy: int = Field(ge=0, le=10000)
+    hold: int = Field(ge=0, le=10000)
+    sell: int = Field(ge=0, le=10000)
+    strong_sell: int = Field(ge=0, le=10000)
+    source: SourceMetadata
+
+    @field_validator("symbol")
+    @classmethod
+    def recommendation_symbol(cls, value: str) -> str:
+        return PortfolioHolding(symbol=value, instrument_type="equity").symbol or ""
+
+
+class PriceTarget(StrictModel):
+    """A bounded analyst price-target snapshot with no guidance claim."""
+    schema_version: Literal["PriceTarget/v1"] = "PriceTarget/v1"
+    symbol: str
+    target_high: str | None = Field(default=None, max_length=48)
+    target_low: str | None = Field(default=None, max_length=48)
+    target_mean: str | None = Field(default=None, max_length=48)
+    target_median: str | None = Field(default=None, max_length=48)
+    source: SourceMetadata
+
+    @field_validator("symbol")
+    @classmethod
+    def price_target_symbol(cls, value: str) -> str:
+        return PortfolioHolding(symbol=value, instrument_type="equity").symbol or ""
+
+    @field_validator("target_high", "target_low", "target_mean", "target_median")
+    @classmethod
+    def canonical_target(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        decimal = Decimal(value)
+        if not decimal.is_finite() or decimal <= 0:
+            raise ValueError("price target must be a positive finite decimal")
+        return format(decimal.normalize(), "f")
+
+
+class DividendEvent(StrictModel):
+    """A bounded dividend event (ex-date, declared, record, payable)."""
+    schema_version: Literal["DividendEvent/v1"] = "DividendEvent/v1"
+    symbol: str
+    ex_date: datetime | None = None
+    declared_date: datetime | None = None
+    record_date: datetime | None = None
+    payable_date: datetime | None = None
+    amount: str | None = Field(default=None, max_length=48)
+    source: SourceMetadata
+
+    @field_validator("symbol")
+    @classmethod
+    def dividend_symbol(cls, value: str) -> str:
+        return PortfolioHolding(symbol=value, instrument_type="equity").symbol or ""
+
+    @field_validator("amount")
+    @classmethod
+    def canonical_dividend_amount(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        decimal = Decimal(value)
+        if not decimal.is_finite() or decimal < 0:
+            raise ValueError("dividend amount must be a non-negative finite decimal")
+        return format(decimal.normalize(), "f")
+
+
+class CompanyProfile(StrictModel):
+    """A bounded company-profile record used only for CIK resolution and labeling."""
+    schema_version: Literal["CompanyProfile/v1"] = "CompanyProfile/v1"
+    symbol: str
+    cik: str | None = Field(default=None, max_length=10)
+    company_name: str | None = Field(default=None, max_length=200)
+    exchange: str | None = Field(default=None, max_length=64)
+    sector: str | None = Field(default=None, max_length=80)
+    source: SourceMetadata
+
+    @field_validator("symbol")
+    @classmethod
+    def profile_symbol(cls, value: str) -> str:
+        return PortfolioHolding(symbol=value, instrument_type="equity").symbol or ""
+
+    @field_validator("company_name", "exchange", "sector")
+    @classmethod
+    def sanitize_profile_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return _untrusted_text(value, 200)
+
+    @field_validator("cik")
+    @classmethod
+    def normalized_cik(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        try:
+            return normalize_cik(value)
+        except ValueError:
+            return None
+
+
+class MarketIndexQuote(StrictModel):
+    """A bounded index-direction record. ``symbol`` is an approved ETF proxy
+    when the free tier cannot quote the raw index (e.g. SPY for S&P 500),
+    and ``label`` states exactly what it represents.
+    """
+    schema_version: Literal["MarketIndexQuote/v1"] = "MarketIndexQuote/v1"
+    label: str = Field(min_length=1, max_length=64)
+    symbol: str = Field(min_length=1, max_length=10)
+    current_price: str = Field(max_length=48)
+    previous_close: str | None = Field(default=None, max_length=48)
+    direction: Literal["up", "down", "flat", "unavailable"] = "unavailable"
+    is_etf_proxy: bool = False
+    source: SourceMetadata
+
+    @field_validator("current_price", "previous_close")
+    @classmethod
+    def canonical_index_decimal(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        decimal = Decimal(value)
+        if not decimal.is_finite() or decimal <= 0:
+            raise ValueError("index price must be a positive finite decimal")
+        return format(decimal.normalize(), "f")
+
+
+class MarketNewsItem(StrictModel):
+    """A bounded market-wide news headline with source and freshness."""
+    schema_version: Literal["MarketNewsItem/v1"] = "MarketNewsItem/v1"
+    headline: str = Field(min_length=1, max_length=300)
+    summary: str | None = Field(default=None, max_length=1000)
+    publisher: str | None = Field(default=None, max_length=120)
+    source: SourceMetadata
+
+    @field_validator("headline", "summary", "publisher")
+    @classmethod
+    def sanitize_market_news_text(cls, value: str | None, info: ValidationInfo) -> str | None:
+        if value is None:
+            return None
+        cleaned = _CONTROL.sub(" ", value).strip()
+        if info.field_name == "headline" and not cleaned:
+            raise ValueError("headline must contain visible text")
+        return cleaned[:1000]
+
+
+class MarketPulseSnapshot(StrictModel):
+    """The bounded, zero-dollar market-pulse layer (Market Intelligence v2).
+
+    Every category is truthful: unavailable categories expose their
+    limitation instead of fabricating data.
+    """
+    schema_version: Literal["MarketPulseSnapshot/v1"] = "MarketPulseSnapshot/v1"
+    indices: tuple[MarketIndexQuote, ...] = ()
+    news: tuple[MarketNewsItem, ...] = ()
+    earnings_calendar: tuple[EarningsEvent, ...] = ()
+    scanner: tuple[MarketQuoteSnapshot, ...] = ()
+    scanned_symbol_count: int = Field(default=0, ge=0, le=502)
+    total_universe_size: int = Field(default=0, ge=0, le=502)
+    categories_unavailable: tuple[str, ...] = ()
+    generated_at: datetime
+
+
+class HoldingEvidence(StrictModel):
+    """Market Intelligence v2 per-holding intelligence packet.
+
+    All records are bounded and source-cited; every claim carries provenance.
+    """
+    schema_version: Literal["HoldingEvidence/v1"] = "HoldingEvidence/v1"
+    symbol: str
+    quote: MarketQuoteSnapshot | None = None
+    profile: CompanyProfile | None = None
+    news: tuple[CompanyNewsItem, ...] = ()
+    earnings_events: tuple[EarningsEvent, ...] = ()
+    earnings_results: tuple[EarningsResult, ...] = ()
+    filings: tuple[SecFilingEvent, ...] = ()
+    recommendations: tuple[AnalystRecommendation, ...] = ()
+    price_target: PriceTarget | None = None
+    dividends: tuple[DividendEvent, ...] = ()
+    materiality: Literal["high", "watch", "informational"] = "informational"
+    materiality_reason: str | None = Field(default=None, max_length=200)
+
+    @field_validator("symbol")
+    @classmethod
+    def evidence_symbol(cls, value: str) -> str:
+        return PortfolioHolding(symbol=value, instrument_type="equity").symbol or ""
 
 
 class CoverageSummary(StrictModel):

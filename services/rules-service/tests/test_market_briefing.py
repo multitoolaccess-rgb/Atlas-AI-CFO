@@ -49,7 +49,8 @@ def test_news_relevance_is_held_only_deduplicated_and_template_is_review_only() 
     assert brief.schema_version == "atlas-market-intelligence-brief/v1"
     assert [section.name for section in brief.sections] == [
         "executive_summary", "portfolio_changes", "material_holding_news", "earnings",
-        "sec_filings", "risks_and_opportunities", "actions_to_review", "sources", "data_quality",
+        "sec_filings", "catalyst_stream", "risks_and_opportunities", "actions_to_review",
+        "sources", "data_quality",
     ]
     assert brief.actions[0].action.startswith("Review whether")
     assert brief.actions[0].approval_requirement == "explicit_user_approval_required"
@@ -160,6 +161,26 @@ class _RecordingMarketProviders:
 
     def filings(self):
         self.calls.append(("filings", None))
+        return []
+
+    def profile(self, symbol: str):
+        self.calls.append(("profile", symbol))
+        return None
+
+    def analyst_recommendations(self, symbol: str):
+        self.calls.append(("analyst_recommendations", symbol))
+        return []
+
+    def price_target(self, symbol: str):
+        self.calls.append(("price_target", symbol))
+        return None
+
+    def dividends(self, symbol: str):
+        self.calls.append(("dividends", symbol))
+        return []
+
+    def filings_for_cik(self, cik: str):
+        self.calls.append(("filings_for_cik", cik))
         return []
 
 

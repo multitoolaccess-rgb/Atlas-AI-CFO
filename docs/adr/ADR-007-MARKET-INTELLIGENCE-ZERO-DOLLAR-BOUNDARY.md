@@ -73,3 +73,52 @@ This amendment changes no provider cost boundary, ownership boundary,
 immutability rule, delivery behavior, execution capability, or Phase 6 Scenario
 Lab contract. It remains deterministic, source-cited, review-only, and default-
 off.
+
+## Market Intelligence v2 amendment (2026-08-13)
+
+Market Intelligence v2 keeps the same zero-dollar provider boundary and adds
+two explicitly authorized layers on top of it, without paid endpoints, cloud
+LLM activation, execution capability, or financial mathematics changes.
+
+### Per-holding evidence contract
+
+The composer now assembles a bounded, source-cited intelligence packet per
+safely covered holding (quote, profile/CIK, company news, earnings events and
+results, SEC filings, analyst consensus and price target, dividends) and ranks
+packets as `high` / `watch` / `informational` using deterministic rules. Every
+optional evidence category can fail independently: the failure is recorded as
+an `EvidenceAvailability` omission with a stable reason code and user-safe
+recovery guidance, and never kills the complete brief. The brief fails closed
+only when trustworthy portfolio coverage falls below the tested threshold.
+Anticipated provider and composition failures are converted at the route
+boundary into sanitized stable responses (never raw provider text or secrets),
+and nothing is persisted when complete generation fails.
+
+### Authorized universe expansion
+
+ADR-007's original universe (portfolio + optional watchlist) is explicitly
+expanded to include a read-only, quota-aware market-pulse layer and a bundled
+S&P 500 symbol list used only as a scanner universe. This expansion is
+authorized because it remains: (1) zero-dollar — only Finnhub free-tier
+endpoints (quotes, `market_news`, market earnings calendar) are used; (2)
+bounded — the scanner requests at most a bounded sample per refresh with
+provider pacing and caching, portfolio holdings always take priority, and the
+wholesale universe is never requested; (3) truthful — categories the free tier
+cannot supply (raw indices, VIX, sector performance, top movers) are surfaced
+as unavailable rather than fabricated, and index direction is reported only
+through approved, clearly labeled ETF proxies (SPY/QQQ); and (4) review-only.
+The bundled symbol list is factual ticker data with no financial claims.
+
+### Command-center UI
+
+Market Briefs is presented as a Market Intelligence command center with five
+views (My Portfolio, Market Pulse, Earnings & Events, S&P 500 Scanner, Archive)
+built on the existing appearance system. It preserves the provider-status
+model (not checked / checking / ready / coverage limited / unavailable), the
+sanitized error model, immutable archive replay, keyboard navigation,
+reduced-motion support, and accessible states for every designed scenario.
+
+This amendment changes no cost boundary, ownership boundary, immutability
+rule, delivery behavior, execution capability, or financial mathematics. All
+external data remains default-off behind server-owned flags, deterministic,
+source-cited, and review-only.

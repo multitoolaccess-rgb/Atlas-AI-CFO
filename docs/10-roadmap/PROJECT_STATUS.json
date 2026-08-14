@@ -1,5 +1,22 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "codex/market-intelligence-v2",
+      "id": "work-market-intelligence-v2",
+      "issue": "",
+      "objective": "Transform Market Briefs into a reliable portfolio-intelligence command center: per-holding evidence packets with materiality ranking, a zero-dollar market pulse and S&P 500 scanner layer, and a command-center UI \u2014 preserving the zero-dollar boundary, financial authority, and Visual System v2.1. Post-certification Phase 5 enhancement; does not implement Phase 6 Scenario Lab.",
+      "paths": [
+        "services/rules-service/app/market_intelligence, services/rules-service/app/routes/market_briefs.py, ui/app/market-briefs, ui/components/market-briefs, ui/lib/marketBriefs.ts"
+      ],
+      "phase_id": "phase-6",
+      "risk_tier": "high",
+      "status": "in_progress",
+      "tests": [
+        "backend pytest market_intelligence + market_briefs; frontend Vitest marketBriefs + MarketBriefArchive; typecheck; lint; build; E2E Market Intelligence journey; axe; reduced-motion; responsive matrix"
+      ],
+      "title": "Market Intelligence v2 (post-certification enhancement): reliable per-holding evidence, market pulse, and command-center UI"
+    }
+  ],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -939,7 +956,7 @@
   ],
   "current_objective": "Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-13T04:31:49Z",
+  "last_updated": "2026-08-13T04:57:25Z",
   "next_bounded_task": {
     "description": "Authorize and define Phase 6 Slice 2 only; do not begin implementation automatically.",
     "id": "work-p6-s2-authorization",

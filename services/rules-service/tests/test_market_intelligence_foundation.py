@@ -197,6 +197,66 @@ def test_finnhub_normalized_records_are_deduplicated_and_cached() -> None:
     assert all(count == 1 for count in calls.values())
 
 
+def test_finnhub_company_profile_resolves_bounded_company_metadata() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"cik": "0000320193", "name": "Apple Inc", "exchange": "NASDAQ", "finnhubIndustry": "Technology"})
+
+    adapter = FinnhubAdapter(api_key="synthetic-key", enabled=True, transport=httpx.MockTransport(handler), now=lambda: NOW)
+    result = adapter.company_profile("AAPL")
+    assert result.value is not None
+    assert result.value.cik == "320193"
+    assert result.value.company_name == "Apple Inc"
+    assert result.value.exchange == "NASDAQ"
+    assert result.value.sector == "Technology"
+    assert adapter.company_profile("AAPL").cache_hit
+
+
+def test_finnhub_analyst_recommendation_and_price_target_are_bounded() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("stock/recommendation"):
+            return httpx.Response(200, json=[
+                {"period": "2026-08", "strongBuy": 12, "buy": 18, "hold": 7, "sell": 1, "strongSell": 0},
+                {"period": "2026-08", "strongBuy": 99, "buy": 99, "hold": 99, "sell": 99, "strongSell": 99},
+                {"period": "2026-07", "strongBuy": 10, "buy": 15, "hold": 9, "sell": 2, "strongSell": 1},
+            ])
+        return httpx.Response(200, json={"targetHigh": 300.0, "targetLow": 150.0, "targetMean": 220.0, "targetMedian": 230.0})
+
+    adapter = FinnhubAdapter(api_key="synthetic-key", enabled=True, transport=httpx.MockTransport(handler), now=lambda: NOW)
+    recs = adapter.analyst_recommendation("AAPL")
+    target = adapter.price_target("AAPL")
+    assert recs.value and len(recs.value) == 2  # deduplicated by period
+    assert recs.value[0].strong_buy == 12
+    assert target.value and target.value.target_mean == "220"
+    assert adapter.analyst_recommendation("AAPL").cache_hit
+    assert adapter.price_target("AAPL").cache_hit
+
+
+def test_finnhub_price_target_soft_fails_on_free_tier_restriction() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(403, json={"error": "Forbidden"})
+
+    adapter = FinnhubAdapter(api_key="synthetic-key", enabled=True, transport=httpx.MockTransport(handler), now=lambda: NOW)
+    result = adapter.price_target("BRK.B")
+    # A free-tier 403 on price-target is a per-ticker restriction: the brief
+    # continues with an empty target rather than failing the holding.
+    assert result.value is not None and result.value.target_mean is None
+
+
+def test_finnhub_dividends_are_normalized_and_cached() -> None:
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=[
+            {"symbol": "AAPL", "exDate": "2026-08-14", "declaredDate": "2026-08-01", "amount": 0.25},
+            {"symbol": "AAPL", "exDate": "2026-08-14", "amount": 0.25},
+        ])
+
+    adapter = FinnhubAdapter(api_key="synthetic-key", enabled=True, transport=httpx.MockTransport(handler), now=lambda: NOW)
+    events = adapter.dividends("AAPL")
+    assert events.value and len(events.value) == 1
+    assert events.value[0].amount == "0.25"
+    assert events.value[0].ex_date is not None
+    assert adapter.dividends("AAPL").cache_hit
+
+
 def test_sec_requires_identifying_user_agent_and_normalizes_submission() -> None:
     with pytest.raises(ProviderConfigurationError):
         SecAdapter(user_agent="", enabled=True)

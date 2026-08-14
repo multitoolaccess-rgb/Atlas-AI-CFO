@@ -47,7 +47,8 @@ from sqlalchemy.exc import IntegrityError
 
 from app.config import settings
 from app.market_intelligence.composition import build_operational_market_brief_composer
-from app.routes.market_briefs import configure_market_brief_composer
+from app.market_intelligence.pulse import build_operational_market_pulse
+from app.routes.market_briefs import configure_market_brief_composer, configure_market_pulse
 from app.database import Base, SessionLocal, engine
 from app.routes import (
     accounts_router,
@@ -481,6 +482,7 @@ def _configure_market_brief_composer() -> None:
     under checked-in default-off settings or incomplete local credentials.
     """
     configure_market_brief_composer(build_operational_market_brief_composer(settings))
+    configure_market_pulse(build_operational_market_pulse(settings))
 
 
 @app.on_event("startup")

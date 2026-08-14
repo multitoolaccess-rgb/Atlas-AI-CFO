@@ -29,7 +29,9 @@ def test_operational_composer_is_not_wired_without_all_server_owned_controls() -
     assert build_operational_market_brief_composer(_settings(atlas_market_brief_generation_enabled=True, atlas_market_brief_external_provider_enabled=True, finnhub_api_key="local-only", sec_user_agent="Atlas local operator ops@example.test")) is not None
 
 
-def test_composer_rejects_empty_server_side_portfolio(db_session) -> None:
+def test_composer_rejects_empty_server_side_portfolio(client, db_session) -> None:
+    # ``client`` resets the DB first so holdings seeded by an earlier
+    # test in the same process cannot make this portfolio appear non-empty.
     composer = TrustedMarketBriefComposer(SimpleNamespace())
     try:
         composer.assemble(db_session, owner_id=1, report_window="latest")

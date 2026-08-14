@@ -6,7 +6,7 @@ import json
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
-from typing import Protocol
+from typing import Literal, Protocol
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -16,18 +16,25 @@ from app.models.holding import Holding
 from .adapters import FinnhubAdapter, ProviderConfigurationError, SecAdapter
 from .briefing import BriefingInput, PositionInput
 from .contracts import (
+    AnalystRecommendation,
     CompanyNewsItem,
+    CompanyProfile,
     CoverageBasis,
     CoverageOmission,
     CoverageSummary,
+    DividendEvent,
     EarningsEvent,
     EarningsResult,
+    EvidenceAvailability,
+    EvidenceCategory,
     FailureClass,
     Freshness,
+    HoldingEvidence,
     MarketBriefReasonCode,
     MarketQuoteSnapshot,
     PortfolioHolding,
     PriceBasis,
+    PriceTarget,
     ProviderReadiness,
     SecFilingEvent,
 )
@@ -53,6 +60,23 @@ _SAFE_FAILURE_MESSAGES = {
     MarketBriefReasonCode.PROVIDER_RATE_LIMITED: "The market-data provider is rate limiting requests.",
     MarketBriefReasonCode.UNSUPPORTED_SYMBOL: "This holding is not supported by the configured market-data provider.",
     MarketBriefReasonCode.INVALID_QUOTE: "The market-data provider returned an invalid quote.",
+}
+
+# User-safe recovery guidance per reason code, shared by omissions and the
+# evidence-availability records. Never raw provider text or secrets.
+_SAFE_RECOVERY_GUIDANCE = {
+    MarketBriefReasonCode.PROVIDER_CONFIGURATION_MISSING: "Ask the local operator to configure market data, then retry.",
+    MarketBriefReasonCode.PROVIDER_TRANSPORT_FAILURE: "Check the provider connection and retry later.",
+    MarketBriefReasonCode.PROVIDER_AUTHENTICATION_FAILED: "Ask the local operator to verify server-side provider credentials.",
+    MarketBriefReasonCode.PROVIDER_RATE_LIMITED: "Wait briefly, then retry.",
+    MarketBriefReasonCode.UNSUPPORTED_SYMBOL: "Review the holding symbol and correct it before retrying.",
+    MarketBriefReasonCode.INVALID_QUOTE: "Ask the local operator to verify the provider response, then retry.",
+    MarketBriefReasonCode.LIVE_QUOTE_STALE: "Retry during market hours or use the accepted prior-close mode outside the session.",
+    MarketBriefReasonCode.PRIOR_CLOSE_TOO_OLD: "Refresh provider data before generating another brief.",
+    MarketBriefReasonCode.INSUFFICIENT_PORTFOLIO_COVERAGE: "Resolve the omitted holdings before generating a complete portfolio brief.",
+    MarketBriefReasonCode.NO_MARKET_ADDRESSABLE_HOLDINGS: "Add or correct an eligible holding before generating a brief.",
+    MarketBriefReasonCode.AMBIGUOUS_CURRENCY: "Resolve the portfolio currency ambiguity before generating a brief.",
+    MarketBriefReasonCode.MARKET_BRIEF_GENERATION_UNAVAILABLE: "Retry after the local operator resolves the reported readiness issue.",
 }
 
 
@@ -121,7 +145,27 @@ class OperationalMarketResearchProviders:
     def earnings_results(self, symbol: str) -> list[EarningsResult]:
         return self._value(self._finnhub.earnings_surprises(symbol), "Earnings results")
 
+    def profile(self, symbol: str) -> CompanyProfile:
+        return self._value(self._finnhub.company_profile(symbol), "Company profile")
+
+    def analyst_recommendations(self, symbol: str) -> list[AnalystRecommendation]:
+        return self._value(self._finnhub.analyst_recommendation(symbol), "Analyst recommendation")
+
+    def price_target(self, symbol: str) -> PriceTarget | None:
+        return self._value(self._finnhub.price_target(symbol), "Analyst price target")
+
+    def dividends(self, symbol: str) -> list[DividendEvent]:
+        return self._value(self._finnhub.dividends(symbol), "Dividends")
+
+    def filings_for_cik(self, cik: str) -> list[SecFilingEvent]:
+        """SEC submissions for one resolved CIK; a bad CIK is an omission."""
+        result = self._sec.submissions(cik)
+        if result.value:
+            return result.value
+        return []
+
     def filings(self) -> list[SecFilingEvent]:
+        """Backward-compatible aggregate for the v1 protocol (empty by default)."""
         return []
 
 
@@ -153,6 +197,11 @@ class MarketResearchProviders(Protocol):
     def earnings_events(self, symbol: str) -> list[EarningsEvent]: ...
     def earnings_results(self, symbol: str) -> list[EarningsResult]: ...
     def filings(self) -> list[SecFilingEvent]: ...
+    def profile(self, symbol: str) -> CompanyProfile: ...
+    def analyst_recommendations(self, symbol: str) -> list[AnalystRecommendation]: ...
+    def price_target(self, symbol: str) -> PriceTarget | None: ...
+    def dividends(self, symbol: str) -> list[DividendEvent]: ...
+    def filings_for_cik(self, cik: str) -> list[SecFilingEvent]: ...
 
 
 def _decimal(value: object) -> Decimal | None:
@@ -204,6 +253,87 @@ class TrustedMarketBriefComposer:
         if quote.source.observed_at is None or quote.source.observed_at > quote.source.retrieved_at:
             raise MarketBriefCompositionError("The market-data timestamp was invalid.", MarketBriefReasonCode.INVALID_QUOTE)
         return basis
+
+    @classmethod
+    def _rank_evidence(
+        cls,
+        *,
+        symbol: str,
+        quote: MarketQuoteSnapshot | None,
+        profile: CompanyProfile | None,
+        news: tuple[CompanyNewsItem, ...],
+        earnings_events: tuple[EarningsEvent, ...],
+        earnings_results: tuple[EarningsResult, ...],
+        filings: tuple[SecFilingEvent, ...],
+        recommendations: tuple[AnalystRecommendation, ...],
+        price_target: PriceTarget | None,
+        dividends: tuple[DividendEvent, ...],
+        now: datetime,
+    ) -> HoldingEvidence:
+        """Deterministic, evidence-only materiality ranking.
+
+        Ranks the packet High impact / Watch / Informational using only
+        bounded evidence windows and price movement. It never fabricates a
+        reason, never predicts a move, and never becomes a trade instruction.
+        """
+        materiality: Literal["high", "watch", "informational"] = "informational"
+        reason: str | None = None
+        today = now.date()
+
+        upcoming = [event for event in earnings_events if event.event_date.date() >= today]
+        reported = [event for event in earnings_events if event.event_date.date() < today]
+        fresh_results = [r for r in earnings_results if r.source.observed_at and r.source.observed_at.date() >= today - timedelta(days=14)]
+        fresh_filings = [f for f in filings if f.filing_date.date() >= today - timedelta(days=14)]
+        fresh_dividends = [d for d in dividends if (d.ex_date or d.declared_date or d.payable_date) is not None]
+
+        if upcoming and (upcoming[0].event_date.date() - today).days <= 7:
+            materiality = "high"
+            reason = f"Earnings on {upcoming[0].event_date.date().isoformat()} within 7 days."
+        elif fresh_results and reported:
+            materiality = "high"
+            reason = f"Recent earnings reported for {symbol}."
+        elif any(f.form == "8-K" for f in fresh_filings):
+            materiality = "high"
+            reason = "Recent 8-K filing."
+        elif fresh_results:
+            materiality = "watch"
+            reason = "Recent earnings result in window."
+        elif fresh_filings:
+            materiality = "watch"
+            reason = "Recent SEC filing in window."
+        elif recommendations and len(recommendations) >= 2:
+            latest, prior = recommendations[0], recommendations[1]
+            delta = abs((latest.strong_buy + latest.buy) - (prior.strong_buy + prior.buy)) + abs((latest.sell + latest.strong_sell) - (prior.sell + prior.strong_sell))
+            if delta > 0:
+                materiality = "watch"
+                reason = "Analyst recommendation mix changed."
+
+        if quote and quote.previous_close:
+            previous = _decimal(quote.previous_close)
+            current = _decimal(quote.current_price)
+            if previous and current and previous > 0:
+                movement = (current - previous) / previous
+                if abs(movement) >= Decimal("0.03") and materiality != "high":
+                    materiality = "watch"
+                    reason = "Price moved more than 3% in the session."
+
+        if materiality == "informational" and (fresh_dividends or news):
+            reason = reason or ("Dividend event in window." if fresh_dividends else "News activity.")
+
+        return HoldingEvidence(
+            symbol=symbol,
+            quote=quote,
+            profile=profile,
+            news=news,
+            earnings_events=earnings_events,
+            earnings_results=earnings_results,
+            filings=filings,
+            recommendations=recommendations,
+            price_target=price_target,
+            dividends=dividends,
+            materiality=materiality,
+            materiality_reason=reason,
+        )
 
     @staticmethod
     def _coverage(
@@ -258,7 +388,12 @@ class TrustedMarketBriefComposer:
         for holding in eligible:
             symbol = (holding.symbol or "").strip().upper()
             if not symbol:
-                omissions.append(CoverageOmission(symbol="UNKNOWN", reason_code=MarketBriefReasonCode.UNSUPPORTED_SYMBOL))
+                omissions.append(CoverageOmission(
+                    symbol="UNKNOWN",
+                    evidence_category=EvidenceCategory.QUOTE,
+                    reason_code=MarketBriefReasonCode.UNSUPPORTED_SYMBOL,
+                    recovery=_SAFE_RECOVERY_GUIDANCE[MarketBriefReasonCode.UNSUPPORTED_SYMBOL],
+                ))
                 continue
             # Imported portfolios can contain human-readable pending-activity
             # labels in the symbol column. Treat those as non-addressable
@@ -270,7 +405,12 @@ class TrustedMarketBriefComposer:
             except (TypeError, ValueError):
                 normalized_symbol = None
             if not normalized_symbol:
-                omissions.append(CoverageOmission(symbol="UNKNOWN", reason_code=MarketBriefReasonCode.UNSUPPORTED_SYMBOL))
+                omissions.append(CoverageOmission(
+                    symbol="UNKNOWN",
+                    evidence_category=EvidenceCategory.QUOTE,
+                    reason_code=MarketBriefReasonCode.UNSUPPORTED_SYMBOL,
+                    recovery=_SAFE_RECOVERY_GUIDANCE[MarketBriefReasonCode.UNSUPPORTED_SYMBOL],
+                ))
                 continue
             symbol = normalized_symbol
             if symbol not in quotes and symbol not in quote_errors:
@@ -287,7 +427,12 @@ class TrustedMarketBriefComposer:
                 except MarketBriefCompositionError as error:
                     quote_errors[symbol] = error.reason_code
             if symbol in quote_errors:
-                omissions.append(CoverageOmission(symbol=symbol, reason_code=quote_errors[symbol]))
+                omissions.append(CoverageOmission(
+                    symbol=symbol,
+                    evidence_category=EvidenceCategory.QUOTE,
+                    reason_code=quote_errors[symbol],
+                    recovery=_SAFE_RECOVERY_GUIDANCE.get(quote_errors[symbol]),
+                ))
             else:
                 covered.append(holding)
 
@@ -359,41 +504,124 @@ class TrustedMarketBriefComposer:
                 )
             )
 
+        # ---- Per-holding intelligence packets (Market Intelligence v2) ----
+        # Every optional evidence category is best-effort: a failure is a
+        # per-holding per-category availability record, never a brief-killer.
         optional_warnings: list[str] = []
+        evidence_availability: list[EvidenceAvailability] = []
         news: list[CompanyNewsItem] = []
         earnings_events: list[EarningsEvent] = []
         earnings_results: list[EarningsResult] = []
         now = self._now()
-        for symbol in sorted(grouped):
-            for label, loader, target in (
-                ("news", self.providers.news, news),
-                ("earnings_events", self.providers.earnings_events, earnings_events),
-                ("earnings_results", self.providers.earnings_results, earnings_results),
-            ):
-                try:
-                    records = loader(symbol)
-                    if label == "news":
-                        target.extend(records[:20])
-                    elif label == "earnings_events":
-                        target.extend(
-                            event for event in records
-                            if now.date() - timedelta(days=14) <= event.event_date.date() <= now.date() + timedelta(days=30)
-                        )
-                    else:
-                        target.extend(
-                            result for result in records
-                            if result.source.observed_at
-                            and now.date() - timedelta(days=14) <= result.source.observed_at.date() <= now.date()
-                        )
-                except MarketBriefCompositionError as error:
-                    optional_warnings.append(f"{error.reason_code.value}: optional {label} unavailable.")
+        resolved_ciks: dict[str, str] = {}
+        holding_evidence: list[HoldingEvidence] = []
 
+        def _collect(label: str, category: EvidenceCategory, loader, target, symbol: str) -> None:
+            try:
+                records = loader(symbol)
+                if label == "news":
+                    target.extend((records or [])[:20])
+                elif label == "earnings_events":
+                    target.extend(
+                        event for event in (records or [])
+                        if now.date() - timedelta(days=14) <= event.event_date.date() <= now.date() + timedelta(days=30)
+                    )
+                else:
+                    target.extend(
+                        result for result in (records or [])
+                        if result.source.observed_at
+                        and now.date() - timedelta(days=14) <= result.source.observed_at.date() <= now.date()
+                    )
+            except MarketBriefCompositionError as error:
+                evidence_availability.append(EvidenceAvailability(
+                    symbol=symbol,
+                    evidence_category=category,
+                    reason_code=error.reason_code,
+                    recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
+                ))
+                optional_warnings.append(f"{error.reason_code.value}: optional {label} unavailable for {symbol}.")
+
+        for symbol in sorted(grouped):
+            _collect("news", EvidenceCategory.NEWS, self.providers.news, news, symbol)
+            _collect("earnings_events", EvidenceCategory.EARNINGS, self.providers.earnings_events, earnings_events, symbol)
+            _collect("earnings_results", EvidenceCategory.EARNINGS, self.providers.earnings_results, earnings_results, symbol)
+
+            profile: CompanyProfile | None = None
+            recommendations: tuple[AnalystRecommendation, ...] = ()
+            price_target: PriceTarget | None = None
+            dividends: tuple[DividendEvent, ...] = ()
+            filings: tuple[SecFilingEvent, ...] = ()
+
+            try:
+                profile = self.providers.profile(symbol)
+                if profile and profile.cik:
+                    resolved_ciks[symbol] = profile.cik
+            except MarketBriefCompositionError as error:
+                evidence_availability.append(EvidenceAvailability(
+                    symbol=symbol, evidence_category=EvidenceCategory.FILINGS,
+                    reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
+                ))
+                optional_warnings.append(f"{error.reason_code.value}: optional profile unavailable for {symbol}.")
+
+            try:
+                recommendations = tuple(self.providers.analyst_recommendations(symbol))
+            except MarketBriefCompositionError as error:
+                evidence_availability.append(EvidenceAvailability(
+                    symbol=symbol, evidence_category=EvidenceCategory.ANALYST,
+                    reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
+                ))
+                optional_warnings.append(f"{error.reason_code.value}: optional analyst recommendation unavailable for {symbol}.")
+
+            try:
+                price_target = self.providers.price_target(symbol)
+            except MarketBriefCompositionError as error:
+                evidence_availability.append(EvidenceAvailability(
+                    symbol=symbol, evidence_category=EvidenceCategory.ANALYST,
+                    reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
+                ))
+                optional_warnings.append(f"{error.reason_code.value}: optional price target unavailable for {symbol}.")
+
+            try:
+                dividends = tuple(self.providers.dividends(symbol))
+            except MarketBriefCompositionError as error:
+                evidence_availability.append(EvidenceAvailability(
+                    symbol=symbol, evidence_category=EvidenceCategory.NEWS,
+                    reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
+                ))
+                optional_warnings.append(f"{error.reason_code.value}: optional dividends unavailable for {symbol}.")
+
+            if profile and profile.cik:
+                try:
+                    filings = tuple(self.providers.filings_for_cik(profile.cik))[:10]
+                except MarketBriefCompositionError as error:
+                    evidence_availability.append(EvidenceAvailability(
+                        symbol=symbol, evidence_category=EvidenceCategory.FILINGS,
+                        reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
+                    ))
+                    optional_warnings.append(f"{error.reason_code.value}: optional SEC filings unavailable for {symbol}.")
+
+            holding_evidence.append(self._rank_evidence(
+                symbol=symbol,
+                quote=covered_by_symbol.get(symbol),
+                profile=profile,
+                news=tuple(item for item in news if item.symbol == symbol)[:10],
+                earnings_events=tuple(event for event in earnings_events if event.symbol == symbol),
+                earnings_results=tuple(result for result in earnings_results if result.symbol == symbol),
+                filings=filings,
+                recommendations=recommendations,
+                price_target=price_target,
+                dividends=dividends,
+                now=now,
+            ))
+
+        sec_warning = "SEC filings omitted: no authoritative holding-to-CIK mapping." if not resolved_ciks else None
         composition_warnings = tuple(
-            (
-                "SEC filings omitted: no authoritative holding-to-CIK mapping.",
-                *optional_warnings,
-            )
+            (item for item in (sec_warning, *optional_warnings) if item)
         )
+        evidence_availability_records = tuple(sorted(
+            evidence_availability,
+            key=lambda item: (item.symbol, item.evidence_category.value, item.reason_code.value),
+        ))
         canonical_positions = [
             {
                 "symbol": position.symbol,
@@ -424,6 +652,15 @@ class TrustedMarketBriefComposer:
             }
         )
         market_data_basis = next(iter(basis_values)) if len(basis_values) == 1 else PriceBasis.UNKNOWN
+        # Aggregate per-holding filings for the v1 SEC section: only records
+        # with an authoritative CIK produce requests; everything is bounded.
+        all_filings = tuple(
+            filing
+            for packet in holding_evidence
+            for filing in packet.filings
+        )
+        all_held_ciks = {filing.cik for filing in all_filings}
+
         readiness = ProviderReadiness(
             provider="market_data",
             status="degraded" if coverage.omitted_holding_count or composition_warnings else "ready",
@@ -438,7 +675,10 @@ class TrustedMarketBriefComposer:
             news=news,
             earnings_events=earnings_events,
             earnings_results=earnings_results,
-            filings=self.providers.filings()[:50],
+            filings=all_filings[:50],
+            held_ciks=all_held_ciks,
+            holding_evidence=tuple(sorted(holding_evidence, key=lambda packet: (packet.materiality, packet.symbol))),
+            evidence_availability=evidence_availability_records,
             composition_warnings=composition_warnings,
             generated_at=now,
             coverage=coverage,
