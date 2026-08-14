@@ -9,14 +9,11 @@
 - Overall status: in_progress
 - Objective: Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.
 - Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-08-14T04:25:22Z
+- Tracker updated: 2026-08-14T18:21:12Z
 
 ## Active work
 
-- work-ui-information-architecture-step-2: Activate Money information architecture migration [in_progress/high]
-  - Objective: Atomically activate the consolidated navigation, Mission Control, Cash Flow and Plan destinations, Scout header placement, and compatible Money redirects while preserving existing financial calculations, filters, and authorization.
-  - Branch: codex/ia-money-migration-step-2
-  - Paths: ui/app, ui/components/layout, ui/components/ui, ui/components/dashboard, ui/lib, docs/06-ui-ux
+- None
 
 ## Blockers
 
@@ -38,14 +35,14 @@
 
 ## Recently completed
 
-- work-ui-atlas-art-direction-v2-1: Atlas Visual Art Direction v2.1 — commit 659bd766eda329811e7c5950e5c6243db0b3461e, PR 44
 - work-analyst-coverage-clarity: Clarify partial analyst coverage states — commit 00cc0879af7bf9dfd396e64e47755d7be9a28a7f, PR 45
 - work-holdings-type-fix: Fix Fidelity import type mislabeling and repair affected portfolio data — commit 2603d5c9af7bf9dfd396e64e47755d7be9a28a7f, PR 46
 - work-market-intelligence-v2: Market Intelligence v2 (post-certification enhancement): reliable per-holding evidence, market pulse, and command-center UI — commit 4f27b6d058f26c8d89d518cc5a25258fc6d0ffa9, PR 47
 - work-ui-information-architecture-step-1: Information architecture migration Step 1 foundations — commit d7e5cde, PR 48
+- work-ui-information-architecture-step-2: Activate Money information architecture migration — commit 54974b8, PR 49
 
 ## Next bounded task
 
-- work-ui-information-architecture-step-2: Step 2 - activate the consolidated navigation atomically with the Money migration: Mission Control, Cash Flow, Plan and compatibility redirects.
+- work-ui-information-architecture-step-3: Step 3 - migrate Wealth atomically: Wealth Overview, Assets, Debts, Universe, Portfolio, Goals, and compatibility redirects.
 
 Do not begin the next task automatically.
