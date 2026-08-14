@@ -9,14 +9,11 @@
 - Overall status: in_progress
 - Objective: Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.
 - Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-08-14T03:47:27Z
+- Tracker updated: 2026-08-14T04:22:19Z
 
 ## Active work
 
-- work-ui-information-architecture-step-1: Information architecture migration Step 1 foundations [in_progress/medium]
-  - Objective: Implement only inactive, tested information-architecture, navigation, analytical-frame, page-tabs, context-bar, Scout-placement, and compatibility contracts; preserve all current routes, production sidebar, financial behavior, and page ownership.
-  - Branch: codex/ia-migration-step-1
-  - Paths: docs/06-ui-ux, ui/lib, ui/components/ui, ui/components/layout, ui/components/dashboard
+- None
 
 ## Blockers
 
@@ -38,14 +35,14 @@
 
 ## Recently completed
 
-- work-ui-atlas-visual-system-v2: Atlas Visual System v2 — commit 1414d62ab9f70899b4c67418046977808dfa3562, PR 43
 - work-ui-atlas-art-direction-v2-1: Atlas Visual Art Direction v2.1 — commit 659bd766eda329811e7c5950e5c6243db0b3461e, PR 44
 - work-analyst-coverage-clarity: Clarify partial analyst coverage states — commit 00cc0879af7bf9dfd396e64e47755d7be9a28a7f, PR 45
 - work-holdings-type-fix: Fix Fidelity import type mislabeling and repair affected portfolio data — commit 2603d5c9af7bf9dfd396e64e47755d7be9a28a7f, PR 46
 - work-market-intelligence-v2: Market Intelligence v2 (post-certification enhancement): reliable per-holding evidence, market pulse, and command-center UI — commit 4f27b6d058f26c8d89d518cc5a25258fc6d0ffa9, PR 47
+- work-ui-information-architecture-step-1: Information architecture migration Step 1 foundations — commit d7e5cde, PR 48
 
 ## Next bounded task
 
-- work-p6-s2-authorization: Authorize and define Phase 6 Slice 2 only; do not begin implementation automatically.
+- work-ui-information-architecture-step-2: Step 2 - activate the consolidated navigation atomically with the Money migration: Mission Control, Cash Flow, Plan and compatibility redirects.
 
 Do not begin the next task automatically.
