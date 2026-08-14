@@ -107,12 +107,12 @@ test.describe('Phase 30a + 30c + 30e — Assistant page', () => {
     await expect(page.getByTestId('chat-message-1')).toHaveCount(0)
   })
 
-  test('sidebar has a Scout link that navigates to /assistant', async ({ page }: { page: Page }) => {
+  test('header has the global Scout fallback link to /assistant', async ({ page }: { page: Page }) => {
     await page.goto('/')
-    // Wait for sidebar to hydrate.
+    // Wait for the shared shell to hydrate.
     await page.waitForLoadState('networkidle')
 
-    const scoutLink = page.getByRole('link', { name: 'Scout' }).first()
+    const scoutLink = page.getByTestId('header-scout-link')
     await expect(scoutLink).toBeVisible()
     await scoutLink.click()
     await expect(page).toHaveURL(/\/assistant/)

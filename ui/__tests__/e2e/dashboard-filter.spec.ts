@@ -24,6 +24,8 @@ test.describe('Cash Flow — interactive analytics workspace', () => {
     await expect(page.getByTestId('cash-flow-page')).toBeVisible()
     await expect(page.getByTestId('sankey-hero')).toBeVisible({ timeout: 15_000 })
     await expect(page.getByLabel('Cash flow analysis')).toBeVisible()
+    await expect(page.getByText('Financial Health')).toBeVisible()
+    await expect(page.getByText('Spending by Category')).toBeVisible()
     for (const label of ['Overview', 'Income', 'Spending', 'Transactions']) {
       await expect(page.getByTestId('page-tabs').getByRole('button', { name: label })).toBeVisible()
     }
