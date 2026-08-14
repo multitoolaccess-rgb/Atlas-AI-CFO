@@ -20,7 +20,7 @@ export default function ReviewQueueBadge({ transactions, className = '' }: Revie
 
   return (
     <Link
-      href="/activity?status=uncategorized"
+      href="/cash-flow?view=transactions&status=uncategorized"
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[var(--warning-50)] text-[var(--warning-700)] border border-[var(--warning-200)] hover:bg-[var(--warning-100)] transition-colors duration-150 ${className}`}
       aria-label={`${uncategorizedCount} transactions need categorization`}
     >

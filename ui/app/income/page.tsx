@@ -5,6 +5,7 @@ import PageLayout from '@/components/layout/PageLayout'
 import { GlobalFilterProvider, useGlobalFilters, dateRangeFromPreset } from '@/components/ui/GlobalFilterContext'
 import FloatingTimeRangeBar from '@/components/ui/FloatingTimeRangeBar'
 import PageHeader from '@/components/ui/PageHeader'
+import { useEmbeddedMoneyView } from '@/components/money/EmbeddedMoneyView'
 import {
   rulesService,
   type IncomeBreakdownResponse,
@@ -24,7 +25,7 @@ import {
   Layers,
 } from 'lucide-react'
 
-function IncomeContent() {
+function IncomeContent({ embedded = false }: { embedded?: boolean }) {
   // The floating bar reads timeRange from the unified context; this
   // page only consumes timeRange to pass into the BE range query.
   const { timeRange } = useGlobalFilters()
@@ -104,13 +105,7 @@ function IncomeContent() {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        title="Income"
-        description="Track all income sources and trends."
-      />
-
-      {/* Migrated from <FloatingFilterBar> colocated selector — bar provides its own. */}
-      <FloatingTimeRangeBar />
+      {!embedded && <><PageHeader title="Income" description="Track all income sources and trends." /><FloatingTimeRangeBar /></>}
 
       {error && (
         <div className="flex items-center gap-3 p-4 bg-danger-50 border border-danger-200 rounded-lg">
@@ -294,6 +289,8 @@ function IncomeContent() {
 }
 
 export default function IncomePage() {
+  const embedded = useEmbeddedMoneyView()
+  if (embedded) return <IncomeContent embedded />
   return (
     <PageLayout>
       <GlobalFilterProvider>

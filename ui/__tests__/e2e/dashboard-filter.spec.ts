@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 /**
- * E2e tests for the dashboard interactive analytics workspace.
+ * E2e tests for the consolidated Cash Flow analytics workspace.
  *
  * Tests cover:
  * 1. Dashboard loads with all modules visible
@@ -14,31 +14,19 @@ import { test, expect } from '@playwright/test'
  * rules-service backend (:8000) must be running.
  */
 
-test.describe('Dashboard — interactive analytics workspace', () => {
+test.describe('Cash Flow — interactive analytics workspace', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/')
-    // Wait for the dashboard to finish loading (skeleton disappears)
-    await page.waitForSelector('text=Hello', { timeout: 15_000 })
+    await page.goto('/cash-flow')
+    await expect(page.getByRole('heading', { name: 'Cash Flow', level: 1 })).toBeVisible()
   })
 
-  test('dashboard loads with all modules visible', async ({ page }) => {
-    // KPI strip cards
-    await expect(page.getByText('Income MTD')).toBeVisible()
-    await expect(page.getByText('Spend MTD')).toBeVisible()
-
-    // Trend chart module
-    await expect(page.getByText('Trend')).toBeVisible()
-
-    // Breakdown module
-    await expect(page.getByText('Breakdown')).toBeVisible()
-
-    // Financial Health module
-    await expect(page.getByText('Financial Health')).toBeVisible()
-
-    // Spending by Category module
-    await expect(
-      page.getByRole('heading', { name: 'Spending by Category', level: 2, exact: true }),
-    ).toBeVisible()
+  test('Cash Flow owns the primary Money visualisation and shared tabs', async ({ page }) => {
+    await expect(page.getByTestId('cash-flow-page')).toBeVisible()
+    await expect(page.getByTestId('sankey-hero')).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByLabel('Cash flow analysis')).toBeVisible()
+    for (const label of ['Overview', 'Income', 'Spending', 'Transactions']) {
+      await expect(page.getByTestId('page-tabs').getByRole('button', { name: label })).toBeVisible()
+    }
   })
 
   test('time range selector renders with all presets', async ({ page }) => {
@@ -63,9 +51,9 @@ test.describe('Dashboard — interactive analytics workspace', () => {
     await page.getByRole('radio', { name: '7D' }).click()
     await expect(page).toHaveURL(/[?&]range=7D/)
 
-    // Reload with the URL param preserved
+    // Reload with the URL param preserved.
     await page.reload()
-    await page.waitForSelector('text=Hello', { timeout: 15_000 })
+    await expect(page.getByRole('heading', { name: 'Cash Flow', level: 1 })).toBeVisible()
 
     // The URL should still have ?range=7D after reload
     await expect(page).toHaveURL(/[?&]range=7D/)
@@ -77,35 +65,20 @@ test.describe('Dashboard — interactive analytics workspace', () => {
     await expect(sevenDRadio).toHaveAttribute('aria-checked', 'true')
   })
 
-  test('expandable cards have expand/collapse buttons', async ({ page }) => {
-    // The Trend card should have an expand button
-    // Use exact: true to avoid matching sidebar's "Collapse sidebar" button.
-    const expandBtn = page.getByRole('button', { name: 'Expand', exact: true }).first()
-    await expect(expandBtn).toBeVisible()
-
-    // Click it
-    await expandBtn.click()
-
-    // Should now show a collapse button (exact match avoids sidebar button)
-    const collapseBtn = page.getByRole('button', { name: 'Collapse', exact: true }).first()
-    await expect(collapseBtn).toBeVisible()
-
-    // The expanded content should be visible
-    await expect(collapseBtn).toHaveAttribute('aria-expanded', 'true')
+  test('tab selection preserves the shared range query state', async ({ page }) => {
+    await page.getByRole('radio', { name: '30D' }).click()
+    await page.getByTestId('page-tabs').getByRole('button', { name: 'Income' }).click()
+    await expect(page).toHaveURL(/view=income/)
+    await expect(page).toHaveURL(/range=30D/)
+    await expect(page.getByText('Total Income')).toBeVisible({ timeout: 15_000 })
   })
 
-  test('legend toggles hide and show chart series', async ({ page }) => {
-    // Find the Income legend toggle button
-    const incomeToggle = page.getByRole('button', { name: /Hide Income/i })
-    await expect(incomeToggle).toBeVisible()
-
-    // Click to hide
-    await incomeToggle.click()
-    await expect(page.getByRole('button', { name: /Show Income/i })).toBeVisible()
-
-    // Click to show again
-    await page.getByRole('button', { name: /Show Income/i }).click()
-    await expect(page.getByRole('button', { name: /Hide Income/i })).toBeVisible()
+  test('Spending is a direct, URL-addressable detail view', async ({ page }) => {
+    await page.goto('/cash-flow?view=spending&range=MTD')
+    await expect(page.getByTestId('page-tabs').getByRole('button', { name: 'Spending' })).toHaveAttribute('aria-current', 'page')
+    await expect(page.getByText('Total Expenses')).toBeVisible({ timeout: 15_000 })
+    await expect(page).toHaveURL(/view=spending/)
+    await expect(page).toHaveURL(/range=MTD/)
   })
 
   test('no console errors on page load', async ({ page }) => {
@@ -114,8 +87,8 @@ test.describe('Dashboard — interactive analytics workspace', () => {
       if (msg.type() === 'error') errors.push(msg.text())
     })
 
-    await page.goto('/')
-    await page.waitForSelector('text=Hello', { timeout: 15_000 })
+    await page.goto('/cash-flow')
+    await expect(page.getByRole('heading', { name: 'Cash Flow', level: 1 })).toBeVisible()
 
     // Filter out known benign warnings (e.g., form field a11y)
     const criticalErrors = errors.filter(

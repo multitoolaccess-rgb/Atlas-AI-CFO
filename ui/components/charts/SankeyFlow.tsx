@@ -158,6 +158,19 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
   const [focusedNode, setFocusedNode] = useState<number | null>(null)
   const nodeRefs = useRef<(SVGGElement | null)[]>([])
   const width = 960
+  const validLinks = useMemo(
+    () => links.filter((link) =>
+      Number.isFinite(link.value) &&
+      link.value > 0 &&
+      Number.isInteger(link.source) &&
+      Number.isInteger(link.target) &&
+      link.source >= 0 &&
+      link.source < nodes.length &&
+      link.target >= 0 &&
+      link.target < nodes.length,
+    ),
+    [links, nodes.length],
+  )
 
   // Stable callbacks for hover handlers (avoids inline arrow allocation per link)
   const handleLinkEnter = useCallback((i: number) => setHoveredLink(i), [])
@@ -166,7 +179,9 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
 
   // d3-sankey mutates input — deep clone inside useMemo
   const { computedNodes, computedLinks } = useMemo(() => {
-    if (!nodes.length) return { computedNodes: [] as DatumNode[], computedLinks: [] as DatumLink[] }
+    if (!nodes.length || !validLinks.length) {
+      return { computedNodes: [] as DatumNode[], computedLinks: [] as DatumLink[] }
+    }
 
     const clonedNodes: DatumNode[] = nodes.map((n, i) => ({
       name: n.name,
@@ -177,7 +192,7 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
       level: n.level,
       index: i,
     }))
-    const clonedLinks: DatumLink[] = links.map(l => ({
+    const clonedLinks: DatumLink[] = validLinks.map(l => ({
       source: l.source,
       target: l.target,
       value: l.value,
@@ -197,7 +212,7 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
       links: clonedLinks,
     })
     return { computedNodes: sn, computedLinks: sl }
-  }, [nodes, links, width, height])
+  }, [nodes, validLinks, width, height])
 
   const transition = reducedMotion ? 'none' : 'opacity 150ms ease-out'
   const borderStroke = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
@@ -208,7 +223,7 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
     [hoveredLink, computedLinks],
   )
 
-  if (!nodes.length) {
+  if (!nodes.length || !validLinks.length) {
     return (
       <div className="flex items-center justify-center h-[400px] text-[var(--text-tertiary)]">
         <div className="text-center">

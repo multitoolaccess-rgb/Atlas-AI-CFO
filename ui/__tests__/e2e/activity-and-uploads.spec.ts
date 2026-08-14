@@ -111,7 +111,7 @@ test('activity tab mounts without Transaction model errors', async ({ page }) =>
   const errors = errorListener(page)
 
   await page.goto('/activity')
-  await page.waitForURL('**/activity')
+  await page.waitForURL('**/cash-flow?view=transactions')
   await page.waitForLoadState('networkidle')
 
   // Page MUST render an h1 (proves the route mounted, not a 404 / 500).
@@ -128,7 +128,7 @@ test('activity tab mounts without Transaction model errors', async ({ page }) =>
 
   expect(
     errors,
-    `Unexpected console errors on /activity: ${errors.join(' | ')}`,
+    `Unexpected console errors on Cash Flow transactions: ${errors.join(' | ')}`,
   ).toEqual([])
 })
 

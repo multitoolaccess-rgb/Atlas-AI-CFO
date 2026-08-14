@@ -70,15 +70,15 @@ test.describe('Atlas art direction appearance matrix', () => {
     }
   })
 
-  test('shell, Settings, and Budgeting have no serious or critical axe violations', async ({ page }) => {
+  test('shell, Settings, and Plan have no serious or critical axe violations', async ({ page }) => {
     const axeSource = readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8')
-    for (const route of ['/settings', '/budgeting']) {
+    for (const route of ['/settings', '/plan?view=budget']) {
       await page.goto(route)
       await expect(page.locator('#main-content')).toBeVisible({ timeout: 10_000 })
       if (route === '/settings') {
         await expect(page.getByTestId('appearance-section')).toBeVisible({ timeout: 10_000 })
       } else {
-        await expect(page.locator('h1', { hasText: 'Budgeting' })).toBeVisible({ timeout: 10_000 })
+        await expect(page.locator('h1', { hasText: 'Plan' })).toBeVisible({ timeout: 10_000 })
       }
       await page.addScriptTag({ content: axeSource })
       const axeResult = await page.evaluate(async () => {
@@ -89,9 +89,9 @@ test.describe('Atlas art direction appearance matrix', () => {
     }
   })
 
-  test('decorative Budgeting motion becomes static under reduced motion', async ({ page }) => {
+  test('decorative Plan budget motion becomes static under reduced motion', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
-    await page.goto('/budgeting')
+    await page.goto('/plan?view=budget')
     await expect(page.getByTestId('budget-orbit')).toBeVisible({ timeout: 10_000 })
     const animationNames = await page.locator('[data-testid="budget-orbit"] span').evaluateAll((nodes) =>
       nodes.map((node) => getComputedStyle(node).animationName),
@@ -99,7 +99,7 @@ test.describe('Atlas art direction appearance matrix', () => {
     expect(animationNames.every((name) => name === 'none')).toBe(true)
   })
 
-  test('Budgeting stays within the viewport at supported widths', async ({ page }) => {
+  test('Plan stays within the viewport at supported widths', async ({ page }) => {
     for (const viewport of [
       { width: 390, height: 844 },
       { width: 768, height: 900 },
@@ -108,8 +108,8 @@ test.describe('Atlas art direction appearance matrix', () => {
       { width: 1728, height: 1000 },
     ]) {
       await page.setViewportSize(viewport)
-      await page.goto('/budgeting')
-      await expect(page.locator('h1', { hasText: 'Budgeting' })).toBeVisible({ timeout: 10_000 })
+      await page.goto('/plan?view=budget')
+      await expect(page.locator('h1', { hasText: 'Plan' })).toBeVisible({ timeout: 10_000 })
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)
       expect(overflow, `horizontal overflow at ${viewport.width}px`).toBe(false)
     }

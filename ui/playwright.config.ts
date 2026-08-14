@@ -21,7 +21,7 @@ export default defineConfig({
   workers: 1,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000',
     trace: 'on-first-retry',
     headless: true,
     screenshot: 'only-on-failure',
@@ -36,7 +36,7 @@ export default defineConfig({
   // config below is unused by default (the smoke test's beforeAll
   // handles backend startup) but kept for `npx playwright test --ui`
   // or future expansions.
-  webServer: {
+  webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1' ? undefined : {
     command: 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,

@@ -39,11 +39,11 @@ describe('ReviewQueueBadge', () => {
     expect(screen.getByText('2 need review')).toBeInTheDocument()
   })
 
-  it('links to the activity page with uncategorized filter', () => {
+  it('links to Cash Flow transactions with the uncategorized filter', () => {
     const txns = [makeTxn({ category_id: null, category_name: null })]
     render(<ReviewQueueBadge transactions={txns} />)
     const link = screen.getByRole('link')
-    expect(link).toHaveAttribute('href', '/activity?status=uncategorized')
+    expect(link).toHaveAttribute('href', '/cash-flow?view=transactions&status=uncategorized')
   })
 
   it('has accessible aria-label with count', () => {

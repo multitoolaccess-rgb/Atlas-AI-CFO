@@ -28,13 +28,15 @@
  */
 import { test, expect, type ConsoleMessage } from '@playwright/test'
 
-const NAV_ITEMS: Array<{ name: string; expectedPath: string }> = [
-  { name: 'Overview', expectedPath: '/' },
+const NAV_ITEMS: Array<{ name: string; expectedPath: string; expectedSearch?: string }> = [
+  { name: 'Mission Control', expectedPath: '/' },
+  { name: 'Cash Flow', expectedPath: '/cash-flow' },
+  { name: 'Plan', expectedPath: '/plan' },
   { name: 'Portfolio', expectedPath: '/portfolio' },
   { name: 'Goals', expectedPath: '/goals' },
   { name: 'Recommendations', expectedPath: '/recommendations' },
   { name: 'Accounts', expectedPath: '/accounts' },
-  { name: 'Activity', expectedPath: '/activity' },
+  { name: 'Activity', expectedPath: '/cash-flow', expectedSearch: 'view=transactions' },
   { name: 'Settings', expectedPath: '/settings' },
   { name: 'Help', expectedPath: '/help' },
 ]
@@ -216,12 +218,15 @@ for (const item of NAV_ITEMS) {
     // commits the new URL in dev mode, which previously caused
     // intermittent "URL still /" failures even though the click
     // fired correctly.
-    await page.waitForURL(`**${item.expectedPath}`, { timeout: 10000 })
+    await page.waitForURL((url) =>
+      url.pathname === item.expectedPath &&
+      (!item.expectedSearch || url.searchParams.toString() === item.expectedSearch), { timeout: 10000 })
     await page.waitForLoadState('networkidle')
 
     // 1) URL must match the expected path.
-    const url = new URL(page.url())
-    expect(url.pathname).toBe(item.expectedPath)
+  const url = new URL(page.url())
+  expect(url.pathname).toBe(item.expectedPath)
+  if (item.expectedSearch) expect(url.searchParams.toString()).toBe(item.expectedSearch)
 
     // 2) The sidebar must STILL be visible after navigation
     //    (catches the case where a route forgot to render <Sidebar />).
@@ -272,12 +277,12 @@ test('sidebar marks the current route with aria-current="page"', async ({ page }
     .first()
   await expect(portfolioLink).toHaveAttribute('aria-current', 'page')
 
-  // And Overview should NOT be active on /portfolio.
-  const overviewLink = page
+  // And Mission Control should NOT be active on /portfolio.
+  const missionControlLink = page
     .locator('nav[aria-label="Primary"]')
-    .getByRole('link', { name: 'Overview' })
+    .getByRole('link', { name: 'Mission Control' })
     .first()
-  await expect(overviewLink).not.toHaveAttribute('aria-current', 'page')
+  await expect(missionControlLink).not.toHaveAttribute('aria-current', 'page')
 })
 
 test('dark mode toggle works on a sub-route (not just Overview)', async ({ page }) => {

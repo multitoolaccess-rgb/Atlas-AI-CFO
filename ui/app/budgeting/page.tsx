@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import PageLayout from '@/components/layout/PageLayout'
 import { GlobalFilterProvider, useGlobalFilters } from '@/components/ui/GlobalFilterContext'
 import {
@@ -28,6 +29,7 @@ import { formatNumber } from '@/lib/format'
 import { classifyErrorMessage } from '@/lib/errors'
 import FloatingTimeRangeBar from '@/components/ui/FloatingTimeRangeBar'
 import PageHeader from '@/components/ui/PageHeader'
+import { useEmbeddedMoneyView } from '@/components/money/EmbeddedMoneyView'
 
 const groupLabels: Record<string, string> = {
   fixed: 'Fixed Expenses',
@@ -39,7 +41,9 @@ const groupLabels: Record<string, string> = {
 
 const groupOrder = ['fixed', 'flexible', 'debt', 'savings', 'other']
 
-function BudgetingContent() {
+function BudgetingContent({ embedded = false }: { embedded?: boolean }) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [status, setStatus] = useState<BudgetStatusResponse | null>(null)
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -68,9 +72,21 @@ function BudgetingContent() {
   const [newPeriod, setNewPeriod] = useState('')
 
   useEffect(() => {
+    const requestedPeriod = searchParams.get('period')
+    if (requestedPeriod && /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedPeriod)) {
+      setNewPeriod(requestedPeriod)
+      return
+    }
     const now = new Date()
     setNewPeriod(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
-  }, [])
+  }, [searchParams])
+
+  const setPeriod = (period: string) => {
+    setNewPeriod(period)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('period', period)
+    router.replace(`?${params.toString()}`, { scroll: false })
+  }
 
   const loadData = useCallback(async () => {
     if (!newPeriod) return
@@ -123,39 +139,28 @@ function BudgetingContent() {
     {} as Record<string, typeof status.categories>,
   )
 
+  const budgetControls = <>
+    <div className="flex items-center gap-2 min-w-0">
+      <Calendar className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0" />
+      <label htmlFor="budget-period" className="text-sm font-medium text-[var(--text-secondary)]">Period</label>
+      <input id="budget-period" type="month" value={newPeriod} onChange={(e) => setPeriod(e.target.value)} className="px-3 py-1.5 bg-surface-container border border-outline-variant/30 rounded-lg text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-500" />
+    </div>
+    <button onClick={() => setShowAddForm(!showAddForm)} data-testid="add-budget-button" className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold"><Plus className="w-4 h-4" />Add Budget</button>
+  </>
+
   return (
     <div className="space-y-8">
       {/* Planning workspace header */}
-      <PageHeader
+      {!embedded && <PageHeader
         title="Budgeting"
         description="Give each month a clear plan, then adjust it with the evidence you collect."
-      />
+      />}
 
       {/* Migrated from <FloatingFilterBar> children-pass-through (period input
           + Add Budget button). The floating bar's own range selector changes
           ?range=… (URL-only, no BE impact yet because budgeting keys by month);
           both controls render left-to-right inside the same bar. */}
-      <FloatingTimeRangeBar>
-        <div className="flex items-center gap-2 min-w-0">
-          <Calendar className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0" />
-          <label htmlFor="budget-period" className="text-sm font-medium text-[var(--text-secondary)]">Period</label>
-          <input
-            id="budget-period"
-            type="month"
-            value={newPeriod}
-            onChange={(e) => setNewPeriod(e.target.value)}
-            className="px-3 py-1.5 bg-surface-container border border-outline-variant/30 rounded-lg text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
-        </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          data-testid="add-budget-button"
-          className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold"
-        >
-          <Plus className="w-4 h-4" />
-          Add Budget
-        </button>
-      </FloatingTimeRangeBar>
+      {embedded ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3">{budgetControls}</div> : <FloatingTimeRangeBar>{budgetControls}</FloatingTimeRangeBar>}
 
       {/* Add Budget Form */}
       {showAddForm && (
@@ -342,6 +347,8 @@ function BudgetingContent() {
 }
 
 export default function BudgetingPage() {
+  const embedded = useEmbeddedMoneyView()
+  if (embedded) return <BudgetingContent embedded />
   return (
     <PageLayout>
       <GlobalFilterProvider>
