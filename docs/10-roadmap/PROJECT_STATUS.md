@@ -4,7 +4,7 @@
 
 - Current phase: **phase-6 — Scenario Lab** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.
+- Current objective: Phase 6 remains in progress after completion of Slice 2 Scenario Lab UI; preserve server-owned financial authority and prepare the separate clean-main certification boundary.
 - Last updated: 2026-08-15T05:38:23Z
 
 ## Active work
