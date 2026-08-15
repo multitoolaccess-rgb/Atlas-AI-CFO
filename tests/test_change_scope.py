@@ -35,6 +35,22 @@ class ChangeScopeTests(unittest.TestCase):
         result = classify_paths(["ui/__tests__/e2e/navigation.spec.ts"])
         self.assertTrue(result["frontend"])
         self.assertTrue(result["browser"])
+        self.assertTrue(result["live_stack"])
+
+    def test_route_mocked_browser_scope_does_not_enable_service_validation(self):
+        result = classify_paths(["ui/__tests__/e2e/navigation-route-mocked.spec.ts"])
+        self.assertEqual(result["scope"], "frontend")
+        self.assertTrue(result["frontend"])
+        self.assertTrue(result["browser"])
+        self.assertFalse(result["rules"])
+        self.assertFalse(result["finlynq"])
+        self.assertFalse(result["live_stack"])
+
+    def test_backend_ui_or_auth_scope_requires_live_stack(self):
+        integrated = classify_paths(["ui/lib/api.ts", "services/rules-service/app/routes/example.py"])
+        auth = classify_paths(["ui/components/providers/AuthBootstrapProvider.tsx"])
+        self.assertTrue(integrated["live_stack"])
+        self.assertTrue(auth["live_stack"])
 
     def test_service_scopes_are_independent(self):
         rules = classify_paths(["services/rules-service/app/routes/example.py"])
@@ -57,6 +73,7 @@ class ChangeScopeTests(unittest.TestCase):
         result = classify_paths(["scripts/test.sh"])
         self.assertEqual(result["scope"], "full")
         self.assertTrue(result["full"])
+        self.assertTrue(result["live_stack"])
         self.assertTrue(result["frontend"])
         self.assertTrue(result["rules"])
         self.assertTrue(result["finlynq"])

@@ -50,6 +50,20 @@ Required process:
   privacy, authorization, or financial correctness.
 - Complete backend, frontend, cross-service, or Playwright matrices are not
   required by default.
+- Hosted CI is not required when equivalent focused local validation has
+  passed.
+- A product PR must not expand into shared CI or test-infrastructure
+  remediation. Defer infrastructure defects or handle them in a separate
+  tooling task unless they prevent all meaningful validation.
+- Frontend-owned route-mocked browser tests do not require Rules Service,
+  Finlynq, OCR, or the live-stack harness.
+- Live-stack browser validation is reserved for genuine backend/UI
+  integration, authentication, cross-service behavior, phase certification,
+  or explicit manual validation.
+
+These rules keep normal UI delivery frontend-owned and avoid installing
+unrelated service environments merely to exercise mocked navigation.
+
 
 ### High risk
 

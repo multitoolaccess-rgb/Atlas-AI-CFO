@@ -9,9 +9,10 @@
 #   heavy  — complete repository + browser matrix for schedule/manual runs.
 #
 # The focused job selects only the backend/frontend/browser checks needed by
-# the classified paths; it retains the shared UI dependency install required by
-# scripts/test.sh. The heavy job installs all environments and Playwright
-# system dependencies before the complete suite.
+# the classified paths. Frontend-owned route-mocked browser checks use only the
+# Next.js runtime; the live-stack harness is reserved for integration paths.
+# The heavy job installs all environments and Playwright system dependencies
+# before the complete suite.
 #
 # Postgres is NOT started in CI: scripts/test.sh falls back to the
 # SQLite path from services/rules-service/.env when :5433 is down.
@@ -49,6 +50,7 @@ jobs:
       finlynq: ${{ steps.classify.outputs.finlynq }}
       browser: ${{ steps.classify.outputs.browser }}
       full: ${{ steps.classify.outputs.full }}
+      live_stack: ${{ steps.classify.outputs.live_stack }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -71,6 +73,7 @@ jobs:
             echo 'finlynq=true' >> "$GITHUB_OUTPUT"
             echo 'browser=true' >> "$GITHUB_OUTPUT"
             echo 'full=true' >> "$GITHUB_OUTPUT"
+            echo 'live_stack=true' >> "$GITHUB_OUTPUT"
           else
             if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
               BASE_SHA="$(git rev-list --max-parents=0 HEAD | tail -n 1)"
@@ -91,11 +94,9 @@ jobs:
       SKIP_FINLYNQ: ${{ needs.scope.outputs.finlynq == 'true' && '0' || '1' }}
       SKIP_VITEST: ${{ needs.scope.outputs.frontend == 'true' && '0' || '1' }}
       SKIP_TYPECHECK: ${{ needs.scope.outputs.frontend == 'true' && '0' || '1' }}
-      SKIP_PLAYWRIGHT: ${{ needs.scope.outputs.browser == 'true' && '0' || '1' }}
-      # Browser-affecting PRs use the focused System/navigation journey in cheap CI.
-      # Full browser certification remains available through heavy/manual runs.
-      PLAYWRIGHT_TEST_FILE: ${{ needs.scope.outputs.browser == 'true' && '__tests__/e2e/navigation.spec.ts' || '' }}
-      PLAYWRIGHT_GREP: ${{ needs.scope.outputs.browser == 'true' && 'Data Connections|Settings|Help|dark mode' || '' }}
+      # Browser checks run in their own step so route-mocked UI journeys never
+      # cause scripts/test.sh to invoke the live-stack harness.
+      SKIP_PLAYWRIGHT: '1'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -115,21 +116,21 @@ jobs:
           cache-dependency-path: 'ui/package-lock.json'
 
       - name: Install Rules Service environment
-        if: needs.scope.outputs.rules == 'true' || needs.scope.outputs.browser == 'true'
+        if: needs.scope.outputs.rules == 'true' || needs.scope.outputs.live_stack == 'true'
         run: |
           python -m venv .venv-rules
           .venv-rules/bin/python -m pip install --upgrade pip wheel setuptools
           .venv-rules/bin/python -m pip install -r services/rules-service/requirements.txt
 
       - name: Install Finlynq environment
-        if: needs.scope.outputs.finlynq == 'true' || needs.scope.outputs.browser == 'true'
+        if: needs.scope.outputs.finlynq == 'true' || needs.scope.outputs.live_stack == 'true'
         run: |
           python -m venv .venv-finlynq
           .venv-finlynq/bin/python -m pip install --upgrade pip wheel setuptools
           .venv-finlynq/bin/python -m pip install -r services/finlynq/requirements.txt
 
       - name: Install Rules Service OCR runtime
-        if: needs.scope.outputs.rules == 'true' || needs.scope.outputs.browser == 'true'
+        if: needs.scope.outputs.rules == 'true' || needs.scope.outputs.live_stack == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install --yes tesseract-ocr
@@ -143,10 +144,25 @@ jobs:
       - name: Install Playwright chromium for affected browser paths
         if: needs.scope.outputs.browser == 'true'
         working-directory: ui
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
-      - name: Run path-aware focused suite
+      - name: Run path-aware focused frontend/backend suite
         run: bash scripts/test.sh
+
+      - name: Run frontend-owned route-mocked browser smoke
+        if: needs.scope.outputs.browser == 'true' && needs.scope.outputs.live_stack != 'true'
+        working-directory: ui
+        env:
+          ATLAS_FRONTEND_ROUTE_MOCKS: '1'
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:3000
+        run: ./node_modules/.bin/playwright test __tests__/e2e/navigation-route-mocked.spec.ts
+
+      - name: Run live-stack browser validation
+        if: needs.scope.outputs.browser == 'true' && needs.scope.outputs.live_stack == 'true'
+        env:
+          PLAYWRIGHT_TEST_FILE: __tests__/e2e/navigation.spec.ts
+          PLAYWRIGHT_GREP: Data Connections|Settings|Help|dark mode
+        run: bash scripts/test-e2e.sh "$PLAYWRIGHT_TEST_FILE" --grep "$PLAYWRIGHT_GREP"
 
       - name: Run frontend lint
         if: needs.scope.outputs.frontend == 'true'

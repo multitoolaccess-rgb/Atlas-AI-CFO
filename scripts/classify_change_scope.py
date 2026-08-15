@@ -48,6 +48,28 @@ BROWSER_MARKERS = (
     "ui/__tests__/e2e/",
     "ui/e2e/",
 )
+ROUTE_MOCKED_BROWSER_MARKERS = (
+    "navigation-route-mocked.spec.ts",
+    "route-mocked.spec.ts",
+)
+
+
+def _is_route_mocked_browser_path(path: str) -> bool:
+    return any(path.endswith(marker) for marker in ROUTE_MOCKED_BROWSER_MARKERS)
+
+
+def _requires_live_stack(paths: list[str], *, full: bool, frontend: bool, rules: bool, finlynq: bool, browser: bool) -> bool:
+    if full:
+        return True
+    auth = any("auth" in path.lower() for path in paths)
+    cross_service = rules and finlynq
+    backend_ui = frontend and (rules or finlynq)
+    browser_paths = [
+        path for path in paths
+        if path.startswith(BROWSER_MARKERS) or path.endswith('.spec.ts') or path.endswith('.spec.tsx')
+    ]
+    live_browser = browser and any(not _is_route_mocked_browser_path(path) for path in browser_paths)
+    return auth or cross_service or backend_ui or live_browser
 
 
 def _is_governance_path(path: str) -> bool:
@@ -79,6 +101,7 @@ def classify_paths(paths: Iterable[str]) -> dict[str, object]:
             "rules": False,
             "finlynq": False,
             "browser": False,
+            "live_stack": False,
             "full": False,
             "paths": [],
         }
@@ -92,6 +115,14 @@ def classify_paths(paths: Iterable[str]) -> dict[str, object]:
         or path.endswith(".spec.ts")
         or path.endswith(".spec.tsx")
         for path in normalized
+    )
+    live_stack = _requires_live_stack(
+        normalized,
+        full=full,
+        frontend=frontend,
+        rules=rules,
+        finlynq=finlynq,
+        browser=browser,
     )
     governance_only = all(_is_governance_path(path) for path in normalized)
 
@@ -115,6 +146,7 @@ def classify_paths(paths: Iterable[str]) -> dict[str, object]:
         "rules": rules or full,
         "finlynq": finlynq or full,
         "browser": browser,
+        "live_stack": live_stack,
         "full": full,
         "paths": normalized,
     }
