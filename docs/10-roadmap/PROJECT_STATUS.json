@@ -1217,14 +1217,67 @@
         "result": "24 passed; Doctor regression 4 passed on correction head 7fff684",
         "timestamp": "2026-08-15T18:46:54Z"
       }
+    },
+    {
+      "branch": "codex/wave-2b-backup-recovery",
+      "commit": "423f87a",
+      "id": "work-wave-2b-local-backup-recovery",
+      "issue": null,
+      "objective": "Implement WAL-safe, non-destructive local SQLite backup/check/restore tooling without automatic service startup or in-place personal restore.",
+      "phase_id": "phase-6",
+      "pr": null,
+      "review_evidence": "Fresh local read-only safety review found no critical/high findings before personal backup; hosted CI is disabled by policy.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Synthetic backup/restore safety suite: 7 passed",
+        "Python compilation, diff, path-safety, checksum, WAL, active-holder, permissions, and disposable-restore checks: passed"
+      ],
+      "title": "Implement WAL-safe local backup and recovery",
+      "validation_evidence": {
+        "command": "python3 -m unittest tests.test_atlas_backup -v",
+        "commit": "423f87a",
+        "environment": "disposable synthetic SQLite only",
+        "kind": "local",
+        "result": "7 passed",
+        "timestamp": "2026-08-15T19:00:00Z"
+      }
+    },
+    {
+      "branch": "codex/wave-2b-backup-recovery",
+      "commit": "d769870ed98212d92b06e92424e8b6fcc4ccf7ea",
+      "id": "work-wave-2c-personal-activation-acceptance",
+      "issue": null,
+      "objective": "Execute backup-first personal currency confirmation and bounded local activation/restart acceptance without enabling unsupported providers or mutating immutable history.",
+      "phase_id": "phase-6",
+      "pr": null,
+      "review_evidence": "Local safety review of the correction found no unresolved critical/high issue; final activation remains blocked and is not approved for completion.",
+      "risk_tier": "high",
+      "status": "blocked",
+      "reason": "Personal projection configuration/baseline is absent and the enabled local stack did not remain available for authenticated readiness; flags were rolled back/off.",
+      "tests": [
+        "Verified personal backup and disposable restore: passed",
+        "Migration X7a1b2c3d4e5, integrity/quick checks, four-account currency confirmation, Doctor/readiness currency state, and goal precision gate: passed",
+        "Disposable clone currency persistence across restart and sanitized Scenario Lab baseline-unavailable state: passed",
+        "Full enabled forecast/recommendation/decision/history/outcome/Scenario restart journey: blocked"
+      ],
+      "title": "Execute backup-first personal activation and restart acceptance",
+      "validation_evidence": {
+        "command": "Personal backup/check/restore, migration, bounded inventory/evidence confirmation, Doctor/readiness, and isolated clone restart probes",
+        "commit": "d769870ed98212d92b06e92424e8b6fcc4ccf7ea",
+        "environment": "Authorized personal metadata/evidence boundary plus disposable restored clone; no real providers or financial values printed",
+        "kind": "local",
+        "result": "Backup and currency gates passed; activation/readiness blocked and flags rolled back",
+        "timestamp": "2026-08-15T19:18:14Z"
+      }
     }
   ],
-  "current_objective": "Phases 0\u20136 are certified and the Personal-Use Acceptance and System Health Audit is complete; preserve server-owned financial authority and do not begin Phase 7.",
+  "current_objective": "Phase 6 is certified; Wave 2B is complete and Wave 2C remains blocked on projection baseline/configuration and local service lifecycle acceptance. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T18:46:54Z",
+  "last_updated": "2026-08-15T19:18:14Z",
   "next_bounded_task": {
-    "description": "Implement WAL-safe non-destructive local backup and recovery only; do not access personal data or begin Wave 2C or Phase 7.",
-    "id": "work-wave-2b-local-backup-recovery",
+    "description": "Repair and prove the disposable Wave 2C projection baseline/configuration and local service lifecycle, then rerun approved personal readiness acceptance; do not begin Wave 3 or Phase 7.",
+    "id": "work-wave-2c-activation-recovery",
     "phase_id": "phase-6"
   },
   "overall_status": "complete",
@@ -1456,24 +1509,24 @@
       "status": "open"
     },
     {
-      "description": "Active account balances still require explicit source-backed currency evidence; Wave 2A now enforces the lifecycle, but the personal database has not been inspected and complete current evidence remains unproven.",
+      "description": "Active account balances now have current operator-confirmed USD evidence after backup-first authorization, but the complete enabled personal forecast journey remains unproven because projection configuration/baseline is absent.",
       "id": "risk-p1-account-currency-authority",
-      "likelihood": "high",
-      "mitigation": "X7a1b2c3d4e5 adds append-only evidence, structured-provider/statement/operator authority, correction/revocation, deterministic fail-closed gating, and no-backfill migration. Wave 2C remains blocked until an authorized personal inventory proves every included active account.",
+      "likelihood": "medium",
+      "mitigation": "X7a1b2c3d4e5 enforces append-only evidence, structured-provider/statement/operator authority, correction/revocation, deterministic fail-closed handling, and no-backfill migration. Four active accounts were confirmed without overwriting conflicting evidence; Wave 2C remains blocked by missing baseline/configuration.",
       "owner": "Finlynq domain owner",
-      "related": "B0 provider prerequisite; ADR-006; ADR-010; Wave 2 plan; a438df9",
+      "related": "ADR-006; ADR-010; Wave 2 plan; a438df9; d769870",
       "severity": "high",
       "status": "open"
     },
     {
-      "description": "No supported non-destructive backup, WAL-safe restore, pre-restore safety copy, or migration-compatible recovery drill exists for Atlas local SQLite data.",
+      "description": "End-to-end personal recovery/activation is not complete, although verified non-destructive backup and disposable restore tooling exists.",
       "id": "risk-p1-local-backup-recovery",
-      "likelihood": "medium",
-      "mitigation": "Wave 2B must use explicit database identity, SQLite online backup, restrictive manifests/checksums, active-writer refusal, atomic restore, integrity/migration checks, and synthetic destructive tests. Never copy only the main DB file or delete immutable history.",
+      "likelihood": "low",
+      "mitigation": "Wave 2B uses explicit identity, SQLite online backup, restrictive manifests/checksums, active-holder refusal, integrity/migration checks, and new-path-only restore. A verified personal backup and disposable restore passed; in-place restore remains unsupported.",
       "owner": "engineering/security",
-      "related": "ADR-010, Wave 2 plan, app/database.py WAL contract",
+      "related": "ADR-010, Wave 2 plan, scripts/atlas_backup.py, scripts/atlas_restore.py",
       "severity": "high",
-      "status": "open"
+      "status": "mitigated"
     },
     {
       "description": "Alembic 1.13.x's ApplyBatchImpl.drop_index rejects the deprecated if_exists keyword argument; the Phase 1 final cert matrix surfaced this as a full upgrade -> downgrade base failure on the e9f0a1b2c3d4 migration.",

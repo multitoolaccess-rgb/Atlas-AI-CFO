@@ -1,8 +1,8 @@
 # ADR-010: Authoritative Account Currency and Non-Destructive Local Recovery
 
-- **Status:** Wave 2A implemented; Wave 2B/2C remain separately authorized
+- **Status:** Wave 2A and Wave 2B implemented; Wave 2C authorized but blocked after backup-first evidence confirmation and failed local activation readiness
 - **Date:** 2026-08-15
-- **Audited baseline:** `2a25d3eba9d71e4132b332790a0536392d62288c`
+- **Audited baseline:** `1edfaeb5d405eff70bb3eda40da19214c323a778`; Wave 2B/2C evidence through `d769870ed98212d92b06e92424e8b6fcc4ccf7ea`
 - **Scope:** Personal-use readiness, authoritative account currency, SQLite backup/recovery, and activation prerequisites
 - **Related:** ADR-006, ADR-008, `SCENARIO_LAB_CONTRACT.md`, `WAVE2_CURRENCY_BACKUP_RECOVERY_PLAN.md`, `RISK_REGISTER.md`
 
@@ -50,14 +50,17 @@ The baseline contains:
 - immutable forecast/scenario snapshots that retain their recorded USD and
   provenance values.
 
-The implementation baseline does **not** prove that a personal database has authoritative
-currency for every active account. The database was not opened or inspected
-for this plan. Therefore the exact row-level cause of the current Doctor
-failure remains intentionally unobserved; the safe root cause is that the
-repository cannot establish the complete current evidence set without an
-explicitly authorized operator action. Wave 2A closes the repository-level lifecycle gap with append-only evidence
+Wave 2A closed the repository-level lifecycle gap with append-only evidence
 history, actor category, hashed source reference, idempotency, correction, and
-revocation. It does not inspect or activate any personal database.
+revocation. Under the later explicit Wave 2C authorization, a verified backup
+was created before bounded personal inspection. The inventory found four active
+accounts, all initially unknown; four append-only `operator_confirmed` USD
+events were recorded, with no conflicting or non-USD evidence overwritten.
+The personal database is now at `X7a1b2c3d4e5`, integrity checks are `ok`, and a
+disposable restore passed. This does not certify personal forecast generation:
+the database has no projection configuration/baseline, and an enabled-stack
+attempt did not remain available for authenticated readiness. Flags were
+rolled back/off and no in-place restore was attempted.
 
 ## Currency authority contract
 
@@ -217,12 +220,20 @@ Non-goals:
   optimization, execution, brokerage, money movement, email, scheduler, LLM,
   tenancy, retention/deletion policy, or Phase 7 work.
 
-## Implementation gate
+## Implementation and activation evidence
 
-Wave 2A is implemented only through the evidence model, migration, trusted
-Finlynq gating, structured statement mapping, operator helper, readiness
-aggregation, and focused synthetic tests. It did not access personal data,
-change financial mathematics, enable flags, or implement backup/restore.
-Wave 2B and Wave 2C each still require separate authorization and bounded
-validation records. No implementation of those slices may be inferred from
-this document.
+Wave 2A is implemented through the evidence model, migration, trusted Finlynq
+gating, structured statement mapping, operator helper, readiness aggregation,
+and focused synthetic tests. Wave 2B is implemented through the local
+`atlas_backup.py`/`atlas_restore.py` tools, SQLite online backup, restrictive
+manifests, active-holder refusal, checksums, integrity checks, and new-path-only
+restore. Seven synthetic backup/restore safety tests passed.
+
+Wave 2C was explicitly authorized. The backup, disposable restore, migration,
+aggregate currency readiness, goal precision gate, and append-only operator
+confirmation passed. The final enabled personal restart/readiness gate remains
+blocked by missing projection configuration/baseline and a local process
+lifecycle failure. Do not mark Wave 2C complete, enable flags for a retry, or
+begin Wave 3 until the disposable clone proves the complete bounded journey.
+No financial mathematics changed, no immutable history was rewritten, and no
+backup or personal evidence was committed.

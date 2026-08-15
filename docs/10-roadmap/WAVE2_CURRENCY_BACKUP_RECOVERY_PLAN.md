@@ -3,7 +3,7 @@
 - **Plan date:** 2026-08-15
 - **Planning baseline:** `2a25d3eba9d71e4132b332790a0536392d62288c`
 - **Phase:** Remediation after certified Phase 6; Phase 7 is not started
-- **Status:** Wave 2A implemented; Wave 2B/2C remain planning-only
+- **Status:** Wave 2A and Wave 2B implemented; Wave 2C authorized and partially executed but blocked at final local activation/readiness acceptance
 - **Related:** [ADR-010](../adr/ADR-010-ACCOUNT-CURRENCY-AND-LOCAL-RECOVERY.md), [ADR-006](../adr/ADR-006-IMMUTABLE-FORECAST-PERSISTENCE.md), [Scenario Lab Contract](../07-engineering/SCENARIO_LAB_CONTRACT.md), [Remediation Backlog](./REMEDIATION_BACKLOG.md), [Risk Register](./RISK_REGISTER.md), [Personal Mode Proposal](../07-engineering/PERSONAL_MODE_PROPOSAL.md)
 
 ## 1. Executive decision
@@ -263,14 +263,17 @@ recorded in ADR-010 and the Wave 2A implementation record above.
 
 ### Proposed command set
 
-Names remain subject to implementation review, but the bounded interface is:
+The implemented bounded interface is:
 
 ```bash
-python3 scripts/atlas_backup.py --database rules-finlynq-shared --output PATH
-python3 scripts/atlas_backup.py --check BACKUP
-python3 scripts/atlas_restore.py --check BACKUP
-python3 scripts/atlas_restore.py --database rules-finlynq-shared BACKUP
+python3 scripts/atlas_backup.py --database rules-finlynq-shared --output /absolute/new-backup-directory
+python3 scripts/atlas_backup.py --check /absolute/backup-directory
+python3 scripts/atlas_restore.py --check /absolute/backup-directory
+python3 scripts/atlas_restore.py --database rules-finlynq-shared --to /absolute/new-database.sqlite /absolute/backup-directory
 ```
+
+In-place restore is intentionally unsupported. The tools never start services,
+run migrations implicitly, or overwrite an existing destination.
 
 The real restore command must require an explicit confirmation token/flag in a
 non-interactive environment. Neither command may upload, auto-start services,
@@ -502,21 +505,43 @@ Required order:
 ### 2B exits
 
 - Backup/check/restore commands are explicit-path, WAL-safe, non-destructive,
-  checksum/manifest verified, and local-only.
-- Active writers and unrelated paths are refused.
-- Pre-restore safety backup, atomic replacement, sidecar handling, integrity,
-  and migration checks are proven on synthetic databases.
-- No service starts automatically and no backup is silently overwritten/deleted.
+  checksum/manifest verified, and local-only — **passed**.
+- Active writers, symlinks, unexpected paths, unsupported schema, and overwrite
+  attempts are refused — **passed**.
+- Seven synthetic safety tests passed, including WAL, concurrent readers,
+  corruption/checksum, path safety, active-holder refusal, permissions, and
+  disposable restore equivalence.
+- A personal backup created outside the repository at `2026-08-15T19:17:27Z`
+  verifies as `atlas-sqlite-backup/v1`, schema `X7a1b2c3d4e5`, WAL, integrity
+  `ok`, SHA-256 `31a69327ebe7f4452ab9d3379001d51b07c3112428a26783ca68d8e2eb545e23`.
+- No service starts automatically and no backup is silently overwritten/deleted
+  — **passed**. In-place restore and pre-restore replacement are intentionally
+  unsupported by this bounded new-path-only tool; any future in-place recovery
+  must add a separately reviewed pre-restore safety flow before it is authorized.
 
 ### 2C exits
 
-- Explicit user authorization is recorded before any personal-data action.
-- Backup is verified before inspection or mutation.
-- All relevant accounts have accepted authoritative evidence; no inference or
-  blanket backfill remains.
-- Doctor/readiness, migration, and flags are green for the approved scope.
-- Full restart-persistence journey passes with isolated recovery evidence.
-- Rollback is demonstrated or its exact bounded recovery path is recorded.
+- Explicit user authorization is recorded before any personal-data action —
+  **passed**.
+- Backup is verified before inspection or mutation — **passed**.
+- Four active accounts were evaluated; all were initially unknown and received
+  one append-only operator-confirmed USD event. No conflicting/non-USD evidence
+  existed and no blanket overwrite occurred — **passed**.
+- Migration reached `X7a1b2c3d4e5`; integrity/quick checks and the non-disclosing
+  goal precision gate passed — **passed**.
+- Doctor/readiness currency state passed, but the enabled personal stack did
+  not remain available for authenticated readiness. Personal projection
+  configuration/baseline is also absent — **BLOCKED**.
+- The disposable clone preserved currency evidence across restart and returned
+  sanitized `scenario_baseline_unavailable`; the full forecast → decision →
+  history/outcome → Scenario Lab restart journey remains unproven — **BLOCKED**.
+- Flags were rolled back/off, services stopped, the personal database remained
+  intact, and the post-evidence backup verifies — **passed**.
+
+Wave 2C is therefore not complete. The next bounded task is to repair the
+clone projection baseline/configuration and service lifecycle, rerun the clone
+journey, then repeat the approved personal readiness gate without creating
+synthetic decisions or scenarios in the personal database.
 
 ## 11. Explicit future authorization prompts
 
@@ -547,13 +572,19 @@ Required order:
 > blanket backfill, real providers, email, scheduler, LLM, execution, trading,
 > brokerage, money movement, retention/deletion changes, or Phase 7.
 
-## 12. Evidence gaps remaining after this planning turn
+## 12. Evidence gaps after Wave 2B/2C execution
 
-- The personal database was not opened, copied, migrated, or tested.
-- The exact active-account currency defect remains unknown by design.
+- The personal database was opened only under the explicit Wave 2C
+  authorization; no balances, transactions, holdings, account numbers, or raw
+  evidence were printed. No in-place restore was attempted.
 - Plaid explicit-currency ingestion is not implemented or contract-tested.
 - General CSV/PDF authoritative currency declaration is not established.
-- No backup/restore tool or synthetic recovery drill exists yet.
-- No full enabled service-restart acceptance exists.
+- Personal projection configuration/baseline is absent, so forecast generation
+  and the complete financial journey remain blocked.
+- The local enabled-stack process lifecycle did not remain available for
+  authenticated readiness; this must be fixed and proven on a disposable clone
+  before another personal activation attempt.
 - Goal Float precision, retention/deletion, SQLite/PostgreSQL parity, and
   transitional tenancy remain open risks.
+- No external provider, email, scheduler, LLM, execution, trading, brokerage,
+  or money movement path was enabled.

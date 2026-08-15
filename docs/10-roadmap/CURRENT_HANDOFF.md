@@ -7,9 +7,9 @@
 - Phase: phase-6 — Scenario Lab
 - Phase status: complete
 - Overall status: complete
-- Objective: Phases 0–6 are certified and the Personal-Use Acceptance and System Health Audit is complete; preserve server-owned financial authority and do not begin Phase 7.
+- Objective: Phase 6 is certified; Wave 2B is complete and Wave 2C remains blocked on projection baseline/configuration and local service lifecycle acceptance. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
 - Phase exit criteria: 2/2 complete
-- Tracker updated: 2026-08-15T18:46:54Z
+- Tracker updated: 2026-08-15T19:18:14Z
 
 ## Active work
 
@@ -31,19 +31,19 @@
 - risk-p1-dialect-parity [high/medium]: SQLite and PostgreSQL differ in exact numeric storage and concurrency semantics for immutable forecast versions.
 - risk-p1-retention-rollout-gate [high/medium]: No approved retention or user-deletion policy exists for immutable forecast history.
 - risk-p1-trusted-generation-boundary [high/medium]: An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.
-- risk-p1-account-currency-authority [high/high]: Active account balances still require explicit source-backed currency evidence; Wave 2A now enforces the lifecycle, but the personal database has not been inspected and complete current evidence remains unproven.
-- risk-p1-local-backup-recovery [high/medium]: No supported non-destructive backup, WAL-safe restore, pre-restore safety copy, or migration-compatible recovery drill exists for Atlas local SQLite data.
+- risk-p1-account-currency-authority [high/medium]: Active account balances now have current operator-confirmed USD evidence after backup-first authorization, but the complete enabled personal forecast journey remains unproven because projection configuration/baseline is absent.
+- risk-p1-local-backup-recovery [high/low]: End-to-end personal recovery/activation is not complete, although verified non-destructive backup and disposable restore tooling exists.
 
 ## Recently completed
 
-- work-ui-information-architecture-step-5: Activate System information architecture migration — commit 5f79932f69e44c255793dde817b6d4a84b3764e3, PR 53
-- work-p6-s2-scenario-lab-ui: Phase 6 Slice 2 Scenario Lab UI — commit 85761ce08d2d8761aa7c71e8ae00887e4b59e16a, PR 55
 - work-p6-clean-main-certification: Clean-main Phase 6 certification — commit 9c9b554, PR not recorded
 - work-personal-use-activation-readiness-wave-1a: Implement personal-use readiness and synthetic acceptance — commit 9847f1a, PR not recorded
 - work-wave-2a-authoritative-account-currency: Implement Wave 2A authoritative account-currency evidence — commit a438df9233cb197827a5affda0c24ee4d7ec0a97, PR not recorded
+- work-wave-2b-local-backup-recovery: Implement WAL-safe local backup and recovery — commit 423f87a, PR not recorded
+- work-wave-2c-personal-activation-acceptance: Execute backup-first personal activation and restart acceptance — commit d769870ed98212d92b06e92424e8b6fcc4ccf7ea, PR not recorded
 
 ## Next bounded task
 
-- work-wave-2b-local-backup-recovery: Implement WAL-safe non-destructive local backup and recovery only; do not access personal data or begin Wave 2C or Phase 7.
+- work-wave-2c-activation-recovery: Repair and prove the disposable Wave 2C projection baseline/configuration and local service lifecycle, then rerun approved personal readiness acceptance; do not begin Wave 3 or Phase 7.
 
 Do not begin the next task automatically.

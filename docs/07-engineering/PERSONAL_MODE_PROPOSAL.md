@@ -100,28 +100,35 @@ Tier 3 does not imply multi-user production readiness or external rollout.
 
 The implementation-grade [Wave 2 plan](../10-roadmap/WAVE2_CURRENCY_BACKUP_RECOVERY_PLAN.md)
 separates currency authority (2A), local backup/recovery (2B), and personal
-activation acceptance (2C). Personal Mode automatically enables none of them.
-A local operator must authorize each future slice independently. Currency
-confirmation must be evidence-backed and auditable; backup/restore must be
-explicit-path and WAL-safe; activation must be backup-first and must never
+activation acceptance (2C). Wave 2A and 2B are complete; Wave 2C remains
+blocked after its backup-first attempt. Personal Mode automatically enables
+none of them. A local operator must authorize each future slice independently.
+Currency confirmation is evidence-backed and auditable; backup/restore is
+explicit-path and WAL-safe; activation remains backup-first and must never
 perform blanket USD backfill.
 
 ## Remaining evidence gaps
 
-- The personal database has not been inspected; current active-account
-  currency completeness and migration state remain intentionally unknown.
+- The authorized personal inventory found four active accounts, all initially
+  unknown; four append-only operator-confirmed USD events now provide current
+  evidence. No conflicting or non-USD evidence was overwritten.
+- The personal database is at migration `X7a1b2c3d4e5`, with a verified WAL-mode
+  backup and disposable restore. No in-place restore was attempted.
 - Plaid explicit-currency mapping and general CSV/PDF declaration handling are
-  not yet authoritative repository contracts.
-- Wave 2A now provides append-only correction/revocation audit history, but
-  Plaid authority and personal-account completeness remain unproven.
-- No supported backup/check/restore command or synthetic recovery drill exists.
-- A full service restart/personal database recovery drill remains unproven.
+  not authoritative repository contracts.
+- Wave 2B backup/check/restore tooling and synthetic recovery tests exist.
+- A full enabled service restart/readiness journey remains unproven: the
+  personal database lacks projection configuration/baseline and the local
+  service process did not remain available for authenticated readiness.
 - Goal Float precision, retention/deletion, SQLite/PostgreSQL parity, and
   transitional tenancy remain open risks.
 
 ## Recommendation
 
-Authorize **Wave 2B only** using the exact bounded prompt in the Wave 2 plan.
-Do not access the personal database, enable flags, or begin Wave 2C or Phase 7.
-This proposal does not authorize any product behavior change outside the
-completed Wave 2A currency boundary.
+The next bounded task is **Wave 2C acceptance recovery** using the exact
+bounded scope in the Wave 2 plan: repair and prove the disposable clone’s
+projection baseline/configuration and service lifecycle first, then retry the
+approved personal readiness gate. Do not begin Wave 3 or Phase 7. This
+proposal does not authorize provider activation, synthetic writes to the
+personal database, in-place restore, or any product behavior outside the
+approved Wave 2C boundary.

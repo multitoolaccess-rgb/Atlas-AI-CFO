@@ -3,7 +3,7 @@
 - **Audit date:** 2026-08-15
 - **Audited commit:** `ff85ad7bc39680a2beb13533795478e515cda931`
 - **Source:** [Personal-Use Readiness Report](../07-engineering/PERSONAL_USE_READINESS_REPORT.md) and [System Health Audit](../07-engineering/SYSTEM_HEALTH_AUDIT.md).
-- **Status:** Wave 1A and Wave 2A implementation are complete on the current bounded branch. Wave 2B/2C remain separately authorized; no personal-database action is authorized.
+- **Status:** Wave 1A, Wave 2A, and Wave 2B are complete. Wave 2C was authorized and partially executed after a verified backup, but final personal activation remains blocked by missing projection configuration/baseline and an unresolved local service-lifecycle acceptance failure.
 
 ## Priority definitions
 
@@ -43,7 +43,7 @@
 
 ## Wave 2 — Financial and data correctness
 
-**Status:** Wave 2A complete; Wave 2B/2C remain architecture/planning only and are not authorized.
+**Status:** Wave 2A and Wave 2B complete; Wave 2C is incomplete and blocked after backup-first personal evidence confirmation and a failed bounded activation/restart gate.
 **Risk:** High.
 **Priority:** P0/P1.
 **Plan:** [WAVE2_CURRENCY_BACKUP_RECOVERY_PLAN.md](./WAVE2_CURRENCY_BACKUP_RECOVERY_PLAN.md) and [ADR-010](../adr/ADR-010-ACCOUNT-CURRENCY-AND-LOCAL-RECOVERY.md).
@@ -66,23 +66,37 @@ into one change or begin the next slice automatically.
   integration.
 - No personal database access, flag enablement, backup/restore, or activation.
 
-### Wave 2B — Non-destructive local backup and recovery
+### Wave 2B — Non-destructive local backup and recovery — complete
 
-- Add explicit-path backup/check/restore tools using SQLite’s online backup API.
-- Refuse ambiguous destinations, active writers, unrelated paths, and silent
-  overwrite; produce restrictive manifest/checksum/integrity evidence.
-- Create pre-restore safety backups, handle WAL/SHM sidecars, verify migration
-  compatibility, restore atomically, and never auto-start services.
-- Use only disposable synthetic databases for destructive/recovery tests.
+- Added `scripts/atlas_backup.py`, `scripts/atlas_restore.py`, and shared
+  safety primitives using SQLite’s online backup API.
+- Refuse ambiguous destinations, symlinks, active holders, unexpected files,
+  unsupported schema/identity, checksum mismatch, and silent overwrite.
+- Produce restrictive `atlas-sqlite-backup/v1` manifests with checksum,
+  journal mode, integrity, and migration metadata; restore only to a new path.
+- Synthetic safety suite: 7 tests passed, including WAL, concurrent readers,
+  corruption/checksum, path safety, active-holder refusal, permissions, and
+  disposable restore equivalence.
+- A verified personal backup exists outside the repository; its post-evidence
+  manifest is checked at `X7a1b2c3d4e5`, WAL mode, integrity `ok`.
 
-### Wave 2C — Personal activation acceptance (separate authorization)
+### Wave 2C — Personal activation acceptance — blocked
 
-- Back up first, then perform an authorized read-only account inventory.
-- Explicitly confirm or ingest evidence without blanket USD backfill.
-- Run Doctor, verify migration/readiness, explicitly enable approved local
-  flags, restart the full stack, prove the financial journey, and roll back
-  flags if readiness fails.
-- This slice is not authorized by the current plan.
+- Backup gate passed; the personal database was migrated forward from
+  `W6a1b2c3d4e5` to `X7a1b2c3d4e5` through a compatibility-safe additive path.
+- Bounded inventory found four active accounts, all unknown; authorized local
+  operator confirmation appended four USD evidence events. No conflicting or
+  non-USD evidence was overwritten.
+- Doctor/readiness and the non-disclosing goal precision gate passed for
+  currency/storage prerequisites.
+- Disposable clone restart/readiness evidence passed for currency persistence,
+  but forecast generation exposed a sanitized-unavailability integration gap
+  (fixed in `d769870`) and the personal enabled-stack attempt did not remain
+  available for authenticated readiness. The personal database is intact and
+  flags were rolled back/off.
+- Do not claim Wave 2C complete until projection configuration/baseline and the
+  service lifecycle/startup contract are repaired and the isolated clone plus
+  personal readiness gates pass.
 
 ### Goal Float and other boundaries
 

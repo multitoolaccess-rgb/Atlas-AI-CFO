@@ -55,7 +55,7 @@ The overall score is a risk-weighted judgment, not an average of green tests.
 - The disposable synthetic acceptance command runs focused forecast, recommendation, decision-history, outcome, scenario, and fake-provider contract suites in a temporary SQLite database with test-only flags.
 - A complete enabled financial journey was not run because doing so would require an explicit local configuration and an authoritative currency-ready synthetic dataset; the audit did not silently enable flags.
 - Real Finnhub/SEC provider calls, Plaid connectivity, OCR, Ollama, email delivery, scheduler, brokerage, trading, and money movement were not used.
-- Personal SQLite backup/restore, migration downgrade with retained personal records, and restart persistence were not exercised against a personal database.
+- Wave 2B synthetic WAL/checksum/path-safety/restore tests passed. A verified personal backup and disposable restore passed at `X7a1b2c3d4e5`; no in-place restore was attempted. Personal enabled-stack restart/readiness did not pass and was rolled back safely.
 
 ## P0/P1 blockers
 
@@ -65,9 +65,9 @@ No new evidence shows a critical financial-integrity, authorization, privacy, or
 
 ### P1 — activation and safety blockers
 
-1. **Account currency authority:** Wave 2A now provides the append-only evidence lifecycle, deterministic effective-state derivation, and fail-closed projection gate. No personal database was inspected, so current personal-account readiness remains unproven; tracked as `risk-p1-account-currency-authority` until Wave 2C authorization.
+1. **Account currency authority:** Wave 2A enforcement is complete. After a verified backup, the authorized personal inventory found four active accounts with unknown evidence; four append-only `operator_confirmed` USD events were recorded. No conflicting or non-USD evidence was overwritten. A complete enabled forecast journey remains unproven because the personal database has no projection configuration/baseline.
 2. **Retention and deletion policy:** Immutable history has no approved retention/user-deletion policy. This blocks external multi-user rollout and must not be bypassed; tracked as `risk-p1-retention-rollout-gate`.
-3. **Personal activation runbook:** No single supported operator path proves the ordered configuration, synthetic baseline, flags, and recovery checks needed for an enabled local journey.
+3. **Personal activation lifecycle:** The enabled personal stack reached health once but did not remain available for authenticated readiness. Flags were rolled back and services stopped. Resolve the startup/lifecycle contract and missing baseline before retrying Wave 2C.
 
 ## Highest-value P2/P3 findings
 
@@ -82,19 +82,21 @@ No new evidence shows a critical financial-integrity, authorization, privacy, or
 ## Wave 2 planning outcome
 
 Wave 2 is now split into three separately authorized slices: 2A authoritative
-currency (implemented), 2B non-destructive local backup/recovery, and 2C
-backup-first personal activation acceptance. Wave 2A added the no-backfill
-append-only evidence migration and deterministic gate; backup tooling and
-personal activation remain unimplemented. See the linked plan and ADR-010.
+currency, 2B non-destructive local backup/recovery, and 2C backup-first
+personal activation acceptance. Wave 2A and 2B are complete. Wave 2C was
+authorized and reached the evidence-confirmation boundary, but remains blocked
+by missing personal projection configuration/baseline and an unresolved local
+service lifecycle acceptance failure. See the linked plan and ADR-010.
 
 ## Evidence gaps
 
 - No real local provider credentials or provider network were used.
-- No personal database was opened, inspected, migrated, backed up, or modified.
-- No enabled feature-flag journey was certified against a personal database; the new acceptance command enables flags only inside a disposable synthetic test process.
+- The personal SQLite database was accessed only under the explicit Wave 2C authorization for metadata, integrity, migration, bounded account-currency evidence status, and append-only operator confirmation; balances, transactions, holdings, account numbers, and raw evidence were not printed.
+- A verified backup exists outside the repository and a disposable restore passed; no in-place personal restore was attempted.
+- No enabled feature-flag journey was certified against the personal database. Local flag overrides were not persisted by the failed activation attempt and were rolled back/off.
 - No production deployment or external multi-user behavior is implied.
 - The full screenshot matrix is not a clean final-IA acceptance artifact because its checked-in test still includes compatibility routes; 126 transient captures are retained outside Git for audit reference.
 
 ## Recommended first remediation wave
 
-The next bounded authorization is **Wave 2B — WAL-safe backup and recovery only**. Do not access the personal database, enable financial flags, begin Wave 2C, or begin Phase 7.
+The next bounded task is **Wave 2C acceptance recovery**: establish an explicit projection configuration/baseline and repair the local service lifecycle on the disposable clone first, then repeat the approved personal readiness gate without creating synthetic decisions or scenarios in the personal database. Do not begin Wave 3 or Phase 7.
