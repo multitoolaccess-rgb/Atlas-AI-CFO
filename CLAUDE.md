@@ -25,6 +25,14 @@ risk-based policy. Use the project-local tracker skill for commands and status
 operations, but do not impose enterprise-style ceremony or fixed
 correction-cycle caps beyond the canonical policy.
 
+Authorized implementation work runs under the canonical Autonomous completion
+mode by default. Outcome-level authorization includes bounded subordinate
+corrections and review loops. Stop only at the policy’s mandatory stop
+conditions or when the user explicitly requests a narrower workflow. Explicit
+task restrictions still apply, so future prompts should describe the permitted
+outcome and safety boundaries without imposing artificial correction-cycle
+limits.
+
 Before implementation, identify affected documents and acceptance criteria.
 After implementation, report the exact focused tests, assumptions, risks, and
 unresolved decisions. Local validation is authoritative because GitHub Actions

@@ -25,6 +25,14 @@ gates. Preserve the stronger boundary tests required for financial correctness,
 authorization, ownership isolation, privacy, migrations, immutable history,
 credentials, and execution safety.
 
+Authorized implementation work runs under the canonical Autonomous completion
+mode by default. Outcome-level authorization includes bounded subordinate
+corrections and review loops. Stop only at the policy’s mandatory stop
+conditions or when the user explicitly requests a narrower workflow. Explicit
+task restrictions still apply, so future prompts should describe the permitted
+outcome and safety boundaries without imposing artificial correction-cycle
+limits.
+
 Use the tracker's lightweight `check` workflow for read-only reviews and
 low-risk documentation work. Update project status only for material
 milestones, blockers, significant risks, or next-task changes. Do not create

@@ -118,20 +118,101 @@ For every task:
 7. Never claim skipped checks passed.
 8. Do not rerun unrelated green suites.
 
-## Autonomy and stop conditions
+## Autonomous completion mode
 
-Within an authorized task, agents may inspect and modify in-scope files, run
-focused validation, create branches, commit and push, open or update PRs, use
-internal reviewer subagents, apply valid corrections, merge when the applicable
-risk gate passes, clean branches, synchronize `main`, and update tracker and
-handoff evidence. Routine authorization is not required for another correction
-cycle, PR maintenance, waiting for CI, valid review corrections, an approved
-merge, governance reconciliation, or the next already-authorized bounded task.
+Autonomous completion mode is the canonical default for authorized
+implementation work. It governs Codex, Claude, tracker operations, local
+validation, reviews, PR maintenance, merges, cleanup, and final reconciliation.
 
-Stop only for a material financial-policy or authority decision, scope
-expansion, credentials or secrets, production deployment, destructive or
-irreversible external action, persistent filesystem/Git/network/quota failure,
-or the same blocker recurring three times without meaningful progress.
+### Outcome-level authorization
+
+An authorization applies to the requested outcome, not merely the initially
+predicted file list or correction count. It includes reasonable subordinate
+diagnosis, implementation corrections, focused tests, documentation, review
+fixes, branch and PR maintenance, merge, cleanup, and final reconciliation
+when they remain within the same objective, risk tier, and dependency radius.
+A newly discovered implementation detail or edge case is not automatically
+scope expansion.
+
+### Default delivery behavior
+
+Unless the user explicitly requests planning-only, audit-only, review-only,
+draft-only, or stop-before-merge behavior, continue through:
+
+`inspect → implement → focused validation → review → correction → revalidation → merge when permitted → cleanup → status/handoff reconciliation`
+
+Do not stop merely to request another correction cycle, review pass, permission
+to maintain the same PR, or permission to complete an already-authorized
+merge.
+
+Use one branch and one cohesive PR per outcome when a PR is warranted. Do not
+create micro-PRs for intermediate corrections or tracker-only evidence. Update
+the tracker and handoff only at meaningful milestones: start, material blocker,
+merge/completion, or safe resource stop.
+
+### Automatic decision and review rule
+
+When several safe implementations satisfy the authorized outcome, choose the
+least destructive and most reversible option that preserves financial authority,
+privacy, ownership, provenance, and recoverability. Document the choice in the
+final report instead of asking the user.
+
+Valid critical/high review findings must be corrected and freshly reviewed
+automatically; no fixed correction-cycle cap applies. Medium/low findings may
+be deferred under this policy unless they threaten a protected boundary.
+
+### Testing during completion
+
+During correction loops, run only directly affected focused tests and boundary
+tests. Run full repository or browser certification only at a phase boundary,
+release or tag, shared infrastructure change, demonstrated broad regression,
+or explicit user request. Do not rerun unrelated green suites after
+documentation-only or evidence-only commits. Never report skipped checks as
+passed.
+
+### Mandatory stop conditions
+
+Stop only when continuation requires one of the following:
+
+- Inventing an unknown financial fact or changing financial policy or authority
+  not covered by the authorization.
+- Accessing or mutating personal data without an explicit mutation envelope.
+- Destructive restore, deletion, irreversible migration, or external production
+  action.
+- Acquiring or exposing credentials.
+- Enabling external providers, email, scheduler, trading, brokerage, execution,
+  or money movement without authorization.
+- Expanding into another phase or a materially separate product objective.
+- A failed backup, integrity, ownership, privacy, or recovery precondition.
+- Persistent filesystem, network, authentication, quota, or tool failure after
+  bounded retries.
+- Insufficient remaining resources to finish the next atomic operation safely.
+
+Ordinary bugs, failed focused tests, review findings, migration implementation
+details, fixture corrections, and predictable edge cases are not
+user-authority blockers.
+
+### Personal-data mutation envelope
+
+When the user explicitly authorizes a bounded personal-data operation, the
+agent may perform all stated prerequisite backups, disposable-clone rehearsals,
+additive migrations, validations, approved writes, restarts, and post-write
+verification without asking again. The agent must stop if observed personal
+state differs materially from the authorized assumptions.
+
+### Safe resource stop and user control
+
+If context, credits, time, or tool availability is nearly exhausted, finish or
+roll back the current atomic operation, never stop between a mutation and its
+verification, commit and push a coherent checkpoint when possible, leave the
+worktree clean when practical, and update `CURRENT_HANDOFF.md` with exact
+state, completed evidence, blocker, and one resume command or prompt. Never
+claim completion.
+
+Explicit user instructions always override autonomous completion mode. The user
+may request a pause at any time. Autonomous completion does not authorize phase
+advancement, materially different features, destructive operations, or broader
+personal-data access.
 
 ## Merge policy
 
