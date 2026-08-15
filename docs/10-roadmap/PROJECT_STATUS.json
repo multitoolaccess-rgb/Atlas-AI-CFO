@@ -1,26 +1,5 @@
 {
-  "active_work": [
-    {
-      "branch": "codex/waves-3-5-product-stabilization",
-      "id": "work-waves-3-5-product-stabilization",
-      "issue": null,
-      "objective": "Stabilize delivered Phase 0–6 integration, discoverability, dead paths, accessibility, reliability, and local personal-use readiness without changing financial authority or beginning Wave 6/Phase 7.",
-      "paths": [
-        "ui",
-        "services/rules-service/app",
-        "services/rules-service/tests",
-        "docs"
-      ],
-      "phase_id": "phase-6",
-      "pr": null,
-      "risk_tier": "medium",
-      "status": "in_progress",
-      "tests": [
-        "Focused frontend, backend-contract, route-mocked browser, accessibility, and isolated synthetic integration validation"
-      ],
-      "title": "Combined Waves 3–5 product stabilization"
-    }
-  ],
+  "active_work": [],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -1361,14 +1340,41 @@
         "result": "passed",
         "timestamp": "2026-08-15T21:20:12Z"
       }
+    },
+    {
+      "branch": "codex/waves-3-5-product-stabilization",
+      "commit": "e70c764fa5d1ad0c1f1955ce62050a05a398e8a3",
+      "id": "work-waves-3-5-product-stabilization",
+      "issue": null,
+      "objective": "Stabilize delivered Phase 0\u20136 integration, discoverability, dead paths, accessibility, reliability, and local personal-use readiness without changing financial authority or beginning Wave 6/Phase 7.",
+      "paths": [
+        "ui",
+        "services/rules-service/app",
+        "services/rules-service/tests",
+        "docs"
+      ],
+      "phase_id": "phase-6",
+      "pr": "61",
+      "review_evidence": "Fresh local review of exact merged head: no critical/high findings; canonical route ownership, compatibility redirects, bounded diagnostics, unexpected-error visibility, server-owned financial authority, default-off providers, and personal-data boundaries preserved.",
+      "risk_tier": "medium",
+      "status": "complete",
+      "tests": [
+        "Frontend focused Vitest: 34 passed",
+        "Route-mocked Playwright: 7 passed",
+        "TypeScript: passed",
+        "ESLint: passed",
+        "Tracker/status/render: passed",
+        "Diff and sensitive-pattern checks: passed"
+      ],
+      "title": "Combined Waves 3\u20135 product stabilization"
     }
   ],
-  "current_objective": "Waves 3–5 Product Stabilization is in progress after Phase 6 certification. Preserve server-owned financial authority, do not begin Wave 6 certification, and do not begin Phase 7.",
+  "current_objective": "Waves 3\u20135 Product Stabilization is complete after Phase 6 certification. Preserve server-owned financial authority, do not begin Wave 6 certification, and do not begin Phase 7.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T21:28:28Z",
+  "last_updated": "2026-08-15T21:35:15Z",
   "next_bounded_task": {
-    "description": "Plan and obtain separate authorization for the combined Waves 3\u20135 Product Stabilization Wave; do not begin automatically.",
-    "id": "work-waves-3-5-product-stabilization",
+    "description": "Authorize and run the complete local Wave 6 final personal-use acceptance and release-candidate certification. Do not begin Phase 7.",
+    "id": "work-wave-6-final-personal-use-certification",
     "phase_id": "phase-6"
   },
   "overall_status": "complete",

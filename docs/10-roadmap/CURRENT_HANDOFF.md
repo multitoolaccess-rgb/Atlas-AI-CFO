@@ -7,16 +7,13 @@
 - Phase: phase-6 — Scenario Lab
 - Phase status: complete
 - Overall status: complete
-- Objective: Waves 3–5 Product Stabilization is in progress after Phase 6 certification. Preserve server-owned financial authority, do not begin Wave 6 certification, and do not begin Phase 7.
+- Objective: Waves 3–5 Product Stabilization is complete after Phase 6 certification. Preserve server-owned financial authority, do not begin Wave 6 certification, and do not begin Phase 7.
 - Phase exit criteria: 2/2 complete
-- Tracker updated: 2026-08-15T21:28:28Z
+- Tracker updated: 2026-08-15T21:35:15Z
 
 ## Active work
 
-- work-waves-3-5-product-stabilization: Combined Waves 3–5 product stabilization [in_progress/medium]
-  - Objective: Stabilize delivered Phase 0–6 integration, discoverability, dead paths, accessibility, reliability, and local personal-use readiness without changing financial authority or beginning Wave 6/Phase 7.
-  - Branch: codex/waves-3-5-product-stabilization
-  - Paths: ui, services/rules-service/app, services/rules-service/tests, docs
+- None
 
 ## Blockers
 
@@ -39,14 +36,14 @@
 
 ## Recently completed
 
-- work-wave-2a-authoritative-account-currency: Implement Wave 2A authoritative account-currency evidence — commit a438df9233cb197827a5affda0c24ee4d7ec0a97, PR not recorded
 - work-wave-2b-local-backup-recovery: Implement WAL-safe local backup and recovery — commit 423f87a, PR not recorded
 - work-wave-2c-personal-activation-acceptance: Execute backup-first personal activation and restart acceptance — commit e877247, PR not recorded
 - work-wave-2c-authoritative-balance-amount: Establish exact-cent legacy balance authority — commit 50d7d198de5b28d0d37e9aa596c8e2d90b27452f, PR 58
 - work-wave-2c-six-account-activation: Complete six-account personal activation and restart acceptance — commit 9fbe20d, PR 60
+- work-waves-3-5-product-stabilization: Combined Waves 3–5 product stabilization — commit e70c764fa5d1ad0c1f1955ce62050a05a398e8a3, PR 61
 
 ## Next bounded task
 
-- work-waves-3-5-product-stabilization: Plan and obtain separate authorization for the combined Waves 3–5 Product Stabilization Wave; do not begin automatically.
+- work-wave-6-final-personal-use-certification: Authorize and run the complete local Wave 6 final personal-use acceptance and release-candidate certification. Do not begin Phase 7.
 
 Do not begin the next task automatically.

@@ -4,11 +4,11 @@
 
 - Current phase: **phase-6 — Scenario Lab** (complete)
 - Overall status: **complete**
-- Current objective: Waves 3–5 Product Stabilization is in progress after Phase 6 certification. Preserve server-owned financial authority, do not begin Wave 6 certification, and do not begin Phase 7.
-- Last updated: 2026-08-15T21:28:28Z
+- Current objective: Waves 3–5 Product Stabilization is complete after Phase 6 certification. Preserve server-owned financial authority, do not begin Wave 6 certification, and do not begin Phase 7.
+- Last updated: 2026-08-15T21:35:15Z
 
 ## Active work
-- work-waves-3-5-product-stabilization: Combined Waves 3–5 product stabilization (in_progress, medium)
+- None
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
@@ -43,11 +43,11 @@
 - risk-p1-personal-account-scope-mismatch [high/high, resolved]: The prior four-versus-six active-account scope mismatch was resolved by explicit authorization covering all six active accounts; six-account evidence, projection, baseline, restart, and readiness checks passed.
 
 ## Recently completed work
-- work-wave-2a-authoritative-account-currency: Implement Wave 2A authoritative account-currency evidence — commit a438df9233cb197827a5affda0c24ee4d7ec0a97, PR None
 - work-wave-2b-local-backup-recovery: Implement WAL-safe local backup and recovery — commit 423f87a, PR None
 - work-wave-2c-personal-activation-acceptance: Execute backup-first personal activation and restart acceptance — commit e877247, PR None
 - work-wave-2c-authoritative-balance-amount: Establish exact-cent legacy balance authority — commit 50d7d198de5b28d0d37e9aa596c8e2d90b27452f, PR 58
 - work-wave-2c-six-account-activation: Complete six-account personal activation and restart acceptance — commit 9fbe20d, PR 60
+- work-waves-3-5-product-stabilization: Combined Waves 3–5 product stabilization — commit e70c764fa5d1ad0c1f1955ce62050a05a398e8a3, PR 61
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -84,6 +84,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-waves-3-5-product-stabilization: Plan and obtain separate authorization for the combined Waves 3–5 Product Stabilization Wave; do not begin automatically.
+- work-wave-6-final-personal-use-certification: Authorize and run the complete local Wave 6 final personal-use acceptance and release-candidate certification. Do not begin Phase 7.
 
 Do not begin the next phase or task automatically.
