@@ -1,18 +1,17 @@
 # .github/workflows/test.yml
 #
-# Canonical CI for Finance Copilot. Two-job matrix that delegates to
-# scripts/test.sh:
+# Canonical CI for Atlas. A small path classifier selects the narrowest
+# applicable checks for pull requests. Complete matrices remain available
+# through manual dispatch and scheduled certification runs.
 #
-#   cheap  — runs on every PR push. ~1-2 min. Skips Playwright
-#            (SKIP_PLAYWRIGHT=1) for fast feedback.
-#   heavy  — runs on push to main, nightly schedule, and manual dispatch.
-#            Full suite including Playwright. ~3-5 min.
+#   scope  — classifies changed paths.
+#   cheap  — path-aware focused backend/frontend/browser checks for PRs.
+#   heavy  — complete repository + browser matrix for schedule/manual runs.
 #
-# Both jobs:
-#   - checkout with history -> setup Python 3.12 + isolated service venvs -> install JS deps
-#     -> bash scripts/test.sh
-# The heavy job additionally installs Playwright chromium with system
-# deps before running the full suite.
+# The focused job selects only the backend/frontend/browser checks needed by
+# the classified paths; it retains the shared UI dependency install required by
+# scripts/test.sh. The heavy job installs all environments and Playwright
+# system dependencies before the complete suite.
 #
 # Postgres is NOT started in CI: scripts/test.sh falls back to the
 # SQLite path from services/rules-service/.env when :5433 is down.
@@ -38,13 +37,61 @@ permissions:
   contents: read
 
 jobs:
-  # ----- CHEAP: PR feedback in <2 min, no browser -----
-  cheap:
-    name: cheap (lint + unit, no browser)
+  # ----- SCOPE: small path-aware classifier -----
+  scope:
+    name: classify change scope
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    outputs:
+      scope: ${{ steps.classify.outputs.scope }}
+      governance: ${{ steps.classify.outputs.governance }}
+      frontend: ${{ steps.classify.outputs.frontend }}
+      rules: ${{ steps.classify.outputs.rules }}
+      finlynq: ${{ steps.classify.outputs.finlynq }}
+      browser: ${{ steps.classify.outputs.browser }}
+      full: ${{ steps.classify.outputs.full }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Classify changed paths
+        id: classify
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event_name }}" = "schedule" ]; then
+            echo 'scope=full' >> "$GITHUB_OUTPUT"
+            echo 'governance=false' >> "$GITHUB_OUTPUT"
+            echo 'frontend=true' >> "$GITHUB_OUTPUT"
+            echo 'rules=true' >> "$GITHUB_OUTPUT"
+            echo 'finlynq=true' >> "$GITHUB_OUTPUT"
+            echo 'browser=true' >> "$GITHUB_OUTPUT"
+            echo 'full=true' >> "$GITHUB_OUTPUT"
+          else
+            if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+              BASE_SHA="$(git rev-list --max-parents=0 HEAD | tail -n 1)"
+            fi
+            mapfile -t changed < <(git diff --name-only "$BASE_SHA" "$GITHUB_SHA")
+            python3 scripts/classify_change_scope.py --github-output "${changed[@]}" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ----- CHEAP: PR path-aware focused checks -----
+  cheap:
+    name: tests (path-aware focused)
+    needs: scope
+    if: needs.scope.outputs.scope != 'governance'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
-      SKIP_PLAYWRIGHT: '1'
+      SKIP_BACKEND: ${{ needs.scope.outputs.rules == 'true' && '0' || '1' }}
+      SKIP_FINLYNQ: ${{ needs.scope.outputs.finlynq == 'true' && '0' || '1' }}
+      SKIP_VITEST: ${{ needs.scope.outputs.frontend == 'true' && '0' || '1' }}
+      SKIP_TYPECHECK: ${{ needs.scope.outputs.frontend == 'true' && '0' || '1' }}
+      SKIP_PLAYWRIGHT: ${{ needs.scope.outputs.browser == 'true' && '0' || '1' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,43 +110,60 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'ui/package-lock.json'
 
-      - name: Install isolated Python environments
+      - name: Install Rules Service environment
+        if: needs.scope.outputs.rules == 'true'
         run: |
           python -m venv .venv-rules
           .venv-rules/bin/python -m pip install --upgrade pip wheel setuptools
           .venv-rules/bin/python -m pip install -r services/rules-service/requirements.txt
+
+      - name: Install Finlynq environment
+        if: needs.scope.outputs.finlynq == 'true'
+        run: |
           python -m venv .venv-finlynq
           .venv-finlynq/bin/python -m pip install --upgrade pip wheel setuptools
           .venv-finlynq/bin/python -m pip install -r services/finlynq/requirements.txt
 
       - name: Install Rules Service OCR runtime
+        if: needs.scope.outputs.rules == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install --yes tesseract-ocr
 
       - name: Install JS deps (npm ci)
+        # scripts/test.sh checks the shared UI dependency directory even when
+        # all frontend test steps are skipped; tests remain path-aware below.
         working-directory: ui
         run: npm ci
 
-      - name: Run test suite (SKIP_PLAYWRIGHT=1)
+      - name: Install Playwright chromium for affected browser paths
+        if: needs.scope.outputs.browser == 'true'
+        working-directory: ui
+        run: npx playwright install --with-deps chromium
+
+      - name: Run path-aware focused suite
         run: bash scripts/test.sh
 
+      - name: Run frontend lint
+        if: needs.scope.outputs.frontend == 'true'
+        working-directory: ui
+        run: npm run lint
+
       - name: Upload vitest coverage
-        if: always()
+        if: always() && needs.scope.outputs.frontend == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-cheap
           path: ui/coverage/
           retention-days: 7
 
-  # ----- HEAVY: full suite including Playwright -----
+  # ----- HEAVY: certification/manual complete matrix -----
   heavy:
     name: heavy (full + Playwright)
+    needs: scope
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    # Skip on PRs (cheap is enough there); run on push to main, nightly,
-    # and manual dispatch.
-    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout
         uses: actions/checkout@v4

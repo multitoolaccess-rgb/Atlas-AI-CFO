@@ -11,18 +11,21 @@ Required top-level keys: `schema_version`, `last_updated`, `current_phase_id`,
 Work statuses: `planned`, `in_progress`, `blocked`, `in_review`, `complete`,
 `cancelled`. Phase statuses: `not_started`, `in_progress`, `blocked`,
 `in_review`, `complete`. Material work items may include `risk_tier`: `low`,
-`medium`, or `high`. Existing historical work without a tier remains valid.
+`medium`, or `high`.
+
+The authoritative risk, evidence, review, CI, merge, and full-certification
+requirements are defined in
+`docs/07-engineering/SOLO_DEVELOPMENT_POLICY.md`.
 
 ## Evidence rules for tiered completed work
 
 - **Low:** `commit` evidence (a hash or short SHA from the local repo).
   `pr`, `review_evidence`, and `ci_evidence` are not required.
-- **Medium:** `commit` and `tests` evidence. `pr` and `review_evidence`
-  are optional. `ci_evidence` is required only when the change affects
-  shared application behavior (then it follows the High format below).
-- **High:** `branch`, `commit`, `pr`, independent `review_evidence` (the
-  review-approval string records the cycle count used, capped at two),
-  `tests`, and structured `ci_evidence`. `ci_evidence` is exactly:
+- **Medium:** `commit` and `tests` evidence. `pr` and `review_evidence` are
+  optional. Relevant CI evidence is recorded when the changed behavior affects
+  shared application behavior.
+- **High:** `branch`, `commit`, `pr`, fresh independent `review_evidence`,
+  `tests`, and relevant successful `ci_evidence`. The CI record is exactly:
 
   ```json
   {
@@ -34,26 +37,20 @@ Work statuses: `planned`, `in_progress`, `blocked`, `in_review`, `complete`,
 
   The run URL must identify a GitHub Actions run and the conclusion must be
   `success`; empty or generic check claims such as `passed` are invalid.
-  After two correction-and-review cycles, if a material finding remains
-  the work MUST stop with the exact unresolved decision recorded in
-  `review_evidence`.
+  Findings that block a high-risk merge are defined by the canonical policy;
+  do not infer a fixed correction-cycle limit from this schema.
 
 An `in_review` work item requires a `pr`. `blocked` or `cancelled` work
 requires a `reason`. Each phase has `exit_criteria`, with stable IDs and a
-`complete` boolean. Phase completion remains forbidden until every
-criterion is complete.
+`complete` boolean. Phase completion remains forbidden until every criterion
+is complete.
 
 ## Tracking policy
 
-- Update project status only when material work starts, completes, changes
-  phase, or becomes genuinely blocked.
-- Do not create tracker-evidence commits after every implementation
-  correction. Fold final tracker evidence into the implementation commit
-  when practical, or use one final evidence commit.
+- Update project status only for material work starts, completions, phase
+  changes, genuine blockers, significant risks, or next-task changes.
+- Do not create tracker-evidence commits after every implementation correction.
 - Do not require issues for routine work.
-- Do not require PR comments duplicating tracker evidence.
-- Existing historical evidence must remain intact (records produced under
-  any prior policy remain valid as long as the data they carry is
-  internally consistent).
+- Preserve historical evidence and existing internally consistent records.
 
 Run `python3 scripts/atlas_project_status.py check` after every mutation.

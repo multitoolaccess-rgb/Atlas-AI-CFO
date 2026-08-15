@@ -81,8 +81,8 @@ Add typed API-client coverage, component accessibility tests (semantic
 headings, keyboard operation, focus, live/error states, reduced motion, and
 axe), and one mocked end-to-end journey for record → view → correction →
 linked outcome state.  Disabled, missing, and cross-owner-equivalent responses
-remain indistinguishable and safe.  This slice also uses one branch, one PR,
-required CI, and a fresh independent review.
+remain indistinguishable and safe.  This slice also uses one branch, one PR, relevant focused CI, and a fresh
+independent review under the canonical policy.
 
 ## Certification evidence
 

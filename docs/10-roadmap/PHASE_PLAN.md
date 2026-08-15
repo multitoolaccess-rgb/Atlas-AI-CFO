@@ -36,10 +36,10 @@ governance below, unless a real safety boundary requires otherwise:
    this slice belong in this single PR — do not split into micro-PRs.
 
 Do not create separate PRs for mappers, schemas, routes, tests, or
-documentation that belong to the same slice. Both PRs run under the same
-governance tier (HIGH — financial correctness + immutable schemas + write
-APIs) and apply the new corrected-cycle cap (maximum two correction and
-review cycles per PR).
+documentation that belong to the same slice. Both PRs run under the same governance tier (HIGH — financial correctness +
+immutable schemas + write APIs) and follow the canonical policy in
+`docs/07-engineering/SOLO_DEVELOPMENT_POLICY.md`, including fresh review and
+relevant focused evidence for high-risk work.
 
 ## Current Phase 1 reference
 

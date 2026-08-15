@@ -217,11 +217,13 @@ and sends no real email.
    receipts, operator CLI and uninstalled `launchd` template, browser/a11y
    coverage, and documentation.
 
-Each high-risk slice uses one branch, one PR, relevant CI, a fresh exact-head
-read-only review, and no more than two correction/review cycles. A corrective
-PR is permitted only for a real safety or certification boundary. The parent
-operator owns Git, tracker, CI, merge, and certification; the single worker is
-the sole implementation writer; each reviewer is read-only and short-lived.
+Each high-risk slice follows the canonical policy in
+`docs/07-engineering/SOLO_DEVELOPMENT_POLICY.md`: one branch and PR, relevant
+focused CI, and a fresh exact-head read-only review. Corrections continue until
+critical and high findings are resolved; no arbitrary correction-cycle cap is
+imposed. The parent operator owns Git, tracker, CI, merge, and certification;
+the single worker is the sole implementation writer; each reviewer is
+read-only and short-lived.
 
 ## Market Brief reliability and UI-quality correction
 
