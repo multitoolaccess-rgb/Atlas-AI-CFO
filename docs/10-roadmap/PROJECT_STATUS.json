@@ -1,7 +1,7 @@
 {
   "active_work": [
     {
-      "branch": "codex/phase-6-certification-reconciliation",
+      "branch": "codex/phase-6-certification-browser-reconciliation",
       "id": "work-p6-clean-main-certification",
       "issue": "",
       "objective": "Reconcile the documented Phase 6 clean-main browser blockers, then rerun the complete certification matrix and create the completion tag only after every exit criterion passes.",
@@ -10,7 +10,7 @@
         "docs/10-roadmap"
       ],
       "phase_id": "phase-6",
-      "reason": "The prior clean-main Playwright failures are classified and corrected in the certification-reconciliation branch: eight stale IA expectations, one genuine Cash Flow URL-state race, one stale Recommendations expectation, one stale Market Briefs expectation, one handled forecast-read recovery, one stale Activity expectation, and one stale Universe expectation. Focused validation is green; complete certification remains pending the merged clean-main rerun.",
+      "reason": "The prior clean-main Playwright failures are classified and corrected in the certification-reconciliation branch. The post-merge certification matrix found three remaining blockers: one stale forecast expectation, one expected default-off Scenario Lab 503 browser diagnostic, and one route-mocked auth fixture diagnostic. This branch reconciles those bounded test and observability expectations before the clean-main rerun.",
       "risk_tier": "medium",
       "status": "in_progress",
       "tests": [
@@ -1153,7 +1153,7 @@
   ],
   "current_objective": "Phase 6 remains in progress after completion of Slice 2 Scenario Lab UI; preserve server-owned financial authority and prepare the separate clean-main certification boundary.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T06:22:51Z",
+  "last_updated": "2026-08-15T09:20:00Z",
   "next_bounded_task": {
     "description": "Reconcile the documented clean-main Phase 6 certification blockers (stale pre-IA browser expectations and expected default-off 503 console handling), rerun the complete certification matrix, and create phase-6-complete only if every documented exit criterion passes.",
     "id": "work-p6-clean-main-certification-remediation",

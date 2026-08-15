@@ -40,6 +40,14 @@ async function installMocks(page: Page, options: { enabled?: boolean; baseline?:
   })
   await page.route(`**/api/v1/scenarios/${scenarioId}/archive`, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schema_version: 'atlas-scenario-archive/v1', scenario_id: scenarioId, lifecycle_state: 'archived', archived_at: '2026-08-14T00:00:00Z' }) }))
   await page.route(`**/api/v1/scenarios/${scenarioId}`, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(envelope()) }))
+  // PageLayout reads the profile even when the splash is intentionally
+  // skipped. Keep that shared-shell request successful so the route-mocked
+  // journey exercises Scenario Lab recovery rather than auth-retry logging.
+  await page.route('**/api/profile/', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ id: 1, email: 'synthetic@example.com', full_name: 'Synthetic Owner' }),
+  }))
   await page.route('**/api/auth/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ detail: 'Synthetic auth response' }) }))
 }
 

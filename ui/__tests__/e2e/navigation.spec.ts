@@ -170,10 +170,29 @@ for (const item of NAV_ITEMS) {
     page,
   }) => {
     const errors: string[] = []
+    let handledScenarioAvailability = false
+    page.on('response', (response) => {
+      if (
+        response.status() === 503 &&
+        /\/api\/v1\/goals\/\d+\/scenarios(?:\?|$)/.test(response.url())
+      ) {
+        handledScenarioAvailability = true
+      }
+    })
     page.on('console', (msg: ConsoleMessage) => {
       if (msg.type() === 'error') {
         const text = msg.text()
         const url = msg.location()?.url ?? ''
+        // Chromium reports the resource-level 503 even though the client
+        // explicitly maps this server-owned default-off response to the
+        // Scenario Lab recovery state. Keep that expected diagnostic from
+        // becoming a browser failure, while all other 5xx/API errors still
+        // flow through the normal error assertion below.
+        if (
+          item.expectedPath === '/scenario-lab' &&
+          handledScenarioAvailability &&
+          /Failed to load resource.*503/i.test(text)
+        ) return
         if (!isBenign(text, url)) errors.push(text)
       }
     })
