@@ -59,11 +59,13 @@ describe('Scenario Lab API client', () => {
   it('returns a stable sanitized message for known and unknown server failures', () => {
     expect(readScenarioError({ isAxiosError: true, response: { data: { code: 'scenario_baseline_conflict', message: 'secret backend detail' } } })).toEqual({
       code: 'scenario_baseline_conflict',
-      message: 'Scenario Lab is unavailable or the requested scenario could not be loaded. No client-side result was calculated.',
+      message: 'Scenario Lab could not complete that request. No client-side result was calculated.',
+      recovery: 'Refresh the goal and try again against the current baseline.',
     })
     expect(readScenarioError({ response: { data: { code: 'provider_secret' } } })).toEqual({
       code: 'unknown',
-      message: 'Scenario Lab is unavailable or the requested scenario could not be loaded. No client-side result was calculated.',
+      message: 'Scenario Lab could not complete that request. No client-side result was calculated.',
+      recovery: 'Retry when the service is available. Atlas will not estimate a result locally.',
     })
   })
 })

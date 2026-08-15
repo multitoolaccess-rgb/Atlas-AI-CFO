@@ -56,8 +56,43 @@ or Phase 7 work.
 8. Complete relevant Rules Service, Finlynq, cross-service, tracker/render,
    and Phase 0–5 regression evidence is recorded.
 
+## Slice 2 UI vertical slice
+
+Slice 2 is a separate medium-risk frontend boundary authorized after Slice 1.
+The authoritative route remains `/scenario-lab`; the UI consumes only the
+server-owned list, envelope, comparison-set, version, and archive responses.
+
+### Slice 2 included
+
+- Bookmarkable `view`, goal, scenario, and bounded comparison URL state.
+- Baseline readiness, disabled, missing-baseline, stale/conflict, loading,
+  empty, unavailable, and sanitized error states.
+- Strict bounded builder for contribution delta/start/stop and one dated outflow.
+- Typed Decimal-string result presentation with deterministic band comparison,
+  timing, freshness, assumptions, warnings, limitations, and provenance.
+- Explicit one-to-three scenario comparison selection and incompatible recovery.
+- Immutable archive history and persisted-detail reload behavior.
+- Stable intent-scoped idempotency keys for generation and archive retries.
+- Route-mocked browser coverage that does not start Rules Service, Finlynq, OCR,
+  or the live stack.
+- Legacy local simulation calculators removed from Mission Control rendering and
+  retained only as quarantined compatibility code; they are not Scenario Lab
+  authority.
+
+### Slice 2 excluded
+
+No backend changes, forecast-generation action, client-side financial engine,
+trajectory/timeline reconstruction, probability, Monte Carlo, tax, debt,
+financing, optimization, execution, brokerage, money movement, collaboration,
+provider, or Phase 7 work.
+
+Slice 2 implementation is complete when focused UI/API tests, TypeScript, lint,
+route-mocked journeys, tracker/render validation, handoff validation, and
+applicable medium-risk review evidence are green. Phase 6 certification remains
+a separate clean-main task and is not implied by Slice 2 completion.
+
 ## Next authorized boundary
 
-After Slice 1 is merged and certified, a separate explicit prompt is required
-before any Scenario Lab UI migration. The UI must consume server results and
+After Slice 2 is merged, a separate clean-main Phase 6 certification task is
+required before any phase-completion tag. The UI must consume server results and
 must not become financial authority.
