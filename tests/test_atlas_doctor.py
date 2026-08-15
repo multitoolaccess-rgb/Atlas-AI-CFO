@@ -70,13 +70,24 @@ def test_sqlite_snapshot_is_read_only_and_reports_currency_fail_closed() -> None
                 CREATE TABLE alembic_version (version_num VARCHAR(32));
                 INSERT INTO alembic_version(version_num) VALUES ('not-current');
                 CREATE TABLE accounts (
+                    id INTEGER PRIMARY KEY,
                     is_active INTEGER NOT NULL,
                     currency_code VARCHAR(3),
                     currency_source VARCHAR(32),
                     currency_observed_at TEXT,
                     currency_source_reference VARCHAR(128)
                 );
-                INSERT INTO accounts VALUES (1, 'USD', NULL, NULL, NULL);
+                CREATE TABLE account_currency_evidence (
+                    id TEXT PRIMARY KEY,
+                    account_id INTEGER NOT NULL,
+                    event_type TEXT NOT NULL,
+                    source_kind TEXT NOT NULL,
+                    currency_code TEXT,
+                    observed_at TEXT,
+                    supersedes_event_id TEXT,
+                    recorded_at TEXT
+                );
+                INSERT INTO accounts VALUES (1, 1, 'USD', 'user_confirmed', '2026-08-01', 'legacy-cache-only');
                 """
             )
         before = path.read_bytes()
@@ -87,7 +98,7 @@ def test_sqlite_snapshot_is_read_only_and_reports_currency_fail_closed() -> None
         assert report["state"] == "blocked"
         assert report["reason_code"] == "migration_mismatch"
         assert report["currency_authority"]["state"] == "blocked"
-        assert report["currency_authority"]["reason_code"] == "currency_evidence_missing"
+        assert report["currency_authority"]["reason_code"] == "currency_unknown"
 
 
 def test_missing_database_fails_closed_without_creating_it() -> None:

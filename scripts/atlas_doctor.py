@@ -18,6 +18,7 @@ import json
 import os
 import re
 import sqlite3
+from datetime import datetime, timedelta, timezone
 import subprocess
 import sys
 import urllib.error
@@ -43,7 +44,9 @@ KNOWN_FLAGS = (
 )
 BOOL_TRUE = {"1", "true", "yes", "on"}
 BOOL_FALSE = {"0", "false", "no", "off", ""}
-APPROVED_CURRENCY_SOURCES = {"provider_reported", "statement_declared", "user_confirmed"}
+APPROVED_CURRENCY_SOURCES = {"structured_provider", "structured_statement", "operator_confirmed"}
+APPROVED_EVENT_TYPES = {"assertion", "correction", "revocation"}
+MAX_CURRENCY_AGE_DAYS = 7
 
 
 def env_file_values(path: Path) -> dict[str, str]:
@@ -157,6 +160,88 @@ def migration_heads() -> tuple[str, ...]:
     return tuple(sorted(set(revisions) - referenced))
 
 
+def _parse_utc(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc)
+
+
+def _currency_authority_snapshot(conn: sqlite3.Connection) -> dict[str, str]:
+    """Derive aggregate authority from immutable events without exposing IDs."""
+    try:
+        accounts = conn.execute("SELECT id FROM accounts WHERE is_active = 1 ORDER BY id").fetchall()
+        events = conn.execute(
+            """SELECT id, account_id, event_type, source_kind, currency_code,
+                      observed_at, supersedes_event_id
+               FROM account_currency_evidence
+               ORDER BY recorded_at ASC, id ASC"""
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return {
+            "state": "blocked",
+            "reason_code": "currency_evidence_incomplete",
+            "recovery_action": "Apply the approved account-currency evidence migration; Atlas Doctor never migrates from this screen.",
+        }
+    if not accounts:
+        return {"state": "blocked", "reason_code": "currency_evidence_incomplete", "recovery_action": "Add or import an account with explicit currency evidence; a preference is not evidence."}
+    events_by_account: dict[int, list[tuple[Any, ...]]] = {}
+    for event in events:
+        events_by_account.setdefault(int(event[1]), []).append(event)
+    current_time = datetime.now(timezone.utc)
+    states: list[tuple[str, str | None]] = []
+    for account_row in accounts:
+        account_id = int(account_row[0])
+        active: tuple[str, str, datetime] | None = None
+        revoked = False
+        reason = "currency_unknown"
+        for event_id, event_account_id, event_type, source_kind, code, observed_raw, supersedes_id in events_by_account.get(account_id, []):
+            if event_type not in APPROVED_EVENT_TYPES:
+                reason, active = "currency_evidence_incomplete", None
+                break
+            observed = _parse_utc(observed_raw)
+            if event_type == "assertion":
+                if source_kind not in APPROVED_CURRENCY_SOURCES or not code or active is not None and active[1] != code:
+                    reason, active = "currency_conflict" if active is not None else "currency_evidence_incomplete", None
+                    break
+                active, revoked, reason = (str(event_id), str(code), observed) if observed else None, False, "currency_authority_ready"
+                if active is None:
+                    reason = "currency_evidence_incomplete"
+                    break
+            elif event_type == "correction":
+                if source_kind != "correction" or not code or active is None or supersedes_id != active[0] or observed is None:
+                    reason, active = "currency_conflict", None
+                    break
+                active, revoked, reason = (str(event_id), str(code), observed), False, "currency_authority_ready"
+            elif event_type == "revocation":
+                if source_kind != "revocation" or code is not None or active is None or supersedes_id != active[0]:
+                    reason, active = "currency_conflict", None
+                    break
+                active, revoked, reason = None, True, "currency_revoked"
+        if active is None:
+            reason = "currency_revoked" if revoked else reason
+        elif active[1] != "USD":
+            states.append(("currency_unsupported", active[1]))
+            continue
+        elif current_time - active[2] > timedelta(days=MAX_CURRENCY_AGE_DAYS) or active[2] > current_time:
+            states.append(("currency_stale", active[1]))
+            continue
+        else:
+            states.append(("currency_authority_ready", "USD"))
+            continue
+        states.append((reason, None))
+    codes = {code for reason, code in states if code is not None}
+    if len(codes) > 1:
+        return {"state": "blocked", "reason_code": "currency_mixed", "recovery_action": "Resolve mixed active-account currencies before enabling projection capabilities."}
+    for reason in ("currency_conflict", "currency_revoked", "currency_stale", "currency_unsupported", "currency_unknown", "currency_evidence_incomplete"):
+        if any(item[0] == reason for item in states):
+            return {"state": "blocked", "reason_code": reason, "recovery_action": "Resolve authoritative USD evidence for every active account; a preference is not evidence."}
+    return {"state": "ready", "reason_code": "currency_authority_ready", "recovery_action": "No action required."}
+
+
 def sqlite_snapshot(path: Path | None) -> dict[str, Any]:
     if path is None:
         return {"state": "unavailable", "reason_code": "non_sqlite_database", "recovery_action": "Use the selected database operator check; Atlas Doctor does not print or expose connection details."}
@@ -167,12 +252,11 @@ def sqlite_snapshot(path: Path | None) -> dict[str, Any]:
         with sqlite3.connect(uri, uri=True, timeout=1) as conn:
             current = conn.execute("SELECT version_num FROM alembic_version").fetchone()[0]
             wal = conn.execute("PRAGMA journal_mode").fetchone()[0]
-            accounts = conn.execute("SELECT currency_code, currency_source, currency_observed_at, currency_source_reference FROM accounts WHERE is_active = 1").fetchall()
+            currency_authority = _currency_authority_snapshot(conn)
     except sqlite3.Error:
         return {"state": "blocked", "reason_code": "database_readiness_unavailable", "recovery_action": "Run the approved read-only database and migration check against the selected local database."}
     heads = migration_heads()
     migration_ready = bool(current and heads and current in heads)
-    currency_ready = bool(accounts) and all(code == "USD" and source in APPROVED_CURRENCY_SOURCES and observed and reference and re.fullmatch(r"[a-z][a-z0-9._:-]{0,127}", reference) for code, source, observed, reference in accounts)
     return {
         "state": "ready" if migration_ready else "blocked",
         "reason_code": "migration_ready" if migration_ready else "migration_mismatch",
@@ -180,7 +264,7 @@ def sqlite_snapshot(path: Path | None) -> dict[str, Any]:
         "migration_current": current,
         "migration_heads": heads,
         "wal_state": "enabled" if str(wal).lower() == "wal" else str(wal),
-        "currency_authority": {"state": "ready" if currency_ready else "blocked", "reason_code": "currency_authority_ready" if currency_ready else "currency_evidence_missing", "recovery_action": "No action required." if currency_ready else "Resolve explicit USD evidence for every active account; a preference is not evidence."},
+        "currency_authority": currency_authority,
     }
 
 
