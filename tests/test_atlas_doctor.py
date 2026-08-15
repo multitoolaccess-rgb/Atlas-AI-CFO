@@ -138,6 +138,29 @@ def test_exact_cent_balance_evidence_reports_aggregate_ready_without_values() ->
         assert "100.25" not in json.dumps(report)
 
 
+def test_forecast_baseline_snapshot_is_aggregate_and_read_only() -> None:
+    with TemporaryDirectory(prefix="atlas-doctor-baseline-") as directory:
+        path = Path(directory) / "synthetic.sqlite"
+        with sqlite3.connect(path) as connection:
+            connection.executescript(
+                """
+                CREATE TABLE alembic_version (version_num VARCHAR(32));
+                INSERT INTO alembic_version(version_num) VALUES ('Z9a1b2c3d4e5');
+                CREATE TABLE forecasts (id TEXT PRIMARY KEY, lifecycle_state TEXT NOT NULL);
+                INSERT INTO forecasts VALUES ('synthetic-forecast', 'active');
+                """
+            )
+        before = path.read_bytes()
+        with patch.object(atlas_doctor, "migration_heads", return_value=("Z9a1b2c3d4e5",)), patch.object(
+            atlas_doctor, "_currency_authority_snapshot", return_value={"state": "ready", "reason_code": "currency_authority_ready", "recovery_action": "No action required."}
+        ), patch.object(
+            atlas_doctor, "_balance_observation_snapshot", return_value={"state": "ready", "reason_code": "balance_evidence_current", "recovery_action": "No action required."}
+        ):
+            report = atlas_doctor.sqlite_snapshot(path)
+        assert report["forecast_baseline"] == {"state": "ready", "reason_code": "baseline_forecast_ready", "recovery_action": "No action required."}
+        assert before == path.read_bytes()
+
+
 def test_missing_database_fails_closed_without_creating_it() -> None:
     with TemporaryDirectory(prefix="atlas-doctor-test-") as directory:
         path = Path(directory) / "missing.sqlite"
