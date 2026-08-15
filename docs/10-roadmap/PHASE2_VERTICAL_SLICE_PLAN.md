@@ -226,9 +226,9 @@ Alembic migration filename: `T8u9v0w1x2y3_add_decision_journal_entries.py` (mirr
 
 `POST /api/v1/recommendations/{recommendation_id}/decisions`:
 - Auth: server-derived JWT user.
-- Headers: `Idempotency-Key` (validated exactly as in `forecasts_generation` route; reused `IdempotencyKeyHeader` model with `extra="forbid"`).
+- Headers: `Idempotency-Key` (validated exactly as in `forecasts_generation` route; reused `IdempotencyKeyHeader` model with `extra="forbid"`) and required `If-Match: "<decision-etag>"`.
 - Body: `{action, decision_etag}` strict — `extra="forbid"`.
-- Decision semantics: ownership is checked against `recommendation.user_id == current_user_id` BEFORE writing; cross-user → 404 with same envelope as missing (`forecast_not_found`) to preserve indistinguishability.
+- Decision semantics: the body decision ETag and quoted `If-Match` value must both match the current server-derived decision resource version (`<recommendation_id>-d1`) before ownership-authorized append; stale, mismatched, malformed, or wildcard preconditions fail closed without a journal write. Ownership is checked against `recommendation.user_id == current_user_id` BEFORE writing; cross-user → 404 with same envelope as missing (`forecast_not_found`) to preserve indistinguishability.
 - 201 success; `Location: /api/v1/decisions/{journal_entry_id}`; `ETag: \"{journal_entry_id}-v1\"`.
 - 409: idempotency-key-hash mismatch with different request body.
 - 422: validation error envelope.

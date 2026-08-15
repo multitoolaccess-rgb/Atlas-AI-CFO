@@ -65,6 +65,10 @@ export type RecommendationRiskToken =
 
 export type DecisionAction = 'accept' | 'reject' | 'defer'
 
+type ETagBrand<Name extends string> = string & { readonly __atlasEtagBrand: Name }
+export type ForecastETag = ETagBrand<'forecast'>
+export type DecisionETag = ETagBrand<'decision'>
+
 export type ForecastCurrency = 'USD'  // Phase 1 USD-only; new currencies require explicit authority
 
 export type ScenarioName = 'conservative' | 'base' | 'optimistic'
@@ -103,7 +107,7 @@ export interface DeterministicRecommendationWire {
   why_now: string  // ≤ 280 chars
   linked_goal_id: number
   forecast_id: string
-  forecast_etag: string
+  forecast_etag: string  // server-derived forecast ETag (uuid-v<n>); never a DecisionETag
   evidence_references: EvidenceReferenceWire
   expected_impact_range: {
     min_delta_decimal: string  // canonical Decimal string
@@ -123,7 +127,7 @@ export interface DeterministicRecommendationWire {
 
 export interface DecisionJournalSubmitBody {
   action: DecisionAction
-  decision_etag: string  // bare uuid-d<n>
+  decision_etag: DecisionETag  // bare uuid-d<n>
 }
 
 // ============================================================
@@ -136,7 +140,7 @@ export interface DecisionJournalEntryWire {
   recommendation_id: string
   action_taken: DecisionAction
   decided_at: string  // UTC RFC 3339 Z
-  decision_etag: string  // bare uuid-d<n>
+  decision_etag: string  // server-derived decision ETag (uuid-d<n>)
   links: LinkEntryWire[]
 }
 
@@ -219,11 +223,37 @@ export type SanitizedErrorCode =
   | 'recommendation_not_found'
   | 'decision_version_conflict'
   | 'forecast_validation_error'
+  | 'decision_etag_unavailable'
   | 'unknown'
 
 export interface SanitizedEnvelope {
   code: SanitizedErrorCode
   message: string
+}
+
+const FORECAST_ETAG_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-v[1-9][0-9]{0,9}$/
+const DECISION_ETAG_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-d[1-9][0-9]{0,9}$/
+
+export function parseForecastETag(value: unknown): ForecastETag | null {
+  return typeof value === 'string' && FORECAST_ETAG_PATTERN.test(value) ? value as ForecastETag : null
+}
+
+export function parseDecisionETag(value: unknown): DecisionETag | null {
+  return typeof value === 'string' && DECISION_ETAG_PATTERN.test(value) ? value as DecisionETag : null
+}
+
+export function parseDecisionETagHeader(value: unknown): DecisionETag | null {
+  if (typeof value !== 'string' || !value.startsWith('"') || !value.endsWith('"')) return null
+  return parseDecisionETag(value.slice(1, -1))
+}
+
+export class DecisionEtagUnavailableError extends Error {
+  readonly code = 'decision_etag_unavailable' as const
+
+  constructor() {
+    super('The authoritative decision version is unavailable.')
+    this.name = 'DecisionEtagUnavailableError'
+  }
 }
 
 // ============================================================
@@ -247,27 +277,24 @@ export function mintIdempotencyKey(): string {
 // ============================================================
 
 export function readSanitizedError(err: unknown): SanitizedEnvelope {
-  const ax = err as AxiosError<{ code?: string; message?: string }>
+  const ax = err as AxiosError<{ code?: unknown }>
   if (
     ax?.isAxiosError &&
     ax.response?.data &&
     typeof ax.response.data === 'object' &&
     typeof (ax.response.data as { code?: unknown }).code === 'string'
   ) {
-    const data = ax.response.data as { code: string; message?: unknown }
-    const validCodes: ReadonlyArray<SanitizedErrorCode> = [
-      'forecast_read_api_unavailable',
-      'forecast_not_found',
-      'recommendation_not_found',
-      'decision_version_conflict',
-      'forecast_validation_error',
-    ]
-    if ((validCodes as ReadonlyArray<string>).includes(data.code)) {
-      return {
-        code: data.code as SanitizedErrorCode,
-        message:
-          typeof data.message === 'string' ? data.message.slice(0, 280) : '',
-      }
+    const code = (ax.response.data as { code: string }).code
+    const messages: Partial<Record<Exclude<SanitizedErrorCode, 'unknown'>, string>> = {
+      forecast_read_api_unavailable: 'Forecast reads are currently disabled.',
+      forecast_not_found: 'Forecast data is unavailable for this goal.',
+      recommendation_not_found: 'The current recommendation is unavailable.',
+      decision_version_conflict: 'The recommendation changed before the decision was recorded. Review it again.',
+      forecast_validation_error: 'The server could not validate the current forecast evidence.',
+      decision_etag_unavailable: 'The server did not provide a current decision version. Review again.',
+    }
+    if (code in messages) {
+      return { code: code as SanitizedErrorCode, message: messages[code as Exclude<SanitizedErrorCode, 'unknown'>] ?? '' }
     }
   }
   return { code: 'unknown', message: '' }
@@ -326,20 +353,46 @@ export async function getLatestForecastForGoal(
  * for the given forecast id.
  *
  * ``GET /api/v1/forecasts/{forecast_id}/recommendation`` returns the
- * frozen ``DeterministicRecommendationEnvelope``. The bare ETag the
- * caller sees in ``forecast_etag`` MUST be echoed back to the journal
- * POST as ``decision_etag`` to preserve the deterministic-replay
- * invariant.
+ * frozen ``DeterministicRecommendationEnvelope`` and a quoted HTTP ETag
+ * header for the authoritative decision resource. The forecast ETag in
+ * the body and decision ETag in the response header are distinct domains;
+ * only the latter may be sent to the journal POST.
  *
  * Sanitized errors: 503 / 404 / 422.
  */
+export interface DerivedRecommendationResource {
+  recommendation: DeterministicRecommendationWire
+  decisionEtag: DecisionETag
+}
+
+function normalizeRecommendation(data: DeterministicRecommendationWire): DeterministicRecommendationWire {
+  const forecastEtag = parseForecastETag(data.forecast_etag)
+  if (!forecastEtag) throw new DecisionEtagUnavailableError()
+  return { ...data, forecast_etag: forecastEtag }
+}
+
+async function fetchDerivedRecommendationResponse(forecastId: string) {
+  return rulesApi.get<DeterministicRecommendationWire>(
+    `/api/v1/forecasts/${forecastId}/recommendation`,
+  )
+}
+
 export async function getDerivedRecommendation(
   forecastId: string,
 ): Promise<DeterministicRecommendationWire> {
-  const resp = await rulesApi.get<DeterministicRecommendationWire>(
-    `/api/v1/forecasts/${forecastId}/recommendation`,
-  )
-  return resp.data
+  const resp = await fetchDerivedRecommendationResponse(forecastId)
+  return normalizeRecommendation(resp.data)
+}
+
+/** Read the recommendation and its authoritative decision ETag together. */
+export async function getDerivedRecommendationResource(
+  forecastId: string,
+): Promise<DerivedRecommendationResource> {
+  const resp = await fetchDerivedRecommendationResponse(forecastId)
+  const rawHeader = resp.headers?.etag ?? resp.headers?.ETag
+  const decisionEtag = parseDecisionETagHeader(rawHeader)
+  if (!decisionEtag) throw new DecisionEtagUnavailableError()
+  return { recommendation: normalizeRecommendation(resp.data), decisionEtag }
 }
 
 // ============================================================
@@ -368,12 +421,14 @@ export async function postDecisionJournal(
   body: DecisionJournalSubmitBody,
   idempotencyKey: string,
 ): Promise<DecisionJournalEntryWire> {
+  if (!parseDecisionETag(body.decision_etag)) throw new DecisionEtagUnavailableError()
   const resp = await rulesApi.post<DecisionJournalEntryWire>(
     `/api/v1/recommendations/${recommendationId}/decisions`,
     body,
     {
       headers: {
         'Idempotency-Key': idempotencyKey,
+        'If-Match': `"${body.decision_etag}"`,
       },
     },
   )
@@ -383,6 +438,7 @@ export async function postDecisionJournal(
 const phase2Api = {
   getLatestForecastForGoal,
   getDerivedRecommendation,
+  getDerivedRecommendationResource,
   postDecisionJournal,
   readSanitizedError,
   mintIdempotencyKey,

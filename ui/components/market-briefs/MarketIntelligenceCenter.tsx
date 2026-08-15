@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   AlertTriangle,
   Archive,
@@ -974,10 +975,15 @@ function ScannerView({ pulse, onRefresh }: { pulse: MarketPulseSnapshot | null; 
 }
 
 export default function MarketIntelligenceCenter() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const queryString = searchParams.toString()
+  const requestedTab = new URLSearchParams(queryString).get('view')
+  const urlTab: TabId = TABS.some(tab => tab.id === requestedTab) ? requestedTab as TabId : 'portfolio'
   const [items, setItems] = useState<BriefIndex[]>([])
   const [brief, setBrief] = useState<MarketBrief | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<TabId>('portfolio')
+  const [activeTab, setActiveTab] = useState<TabId>(urlTab)
   const [archiveStatus, setArchiveStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [archiveError, setArchiveError] = useState<MarketBriefErrorState | null>(null)
   const [detailStatus, setDetailStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
@@ -996,6 +1002,18 @@ export default function MarketIntelligenceCenter() {
     scanner: null,
     archive: null,
   })
+
+  useEffect(() => {
+    setActiveTab(urlTab)
+  }, [urlTab])
+
+  const selectTab = useCallback((tab: TabId) => {
+    const params = new URLSearchParams(queryString)
+    params.set('view', tab)
+    router.replace(`?${params.toString()}`, { scroll: false })
+    setActiveTab(tab)
+    setAnnouncement(`${TABS.find(entry => entry.id === tab)?.label ?? tab} view selected.`)
+  }, [queryString, router])
 
   const loadArchive = useCallback(async () => {
     setArchiveStatus('loading')
@@ -1050,7 +1068,7 @@ export default function MarketIntelligenceCenter() {
       setBrief(result.brief)
       setSelectedId(result.brief_id)
       setDetailStatus('ready')
-      setActiveTab('portfolio')
+      selectTab('portfolio')
       setItems(previous => [
         {
           brief_id: result.brief_id,
@@ -1073,7 +1091,7 @@ export default function MarketIntelligenceCenter() {
     } finally {
       setGenerating(false)
     }
-  }, [])
+  }, [selectTab])
 
   const loadPulse = useCallback(async () => {
     if (pulseStatus === 'loading') return
@@ -1091,11 +1109,6 @@ export default function MarketIntelligenceCenter() {
       setAnnouncement(nextError.title)
     }
   }, [pulseStatus])
-
-  const selectTab = useCallback((tab: TabId) => {
-    setActiveTab(tab)
-    setAnnouncement(`${TABS.find(entry => entry.id === tab)?.label ?? tab} view selected.`)
-  }, [])
 
   const onTabKeyDown = useCallback((event: React.KeyboardEvent<HTMLButtonElement>) => {
     const current = activeTab

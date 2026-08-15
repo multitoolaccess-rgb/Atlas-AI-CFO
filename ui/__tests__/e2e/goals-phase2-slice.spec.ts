@@ -150,7 +150,7 @@ test('goal forecast → recommendation → decision and read-only correction-his
   }))
   await page.route('**/api/v1/forecasts?**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ forecasts: [FORECAST] }) }))
   await page.route(`**/api/v1/forecasts/${FORECAST_ID}/versions/${VERSION.version_number}`, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(VERSION) }))
-  await page.route(`**/api/v1/forecasts/${FORECAST_ID}/recommendation`, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(RECOMMENDATION) }))
+  await page.route(`**/api/v1/forecasts/${FORECAST_ID}/recommendation`, (route) => route.fulfill({ status: 200, contentType: 'application/json', headers: { etag: `"${RECOMMENDATION_ID}-d1"`, 'access-control-expose-headers': 'ETag, Location' }, body: JSON.stringify(RECOMMENDATION) }))
   await page.route(`**/api/v1/goals/${GOAL.id}/decision-history`, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(DECISION_HISTORY) }))
   await page.route(`**/api/v1/goals/${GOAL.id}/decision-history`, async (route) => {
     if (route.request().method() !== 'POST') return route.fallback()

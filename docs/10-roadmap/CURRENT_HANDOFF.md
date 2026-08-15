@@ -9,11 +9,14 @@
 - Overall status: in_progress
 - Objective: Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.
 - Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-08-15T01:02:34Z
+- Tracker updated: 2026-08-15T03:59:13Z
 
 ## Active work
 
-- None
+- work-ui-information-architecture-step-4: Activate Intelligence information architecture migration [blocked/high]
+  - Objective: Atomically activate Decisions, Market Intelligence, Scenario Lab, and global Scout destinations while preserving immutable history, provider boundaries, authoritative Scenario APIs, ownership, and default-off behavior.
+  - Branch: codex/ia-intelligence-migration-step-4
+  - Paths: ui/app, ui/components, ui/lib, docs/06-ui-ux
 
 ## Blockers
 

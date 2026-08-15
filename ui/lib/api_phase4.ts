@@ -1,4 +1,4 @@
-/** Typed, read-only client for the default-off Phase 4 decision-history API. */
+/** Typed client for the default-off Phase 4 decision-history API. */
 import type { AxiosError } from 'axios'
 import rulesApi from '@/lib/api'
 
@@ -30,11 +30,59 @@ export interface DecisionHistoryEnvelope {
   history: DecisionHistoryEntryWire[]
 }
 
-export type DecisionHistoryErrorState = 'unavailable' | 'not_found' | 'error'
+export type DecisionHistoryErrorState = 'unavailable' | 'not_found' | 'conflict' | 'error'
+
+export interface DecisionHistoryWriteBody {
+  recommendation_id: string
+  decision_journal_entry_id: string
+  alternatives: readonly DecisionAlternative[]
+  rationale: string
+}
+
+export interface DecisionHistoryWriteResponse {
+  schema_version: 'atlas-decision-history-envelope/v1'
+  history_id: string
+  decision_action: DecisionAction
+  recorded_at: string
+  replayed: boolean
+}
+
+export interface DecisionHistorySnapshot {
+  historyByGoal: Record<number, DecisionHistoryEntryWire[]>
+  unavailableGoalIds: number[]
+}
 
 export async function getDecisionHistory(goalId: number): Promise<DecisionHistoryEnvelope> {
   const response = await rulesApi.get<DecisionHistoryEnvelope>(
     `/api/v1/goals/${goalId}/decision-history`,
+  )
+  return response.data
+}
+
+export async function getDecisionHistoryForGoals(goalIds: number[]): Promise<DecisionHistorySnapshot> {
+  const results = await Promise.allSettled(goalIds.map(async (goalId) => [goalId, await getDecisionHistory(goalId)] as const))
+  const historyByGoal: Record<number, DecisionHistoryEntryWire[]> = {}
+  const unavailableGoalIds: number[] = []
+  results.forEach((result, index) => {
+    const goalId = goalIds[index]
+    if (result.status === 'fulfilled') historyByGoal[goalId] = result.value[1].history
+    else {
+      historyByGoal[goalId] = []
+      unavailableGoalIds.push(goalId)
+    }
+  })
+  return { historyByGoal, unavailableGoalIds }
+}
+
+export async function recordDecisionHistory(
+  goalId: number,
+  body: DecisionHistoryWriteBody,
+  idempotencyKey: string,
+): Promise<DecisionHistoryWriteResponse> {
+  const response = await rulesApi.post<DecisionHistoryWriteResponse>(
+    `/api/v1/goals/${goalId}/decision-history`,
+    body,
+    { headers: { 'Idempotency-Key': idempotencyKey } },
   )
   return response.data
 }
@@ -45,5 +93,6 @@ export function readDecisionHistoryError(error: unknown): DecisionHistoryErrorSt
   const code = axiosError?.isAxiosError ? axiosError.response?.data?.code : undefined
   if (code === 'decision_history_unavailable') return 'unavailable'
   if (code === 'decision_history_not_found') return 'not_found'
+  if (code === 'decision_history_conflict') return 'conflict'
   return 'error'
 }

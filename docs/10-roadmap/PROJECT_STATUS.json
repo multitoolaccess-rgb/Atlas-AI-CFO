@@ -1,5 +1,26 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "codex/ia-intelligence-migration-step-4",
+      "id": "work-ui-information-architecture-step-4",
+      "issue": "",
+      "objective": "Atomically activate Decisions, Market Intelligence, Scenario Lab, and global Scout destinations while preserving immutable history, provider boundaries, authoritative Scenario APIs, ownership, and default-off behavior.",
+      "paths": [
+        "ui/app",
+        "ui/components",
+        "ui/lib",
+        "docs/06-ui-ux"
+      ],
+      "phase_id": "phase-6",
+      "reason": "PR #51 implementation correction c5336d3 was hosted-validated at eca910640ef96bd815620dcdbc4dc1ea3ae22595; evidence-only tracker/handoff reconciliation is 637f689. The correction enforces required If-Match and body decision ETag equality against the authoritative recommendation decision version, adds stale/mismatched precondition coverage, and aligns Market Intelligence Earnings & Events deep links with view=earnings. Local: UI 628 Vitest; TypeScript, ESLint, production build; Rules Service 1298 passed / 10 skipped / 1 expected xfail; hermetic Goals Playwright 1 passed. Hosted PR #51 status and cheap passed; heavy full+Playwright skipped by established policy. Await a fresh independent exact-head review before merge.",
+      "risk_tier": "high",
+      "status": "blocked",
+      "tests": [
+        "Focused Intelligence route, API-client, privacy, default-off, accessibility, responsive, and frontend certification"
+      ],
+      "title": "Activate Intelligence information architecture migration"
+    }
+  ],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -1042,7 +1063,7 @@
   ],
   "current_objective": "Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T01:02:34Z",
+  "last_updated": "2026-08-15T03:59:13Z",
   "next_bounded_task": {
     "description": "Step 4 - migrate Intelligence atomically: Decisions, Market Intelligence, Scenario Lab, global Scout, and compatibility redirects.",
     "id": "work-ui-information-architecture-step-4",

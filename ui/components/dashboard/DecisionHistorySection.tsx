@@ -6,6 +6,7 @@ import {
   readDecisionHistoryError,
   type DecisionHistoryEntryWire,
   type DecisionAlternative,
+  type DecisionHistorySnapshot,
 } from '@/lib/api_phase4'
 
 interface Goal {
@@ -44,7 +45,7 @@ function dateLabel(value: string): string {
   })
 }
 
-export default function DecisionHistorySection({ goals }: { goals: Goal[] }) {
+export default function DecisionHistorySection({ goals, snapshot }: { goals: Goal[]; snapshot?: DecisionHistorySnapshot }) {
   const [states, setStates] = useState<Record<number, HistoryState>>({})
   const [retryVersion, setRetryVersion] = useState(0)
   const goalKey = goals.map((goal) => goal.id).join('|')
@@ -56,6 +57,15 @@ export default function DecisionHistorySection({ goals }: { goals: Goal[] }) {
   )
 
   useEffect(() => {
+    if (snapshot) {
+      setStates(Object.fromEntries(goalIds.map((goalId) => [
+        goalId,
+        snapshot.unavailableGoalIds.includes(goalId)
+          ? { kind: 'unavailable' }
+          : { kind: 'ready', history: snapshot.historyByGoal[goalId] ?? [] },
+      ])))
+      return
+    }
     let cancelled = false
     setStates(Object.fromEntries(goalIds.map((goalId) => [goalId, { kind: 'loading' } as HistoryState])))
     void Promise.all(goalIds.map(async (goalId) => {
@@ -74,7 +84,7 @@ export default function DecisionHistorySection({ goals }: { goals: Goal[] }) {
   // second fetch: the first setup is cancelled, while the second resolves.
   // Depending on the caller's mapped `goals` array would instead refetch on
   // every parent render.
-  }, [goalIds, retryVersion])
+  }, [goalIds, retryVersion, snapshot])
 
   if (goals.length === 0) return null
 

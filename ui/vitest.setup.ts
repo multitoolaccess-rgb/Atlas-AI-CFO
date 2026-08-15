@@ -102,9 +102,9 @@ beforeAll(() => {
 // be mounted". Provide a no-op stub globally so any test that renders
 // a page component doesn't each need its own mock.
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
-  useRouter: () => ({ replace: vi.fn(), push: vi.fn(), prefetch: vi.fn() }),
-  usePathname: () => '/',
+  useSearchParams: vi.fn(() => new URLSearchParams()),
+  useRouter: vi.fn(() => ({ replace: vi.fn(), push: vi.fn(), prefetch: vi.fn() })),
+  usePathname: vi.fn(() => '/'),
 }))
 
 // ---- NotificationContext mock ------------------------------------------

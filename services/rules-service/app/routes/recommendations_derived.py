@@ -29,7 +29,11 @@ from sqlalchemy.orm import Session
 from app.auth import require_user
 from app.config import settings
 from app.database import SessionLocal
-from app.forecasts.api_codecs import format_decision_etag_header
+from app.forecasts.api_codecs import (
+    derive_decision_etag,
+    format_decision_etag_header,
+    parse_decision_etag_header,
+)
 from app.forecasts.canonical_state import (
     MAX_IDEMPOTENCY_KEY_LENGTH,
     validate_idempotency_key,
@@ -351,6 +355,11 @@ async def post_decision_journal_entry(
         alias="Idempotency-Key",
         max_length=MAX_IDEMPOTENCY_KEY_LENGTH,
     ),
+    if_match_value: Optional[str] = Header(
+        default=None,
+        alias="If-Match",
+        max_length=96,
+    ),
 ) -> JSONResponse:
     """Append one decision-journal row for an owned recommendation.
 
@@ -398,12 +407,43 @@ async def post_decision_journal_entry(
             loc=("body",), type_="value_error"
         )
 
+    if if_match_value is None:
+        return _validation_error_response(
+            loc=("header", "If-Match"), type_="value_error.missing"
+        )
+    try:
+        if_match_etag = parse_decision_etag_header(if_match_value)
+    except Exception:
+        return _validation_error_response(
+            loc=("header", "If-Match"), type_="value_error.invalid"
+        )
+    if if_match_etag is None:
+        return _validation_error_response(
+            loc=("header", "If-Match"), type_="wildcard_not_allowed"
+        )
+
     user_id = _resolve_db_user_id(db, user_sub)
 
     recommendation_row = db.get(Recommendation, recommendation_id)
     if recommendation_row is None or int(recommendation_row.user_id) != user_id:
         # Same envelope for missing AND cross-user for indistinguishability.
         return _recommendation_not_found_response()
+
+    # The recommendation row is the immutable, server-owned decision
+    # resource. Its current decision version is distinct from the
+    # forecast version and is the only value accepted by both the body
+    # and If-Match precondition. Do this before opening the journal write.
+    current_decision_etag = derive_decision_etag(
+        source_id=str(recommendation_row.id), version=1
+    )
+    submitted_header_etag = derive_decision_etag(
+        source_id=if_match_etag.source_id, version=if_match_etag.version
+    )
+    if (
+        submit.decision_etag != current_decision_etag
+        or submitted_header_etag != current_decision_etag
+    ):
+        return _decision_conflict_response(current_etag=current_decision_etag)
 
     journal_service = DecisionJournalService(db)
     try:

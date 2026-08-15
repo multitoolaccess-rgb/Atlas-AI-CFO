@@ -36,7 +36,10 @@ const {
 
 vi.mock('@/lib/api_phase2', () => ({
   getLatestForecastForGoal: mockGetLatestForecastForGoal,
-  getDerivedRecommendation: mockGetDerivedRecommendation,
+  getDerivedRecommendationResource: async (forecastId: string) => ({
+    recommendation: await mockGetDerivedRecommendation(forecastId),
+    decisionEtag: 'aabbccdd-1111-4111-8111-aaaaaaaaaaaa-d1' as never,
+  }),
   postDecisionJournal: mockPostDecisionJournal,
   readSanitizedError: (err: unknown) => {
     const e = err as {
