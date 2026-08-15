@@ -2,7 +2,7 @@
 
 - **Audit date:** 2026-08-15
 - **Audited commit:** `ff85ad7bc39680a2beb13533795478e515cda931`
-- **Verdict:** **Conditionally ready for isolated local exploration; not ready for unattended or fully activated personal use.**
+- **Verdict:** **Conditionally ready for isolated local exploration; readiness tooling is implemented, but not ready for unattended or fully activated personal use.**
 - **Phase status:** Phases 0–6 certified locally; Phase 7 not started.
 - **Related:** [Capability Matrix](../10-roadmap/ATLAS_CAPABILITY_MATRIX.md), [System Health Audit](./SYSTEM_HEALTH_AUDIT.md), [UI Acceptance Matrix](../06-ui-ux/UI_ACCEPTANCE_MATRIX.md), [Remediation Backlog](../10-roadmap/REMEDIATION_BACKLOG.md), [Personal Mode Proposal](./PERSONAL_MODE_PROPOSAL.md).
 
@@ -31,7 +31,7 @@ This score is deliberately capped below launch-ready because a complete enabled 
 | Feature completeness | 58 | Phases 0–6 are implemented, but key server capabilities are intentionally default-off and real local provider readiness is not established. |
 | UI usability | 79 | Final IA, shared shell, accessible states, URL routing, responsive checks and route-mocked journeys are strong; older screenshot inventory is partly harness-limited. |
 | Reliability | 72 | Local tests, isolated E2E lifecycle, health endpoints and recovery states pass; startup has known migration/seed complexity and no full personal restart drill was completed. |
-| Operations | 63 | `start.sh`, isolated test harness, separate environments and health probes exist; setup remains multi-service and there is no supported Doctor/readiness command. |
+| Operations | 68 | `start.sh`, Atlas Doctor, isolated test harness, separate environments, and health probes exist; a full service-restart and personal backup/restore drill remains open. |
 | Maintainability | 62 | Typed Phase 6/5 boundaries and shared IA are good; legacy simulation components, duplicate service wiring, legacy names and float-based presentation paths remain. |
 | Documentation | 76 | Phase contracts, ADRs, handoff, status and engineering guides are substantial; personal activation and backup/recovery documentation need the waves below. |
 
@@ -51,6 +51,8 @@ The overall score is a risk-weighted judgment, not an average of green tests.
 ## Implemented but unavailable or not proven operationally
 
 - Forecast persistence/read API, decision-history API, Scenario Lab, and Market Brief provider/generation capabilities remain server-owned and default-off in checked-in configuration.
+- Wave 1A now provides `python3 scripts/atlas_doctor.py` and authenticated Settings → Readiness checks; both keep server-owned flags and currency uncertainty fail-closed.
+- The disposable synthetic acceptance command runs focused forecast, recommendation, decision-history, outcome, scenario, and fake-provider contract suites in a temporary SQLite database with test-only flags.
 - A complete enabled financial journey was not run because doing so would require an explicit local configuration and an authoritative currency-ready synthetic dataset; the audit did not silently enable flags.
 - Real Finnhub/SEC provider calls, Plaid connectivity, OCR, Ollama, email delivery, scheduler, brokerage, trading, and money movement were not used.
 - Personal SQLite backup/restore, migration downgrade with retained personal records, and restart persistence were not exercised against a personal database.
@@ -69,8 +71,8 @@ No new evidence shows a critical financial-integrity, authorization, privacy, or
 
 ## Highest-value P2/P3 findings
 
-- **P2:** Add Atlas Doctor and System → Readiness design/implementation so missing environments, health, migration head, feature flags, and provider readiness are visible without exposing secrets.
-- **P2:** Add a non-destructive isolated personal-mode acceptance fixture/runbook for forecast → decision → history → Scenario Lab, with currency proof required.
+- **Completed Wave 1A:** Atlas Doctor, authenticated readiness contract/UI, and disposable synthetic acceptance command now expose safe recovery state without secrets or financial values.
+- **P2:** Complete the isolated service-restart/persistence and backup/restore acceptance drill after authoritative currency is resolved.
 - **P2:** Add a documented backup/restore drill for SQLite WAL files and migration recovery.
 - **P2:** Reconcile screenshot matrix route inventory with the final IA so legacy aliases are labelled as compatibility captures and migrated destinations are captured directly.
 - **P3:** Quarantine or remove legacy client-side simulation calculators after compatibility references are no longer needed; do not make them financial authority.
@@ -81,7 +83,7 @@ No new evidence shows a critical financial-integrity, authorization, privacy, or
 
 - No real local provider credentials or provider network were used.
 - No personal database was opened, inspected, migrated, backed up, or modified.
-- No enabled feature-flag journey was certified in this audit.
+- No enabled feature-flag journey was certified against a personal database; the new acceptance command enables flags only inside a disposable synthetic test process.
 - No production deployment or external multi-user behavior is implied.
 - The full screenshot matrix is not a clean final-IA acceptance artifact because its checked-in test still includes compatibility routes; 126 transient captures are retained outside Git for audit reference.
 

@@ -8,7 +8,7 @@
 - Last updated: 2026-08-15T17:28:05Z
 
 ## Active work
-- None
+- work-personal-use-activation-readiness-wave-1a: Implement personal-use readiness and synthetic acceptance (in_progress, medium)
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}

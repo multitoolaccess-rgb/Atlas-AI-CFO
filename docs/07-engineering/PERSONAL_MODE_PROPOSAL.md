@@ -2,7 +2,7 @@
 
 - **Audit date:** 2026-08-15
 - **Audited commit:** `ff85ad7bc39680a2beb13533795478e515cda931`
-- **Status:** design only; this audit does not implement a startup profile, flag changes, Doctor command, or Readiness screen.
+- **Status:** Wave 1A implementation complete for read-only diagnostics, readiness observation, synthetic contract acceptance, and activation/recovery guidance. Personal Mode still sets no financial or provider flags automatically.
 - **Related:** [Personal-Use Readiness Report](./PERSONAL_USE_READINESS_REPORT.md), [System Health Audit](./SYSTEM_HEALTH_AUDIT.md), [Remediation Backlog](../10-roadmap/REMEDIATION_BACKLOG.md), [Scenario Lab Contract](./SCENARIO_LAB_CONTRACT.md).
 
 ## Design principles
@@ -42,9 +42,9 @@ All checked-in defaults remain unchanged: `false` unless noted. Personal Mode mu
 
 ## Proposed Atlas Doctor command
 
-Design target: `python3 scripts/atlas_doctor.py` (not implemented here).
+Implemented command: `python3 scripts/atlas_doctor.py` (readable summary) or `python3 scripts/atlas_doctor.py --json` (stable machine-readable output). It is read-only and returns exit code 0 for ready, 1 for ready with blocked optional capabilities, 2 for configuration failure, and 3 for unsafe state.
 
-The command should be read-only by default and report:
+The command reports:
 
 - Git SHA and clean/dirty state.
 - Python/Node versions and required environment paths.
@@ -59,7 +59,7 @@ It must never print JWT secrets, provider keys, raw credentials, personal financ
 
 ## Proposed System → Readiness screen
 
-The screen should be an operational read-only surface, not a new financial dashboard. Sections:
+Implemented surface: Settings includes a read-only Readiness section backed by the authenticated `GET /api/system/readiness` contract. It is an operational surface, not a new financial dashboard. Sections:
 
 1. **Runtime:** UI/API/Finlynq health, SHA, ports, environment.
 2. **Storage:** selected DB mode, migration head, backup freshness, WAL state.
@@ -67,6 +67,18 @@ The screen should be an operational read-only surface, not a new financial dashb
 4. **Intelligence:** decision-history, market provider readiness, Scenario Lab readiness.
 5. **Privacy and boundaries:** local-only status, credentials absent/present (boolean only), email/scheduler/execution disabled.
 6. **Recovery:** copyable bounded next steps linking to Help; no raw errors.
+
+## Supported local commands
+
+```bash
+# Redacted local diagnostics; never mutates flags, databases, migrations, or processes.
+python3 scripts/atlas_doctor.py --json
+
+# Disposable synthetic contract acceptance; uses a temporary SQLite database and fake/stub providers.
+python3 scripts/synthetic_personal_acceptance.py
+```
+
+The acceptance command scopes forecast, recommendation, decision-history, and Scenario Lab flags only to child test processes. It deliberately leaves external Market Intelligence, email, scheduler, and local summarization disabled. Its focused suites cover immutable generation, decisions, history, outcomes, comparisons, archive behavior, and persistence across a reopened database session; a full service restart remains a separate release-boundary evidence item.
 
 ## Safe activation tiers
 
@@ -84,12 +96,12 @@ Tier 3 does not imply multi-user production readiness or external rollout.
 - Remove an explicit local override by restoring the flag to `false`; never mutate persisted financial history as a rollback mechanism.
 - Keep acceptance databases disposable and separate from any personal database.
 
-## Evidence gaps before implementation
+## Remaining evidence gaps
 
 - Authoritative currency source and operator acceptance wording require a high-risk product/data decision.
 - Backup freshness and restore semantics need an approved local storage policy.
 - A supported local provider credential flow is not yet documented end-to-end.
-- A readiness API would need a bounded contract review to avoid exposing sensitive configuration.
+- A full service restart/personal database recovery drill remains unproven and belongs to the release-boundary acceptance wave.
 
 ## Recommendation
 

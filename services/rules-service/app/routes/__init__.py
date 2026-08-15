@@ -111,6 +111,7 @@ from app.routes.evaluate import router as evaluate_router
 from app.routes.market_briefs import router as market_briefs_router
 # Phase 6 Slice 1 — authoritative Scenario Lab backend APIs.
 from app.routes.scenarios import router as scenarios_router
+from app.routes.readiness import router as readiness_router
 
 __all__ = [
     "accounts_router",
@@ -135,4 +136,5 @@ __all__ = [
     "forecasts_generation_router",
     "market_briefs_router",
     "scenarios_router",
+    "readiness_router",
 ]

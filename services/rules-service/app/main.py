@@ -90,6 +90,7 @@ from app.routes import (
     decision_history_router,
     market_briefs_router,
     scenarios_router,
+    readiness_router,
 )
 
 LOG = logging.getLogger("uvicorn.error")
@@ -476,6 +477,8 @@ app.include_router(decision_history_router)
 app.include_router(market_briefs_router)
 # Phase 6 Slice 1 — default-off owner-scoped Scenario Lab backend only.
 app.include_router(scenarios_router)
+# Wave 1A — authenticated, sanitized local readiness; read-only and server-owned.
+app.include_router(readiness_router)
 
 
 @app.on_event("startup")

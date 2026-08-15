@@ -1,5 +1,25 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "id": "work-personal-use-activation-readiness-wave-1a",
+      "title": "Implement personal-use readiness and synthetic acceptance",
+      "status": "in_progress",
+      "phase_id": "phase-6",
+      "paths": [
+        "scripts",
+        "services/rules-service/app",
+        "services/rules-service/tests",
+        "ui",
+        "docs/07-engineering",
+        "docs/10-roadmap"
+      ],
+      "objective": "Add a read-only Atlas Doctor, sanitized authenticated readiness surface, Settings readiness view, disposable synthetic acceptance command, and personal activation/recovery documentation without enabling financial or provider capabilities.",
+      "risk_tier": "medium",
+      "branch": "codex/wave-1a-readiness-synthetic-acceptance",
+      "issue": "",
+      "tests": "Focused Doctor, readiness API/UI, synthetic acceptance, typecheck, lint, route-mocked browser, tracker, handoff, compilation, shell, and sensitive-pattern validation"
+    }
+  ],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",

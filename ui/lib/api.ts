@@ -744,6 +744,29 @@ export function classifyCashflow(txn: {
   return _result(absAmt, 'needs_review', 'transfer', true, `Unrecognized account type "${at}" — add classification rules for this type.`)
 }
 
+export type ReadinessState = 'ready' | 'unavailable' | 'blocked' | 'degraded' | 'disabled'
+export type OverallReadinessState = 'ready' | 'ready_with_blocked_optional_capabilities' | 'configuration_failure' | 'unsafe_state'
+
+export interface ReadinessComponent {
+  component: string
+  state: ReadinessState
+  reason_code: string
+  recovery_action: string
+  last_checked: string
+  dependencies: Record<string, boolean>
+  version?: string | null
+}
+
+export interface ReadinessResponse {
+  schema_version: 'atlas-readiness/v1'
+  overall_state: OverallReadinessState
+  checked_at: string
+  checks: ReadinessComponent[]
+  feature_flags: Record<string, boolean>
+  credentials: Record<string, boolean>
+  prohibited_capabilities: Record<string, 'disabled' | 'not_configured'>
+}
+
 export interface Profile {
   id: number
   email: string
@@ -1518,6 +1541,11 @@ export const rulesService = {
 
   getProfile: async (): Promise<Profile> => {
     const response = await api.get('/api/profile/')
+    return response.data
+  },
+
+  getReadiness: async (): Promise<ReadinessResponse> => {
+    const response = await api.get('/api/system/readiness')
     return response.data
   },
 

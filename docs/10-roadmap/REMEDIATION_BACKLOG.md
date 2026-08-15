@@ -3,7 +3,7 @@
 - **Audit date:** 2026-08-15
 - **Audited commit:** `ff85ad7bc39680a2beb13533795478e515cda931`
 - **Source:** [Personal-Use Readiness Report](../07-engineering/PERSONAL_USE_READINESS_REPORT.md) and [System Health Audit](../07-engineering/SYSTEM_HEALTH_AUDIT.md).
-- **Status:** planning only; no remediation is started by this audit.
+- **Status:** Wave 1A implementation is complete; authoritative currency, backup/recovery, and full activation remain deferred to the next bounded task.
 
 ## Priority definitions
 
@@ -16,6 +16,13 @@
 
 **Risk:** Medium, with high-risk gates for currency or flag changes.
 **Priority:** P1.
+
+### Wave 1A completed
+
+- Implemented `scripts/atlas_doctor.py` with redacted text/JSON output and deterministic exit codes.
+- Implemented authenticated `GET /api/system/readiness` and Settings → Readiness.
+- Added `scripts/synthetic_personal_acceptance.py` with disposable SQLite and test-scoped flags.
+- Added activation/recovery commands and explicit default-off boundaries to the Personal Mode proposal.
 
 ### Include
 
@@ -32,7 +39,7 @@
 **Likely files:** `start.sh`, `scripts/`, `services/rules-service/app/config.py` only if a bounded readiness surface is authorized, System/Help docs, tests, and `docs/07-engineering/PERSONAL_MODE_PROPOSAL.md`.
 **Validation:** governance tests; focused config/readiness tests; isolated synthetic route-mocked and live-stack journey; no personal DB.
 **Rollback:** revert readiness/runbook changes; keep all server-owned defaults unchanged.
-**Completion criteria:** one repeatable local command reports prerequisites without leaking secrets; enabled/disabled states are both tested; currency and ownership gates remain fail-closed.
+**Completion criteria:** one repeatable local command reports prerequisites without leaking secrets; enabled/disabled states are both tested; currency and ownership gates remain fail-closed. Wave 1A satisfies the diagnostics, readiness, and disposable synthetic-command portions; currency authority and backup/recovery remain open.
 
 ## Wave 2 — Financial and data correctness
 

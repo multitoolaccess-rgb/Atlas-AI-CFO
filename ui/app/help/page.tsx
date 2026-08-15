@@ -27,6 +27,14 @@ const FAQ = [
     a: 'Settings controls Light, Dark, or System mode and the Indigo Intelligence, Vermilion Energy, or Ion Future accent profile. Profiles change presentation only; gains, losses, warnings, and critical states retain their financial meaning.',
   },
   {
+    q: 'How do I check local readiness?',
+    a: 'Open Settings → Readiness for the authenticated, server-owned operational snapshot. For a terminal-only check, run `python3 scripts/atlas_doctor.py`; use `--json` for machine-readable output. Both surfaces omit secrets and financial values and never change flags or databases.',
+  },
+  {
+    q: 'How do I run synthetic acceptance?',
+    a: 'Run `python3 scripts/synthetic_personal_acceptance.py`. It uses a disposable SQLite database, synthetic USD fixtures, fake/stub providers, and test-scoped flags. It does not access the personal database or call email, schedulers, real providers, LLMs, trading, or money movement.',
+  },
+  {
     q: 'What are Atlas data limitations?',
     a: 'Atlas is a personal, pre-production application. Source coverage, currency authority, provider availability, and historical completeness can be limited. Review the source, freshness, and limitation labels before relying on any summary; missing evidence is not treated as zero.',
   },
@@ -95,6 +103,16 @@ export default function HelpPage() {
             )
           })}
         </ul>
+      </section>
+
+      <section className="card p-6 mb-6" aria-labelledby="help-readiness-title" data-testid="help-readiness-runbook">
+        <div className="flex items-center gap-2 mb-2">
+          <HelpCircle className="w-5 h-5 text-primary" aria-hidden="true" />
+          <h2 id="help-readiness-title" className="headline-md text-primary">Local readiness runbook</h2>
+        </div>
+        <p className="body-md text-secondary">Start with the default Atlas shell. Keep financial, market-provider, email, scheduler, local-LLM, execution, trading, and money-movement flags off unless a separately reviewed local activation gate is satisfied. Read the Settings → Readiness recovery action before changing anything.</p>
+        <pre className="mt-4 overflow-x-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-surface-container p-4 text-xs text-secondary" aria-label="Readiness commands"><code>{'python3 scripts/atlas_doctor.py --json\npython3 scripts/synthetic_personal_acceptance.py'}</code></pre>
+        <p className="body-md text-secondary mt-3">Rollback is configuration-only: restore any explicit local override to false. Never delete or downgrade immutable financial history as a rollback mechanism.</p>
       </section>
 
       <section className="card p-6" aria-labelledby="help-recovery-title">

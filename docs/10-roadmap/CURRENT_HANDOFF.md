@@ -13,7 +13,10 @@
 
 ## Active work
 
-- None
+- work-personal-use-activation-readiness-wave-1a: Implement personal-use readiness and synthetic acceptance [in_progress/medium]
+  - Objective: Add a read-only Atlas Doctor, sanitized authenticated readiness surface, Settings readiness view, disposable synthetic acceptance command, and personal activation/recovery documentation without enabling financial or provider capabilities.
+  - Branch: codex/wave-1a-readiness-synthetic-acceptance
+  - Paths: scripts, services/rules-service/app, services/rules-service/tests, ui, docs/07-engineering, docs/10-roadmap
 
 ## Blockers
 

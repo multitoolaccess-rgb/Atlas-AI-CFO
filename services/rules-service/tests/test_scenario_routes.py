@@ -116,6 +116,22 @@ def test_generate_read_compare_list_and_archive_are_owner_scoped(scenario_world)
     assert client.get("/api/v1/goals/999/scenarios").status_code == 404
 
 
+def test_archived_history_survives_new_database_session(scenario_world):
+    client, db, _adapter = scenario_world
+    generated = client.post("/api/v1/goals/1/scenarios", json={"monthly_contribution_delta": "25"}, headers={"Idempotency-Key": "restart-session-1"})
+    assert generated.status_code == 201
+    scenario_id = generated.json()["scenario_id"]
+    archived = client.post(f"/api/v1/scenarios/{scenario_id}/archive", headers={"Idempotency-Key": "restart-session-archive"})
+    assert archived.status_code == 200
+    db.close()
+    with SessionLocal() as reopened:
+        persisted = reopened.execute(select(ForecastVersion).where(ForecastVersion.id == "22222222-2222-4222-8222-222222222222")).scalar_one()
+        assert persisted.version_number == 1
+    historical = client.get(f"/api/v1/scenarios/{scenario_id}/versions/1")
+    assert historical.status_code == 200
+    assert historical.json()["lifecycle_state"] == "archived"
+
+
 def test_strict_body_rejects_owner_state_hash_and_result_fields_without_echo(scenario_world):
     client, _, _ = scenario_world
     response = client.post(

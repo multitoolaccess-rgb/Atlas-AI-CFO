@@ -82,7 +82,7 @@ The certified Phases 0–6 implementation has strong server-authority, immutabil
 - Legacy names (`Finance Copilot`, `WealthIQ`, `CashFlix`, `Finlynq`) and compatibility layers increase discovery and maintenance cost.
 - Finlynq’s shared database and create-all startup path differ from Rules Service’s explicit migration path.
 - The route screenshot matrix still enumerates legacy aliases as if they were primary pages, which can drift from the final IA.
-- No supported readiness/doctor surface summarizes migration head, service health, flags, or provider configuration.
+- Wave 1A now provides a read-only Atlas Doctor and authenticated Settings → Readiness surface for migration head, service health, flags, and provider configuration; full service-restart and backup/restore acceptance remain open.
 
 **Disposition:** P2 readiness/activation; P3 terminology and inventory cleanup.
 
@@ -120,7 +120,8 @@ The certified Phases 0–6 implementation has strong server-authority, immutabil
 - Some startup hooks seed categories/recommendations and recalculate Finlynq balances; this is operationally consequential and should be surfaced in a readiness report.
 - No audit-time provider or enabled scenario mutation was attempted.
 
-**Disposition:** P2 Atlas Doctor/readiness design; P3 startup observability and migration convergence.
+**Disposition:** Wave 1A readiness implementation is complete; P2 startup/restart observability and backup/recovery remain open, with P3 migration convergence.
+
 
 ## Repository health
 
@@ -151,7 +152,7 @@ The certified Phases 0–6 implementation has strong server-authority, immutabil
 
 - Normal startup still requires two Python environments, Node dependencies, and a shared local DB convention.
 - `start.sh` forces the Rules Service database path to `services/rules-service/finance.db`; operators must use the hermetic E2E harness for mutation testing.
-- There is no one-command doctor/readiness report or documented personal backup/restore command.
+- Atlas Doctor and Settings → Readiness now provide bounded diagnostics; a documented personal backup/restore command and service-restart drill remain open.
 - GitHub is storage/history only; local validation evidence is authoritative and hosted CI is intentionally disabled.
 
 ## Overall disposition

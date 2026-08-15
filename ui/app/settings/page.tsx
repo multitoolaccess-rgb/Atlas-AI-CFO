@@ -22,6 +22,7 @@ import {
 import { classifyErrorMessage } from '@/lib/errors'
 import { fireDataRefresh } from '@/lib/dataRefresh'
 import AppearanceSection from '@/components/settings/AppearanceSection'
+import ReadinessSection from '@/components/settings/ReadinessSection'
 import PageHeader from '@/components/ui/PageHeader'
 
 /**
@@ -1666,6 +1667,7 @@ export default function SettingsPage() {
       />
 
       <AppearanceSection />
+      <ReadinessSection />
 
       {error && (
         // variant="warning" (amber) — the profile-load failure is
