@@ -5,10 +5,10 @@
 - Current phase: **phase-6 — Scenario Lab** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.
-- Last updated: 2026-08-15T01:02:47Z
+- Last updated: 2026-08-15T01:57:29Z
 
 ## Active work
-- work-ui-information-architecture-step-4: Activate Intelligence information architecture migration (in_progress, high)
+- work-ui-information-architecture-step-4: Activate Intelligence information architecture migration (blocked, high)
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}

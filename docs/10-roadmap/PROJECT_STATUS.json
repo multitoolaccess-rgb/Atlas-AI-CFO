@@ -12,8 +12,9 @@
         "docs/06-ui-ux"
       ],
       "phase_id": "phase-6",
+      "reason": "Step 4 correction head 8ffc670 is pushed and hosted status/cheap checks pass, but the required fresh independent read-only re-review cannot be created in this checkout; heavy full+Playwright remains skipped by repository policy. Do not merge until an independent reviewer records an exact-head verdict.",
       "risk_tier": "high",
-      "status": "in_progress",
+      "status": "blocked",
       "tests": [
         "Focused Intelligence route, API-client, privacy, default-off, accessibility, responsive, and frontend certification"
       ],
@@ -1062,7 +1063,7 @@
   ],
   "current_objective": "Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T01:02:47Z",
+  "last_updated": "2026-08-15T01:57:29Z",
   "next_bounded_task": {
     "description": "Step 4 - migrate Intelligence atomically: Decisions, Market Intelligence, Scenario Lab, global Scout, and compatibility redirects.",
     "id": "work-ui-information-architecture-step-4",
