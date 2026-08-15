@@ -45,9 +45,9 @@ export const PROPOSED_NAVIGATION: readonly ProposedNavigationGroup[] = [
     { id: 'goals', label: 'Goals', path: '/goals', icon: 'goals', activeMatch: ['/goals'], activated: true, tabs: [tab('goals', 'Goals'), tab('forecasts', 'Forecasts'), tab('progress', 'Progress')] },
   ] },
   { id: 'intelligence', label: 'Intelligence', destinations: [
-    { id: 'decisions', label: 'Decisions', path: '/decisions', icon: 'decisions', activeMatch: ['/decisions'], activated: false, tabs: [tab('recommendations', 'Recommendations'), tab('journal', 'Decision journal'), tab('outcomes', 'Outcomes')] },
-    { id: 'market-intelligence', label: 'Market Intelligence', path: '/market-intelligence', icon: 'market-intelligence', activeMatch: ['/market-intelligence'], activated: false, tabs: [tab('portfolio', 'My Portfolio'), tab('pulse', 'Market Pulse'), tab('events', 'Earnings & Events'), tab('scanner', 'S&P 500 Scanner'), tab('archive', 'Archive')] },
-    { id: 'scenario-lab', label: 'Scenario Lab', path: '/scenario-lab', icon: 'scenario-lab', activeMatch: ['/scenario-lab'], activated: false, tabs: [tab('scenarios', 'Scenarios'), tab('comparisons', 'Comparisons'), tab('life-events', 'Life events'), tab('financial-twin', 'Financial Twin')] },
+    { id: 'decisions', label: 'Decisions', path: '/decisions', icon: 'decisions', activeMatch: ['/decisions'], activated: true, tabs: [tab('recommendations', 'Recommendations'), tab('journal', 'Decision journal'), tab('outcomes', 'Outcomes')] },
+    { id: 'market-intelligence', label: 'Market Intelligence', path: '/market-intelligence', icon: 'market-intelligence', activeMatch: ['/market-intelligence'], activated: true, tabs: [tab('portfolio', 'My Portfolio'), tab('pulse', 'Market Pulse'), tab('events', 'Earnings & Events'), tab('scanner', 'S&P 500 Scanner'), tab('archive', 'Archive')] },
+    { id: 'scenario-lab', label: 'Scenario Lab', path: '/scenario-lab', icon: 'scenario-lab', activeMatch: ['/scenario-lab'], activated: true, tabs: [tab('scenarios', 'Scenarios'), tab('comparisons', 'Comparisons'), tab('life-events', 'Life events'), tab('financial-twin', 'Financial Twin')] },
   ] },
   { id: 'system', label: 'System', destinations: [
     { id: 'data-connections', label: 'Data Connections', path: '/data-connections', icon: 'data-connections', activeMatch: ['/data-connections'], activated: false, tabs: [tab('accounts', 'Accounts'), tab('imports', 'Imports'), tab('synchronization', 'Synchronization'), tab('data-quality', 'Data quality')] },
@@ -68,7 +68,7 @@ export const COMPATIBILITY_REDIRECTS = [
   { from: '/accounts', to: '/data-connections', view: 'accounts' },
 ] as const
 
-export const ACTIVE_COMPATIBILITY_REDIRECTS = COMPATIBILITY_REDIRECTS.filter(({ from }) => ['/income', '/expenses', '/activity', '/budgeting', '/debts', '/universe'].includes(from))
+export const ACTIVE_COMPATIBILITY_REDIRECTS = COMPATIBILITY_REDIRECTS.filter(({ from }) => ['/income', '/expenses', '/activity', '/budgeting', '/debts', '/universe', '/recommendations', '/market-briefs'].includes(from))
 
 export const SCOUT_PLACEMENT_CONTRACT = {
   futureLocation: 'global-header',

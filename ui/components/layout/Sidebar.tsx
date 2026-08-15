@@ -15,6 +15,7 @@ import {
   PanelLeftOpen,
   ChevronDown,
   Newspaper,
+  Orbit,
   ArrowDownUp,
   CalendarDays,
 } from 'lucide-react';
@@ -63,11 +64,18 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    key: 'intelligence',
+    label: 'Intelligence',
+    items: [
+      { name: 'Decisions', href: '/decisions', icon: BrainCircuit },
+      { name: 'Market Intelligence', href: '/market-intelligence', icon: Newspaper },
+      { name: 'Scenario Lab', href: '/scenario-lab', icon: Orbit },
+    ],
+  },
+  {
     key: 'tools',
     label: 'Tools',
     items: [
-      { name: 'Recommendations', href: '/recommendations', icon: BrainCircuit },
-      { name: 'Market Briefs', href: '/market-briefs', icon: Newspaper },
       { name: 'Activity', href: '/cash-flow?view=transactions', icon: History },
       { name: 'Accounts', href: '/accounts', icon: Landmark },
     ],
