@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Account, AccountCurrencyEvidence, Goal, GoalProjectionConfig, User
 from app.projection_state.currency import derive_effective_currency, effective_currency_for_account, validate_stable_reference
+from app.projection_state.observation import account_observation_state
 
 
 PROJECTION_STATE_SCHEMA_VERSION = "atlas-projection-state/v1"
@@ -147,7 +148,10 @@ def build_projection_state(
             raise ProjectionStateUnavailable("currency_evidence_incomplete")
         if account.account_type not in LIABILITY_ACCOUNT_TYPES | ASSET_ACCOUNT_TYPES:
             raise ProjectionStateUnavailable("projection_state_unavailable")
-        balance_observed = _utc(account.last_sync)
+        balance_state = account_observation_state(db, account, now=current_time)
+        if balance_state.state != "ready" or balance_state.observed_at is None:
+            raise ProjectionStateUnavailable(balance_state.reason_code)
+        balance_observed = balance_state.observed_at
         currency_observed = effective.observed_at
         included_observed = min(balance_observed, currency_observed)
         if included_observed > current_time:

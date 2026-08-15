@@ -14,10 +14,12 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
 import sqlite3
+from decimal import Decimal, InvalidOperation
 from datetime import datetime, timedelta, timezone
 import subprocess
 import sys
@@ -242,6 +244,94 @@ def _currency_authority_snapshot(conn: sqlite3.Connection) -> dict[str, str]:
     return {"state": "ready", "reason_code": "currency_authority_ready", "recovery_action": "No action required."}
 
 
+def _canonical_balance(value: Any) -> str:
+    if isinstance(value, bool) or value is None:
+        raise ValueError("balance_invalid")
+    try:
+        parsed = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ValueError("balance_invalid") from exc
+    if not parsed.is_finite() or parsed.copy_abs() > Decimal("1E+24"):
+        raise ValueError("balance_invalid")
+    rendered = format(parsed, "f")
+    if "." in rendered:
+        rendered = rendered.rstrip("0").rstrip(".")
+    return rendered or "0"
+
+
+def _balance_hash_from_row(row: tuple[Any, ...]) -> str:
+    account_id, user_id, account_type, current_balance, is_active = row
+    payload = {
+        "account_id": int(account_id),
+        "account_type": account_type,
+        "balance_representation": _canonical_balance(current_balance),
+        "is_active": bool(is_active),
+        "user_id": int(user_id),
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")).hexdigest()
+
+
+def _balance_observation_snapshot(conn: sqlite3.Connection) -> dict[str, Any]:
+    try:
+        accounts = conn.execute(
+            "SELECT id, user_id, account_type, current_balance, is_active, last_sync FROM accounts WHERE is_active = 1 ORDER BY id"
+        ).fetchall()
+        events = conn.execute(
+            """SELECT id, user_id, account_id, source_kind, actor_category, observed_at,
+                      precondition_hash, recorded_at
+               FROM account_balance_observations
+               ORDER BY recorded_at DESC, id DESC"""
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return {"state": "blocked", "reason_code": "balance_observation_incomplete", "recovery_action": "Run the explicit local balance-observation operator after reviewing the stored balances."}
+    if not accounts:
+        return {"state": "blocked", "reason_code": "balance_observation_incomplete", "recovery_action": "No active account observation scope is available."}
+    latest: dict[int, tuple[Any, ...]] = {}
+    for event in events:
+        latest.setdefault(int(event[2]), event)
+    now = datetime.now(timezone.utc)
+    reasons: list[str] = []
+    for account in accounts:
+        event = latest.get(int(account[0]))
+        if event is None:
+            reasons.append("balance_observation_unknown")
+            continue
+        if event[1] != account[1] or event[3] != "operator_confirmed" or event[4] != "local_operator":
+            reasons.append("balance_observation_incomplete")
+            continue
+        observed = _parse_utc(event[5])
+        last_sync = _parse_utc(account[5])
+        try:
+            state_hash = _balance_hash_from_row(account)
+        except ValueError as exc:
+            reasons.append(str(exc))
+            continue
+        if observed is None or last_sync is None:
+            reasons.append("balance_observation_incomplete")
+        elif observed > now:
+            reasons.append("balance_observation_future")
+        elif event[6] != state_hash:
+            reasons.append("balance_observation_changed")
+        elif last_sync != observed:
+            reasons.append("balance_observation_conflict")
+        elif now - observed > timedelta(days=7):
+            reasons.append("balance_observation_stale")
+        elif now - observed > timedelta(days=6):
+            reasons.append("balance_observation_nearing_expiry")
+        else:
+            reasons.append("balance_observation_current")
+    for reason in (
+        "balance_invalid", "balance_observation_changed", "balance_observation_conflict",
+        "balance_observation_future", "balance_observation_stale", "balance_observation_unknown",
+        "balance_observation_incomplete",
+    ):
+        if reason in reasons:
+            return {"state": "blocked", "reason_code": reason, "recovery_action": "Review the stored balances, then rerun the explicit local balance-observation operator; no timestamp is refreshed automatically."}
+    if "balance_observation_nearing_expiry" in reasons:
+        return {"state": "ready", "reason_code": "balance_observation_nearing_expiry", "recovery_action": "Reconfirm the stored balances before the seven-day freshness window expires."}
+    return {"state": "ready", "reason_code": "balance_observation_current", "recovery_action": "No action required."}
+
+
 def sqlite_snapshot(path: Path | None) -> dict[str, Any]:
     if path is None:
         return {"state": "unavailable", "reason_code": "non_sqlite_database", "recovery_action": "Use the selected database operator check; Atlas Doctor does not print or expose connection details."}
@@ -253,6 +343,7 @@ def sqlite_snapshot(path: Path | None) -> dict[str, Any]:
             current = conn.execute("SELECT version_num FROM alembic_version").fetchone()[0]
             wal = conn.execute("PRAGMA journal_mode").fetchone()[0]
             currency_authority = _currency_authority_snapshot(conn)
+            balance_observation = _balance_observation_snapshot(conn)
     except sqlite3.Error:
         return {"state": "blocked", "reason_code": "database_readiness_unavailable", "recovery_action": "Run the approved read-only database and migration check against the selected local database."}
     heads = migration_heads()
@@ -265,6 +356,7 @@ def sqlite_snapshot(path: Path | None) -> dict[str, Any]:
         "migration_heads": heads,
         "wal_state": "enabled" if str(wal).lower() == "wal" else str(wal),
         "currency_authority": currency_authority,
+        "balance_observation": balance_observation,
     }
 
 
@@ -304,13 +396,14 @@ def build_report() -> dict[str, Any]:
         "storage": database,
         "database_mode": {"state": "ready", "mode": "sqlite" if database_url.startswith("sqlite:") else "server", "recovery_action": "No action required."},
         "account_currency_authority": database.get("currency_authority", {"state": "unavailable", "reason_code": "database_probe_unavailable", "recovery_action": "Run the isolated database readiness check."}),
+        "balance_observation": database.get("balance_observation", {"state": "unavailable", "reason_code": "database_probe_unavailable", "recovery_action": "Run the isolated database readiness check."}),
         "forecast_baseline_prerequisites": {"state": "disabled" if not flags["forecast_persistence_enabled"] else "blocked", "reason_code": "forecast_flags_disabled" if not flags["forecast_persistence_enabled"] else "currency_and_baseline_must_be_proven", "recovery_action": "Keep forecast flags disabled until explicit currency authority and synthetic acceptance pass."},
         "decision_history_readiness": {"state": "disabled" if not flags["decision_history_api_enabled"] else "blocked", "reason_code": "decision_history_disabled" if not flags["decision_history_api_enabled"] else "baseline_required", "recovery_action": "Keep the server-owned decision-history flag disabled until its dependencies pass."},
         "scenario_lab_readiness": {"state": "disabled" if not flags["scenario_lab_enabled"] else "blocked", "reason_code": "scenario_lab_disabled" if not flags["scenario_lab_enabled"] else "baseline_required", "recovery_action": "Keep Scenario Lab disabled until a compatible immutable baseline passes synthetic acceptance."},
         "market_intelligence_readiness": {"state": "disabled" if not flags["market_brief_read_api_enabled"] else "blocked", "reason_code": "market_intelligence_disabled" if not flags["market_brief_read_api_enabled"] else "provider_readiness_required", "recovery_action": "Keep Market Intelligence disabled unless approved server-side provider configuration is reviewed."},
         "privacy_safety": {"state": "ready" if not any(flags[key] for key in ("market_brief_email_delivery_enabled", "market_brief_scheduler_enabled", "market_brief_local_summarization_enabled")) else "unsafe", "reason_code": "prohibited_capabilities_disabled" if not any(flags[key] for key in ("market_brief_email_delivery_enabled", "market_brief_scheduler_enabled", "market_brief_local_summarization_enabled")) else "optional_unsafe_capability_enabled", "recovery_action": "Disable email, scheduler, and summarization flags; never use Doctor to change them."},
     }
-    critical = (not sha) or clean is not True or checks["python"]["state"] == "blocked" or checks["storage"]["state"] == "blocked" or checks["account_currency_authority"]["state"] == "blocked"
+    critical = (not sha) or clean is not True or checks["python"]["state"] == "blocked" or checks["storage"]["state"] == "blocked" or checks["account_currency_authority"]["state"] == "blocked" or checks["balance_observation"]["state"] == "blocked"
     unsafe = checks["privacy_safety"]["state"] == "unsafe"
     optional_blocked = any(item.get("state") in {"blocked", "unavailable", "degraded", "disabled"} for name, item in checks.items() if name not in {"repository", "python", "storage", "account_currency_authority", "privacy_safety"})
     overall = "unsafe_state" if unsafe else "configuration_failure" if critical else "ready_with_blocked_optional_capabilities" if optional_blocked else "ready"
@@ -325,7 +418,7 @@ def build_report() -> dict[str, Any]:
         "database_mode": checks["database_mode"],
         "feature_flags": flags,
         "credentials": credentials,
-        "readiness": {key: checks[key] for key in ("account_currency_authority", "forecast_baseline_prerequisites", "decision_history_readiness", "market_intelligence_readiness", "scenario_lab_readiness", "privacy_safety")},
+        "readiness": {key: checks[key] for key in ("account_currency_authority", "balance_observation", "forecast_baseline_prerequisites", "decision_history_readiness", "market_intelligence_readiness", "scenario_lab_readiness", "privacy_safety")},
         "prohibited_capabilities": {"email": "disabled", "scheduler": "disabled", "llm": "disabled", "execution": "disabled", "trading": "disabled", "money_movement": "disabled"},
     }
 

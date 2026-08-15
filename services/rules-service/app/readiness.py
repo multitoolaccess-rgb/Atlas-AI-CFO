@@ -7,8 +7,11 @@ owned by the Rules Service settings object; the browser can only observe them.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import subprocess
+from decimal import Decimal, InvalidOperation
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Literal
@@ -20,7 +23,7 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import Account, AccountCurrencyEvidence, Forecast, User
+from app.models import Account, AccountBalanceObservation, AccountCurrencyEvidence, Forecast, User
 
 ReadinessState = Literal["ready", "unavailable", "blocked", "degraded", "disabled"]
 OverallReadinessState = Literal[
@@ -190,6 +193,85 @@ def _currency_state(db: Session, user_id: int | None) -> tuple[ReadinessState, s
     return "blocked", "currency_evidence_incomplete", "Resolve authoritative USD evidence for every active account; do not substitute the user preference.", False
 
 
+def _canonical_balance(value: object) -> str:
+    if isinstance(value, bool) or value is None:
+        raise ValueError("balance_invalid")
+    try:
+        parsed = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ValueError("balance_invalid") from exc
+    if not parsed.is_finite() or parsed.copy_abs() > Decimal("1E+24"):
+        raise ValueError("balance_invalid")
+    rendered = format(parsed, "f")
+    if "." in rendered:
+        rendered = rendered.rstrip("0").rstrip(".")
+    return rendered or "0"
+
+
+def _balance_hash(account: Account) -> str:
+    payload = {
+        "account_id": int(account.id),
+        "account_type": account.account_type,
+        "balance_representation": _canonical_balance(account.current_balance),
+        "is_active": bool(account.is_active),
+        "user_id": int(account.user_id),
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")).hexdigest()
+
+
+def _balance_state(db: Session, user_id: int | None) -> tuple[ReadinessState, str, str, bool]:
+    if user_id is None:
+        return "blocked", "local_user_missing", "Open Settings once to initialize the local user, then retry.", False
+    accounts = list(db.scalars(select(Account).where(Account.user_id == user_id, Account.is_active.is_(True))))
+    if not accounts:
+        return "blocked", "balance_observation_incomplete", "No active account observation scope is available.", False
+    now = datetime.now(timezone.utc)
+    reasons: list[str] = []
+    for account in accounts:
+        event = db.scalar(
+            select(AccountBalanceObservation)
+            .where(AccountBalanceObservation.account_id == account.id, AccountBalanceObservation.user_id == user_id)
+            .order_by(AccountBalanceObservation.recorded_at.desc(), AccountBalanceObservation.id.desc())
+        )
+        if event is None:
+            reasons.append("balance_observation_unknown")
+            continue
+        if event.source_kind != "operator_confirmed" or event.actor_category != "local_operator":
+            reasons.append("balance_observation_incomplete")
+            continue
+        observed = event.observed_at.replace(tzinfo=timezone.utc) if event.observed_at and event.observed_at.tzinfo is None else event.observed_at
+        last_sync = account.last_sync.replace(tzinfo=timezone.utc) if account.last_sync and account.last_sync.tzinfo is None else account.last_sync
+        try:
+            current_hash = _balance_hash(account)
+        except ValueError as exc:
+            reasons.append(str(exc))
+            continue
+        if observed is None or last_sync is None:
+            reasons.append("balance_observation_incomplete")
+        elif observed > now:
+            reasons.append("balance_observation_future")
+        elif event.precondition_hash != current_hash:
+            reasons.append("balance_observation_changed")
+        elif last_sync != observed:
+            reasons.append("balance_observation_conflict")
+        elif now - observed > timedelta(days=7):
+            reasons.append("balance_observation_stale")
+        elif now - observed > timedelta(days=6):
+            reasons.append("balance_observation_nearing_expiry")
+        else:
+            reasons.append("balance_observation_current")
+    for reason in (
+        "balance_invalid", "balance_observation_changed", "balance_observation_conflict",
+        "balance_observation_future", "balance_observation_stale", "balance_observation_unknown",
+        "balance_observation_incomplete",
+    ):
+        if reason in reasons:
+            return "blocked", reason, "Review the stored balances, then use the explicit local observation operator; timestamps never refresh automatically.", False
+    if "balance_observation_nearing_expiry" in reasons:
+        return "ready", "balance_observation_nearing_expiry", "Reconfirm the stored balances before the seven-day freshness window expires.", True
+    return "ready", "balance_observation_current", "No action required.", True
+
+
 def build_readiness(db: Session, user_sub: str) -> ReadinessResponse:
     """Build an owner-scoped, sanitized readiness snapshot."""
     checked_at = _checked_at()
@@ -231,14 +313,24 @@ def build_readiness(db: Session, user_sub: str) -> ReadinessResponse:
             "Apply the approved account-currency evidence migration before reviewing currency readiness; Atlas never migrates from this screen.",
             False,
         )
+    balance_state, balance_reason, balance_recovery, balance_ready = _balance_state(db, user_id)
     checks.append(_component(
-        "financial_authority", currency_state, currency_reason, currency_recovery, checked_at,
-        {"owner": user is not None, "account_currency_evidence": currency_ready, "usd_supported": True},
-        "atlas-projection-state/v1" if currency_ready else None,
+        "balance_observations", balance_state, balance_reason, balance_recovery, checked_at,
+        {"owner": user is not None, "observation_audit": balance_ready, "seven_day_window": True},
+        "account-balance-observation/v1" if balance_ready else None,
+    ))
+    financial_ready = currency_ready and balance_ready
+    financial_state = currency_state if not currency_ready else balance_state
+    financial_reason = currency_reason if not currency_ready else balance_reason
+    financial_recovery = currency_recovery if not currency_ready else balance_recovery
+    checks.append(_component(
+        "financial_authority", financial_state, financial_reason, financial_recovery, checked_at,
+        {"owner": user is not None, "account_currency_evidence": currency_ready, "balance_observation": balance_ready, "usd_supported": True},
+        "atlas-projection-state/v1" if financial_ready else None,
     ))
 
     forecast_exists = bool(user_id and db.scalar(select(Forecast.id).where(Forecast.user_id == user_id, Forecast.lifecycle_state == "active")))
-    forecast_deps = currency_ready and storage_ready
+    forecast_deps = financial_ready and storage_ready
     if not flags["atlas_forecast_persistence_enabled"] or not flags["atlas_forecast_read_api_enabled"]:
         forecast_state: ReadinessState = "disabled"
         forecast_reason = "forecast_flags_disabled"
@@ -255,7 +347,7 @@ def build_readiness(db: Session, user_sub: str) -> ReadinessResponse:
         forecast_state = "ready"
         forecast_reason = "baseline_forecast_ready"
         forecast_recovery = "No action required."
-    checks.append(_component("forecasts", forecast_state, forecast_reason, forecast_recovery, checked_at, {"financial_authority": currency_ready, "storage": storage_ready, "baseline": forecast_exists}, "immutable-forecast/v1" if forecast_exists else None))
+    checks.append(_component("forecasts", forecast_state, forecast_reason, forecast_recovery, checked_at, {"financial_authority": financial_ready, "storage": storage_ready, "baseline": forecast_exists}, "immutable-forecast/v1" if forecast_exists else None))
 
     history_enabled = flags["atlas_decision_history_api_enabled"]
     checks.append(_component(
@@ -285,7 +377,7 @@ def build_readiness(db: Session, user_sub: str) -> ReadinessResponse:
         scenario_state, scenario_reason, scenario_recovery = "blocked", "scenario_baseline_unavailable", "Resolve authoritative currency and generate a compatible immutable baseline first."
     else:
         scenario_state, scenario_reason, scenario_recovery = "ready", "scenario_lab_ready", "No action required."
-    checks.append(_component("scenario_lab", scenario_state, scenario_reason, scenario_recovery, checked_at, {"server_flag": scenario_enabled, "baseline": forecast_exists, "financial_authority": currency_ready}, "atlas-scenario/v1" if scenario_state == "ready" else None))
+    checks.append(_component("scenario_lab", scenario_state, scenario_reason, scenario_recovery, checked_at, {"server_flag": scenario_enabled, "baseline": forecast_exists, "financial_authority": financial_ready}, "atlas-scenario/v1" if scenario_state == "ready" else None))
 
     unsafe_flags = flags["atlas_market_brief_email_delivery_enabled"] or flags["atlas_market_brief_scheduler_enabled"] or flags["atlas_market_brief_local_summarization_enabled"]
     checks.append(_component(

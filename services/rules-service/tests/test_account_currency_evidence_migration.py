@@ -12,7 +12,7 @@ from app.database import register_sqlite_compat
 
 ROOT = Path(__file__).parent.parent
 PARENT = "W6a1b2c3d4e5"
-HEAD = "X7a1b2c3d4e5"
+HEAD = "Y8a1b2c3d4e5"
 
 
 def _cfg(url: str) -> Config:

@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
 from app.models import Account, Goal, GoalProjectionConfig, Institution, User
+from app.projection_state.confirm_balance_observations import confirm_all_active_balances_current
 from app.projection_state.confirm_currency import confirm_currency
 from app.projection_state.currency import CurrencyEvidenceConflict, effective_currency_for_account, record_currency_evidence
 from app.projection_state.provider import ProjectionStateUnavailable, build_projection_state
@@ -58,6 +59,21 @@ def _seed(db, *, currencies=("USD",), stale=False, contribution=True):
             contribution_observed_at=now,
         ))
     db.commit()
+    confirm_all_active_balances_current(
+        db,
+        user_sub=user.local_user_sub,
+        observed_at=now,
+        apply=True,
+        confirm_all_active=True,
+        expected_intent_hash=confirm_all_active_balances_current(
+            db,
+            user_sub=user.local_user_sub,
+            observed_at=now,
+            apply=False,
+            now=now,
+        )["intent_hash"],
+        now=now,
+    )
     return user, goal, now
 
 
@@ -115,7 +131,7 @@ def test_provider_fails_closed_when_active_balance_observation_is_missing():
     account = db.query(Account).one()
     account.last_sync = None
     db.commit()
-    with pytest.raises(ProjectionStateUnavailable, match="projection_state_unavailable"):
+    with pytest.raises(ProjectionStateUnavailable, match="balance_observation_incomplete"):
         build_projection_state(db, user_sub=user.local_user_sub, goal_id=goal.id, now=now)
 
 
@@ -124,7 +140,7 @@ def test_provider_rejects_legacy_float_that_exceeds_v1_decimal_scale():
     account = db.query(Account).one()
     account.current_balance = 1e-19
     db.commit()
-    with pytest.raises(ProjectionStateUnavailable, match="projection_state_unavailable"):
+    with pytest.raises(ProjectionStateUnavailable, match="balance_observation_changed"):
         build_projection_state(db, user_sub=user.local_user_sub, goal_id=goal.id, now=now)
 
 

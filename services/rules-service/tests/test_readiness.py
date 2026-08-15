@@ -23,12 +23,12 @@ def test_readiness_is_sanitized_server_owned_and_read_only(client, db_session, m
     assert body["schema_version"] == "atlas-readiness/v1"
     assert body["overall_state"] in {"configuration_failure", "ready_with_blocked_optional_capabilities", "ready"}
     assert {check["component"] for check in body["checks"]} == {
-        "runtime", "storage", "financial_authority", "forecasts", "decision_history",
+        "runtime", "storage", "balance_observations", "financial_authority", "forecasts", "decision_history",
         "market_intelligence", "scenario_lab", "privacy_safety",
     }
     assert before == after
     serialized = response.text
-    for forbidden in ("dev-secret-change-in-production", "balance", "transaction", "holding", "DATABASE_URL"):
+    for forbidden in ("dev-secret-change-in-production", "current_balance", "transaction", "holding", "DATABASE_URL"):
         assert forbidden not in serialized
     assert all(isinstance(value, bool) for value in body["feature_flags"].values())
     assert all(isinstance(value, bool) for value in body["credentials"].values())
@@ -76,7 +76,8 @@ def test_readiness_reports_ready_currency_without_enabling_flags(client, db_sess
     body = response.json()
     financial = next(item for item in body["checks"] if item["component"] == "financial_authority")
     forecasts = next(item for item in body["checks"] if item["component"] == "forecasts")
-    assert financial["state"] == "ready"
+    assert financial["state"] == "blocked"
+    assert financial["reason_code"] == "balance_observation_unknown"
     assert forecasts["state"] == "disabled"
     assert body["feature_flags"]["atlas_forecast_persistence_enabled"] is True
     assert body["feature_flags"]["atlas_forecast_read_api_enabled"] is False

@@ -9,6 +9,7 @@ import { classifyErrorMessage } from '@/lib/errors'
 const LABELS: Record<string, string> = {
   runtime: 'Runtime',
   storage: 'Storage and migrations',
+  balance_observations: 'Balance observations',
   financial_authority: 'Financial authority',
   forecasts: 'Forecast baseline',
   decision_history: 'Decision history',

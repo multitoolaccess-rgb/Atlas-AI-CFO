@@ -103,7 +103,7 @@ def test_sqlite_snapshot_is_read_only_and_reports_currency_fail_closed() -> None
 
 def test_migration_head_parser_includes_typed_wave2a_revision() -> None:
     heads = atlas_doctor.migration_heads()
-    assert heads == ("X7a1b2c3d4e5",)
+    assert heads == ("Y8a1b2c3d4e5",)
 
 
 def test_missing_database_fails_closed_without_creating_it() -> None:
