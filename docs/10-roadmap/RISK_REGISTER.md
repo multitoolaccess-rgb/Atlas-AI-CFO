@@ -3,6 +3,12 @@
 Status is synchronized from `PROJECT_STATUS.json`; do not treat this document
 as an independent source of truth.
 
+Wave 6 final local certification passed at clean main `8efcdaee` with a
+verified WAL-safe backup/disposable restore, complete local matrix, isolated
+synthetic write journey, and read-only personal acceptance. The release
+candidate remains bounded to single-user local use; the open risks below are
+preserved and are not silently reclassified by green certification tests.
+
 | ID | Description | Severity | Likelihood | Mitigation | Owner | Status | Related evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | risk-frontend-lint-debt | Repository-wide frontend lint debt remains outside Phase 0 scope. | medium | high | Keep targeted lint and CI checks; schedule bounded cleanup separately. | engineering | open | CI and import report |

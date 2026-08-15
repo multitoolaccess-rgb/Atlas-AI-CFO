@@ -1367,14 +1367,48 @@
         "Diff and sensitive-pattern checks: passed"
       ],
       "title": "Combined Waves 3\u20135 product stabilization"
+    },
+    {
+      "branch": "main",
+      "commit": "8efcdaeeebeea3742cd5376ed06e730342960a49",
+      "id": "work-wave-6-final-personal-use-certification",
+      "issue": null,
+      "objective": "Certify the delivered Phase 0\u20136 product and remediation Waves 1\u20135 from clean main using the complete local matrix without beginning Phase 7.",
+      "paths": [
+        "docs"
+      ],
+      "phase_id": "phase-6",
+      "pr": null,
+      "review_evidence": "Fresh local read-only review of exact clean-main certification head: no unresolved critical/high findings; financial authority, ownership, privacy, immutable history, default-off external capabilities, backup safety, and personal read-only boundaries preserved. GitHub Actions is disabled and not a gate.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Rules Service: 1,321 passed, 10 skipped, 1 expected xfail",
+        "Finlynq: 138 passed",
+        "Root/governance: 51 passed",
+        "Frontend Vitest: 639 passed; TypeScript, ESLint, production build passed",
+        "Canonical Playwright: 108 passed, 1 policy-defined skip; screenshot matrix 1/1 passed",
+        "Isolated synthetic forecast-to-Scenario restart journey passed with external capabilities forced off",
+        "Fresh WAL-safe backup, checksum, integrity, schema, and disposable restore passed",
+        "Read-only six-account personal readiness, baseline reload, route, restart, and clean shutdown passed"
+      ],
+      "title": "Final personal-use acceptance and release-candidate certification",
+      "validation_evidence": {
+        "command": "Rules/Finlynq/root/frontend suites; canonical Playwright; screenshot/accessibility matrix; synthetic acceptance; backup/check/restore; personal read-only acceptance; tracker/render/handoff",
+        "commit": "8efcdaeeebeea3742cd5376ed06e730342960a49",
+        "environment": "Python 3.12 isolated service environments; Node local environment; synthetic disposable clone; personal SQLite read-only acceptance; external capabilities disabled; GitHub Actions disabled",
+        "kind": "local",
+        "result": "passed; 1 policy-defined Playwright skip; no unexpected failures",
+        "timestamp": "2026-08-15T23:06:37Z"
+      }
     }
   ],
-  "current_objective": "Waves 3\u20135 Product Stabilization is complete after Phase 6 certification. Preserve server-owned financial authority, do not begin Wave 6 certification, and do not begin Phase 7.",
+  "current_objective": "Wave 6 final personal-use acceptance and release-candidate certification is complete for the authorized bounded single-user local scope. Preserve server-owned financial authority, provider safety, and all open rollout risks; do not begin Phase 7.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T21:35:15Z",
+  "last_updated": "2026-08-15T23:22:49Z",
   "next_bounded_task": {
-    "description": "Authorize and run the complete local Wave 6 final personal-use acceptance and release-candidate certification. Do not begin Phase 7.",
-    "id": "work-wave-6-final-personal-use-certification",
+    "description": "Maintain the bounded single-user local release candidate or authorize a separate provider-safety/retention review; do not begin Phase 7.",
+    "id": "work-post-certification-local-release-candidate-operations",
     "phase_id": "phase-6"
   },
   "overall_status": "complete",

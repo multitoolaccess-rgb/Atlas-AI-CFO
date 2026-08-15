@@ -1,9 +1,10 @@
 # Atlas Phases 0–6 Capability Matrix
 
 - **Audit date:** 2026-08-15
-- **Audited commit:** `ff85ad7bc39680a2beb13533795478e515cda931`
-- **Certification tag:** `phase-6-complete` resolves to `ff85ad7bc39680a2beb13533795478e515cda931`
-- **Scope:** repository and isolated synthetic local acceptance evidence for Phases 0–6; no personal database, real provider, email, trading, money movement, or production execution.
+- **Audited commit:** `8efcdaeeebeea3742cd5376ed06e730342960a49`
+- **Certification tag:** `phase-6-complete` remains unchanged at `ff85ad7bc39680a2beb13533795478e515cda931`
+- **Release-candidate evidence:** complete local Wave 6 certification at `8efcdaeeebeea3742cd5376ed06e730342960a49`; the final evidence reconciliation is this commit, with `atlas-personal-use-rc1` targeting the verified final head.
+- **Scope:** repository, isolated synthetic local acceptance, verified backup/restore, and read-only personal acceptance evidence for Phases 0–6 and remediation Waves 1–5; no personal financial writes, real provider, email, trading, money movement, or production execution.
 - **Related reports:** [Personal-Use Readiness Report](../07-engineering/PERSONAL_USE_READINESS_REPORT.md), [System Health Audit](../07-engineering/SYSTEM_HEALTH_AUDIT.md), [UI Acceptance Matrix](../06-ui-ux/UI_ACCEPTANCE_MATRIX.md), [Remediation Backlog](./REMEDIATION_BACKLOG.md), and [Personal Mode Proposal](../07-engineering/PERSONAL_MODE_PROPOSAL.md).
 
 ## Evidence sources
@@ -49,7 +50,7 @@ Phase 0 is foundational and intentionally has no page. Phases 1–4 are also pri
 | 0 | Decimal correctness and rounding | Repeatable money values | Rules Decimal contracts and projection engine | Snapshots where later phases persist | Consumed by Goals and Scenario Lab | Foundational | None | Non-finite/out-of-range values rejected | **Confirmed implemented** | Projection/scenario focused suites | Scenario contract | Legacy non-authoritative modules still contain floats; see audit |
 | 0 | Canonical contracts and synthetic fixtures | Safe, reproducible development | `forecasts/canonical_state.py`; `tests/synthetic_fixtures` | Test fixtures only | No standalone page | Foundational | None | Missing authority/currency fails closed | **Confirmed implemented** | Canonical and synthetic fixture tests | Phase 0/1 records | Synthetic fixtures do not prove local personal data readiness |
 | 0 | Foundational architecture | Clear service and dependency boundaries | Rules Service, Finlynq, UI, local lifecycle | Shared local SQLite by documented dev path | Shared shell | System support | Separate Python environments | Missing environment is an operator error | **Implemented; setup cost remains** | Environment and startup tests | `LOCAL_PYTHON_ENVIRONMENTS.md` | Two service environments are required |
-| 1 | Immutable forecast identity/versioning | Reopen an exact forecast baseline | Forecast models/repository; `/api/v1/goals/{goal_id}/forecasts` generation and version routes | `forecasts`, `forecast_versions` | Goals → Forecasts | Wealth → Goals | `ATLAS_FORECAST_PERSISTENCE_ENABLED=false` by default | Disabled, missing, stale, and conflict states | **Implemented; unavailable by default** | Forecast service, repository, migration and route tests | ADR-006; forecast plan | Personal Mode must not auto-enable until currency authority is resolved |
+| 1 | Immutable forecast identity/versioning | Reopen an exact forecast baseline | Forecast models/repository; `/api/v1/goals/{goal_id}/forecasts` generation and version routes | `forecasts`, `forecast_versions` | Goals → Forecasts | Wealth → Goals | `ATLAS_FORECAST_PERSISTENCE_ENABLED=false` by default | Disabled, missing, stale, and conflict states | **Implemented and locally accepted for the authorized single-user configuration** | Forecast service, repository, migration, route, clone, reload, and personal read-only acceptance | ADR-006; forecast plan | Personal local overrides are explicit and ignored; external multi-user enablement remains blocked |
 | 1 | Forecast generation | Create a server-authoritative baseline | Rules forecast service and Finlynq projection adapter | Immutable forecast versions | Goals → Forecasts | Wealth → Goals | Persistence flag, trusted adapter | No client generation when unavailable | **Implemented; local activation requires config/data** | Forecast generation and adapter tests | Phase 1 evidence | No confirmed operator-ready activation path with real local data |
 | 1 | Forecast read API | Read persisted baseline safely | Typed forecast read routes and codecs | Forecast snapshots | Goals → Forecasts; Scenario Lab readiness | Wealth/Intelligence deep links | Read flag default off | No recommendation/scenario inferred without read authority | **Implemented; default-off** | Read-route and default-off tests | ADR-006 | Requires reviewed server configuration |
 | 1 | Trusted canonical state boundary | Prevent client-supplied financial authority | Finlynq projection-state provider and Rules adapter | Provenance/hash fields in snapshots | No standalone page | Foundational | Server-owned | Missing/cross-owner/unsupported currency rejected | **Confirmed implemented** | Provider, hash, ownership and privacy suites | Forecast contract | Account currency authority remains open P1 risk |
@@ -67,16 +68,27 @@ Phase 0 is foundational and intentionally has no page. Phases 1–4 are also pri
 | 6 | Server-authoritative deterministic scenarios | Compare bounded changes safely | `POST /api/v1/goals/{goal_id}/scenarios` | Immutable version snapshots | Scenario Lab → Scenarios | Intelligence | Scenario flag | Decimal strings, deterministic bands, warnings | **Implemented; synthetic route-mocked journey passed** | Scenario contract, engine, route suites | Phase 6 plan | Requires baseline and compatible USD authority |
 | 6 | Comparisons | Compare one to three explicit scenarios | `/api/v1/scenarios/compare`, `/compare` | Reads immutable versions | Scenario Lab → Comparisons | Intelligence | Scenario flag | Incompatible selections recover explicitly | **Implemented and tested** | Comparison focus and browser journeys | Scenario contract | No automatic “first three” selection |
 | 6 | Archive/history | Archive lifecycle without deleting history | `/api/v1/scenarios/{id}/archive` and list | Lifecycle on identity; versions immutable | Scenario Lab → Archive | Intelligence | Scenario flag | Archived entries remain reviewable | **Implemented and tested** | Archive/idempotency tests and browser journey | Scenario contract | No destructive delete path |
-| 6 | Scenario Lab baseline readiness | Know why modeling is unavailable | `ScenarioReadiness`, typed client | No client authority | Scenario Lab → Scenarios | Intelligence | Server-owned | Disabled/no goal/missing/stale/error/loading | **Implemented and browser-tested** | 4 route-mocked journeys in certification | Phase 6 Slice 2 plan | Full local activation not proven with a real forecast |
+| 6 | Scenario Lab baseline readiness | Know why modeling is unavailable | `ScenarioReadiness`, typed client | No client authority | Scenario Lab → Scenarios | Intelligence | Server-owned | Disabled/no goal/missing/stale/error/loading | **Implemented, browser-tested, and accepted on the authorized local baseline** | Rules/Finlynq contracts, complete synthetic journey, canonical Playwright, route recovery, and read-only personal readiness | Phase 6 Slice 2 plan | External provider and multi-user rollout remain disabled; no personal scenario write was performed |
 
-## Evidence gaps
+## Wave 6 certification evidence
 
-1. No acceptance run used personal financial data; therefore personal-data migration/recovery behavior is intentionally unproven.
-2. No real Finnhub/SEC credentials or provider calls were used; market provider readiness remains a configuration task.
-3. The default-off forecast, decision-history, market, and Scenario Lab flags prevent one complete enabled end-to-end financial journey from being demonstrated without a separate reviewed local configuration.
-4. Screenshot capture generated 126 external screenshots at `/tmp/atlas-phase0-6-audit-ff85ad7-screenshots`; the legacy matrix stopped on a migrated Market Briefs/Market Intelligence route harness expectation. Existing tracked artifacts were restored and no screenshots were committed.
-5. The repository has no proven automated backup/restore drill for a personal SQLite database.
+- Rules Service: `1,321 passed, 10 skipped, 1 expected xfail`.
+- Finlynq: `138 passed`.
+- Root/governance tests: `51 passed`.
+- Frontend Vitest: `639 passed`; TypeScript, ESLint, and production build passed.
+- Canonical Playwright: `108 passed, 1 policy-defined skip`; screenshot matrix `1/1` passed. Accessibility, keyboard, reduced motion, responsive overflow, console, page-error, recovery, and appearance/profile coverage passed.
+- Isolated synthetic journey: forecast/reload, recommendation, decision/history, outcome lifecycle, Scenario Lab generation/comparison/archive, restart, and cleanup passed with external capabilities forced off.
+- Fresh WAL-safe backup/disposable restore: format `atlas-sqlite-backup/v1`, schema `Z9a1b2c3d4e5`, integrity `ok`, checksum verified; no in-place restore.
+- Read-only personal acceptance: six active USD accounts, six currency assertions, six Decimal balance observations, one projection configuration, one immutable baseline reload, authenticated readiness, intended routes, restart persistence, and clean shutdown passed. No personal decision/outcome/scenario writes.
+
+## Evidence gaps and preserved limitations
+
+1. No real Finnhub/SEC/Plaid/provider calls, email, scheduler, LLM, trading, brokerage, execution, or money movement were used.
+2. Personal recommendation, decision, outcome, and scenario writes were proven only on the disposable clone; the personal database received no such synthetic records.
+3. Immutable-history retention/deletion policy, transitional tenancy, SQLite/PostgreSQL parity, trusted-generation boundary, and legacy `Goal.target_amount` Float risk remain open or bounded risks.
+4. In-place personal restore remains unsupported; the verified backup was restored only to a disposable location.
+5. The release candidate is for bounded single-user local use and is not approval for external multi-user rollout or execution.
 
 ## Recommended disposition
 
-Treat Phases 0–6 as certified implementation with a **personal-use activation audit gap**, not as permission to enable all flags. Use [REMEDIATION_BACKLOG.md](./REMEDIATION_BACKLOG.md) and [PERSONAL_MODE_PROPOSAL.md](../07-engineering/PERSONAL_MODE_PROPOSAL.md) before enabling any server-owned capability.
+Treat Phases 0–6 and remediation Waves 1–6 as locally certified for the authorized single-user release-candidate scope. Preserve default-off and provider-safety boundaries, retain the verified backup outside Git, and require a separate authorization for any post-certification operations or future Phase 7 work.

@@ -211,26 +211,30 @@ journey.
 
 **Risk:** High because it certifies the integrated system, not because it adds authority.
 **Priority:** P1.
+**Status:** Complete for the authorized bounded single-user local release-candidate scope.
 
-### Include
+### Completed evidence
 
-- Run the complete local acceptance journey against isolated synthetic data.
-- Verify restart persistence, readiness, recovery, appearance, accessibility, and no horizontal overflow.
-- Record a release-candidate evidence bundle and update the handoff.
+- Complete local matrix at clean main `8efcdaee`: Rules `1,321 passed, 10 skipped, 1 expected xfail`; Finlynq `138 passed`; root `51 passed`; frontend `639 passed`; TypeScript, ESLint, and production build passed.
+- Canonical Playwright `108 passed, 1 policy-defined skip`; screenshot matrix `1/1` passed; scoped axe, keyboard, reduced motion, responsive overflow, recovery, console, page-error, and appearance/profile checks passed.
+- Isolated synthetic forecast → recommendation → decision/history → outcome → Scenario Lab generation/comparison/archive → restart journey passed with external capabilities forced off.
+- Fresh WAL-safe backup and disposable restore passed at schema `Z9a1b2c3d4e5`, integrity `ok`; no in-place restore was attempted.
+- Read-only personal acceptance passed for six active USD accounts, six currency and balance authorities, one projection configuration, one immutable baseline reload, authenticated readiness, intended routes, restart persistence, and clean shutdown. No personal recommendation, decision, outcome, or scenario writes were created.
 
 ### Exclude
 
-- No Phase 7 planning/implementation in the remediation wave; no production deployment or external multi-user rollout.
+- No Phase 7 planning/implementation; no production deployment or external multi-user rollout.
+- No real provider, email, scheduler, LLM, trading, brokerage, execution, or money-movement calls.
 
-**Likely files:** documentation/evidence and focused acceptance harness; product files only if a prior approved wave identifies a defect.
+**Likely files:** certification evidence and status/handoff documentation only after the matrix passes; product corrections only if an evidenced in-scope defect is found.
 **Validation:** complete local matrix at the release boundary, including canonical Playwright and applicable service suites.
-**Rollback:** evidence-only rollback; product changes retain their own reversible commits and are not hidden by certification records.
-**Completion criteria:** all launch-critical journeys are proven, open P0/P1 blockers are resolved or explicitly keep features disabled, and no unauthorized capability is introduced.
+**Rollback:** evidence-only rollback; product corrections retain their own reversible commits and are not hidden by certification records.
+**Completion criteria:** satisfied for the bounded local scope; unresolved retention/provider/tenancy/Float/in-place-restore risks remain explicitly open or constrained.
 
 ## Dependency order
 
 `Wave 1 → Wave 2 → Wave 3 → Wave 4/Wave 5 → Wave 6`.
 
-Waves 3–5 completion evidence is scoped to the stabilized UI/API boundary, canonical route inventory, compatibility disposition, and focused local validation. It does not certify the integrated system or start Wave 6.
+Waves 3–5 completion evidence was scoped to the stabilized UI/API boundary; Wave 6 now adds the integrated local matrix, isolated synthetic journey, backup/restore gate, and read-only personal acceptance. No Phase 7 work is implied.
 
-Wave 2 must precede enabling forecast/scenario behavior. Wave 3 depends on a safe activation contract. Waves 4 and 5 may proceed in parallel after ownership is confirmed. Wave 6 is a separate release-candidate authorization and is not started by this audit.
+Wave 2 precedes forecast/scenario behavior. Wave 3 depends on a safe activation contract. Waves 4 and 5 proceeded after ownership was confirmed. Wave 6 is complete only for the explicitly authorized single-user release-candidate scope.

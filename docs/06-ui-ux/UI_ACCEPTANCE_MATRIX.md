@@ -1,8 +1,9 @@
 # Atlas UI Acceptance Matrix — Phases 0–6
 
 - **Audit date:** 2026-08-15
-- **Audited commit:** `ff85ad7bc39680a2beb13533795478e515cda931`
-- **Scope:** final information architecture and representative local synthetic browser acceptance; no UI behavior changed.
+- **Audited commit:** `8efcdaeeebeea3742cd5376ed06e730342960a49`
+- **Certification evidence:** canonical Wave 6 browser matrix `108 passed, 1 policy-defined skip`; screenshot matrix `1/1 passed`.
+- **Scope:** final information architecture, complete local browser certification, isolated synthetic acceptance, and read-only personal route/readiness acceptance; no personal write journey was performed.
 - **Related:** [Capability Matrix](../10-roadmap/ATLAS_CAPABILITY_MATRIX.md), [Personal-Use Readiness Report](../07-engineering/PERSONAL_USE_READINESS_REPORT.md), [Remediation Backlog](../10-roadmap/REMEDIATION_BACKLOG.md).
 
 ## Evidence sources
@@ -27,10 +28,10 @@
 | Plan `/plan` | Budget/commitments/calendar tabs | Transaction-derived empty/error states | Tabs and controls labelled | Appearance suite passed reduced-motion and widths | Indigo/Vermilion/Ion and light/dark evidence | **Accepted** |
 | Wealth `/wealth` | Overview/assets/debts/universe tabs; `/debts` and `/universe` compatibility | Loading, unavailable, empty assets, unavailable Universe | Tables, alerts and links labelled | Canonical navigation and overflow evidence | Shared frame | **Accepted**; `/debts` and `/universe` are aliases, not duplicate owners |
 | Portfolio `/portfolio` | Specialist destination; data and provider actions remain bounded | Loading, import, price/provider and empty states | Forms, modals, tables and action labels | Canonical and appearance evidence | Shared shell; semantic financial colors | **Accepted with operator gap:** real provider/portfolio data was not used |
-| Goals `/goals` | Goals/forecasts/progress specialist surface | No forecast/recommendation state is honest when authority unavailable | Goal controls and decision history semantics | Focused Goals journey passed | Shared shell and profile behavior | **Accepted with activation gap:** enabled forecast journey not proven |
-| Decisions `/decisions` | Recommendations/journal/outcomes tabs; legacy redirect | No current recommendation, history unavailable, conflict and error states | Server IDs/lifecycle, action labels, alert semantics | Canonical navigation/route evidence | Shared frame | **Accepted with activation gap:** default-off server APIs not enabled in audit |
+| Goals `/goals` | Goals/forecasts/progress specialist surface | No forecast/recommendation state is honest when authority unavailable | Goal controls and decision history semantics | Focused Goals journey and read-only personal baseline reload passed | Shared shell and profile behavior | **Accepted:** personal baseline was read/reloaded without personal write journey |
+| Decisions `/decisions` | Recommendations/journal/outcomes tabs; legacy redirect | No current recommendation, history unavailable, conflict and error states | Server IDs/lifecycle, action labels, alert semantics | Canonical navigation, synthetic write journey, and read-only personal availability | Shared frame | **Accepted:** write paths proven on disposable clone; personal database remained read-only |
 | Market Intelligence `/market-intelligence` | Portfolio/pulse/earnings/scanner/archive tabs; `/market-briefs` redirect | Empty, provider unavailable, degraded, freshness/warning and archive detail | Citations, main landmark, scoped axe | Mobile full-bleed and no overflow passed | Dark mode and semantic colors passed | **Accepted for synthetic data; real provider readiness unproven** |
-| Scenario Lab `/scenario-lab` | Scenarios/comparisons/archive plus `goal`, `scenario`, `compare` state | Disabled/no-goal/missing baseline/stale/incompatible/loading/error | Builder labels, comparison checkbox/table, tabs | 390px no overflow and keyboard journey passed | Dark/reduced-motion/canonical evidence | **Accepted for synthetic route-mocked data; enabled local activation unproven** |
+| Scenario Lab `/scenario-lab` | Scenarios/comparisons/archive plus `goal`, `scenario`, `compare` state | Disabled/no-goal/missing baseline/stale/incompatible/loading/error | Builder labels, comparison checkbox/table, tabs | 390px no overflow, keyboard journey, and canonical matrix passed | Dark/reduced-motion/Indigo/Vermilion/Ion evidence | **Accepted:** complete synthetic write journey passed; personal route/readiness remained read-only |
 | Data Connections `/data-connections` | Accounts/imports/synchronization/data quality; `/accounts` redirect | Disconnected, incomplete, stale and error states from Accounts implementation | Tabs, forms, alerts | Route-mocked mobile/navigation evidence | Shared shell | **Accepted**; legacy implementation is intentionally delegated, not duplicated |
 | Settings `/settings` | System link; appearance/profile and safe preferences | Profile/config errors and destructive-data confirmation states | Appearance controls use labelled selection; modals have actions | Axe and supported viewport evidence | Indigo/Vermilion/Ion, light/dark; System is implemented in provider | **Accepted with destructive-action caution:** audit did not mutate data |
 | Help `/help` | System link; final domain map | Recovery/privacy/data-limitation guidance | Headings, links and recovery section | Route-mocked navigation evidence | Shared shell | **Accepted** |
@@ -48,16 +49,16 @@
 | Keyboard and screen-reader semantics | Tab/button labels, skip link, focused browser journeys, axe checks | Pass in scoped evidence |
 | Reduced motion | Appearance/art-direction tests and canonical certification | Pass |
 | Mobile/tablet/desktop overflow | Plan/Market/Scenario journeys and canonical certification | Pass in tested routes |
-| Light/Dark/System and all accent profiles | Appearance tests and canonical certification | Pass for tested controls; screenshot matrix partly harness-limited |
-| Console/page errors | Focused route-mocked unexpected-500 observability and canonical certification | Pass for tested boundaries; transient dev chunk failures remain runner debt |
+| Light/Dark/System and all accent profiles | Appearance tests and final Wave 6 canonical certification/screenshot matrix | Pass: canonical matrix and screenshot invocation passed |
+| Console/page errors | Focused unexpected-500 observability, personal route sweep, and canonical certification | Pass: handled 503 recovery is bounded; no unexpected 5xx, page, or console errors in final acceptance |
 
-## Evidence gaps
+## Wave 6 evidence and limitations
 
-- The screenshot matrix’s route list predates the final IA and includes aliases. It captured 126 files before stopping at a migrated route harness issue; captures are outside Git at `/tmp/atlas-phase0-6-audit-ff85ad7-screenshots`.
-- A real enabled local financial journey was not run because server-owned defaults remained unchanged and no personal data/credentials were used.
-- Settings destructive data-maintenance controls were inspected but not clicked.
-- Full Scout conversational behavior was not exercised; only placement/fallback/navigation contracts were considered.
+- The final canonical browser matrix passed `108` tests with `1` policy-defined skip; the screenshot matrix passed `1/1`. Generated screenshot artifacts were kept outside Git.
+- The personal route sweep used fresh browser contexts across 12 routes: expected handled Market Intelligence `503`s only, zero unexpected 5xx, zero page/console errors, and no horizontal overflow.
+- Settings destructive data-maintenance controls were not clicked. Full Scout conversational behavior was not exercised beyond placement/fallback/navigation contracts.
+- Synthetic decision/outcome/scenario writes were exercised only on the disposable clone; the personal database was read-only during final acceptance.
 
 ## Recommended UI disposition
 
-The final shell and route architecture are suitable for continued personal-use hardening. Prioritize a canonical final-IA screenshot/acceptance harness and readiness states before adding new product surfaces. Preserve compatibility routes and quarantined legacy components until a separate cleanup wave proves safe removal.
+The final shell, route architecture, readiness states, accessibility behavior, and appearance matrix are suitable for the bounded single-user release candidate. Preserve compatibility routes and quarantined legacy components until a separately authorized cleanup or terminology decision.
