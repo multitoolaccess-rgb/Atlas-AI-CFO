@@ -50,9 +50,9 @@ export const PROPOSED_NAVIGATION: readonly ProposedNavigationGroup[] = [
     { id: 'scenario-lab', label: 'Scenario Lab', path: '/scenario-lab', icon: 'scenario-lab', activeMatch: ['/scenario-lab'], activated: true, tabs: [tab('scenarios', 'Scenarios'), tab('comparisons', 'Comparisons'), tab('archive', 'Archive')] },
   ] },
   { id: 'system', label: 'System', destinations: [
-    { id: 'data-connections', label: 'Data Connections', path: '/data-connections', icon: 'data-connections', activeMatch: ['/data-connections'], activated: false, tabs: [tab('accounts', 'Accounts'), tab('imports', 'Imports'), tab('synchronization', 'Synchronization'), tab('data-quality', 'Data quality')] },
-    { id: 'settings', label: 'Settings', path: '/settings', icon: 'settings', activeMatch: ['/settings'], activated: false },
-    { id: 'help', label: 'Help', path: '/help', icon: 'help', activeMatch: ['/help'], activated: false },
+    { id: 'data-connections', label: 'Data Connections', path: '/data-connections', icon: 'data-connections', activeMatch: ['/data-connections'], activated: true, tabs: [tab('accounts', 'Accounts'), tab('imports', 'Imports'), tab('synchronization', 'Synchronization'), tab('data-quality', 'Data quality')] },
+    { id: 'settings', label: 'Settings', path: '/settings', icon: 'settings', activeMatch: ['/settings'], activated: true },
+    { id: 'help', label: 'Help', path: '/help', icon: 'help', activeMatch: ['/help'], activated: true },
   ] },
 ] as const
 
@@ -68,7 +68,7 @@ export const COMPATIBILITY_REDIRECTS = [
   { from: '/accounts', to: '/data-connections', view: 'accounts' },
 ] as const
 
-export const ACTIVE_COMPATIBILITY_REDIRECTS = COMPATIBILITY_REDIRECTS.filter(({ from }) => ['/income', '/expenses', '/activity', '/budgeting', '/debts', '/universe', '/recommendations', '/market-briefs'].includes(from))
+export const ACTIVE_COMPATIBILITY_REDIRECTS = COMPATIBILITY_REDIRECTS.filter(({ from }) => ['/income', '/expenses', '/activity', '/budgeting', '/debts', '/universe', '/recommendations', '/market-briefs', '/accounts'].includes(from))
 
 export const SCOUT_PLACEMENT_CONTRACT = {
   futureLocation: 'global-header',

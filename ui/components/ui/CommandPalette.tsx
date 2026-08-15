@@ -88,7 +88,7 @@ function toResults(
       ]
         .filter(Boolean)
         .join(' · '),
-      href: '/activity',
+      href: '/cash-flow?view=transactions',
       icon: Receipt,
       value: t.amount,
     }))
@@ -106,7 +106,7 @@ function toResults(
       type: 'account' as const,
       title: a.account_name,
       subtitle: [a.account_type, a.account_subtype].filter(Boolean).join(' · '),
-      href: '/accounts',
+      href: '/data-connections?view=accounts',
       icon: a.account_type === 'credit_card' ? CreditCard : Landmark,
       value: a.current_balance,
     }))

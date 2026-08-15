@@ -1070,14 +1070,39 @@
         "Tracker/render/handoff validation: passed"
       ],
       "title": "Activate Intelligence information architecture migration"
+    },
+    {
+      "branch": "codex/ia-system-migration-step-5",
+      "commit": "eeb0e83",
+      "id": "work-ui-information-architecture-step-5",
+      "issue": "",
+      "objective": "Activate Data Connections, Settings, and Help; preserve compatibility, consolidate navigation, and complete focused UI redesign certification.",
+      "paths": [
+        "ui/app",
+        "ui/components/layout",
+        "ui/lib/informationArchitecture.ts",
+        "ui/lib/middleware.ts",
+        "ui/__tests__"
+      ],
+      "phase_id": "phase-6",
+      "pr": "53",
+      "review_evidence": null,
+      "risk_tier": "medium",
+      "status": "complete",
+      "tests": [
+        "Focused Vitest: 46 passed (IA, middleware, Sidebar, Help, migrated-page compatibility)",
+        "TypeScript, ESLint, and production build passed",
+        "Hermetic Playwright System/navigation journey: 5 passed"
+      ],
+      "title": "Activate System information architecture migration"
     }
   ],
   "current_objective": "Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T04:13:46Z",
+  "last_updated": "2026-08-15T04:26:18Z",
   "next_bounded_task": {
-    "description": "Step 5 \u2014 finalize System destinations, navigation cleanup, compatibility, and redesign certification; do not begin until separately authorized.",
-    "id": "work-ui-information-architecture-step-5",
+    "description": "Next bounded product task: implement or certify the next Phase 6 Scenario Lab UI slice against the authoritative Slice 1 APIs, preserving Decimal-safe server authority and bounded supported changes.",
+    "id": "work-p6-scenario-lab-ui",
     "phase_id": "phase-6"
   },
   "overall_status": "in_progress",

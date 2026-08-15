@@ -53,9 +53,9 @@ test('upload CSV, see in history, delete via 2-step confirm', async ({ page }) =
   await login(page)
 
   // Navigate to the Accounts tab where ImportStatementUpload lives.
-  await page.goto('/accounts')
-  await expect(page.locator('h1', { hasText: /accounts/i }).first()).toBeVisible()
-  await page.getByRole('tab', { name: 'Statement', exact: true }).click()
+  await page.goto('/data-connections')
+  await expect(page.locator('h1', { hasText: /data connections/i }).first()).toBeVisible()
+  await page.getByRole('tab', { name: 'Imports', exact: true }).click()
 
   // Pick the file at the file input. Resolved from the project root
   // (PROJECT_ROOT env var or process.cwd()) so the test works on
@@ -158,8 +158,8 @@ test('analyst-ratings panel on /recommendations loads via FE', async ({ page }) 
  */
 test('upload checking_stmt.csv via UI persists + auto-categorises without 500', async ({ page, request }) => {
   await login(page)
-  await page.goto('/accounts')
-  await page.getByRole('tab', { name: 'Statement', exact: true }).click()
+  await page.goto('/data-connections')
+  await page.getByRole('tab', { name: 'Imports', exact: true }).click()
 
   const csvPath = path.join(
     PROJECT_ROOT,

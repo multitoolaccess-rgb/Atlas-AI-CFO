@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Plus, Landmark, Pencil, Trash2, Loader2, Eye, EyeOff } from 'lucide-react'
 import PageLayout from '@/components/layout/PageLayout'
 import { AtlasFilterProvider } from '@/components/ui/AtlasFilterContext'
@@ -38,7 +39,17 @@ const ACCOUNT_TYPES = [
   { value: 'other', label: 'Other' },
 ]
 
+type DataConnectionView = 'accounts' | 'imports' | 'synchronization' | 'data-quality'
+const DATA_CONNECTION_VIEWS: readonly DataConnectionView[] = ['accounts', 'imports', 'synchronization', 'data-quality']
+
 export default function AccountsPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const requestedView = searchParams.get('view')
+  const initialView: DataConnectionView = DATA_CONNECTION_VIEWS.includes(requestedView as DataConnectionView)
+    ? requestedView as DataConnectionView
+    : 'accounts'
+  const [activeView, setActiveView] = useState<DataConnectionView>(initialView)
   const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -317,13 +328,22 @@ export default function AccountsPage() {
     fireDataRefresh()
   }
 
+  const handleViewChange = (nextView: string) => {
+    if (!DATA_CONNECTION_VIEWS.includes(nextView as DataConnectionView)) return
+    const view = nextView as DataConnectionView
+    setActiveView(view)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('view', view)
+    router.replace(`?${params.toString()}`, { scroll: false })
+  }
+
   return (
     <PageLayout>
       <AtlasFilterProvider>
       <AnimatedPageSection>
         <PageHeader
-          title="Connected Accounts"
-          description="Manually added accounts are tracked alongside any Plaid-linked ones."
+          title="Data Connections"
+          description="Manage account sources, statement imports, synchronization readiness, and data quality without exposing credentials."
           actions={(
             <>
               <button
@@ -366,7 +386,8 @@ export default function AccountsPage() {
 
       <TabsGroup
         variant="underline"
-        defaultActiveId="accounts"
+        activeId={activeView}
+        onChange={handleViewChange}
         items={[
           {
             id: 'accounts',
@@ -648,16 +669,43 @@ export default function AccountsPage() {
             ),
           },
           {
-            id: 'statement',
-            label: 'Statement',
+            id: 'imports',
+            label: 'Imports',
             icon: 'upload_file',
             content: (
-              <div data-testid="statement-tab-panel">
+              <div data-testid="imports-tab-panel">
                 <ImportStatementUpload
                   accounts={accounts}
                   onImportComplete={handleImportComplete}
                 />
               </div>
+            ),
+          },
+          {
+            id: 'synchronization',
+            label: 'Synchronization',
+            icon: 'sync',
+            content: (
+              <section className="card p-6" data-testid="synchronization-tab-panel">
+                <h2 className="headline-md text-primary">Synchronization</h2>
+                <p className="text-sm text-secondary mt-2">Connection synchronization is not enabled for this local Atlas workspace yet.</p>
+                <p className="text-sm text-tertiary mt-3">No provider, credential, or background sync is implied. Use Imports to add a statement when you need to refresh source data.</p>
+              </section>
+            ),
+          },
+          {
+            id: 'data-quality',
+            label: 'Data quality',
+            icon: 'fact_check',
+            content: (
+              <section className="card p-6" data-testid="data-quality-tab-panel">
+                <h2 className="headline-md text-primary">Data quality</h2>
+                <p className="text-sm text-secondary mt-2">Atlas reports only what the connected source records support. Missing or stale source data is shown as unavailable rather than estimated.</p>
+                <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
+                  <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-4"><dt className="text-tertiary">Active accounts</dt><dd className="numeric-md text-primary mt-1">{loading ? '—' : accounts.length}</dd></div>
+                  <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-4"><dt className="text-tertiary">Source status</dt><dd className="text-primary mt-1">{error ? 'Unavailable' : loading ? 'Loading' : 'Local records available'}</dd></div>
+                </dl>
+              </section>
             ),
           },
         ]}

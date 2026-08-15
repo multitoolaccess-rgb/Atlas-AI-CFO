@@ -20,7 +20,7 @@ test.describe('Atlas v2.1 screenshot evidence', () => {
       ['recommendations', '/recommendations'],
       ['activity', '/activity'],
       ['market-briefs', '/market-briefs'],
-      ['accounts', '/accounts'],
+      ['data-connections', '/data-connections'],
       ['settings', '/settings'],
       ['help', '/help'],
       ['assistant', '/assistant'],
