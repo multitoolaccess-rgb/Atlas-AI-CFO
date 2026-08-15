@@ -310,6 +310,42 @@ describe('createApiWithAuthRetry \u2014 factory-based 401 auto-retry', () => {
     expect(infoSpy).toHaveBeenCalledWith('[cashflix] handled response', 'scenario_generation_unavailable', 503)
   })
 
+  it('keeps the handled dashboard downstream 502 out of the browser error channel', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined)
+    const fakeError = {
+      response: { status: 502, data: { detail: 'PRIVATE_DOWNSTREAM_VALUE' } },
+      config: { headers: new FakeAxiosHeaders(), url: '/api/dashboard/summary' },
+      request: {},
+    }
+    const rejected = (client.interceptors.response as unknown as {
+      handlers: Array<{ rejected?: (err: unknown) => unknown }>
+    }).handlers[0].rejected
+
+    await expect(rejected?.(fakeError)).rejects.toBe(fakeError)
+    expect(errorSpy).not.toHaveBeenCalled()
+    expect(infoSpy).toHaveBeenCalledWith('[cashflix] handled response', 'unknown', 502)
+    expect(infoSpy.mock.calls.flat().join(' ')).not.toContain('PRIVATE_DOWNSTREAM_VALUE')
+  })
+
+  it('keeps decision-history availability 503 out of the browser error channel', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined)
+    const fakeError = {
+      response: { status: 503, data: { code: 'decision_history_unavailable', detail: 'PRIVATE_HISTORY_VALUE' } },
+      config: { headers: new FakeAxiosHeaders(), url: '/api/v1/goals/42/decision-history' },
+      request: {},
+    }
+    const rejected = (client.interceptors.response as unknown as {
+      handlers: Array<{ rejected?: (err: unknown) => unknown }>
+    }).handlers[0].rejected
+
+    await expect(rejected?.(fakeError)).rejects.toBe(fakeError)
+    expect(errorSpy).not.toHaveBeenCalled()
+    expect(infoSpy).toHaveBeenCalledWith('[cashflix] handled response', 'decision_history_unavailable', 503)
+    expect(infoSpy.mock.calls.flat().join(' ')).not.toContain('PRIVATE_HISTORY_VALUE')
+  })
+
   it('does not log raw network request or setup error details', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const rejected = (client.interceptors.response as unknown as {

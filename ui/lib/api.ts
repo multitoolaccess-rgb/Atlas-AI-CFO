@@ -153,13 +153,22 @@ export function createApiWithAuthRetry(options: AuthRetryOptions): AxiosInstance
         const isKnownRecoveryRoute = (
           url.includes('/api/v1/market-briefs') ||
           url.includes('/api/v1/goals/') && url.includes('/scenarios') ||
+          url.includes('/api/v1/goals/') && url.includes('/decision-history') ||
           url.includes('/api/v1/scenarios') ||
           url.includes('/api/v1/forecasts') ||
           url.includes('/api/v1/recommendations') ||
           url.includes('/api/v1/decision-history') ||
           url.includes('/api/system/readiness')
         )
-        const isHandledRecovery = isKnownRecoveryRoute && [401, 404, 409, 412, 422, 503].includes(err.response.status)
+        // Dashboard 502 is an intentional, classified downstream-recovery
+        // state rendered by Mission Control. Keep it observable as a bounded
+        // info diagnostic without treating it as an unexpected browser error;
+        // other 5xx responses remain errors.
+        const isDashboardDownstreamRecovery = url.includes('/api/dashboard/summary') && err.response.status === 502
+        const isHandledRecovery = (
+          (isKnownRecoveryRoute && [401, 404, 409, 412, 422, 503].includes(err.response.status)) ||
+          isDashboardDownstreamRecovery
+        )
         if (typeof window !== 'undefined' && isHandledRecovery) {
           // Recovery responses are rendered as explicit UI states by the
           // owning route. Keep diagnostics bounded: response bodies can
