@@ -271,52 +271,22 @@ test('Phase 4 — Copilot orb is visible on the dashboard', async ({ page }) => 
   await expect(firstChip).toBeVisible()
 })
 
-test('Phase 5 — Wealth timeline + simulator + DNA + Twin render', async ({ page }) => {
-  await page.goto('/')
-  await page.waitForURL('**/')
-  await page.waitForLoadState('networkidle')
-
-  // The focused home keeps these existing tools in a progressive-disclosure
-  // workspace until Scenario Lab receives its authoritative route in Step 4.
-  await page.getByText('Simulation workspace', { exact: true }).click()
-  await expect(page.locator('[data-testid="wealth-timeline"]')).toBeVisible({
-    timeout: 15_000,
-  })
-  await expect(page.locator('[data-testid="simulator-card"]')).toBeVisible({
-    timeout: 15_000,
-  })
-  await expect(page.locator('[data-testid="life-events"]')).toBeVisible({
-    timeout: 15_000,
-  })
-  await expect(page.locator('[data-testid="dna-card"]')).toBeVisible({
-    timeout: 15_000,
-  })
-  await expect(page.locator('[data-testid="financial-twin"]')).toBeVisible({
-    timeout: 15_000,
-  })
+test('Scenario Lab is the canonical home for server-backed what-if analysis', async ({ page }) => {
+  await page.goto('/scenario-lab')
+  await expect(page.getByRole('heading', { name: 'Scenario Lab', level: 1 })).toBeVisible({ timeout: 15_000 })
+  await expect(page.locator('[data-testid="simulator-card"]')).toHaveCount(0)
+  await expect(page.getByText(/server-backed|Decimal-safe authority/i).first()).toBeVisible()
 })
 
-test('Phase 5 — moving the Money Flow Simulator pmt slider updates the preview', async ({ page }) => {
+test('Mission Control links to Scenario Lab instead of a client-side simulator', async ({ page }) => {
   await page.goto('/')
   await page.waitForURL('**/')
   await page.waitForLoadState('networkidle')
 
-  await page.getByText('Simulation workspace', { exact: true }).click()
-  await expect(page.locator('[data-testid="simulator-card"]')).toBeVisible({
-    timeout: 15_000,
-  })
-
-  const slider = page.locator('[data-testid="simulator-slider-pmt"]')
-  const preview = page.locator('[data-testid="simulator-preview-10y"]')
-
-  // Capture initial preview text.
-  const before = (await preview.textContent()) ?? ''
-  await slider.fill('4500')
-  // Allow the CountUp animation to settle.
-  await page.waitForTimeout(500)
-  const after = (await preview.textContent()) ?? ''
-  expect(before).not.toEqual('')
-  expect(after).not.toEqual('')
-  // The numeric display should change when the slider moves.
-  expect(after).not.toEqual(before)
+  const scenarioPromo = page.getByTestId('scenario-lab-promo')
+  await expect(scenarioPromo).toBeVisible({ timeout: 15_000 })
+  await scenarioPromo.getByRole('link', { name: 'Open Scenario Lab' }).click()
+  await expect(page).toHaveURL(/\/scenario-lab/)
+  await expect(page.getByRole('heading', { name: 'Scenario Lab', level: 1 })).toBeVisible({ timeout: 15_000 })
+  await expect(page.locator('[data-testid="simulator-slider-pmt"]')).toHaveCount(0)
 })

@@ -143,9 +143,28 @@ export function createApiWithAuthRetry(options: AuthRetryOptions): AxiosInstance
         message?: string
       }
       if (err.response) {
-        if (typeof window !== 'undefined') {
+        const url = err.config?.url ?? ''
+        const responseData = err.response.data as { code?: unknown; reason_code?: unknown } | null
+        const responseCode = typeof responseData?.code === 'string'
+          ? responseData.code
+          : typeof responseData?.reason_code === 'string'
+            ? responseData.reason_code
+            : null
+        const isHandledAvailability = err.response.status === 503 && (
+          url.includes('/api/v1/market-briefs') ||
+          url.includes('/api/v1/goals/') && url.includes('/scenarios') ||
+          url.includes('/api/v1/scenarios') ||
+          url.includes('/api/v1/forecasts/') && url.endsWith('/recommendation')
+        )
+        if (typeof window !== 'undefined' && !isHandledAvailability) {
           // eslint-disable-next-line no-console
           console.error(`[${clientName}] API Error:`, err.response.data, 'Status:', err.response.status)
+        } else if (typeof window !== 'undefined' && isHandledAvailability) {
+          // Keep a bounded diagnostic without exposing the server payload or
+          // turning an intentionally rendered unavailable state into an
+          // uncaught browser console error.
+          // eslint-disable-next-line no-console
+          console.info(`[${clientName}] handled availability response`, responseCode ?? 'unknown', err.response.status)
         }
         if (
           err.response.status === 401 &&

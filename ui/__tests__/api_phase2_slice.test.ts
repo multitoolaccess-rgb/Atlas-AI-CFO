@@ -174,60 +174,17 @@ function axiosError(
 // ---- getLatestForecastForGoal ------------------------------------------
 
 describe('api_phase2 — getLatestForecastForGoal', () => {
-  it('happy path returns ready envelope with typed forecast + version', async () => {
-    mockGet
-      .mockResolvedValueOnce({ data: { forecasts: [FORECAST_WIRE] } })
-      .mockResolvedValueOnce({ data: VERSION_WIRE })
-
+  it('fails closed because no authoritative forecast collection route is merged', async () => {
     const result = await getLatestForecastForGoal(42)
-    expect(result.state).toBe('ready')
-    if (result.state !== 'ready') return
-    expect(result.goal_id).toBe(42)
-    expect(result.forecast.id).toBe(FORECAST_WIRE.id)
-    expect(result.version.ending_balance).toBe('4500000.00')
-    expect(typeof result.version.ending_balance).toBe('string')
-
-    expect(mockGet).toHaveBeenCalledTimes(2)
-    expect(mockGet.mock.calls[0]?.[0]).toBe('/api/v1/forecasts')
-    expect(mockGet.mock.calls[0]?.[1]).toEqual({
-      params: { goal_id: 42, limit: 4 },
-    })
-    expect(mockGet.mock.calls[1]?.[0]).toBe(
-      `/api/v1/forecasts/${FORECAST_WIRE.id}/versions/${FORECAST_WIRE.latest_version_number}`,
-    )
+    expect(result).toEqual({ state: 'no_forecast', goal_id: 42 })
+    expect(mockGet).not.toHaveBeenCalled()
   })
 
-  it('returns {state: "no_forecast"} for empty list', async () => {
-    mockGet.mockResolvedValueOnce({ data: { forecasts: [] } })
+  it('does not infer a forecast from client fixtures or local state', async () => {
+    mockGet.mockResolvedValueOnce({ data: { forecasts: [FORECAST_WIRE] } })
     const result = await getLatestForecastForGoal(42)
     expect(result.state).toBe('no_forecast')
-    if (result.state !== 'no_forecast') return
-    expect(result.goal_id).toBe(42)
-    expect(mockGet).toHaveBeenCalledTimes(1)
-  })
-
-  it('propagates 503 sanitized code via AxiosError', async () => {
-    mockGet.mockRejectedValueOnce(
-      axiosError(503, {
-        code: 'forecast_read_api_unavailable',
-        message: 'Forecast read API is currently disabled.',
-      }),
-    )
-    const err = await getLatestForecastForGoal(42).catch((e) => e)
-    expect(readSanitizedError(err).code).toBe(
-      'forecast_read_api_unavailable',
-    )
-  })
-
-  it('propagates 404 missing/cross-user via forecast_not_found', async () => {
-    mockGet.mockRejectedValueOnce(
-      axiosError(404, {
-        code: 'forecast_not_found',
-        message: 'Forecast not found.',
-      }),
-    )
-    const err = await getLatestForecastForGoal(42).catch((e) => e)
-    expect(readSanitizedError(err).code).toBe('forecast_not_found')
+    expect(mockGet).not.toHaveBeenCalled()
   })
 })
 
@@ -359,24 +316,14 @@ describe('api_phase2 — postDecisionJournal', () => {
 // ---- Decimal-string end-to-end contract ---------------------------------
 
 describe('api_phase2 — money values are canonical Decimal strings', () => {
-  it('every money field is a string end-to-end; JSON.parse roundtrip preserves form', async () => {
-    mockGet
-      .mockResolvedValueOnce({ data: { forecasts: [FORECAST_WIRE] } })
-      .mockResolvedValueOnce({ data: VERSION_WIRE })
-    const result = await getLatestForecastForGoal(42)
-    if (result.state !== 'ready') throw new Error('expected ready')
-    // Every money field is `string`.
-    expect(typeof result.version.ending_balance).toBe('string')
-    expect(typeof result.version.target_decision.rounded_ending_balance).toBe('string')
-    expect(typeof result.version.target_decision.rounded_target_amount).toBe('string')
-    for (const s of result.version.scenarios) {
-      expect(typeof s.ending_balance).toBe('string')
-      expect(typeof s.annual_return_rate).toBe('string')
-    }
-    // JSON.parse(stringify(x)) round-trip preserves the canonical form.
+  it('recommendation money fields remain strings through the typed client', async () => {
+    mockGet.mockResolvedValueOnce({ data: RECOMMENDATION_WIRE })
+    const result = await getDerivedRecommendation(FORECAST_WIRE.id)
+    expect(typeof result.expected_impact_range.min_delta_decimal).toBe('string')
+    expect(typeof result.expected_impact_range.max_delta_decimal).toBe('string')
     const roundtrip = JSON.parse(JSON.stringify(result))
-    expect(roundtrip.version.ending_balance).toBe('4500000.00')
-    expect(roundtrip.version.scenarios[0].ending_balance).toBe('3200000.00')
+    expect(roundtrip.expected_impact_range.min_delta_decimal).toBe('12000.00')
+    expect(roundtrip.expected_impact_range.max_delta_decimal).toBe('32000.00')
   })
 })
 

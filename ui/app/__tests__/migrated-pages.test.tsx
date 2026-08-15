@@ -171,6 +171,7 @@ import PortfolioPage from '@/app/portfolio/page'
 
 beforeEach(() => {
   cleanup()
+  window.history.replaceState(window.history.state, '', '/')
 })
 
 // ---- Suite ------------------------------------------------------------

@@ -55,8 +55,12 @@ async function authenticateSyntheticBrowser(page: import('@playwright/test').Pag
 test('Market Intelligence is discoverable and generates a synthetic archived detail', async ({ page, request }) => {
   await authenticateSyntheticBrowser(page, request)
   await installBriefRoutes(page)
+  // The legacy URL remains a bookmark-compatible redirect; Market Intelligence
+  // is the single authoritative destination and no Market Briefs nav link is
+  // reintroduced.
   await page.goto('/market-briefs')
-  await expect(page.getByRole('link', { name: /market briefs/i })).toBeVisible()
+  await expect(page).toHaveURL(/\/market-intelligence$/)
+  await expect(page.getByRole('link', { name: /market briefs/i })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: /market intelligence/i })).toBeVisible()
   await expect(page.getByText(/generate your first portfolio brief/i)).toBeVisible()
   await page.getByRole('button', { name: /^generate brief$/i }).click()

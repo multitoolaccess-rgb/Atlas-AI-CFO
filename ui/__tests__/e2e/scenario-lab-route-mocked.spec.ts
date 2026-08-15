@@ -19,7 +19,7 @@ function envelope(lifecycle: 'active' | 'archived' = 'active') {
   return { schema_version: 'atlas-scenario-envelope/v1', scenario_id: scenarioId, version_id: '33333333-3333-4333-8333-333333333333', version_number: 1, goal_id: 42, baseline_forecast_id: baselineId, baseline_version_number: 1, baseline_input_state_hash: 'a'.repeat(64), scenario_input_hash: 'b'.repeat(64), model_version: 'model-v1', calculation_version: 'calc-v1', currency: 'USD', lifecycle_state: lifecycle, created_at: '2026-08-14T00:00:00Z', input: { schema_version: 'atlas-scenario-lab/v1', baseline_forecast_id: baselineId, baseline_version_number: 1, baseline_input_state_hash: 'a'.repeat(64), scenario: { monthly_contribution_delta: '250.00' } }, result: { schema_version: 'atlas-scenario-lab/v1', model_version: 'model-v1', calculation_version: 'calc-v1', currency: 'USD', scenario_input_hash: 'b'.repeat(64), canonical_inputs: { monthly_contribution_delta: '250.00' }, deterministic_bands: {}, source_freshness: comparison().source_freshness, assumptions: comparison().assumptions }, comparison: comparison(), recommendation_reference: null, etag: 'etag-1' }
 }
 
-async function installMocks(page: Page, options: { enabled?: boolean; baseline?: boolean; incompatible?: boolean; seedScenario?: boolean } = {}) {
+async function installMocks(page: Page, options: { enabled?: boolean; baseline?: boolean; incompatible?: boolean; seedScenario?: boolean; unexpected?: boolean } = {}) {
   let hasScenario = options.seedScenario === true
   await page.route('**/api/**', (route) => route.fallback())
   await page.route('**/api/goals/', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ id: 42, name: 'Retirement', target_amount: 150000, priority: 1, is_archived: false }]) }))
@@ -31,6 +31,7 @@ async function installMocks(page: Page, options: { enabled?: boolean; baseline?:
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(envelope()) })
     }
     if (options.enabled === false) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ code: 'scenario_generation_unavailable', message: 'disabled' }) })
+    if (options.unexpected) return route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ detail: 'synthetic unexpected failure' }) })
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schema_version: 'atlas-scenario-list/v1', items: hasScenario ? [{ scenario_id: scenarioId, goal_id: 42, version_number: 1, baseline_forecast_id: baselineId, baseline_version_number: 1, currency: 'USD', lifecycle_state: 'active', created_at: '2026-08-14T00:00:00Z', ending_net_worth: '120000.00', difference_from_baseline: '1000.00', target_reached: true }] : [], next_cursor: null }) })
   })
   await page.route('**/api/v1/scenarios/compare', async (route) => {
@@ -42,7 +43,7 @@ async function installMocks(page: Page, options: { enabled?: boolean; baseline?:
   await page.route('**/api/auth/**', (route) => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ detail: 'Synthetic auth response' }) }))
 }
 
-async function openScenarioLab(page: Page, options?: { enabled?: boolean; baseline?: boolean; incompatible?: boolean; seedScenario?: boolean }) {
+async function openScenarioLab(page: Page, options?: { enabled?: boolean; baseline?: boolean; incompatible?: boolean; seedScenario?: boolean; unexpected?: boolean }) {
   await installMocks(page, options)
   await page.goto('/scenario-lab?skip-splash=1')
   await page.waitForLoadState('domcontentloaded')
@@ -80,9 +81,16 @@ test.describe('Scenario Lab frontend-owned route-mocked journey', () => {
   })
 
   test('shows disabled and missing-baseline recovery without local estimates', async ({ page }) => {
+    const consoleErrors: string[] = []
+    page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()) })
     await openScenarioLab(page, { enabled: false })
     await expect(page.getByText('Disabled by server')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Generate scenario' })).toBeDisabled()
+    // Browser network diagnostics may still report the HTTP response itself;
+    // the regression guard is that Atlas does not emit its own API Error for
+    // this explicitly handled server-owned availability state.
+    expect(consoleErrors.filter((message) => /\[cashflix\] API Error/i.test(message))).toEqual([])
+    consoleErrors.length = 0
 
     await page.goto('/scenario-lab?skip-splash=1')
     await installMocks(page, { baseline: false })
@@ -90,6 +98,14 @@ test.describe('Scenario Lab frontend-owned route-mocked journey', () => {
     await page.getByRole('button', { name: 'Generate scenario' }).click()
     await expect(page.getByText(/Generate or refresh an approved baseline forecast/i)).toBeVisible()
     await expect(page.getByRole('alert').filter({ hasText: 'No client-side result was calculated' }).first()).toBeVisible()
+  })
+
+  test('keeps unexpected server failures observable', async ({ page }) => {
+    const consoleErrors: string[] = []
+    page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()) })
+    await openScenarioLab(page, { unexpected: true })
+    await expect(page.getByRole('alert').filter({ hasText: 'No client-side result was calculated' }).first()).toBeVisible()
+    expect(consoleErrors.some((message) => /API Error|500/i.test(message))).toBeTruthy()
   })
 
   test('keeps selection keyboard accessible and recovers from incompatible comparison', async ({ page }) => {

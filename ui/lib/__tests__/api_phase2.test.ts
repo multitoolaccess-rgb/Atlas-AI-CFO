@@ -7,6 +7,7 @@ vi.mock('@/lib/api', () => ({ default: { get, post } }))
 import {
   getDerivedRecommendation,
   getDerivedRecommendationResource,
+  getLatestForecastForGoal,
   parseDecisionETag,
   parseDecisionETagHeader,
   parseForecastETag,
@@ -18,6 +19,11 @@ describe('authoritative Decisions API client', () => {
   beforeEach(() => {
     get.mockReset()
     post.mockReset()
+  })
+
+  it('fails closed when the authoritative forecast collection read is unavailable', async () => {
+    await expect(getLatestForecastForGoal(42)).resolves.toEqual({ state: 'no_forecast', goal_id: 42 })
+    expect(get).not.toHaveBeenCalled()
   })
 
   it('reads the server-derived recommendation contract', async () => {
