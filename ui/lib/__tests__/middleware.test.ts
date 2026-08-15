@@ -15,9 +15,9 @@ describe('information architecture compatibility middleware', () => {
     expect(response.headers.get('location')).toBe('http://localhost/market-intelligence?brief=abc')
   })
 
-  it('does not activate the Accounts compatibility redirect before System migration', () => {
+  it('redirects legacy Accounts to Data Connections while preserving query state', () => {
     const response = middleware(new NextRequest('http://localhost/accounts?tab=all'))
-    expect(response.status).toBe(200)
-    expect(response.headers.get('location')).toBeNull()
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('http://localhost/data-connections?tab=all&view=accounts')
   })
 })

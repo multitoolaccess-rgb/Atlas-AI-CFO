@@ -14,4 +14,4 @@ export function middleware(request: NextRequest) {
   return NextResponse.redirect(url)
 }
 
-export const config = { matcher: ['/income', '/expenses', '/activity', '/budgeting', '/debts', '/universe', '/recommendations', '/market-briefs'] }
+export const config = { matcher: ['/income', '/expenses', '/activity', '/budgeting', '/debts', '/universe', '/recommendations', '/market-briefs', '/accounts'] }

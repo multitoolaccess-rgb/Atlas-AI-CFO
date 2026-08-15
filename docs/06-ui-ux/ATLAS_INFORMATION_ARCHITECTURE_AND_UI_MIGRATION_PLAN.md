@@ -1,9 +1,14 @@
 # Atlas Information Architecture and UI Migration Plan
 
-Status: Step 1 implementation contract. This document is the repository copy of
-the approved design proposal; Step 1 adds only inactive shared foundations and
-does not activate new navigation, destinations, redirects, or financial page
-ownership.
+Status: Steps 1–5 implemented. This document is the repository copy of the
+approved design proposal and the route-ownership record for the consolidated
+Atlas information architecture. System destinations are now active; legacy
+bookmarks remain covered by compatibility redirects.
+
+Step 5 evidence is recorded in the project tracker and current handoff. The
+System destination ownership is: Data Connections owns accounts and imports;
+Settings owns appearance, profile, and safe preferences; Help owns navigation,
+data-limitations, evidence interpretation, privacy, and recovery guidance.
 
 ## Step 1 contract record
 
@@ -394,15 +399,25 @@ Deliver:
 - global Scout integration;
 - redirects for `/recommendations`, `/market-briefs` and `/assistant`.
 
-### Step 5 - System migration and final cleanup
+### Step 5 - System migration and final cleanup — implemented
 
-Deliver:
+Delivered:
 
-- Data Connections with accounts, imports, sync and data quality;
-- redirect for `/accounts`;
-- remove retired duplicate components only after usage verification;
-- search index and command-palette destinations;
-- complete visual matrix, browser journeys, a11y, performance and route compatibility certification.
+- Data Connections at `/data-connections` with Accounts, Imports,
+  Synchronization readiness, and Data quality views;
+- compatibility redirect for `/accounts` that preserves query state and adds
+  `view=accounts`;
+- Settings remains the authoritative home for appearance, accent profiles,
+  profile preferences, maintenance, and the existing safe configuration
+  surfaces;
+- Help now explains the final Home, Money, Wealth, Intelligence, and System
+  structure, evidence limitations, privacy boundaries, default-off behavior,
+  and recovery guidance;
+- command-palette and specialist deep links now target Data Connections;
+- the obsolete Tools sidebar group and duplicate Accounts/Activity primary
+  entries were removed; Activity remains reachable from Cash Flow / Transactions;
+- focused responsive, keyboard, appearance, and compatibility certification
+  was recorded without changing financial or backend authority.
 
 ## Acceptance rules for every migration wave
 
@@ -415,6 +430,25 @@ Deliver:
 - Keyboard, reduced-motion, loading, empty, partial, stale and error states are covered.
 - No personal data, credentials or local database artifacts enter test fixtures or screenshots.
 
-## Recommended first implementation task
+## Final route ownership record
 
-Implement Step 1 only: the information-architecture contract and shared shell. It is the smallest change that prevents all later page work from diverging. Do not begin the Money component migration until the new destinations, tab grammar, context bar, redirects and duplicate-ownership rules are reviewed and stable.
+| Destination | Authoritative route | Compatibility and deep links |
+|---|---|---|
+| Mission Control | `/` | Cross-domain summaries only |
+| Cash Flow | `/cash-flow` | `/income`, `/expenses`, and `/activity` redirect to URL-synced views |
+| Plan | `/plan` | `/budgeting` redirects to the Budget view |
+| Wealth | `/wealth` | `/debts` and `/universe` redirect to specialist views |
+| Portfolio | `/portfolio` | Full holdings and portfolio analytics live here |
+| Goals | `/goals` | Goal-scoped summaries only elsewhere |
+| Decisions | `/decisions` | `/recommendations` redirects to Recommendations |
+| Market Intelligence | `/market-intelligence` | `/market-briefs` redirects here |
+| Scenario Lab | `/scenario-lab` | Server-backed scenario authority remains unchanged |
+| Data Connections | `/data-connections` | `/accounts` redirects to `view=accounts`; imports are `view=imports` |
+| Settings | `/settings` | Safe profile and appearance preferences |
+| Help | `/help` | Product navigation, evidence, privacy, and recovery guidance |
+| Scout | Global header + `/assistant` | Full-page fallback remains accessible |
+
+The final cleanup preserves legacy routes as compatibility surfaces, keeps one
+full visualization or analytical workflow per authoritative destination, and
+removes obsolete primary-navigation entries only after their replacement route
+is active.

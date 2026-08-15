@@ -7,7 +7,6 @@ import {
   Wallet,
   Target,
   Landmark,
-  History,
   BrainCircuit,
   Settings as SettingsIcon,
   HelpCircle,
@@ -73,17 +72,10 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    key: 'tools',
-    label: 'Tools',
-    items: [
-      { name: 'Activity', href: '/cash-flow?view=transactions', icon: History },
-      { name: 'Accounts', href: '/accounts', icon: Landmark },
-    ],
-  },
-  {
     key: 'system',
     label: 'System',
     items: [
+      { name: 'Data Connections', href: '/data-connections', icon: Landmark },
       { name: 'Settings', href: '/settings', icon: SettingsIcon },
       { name: 'Help', href: '/help', icon: HelpCircle },
     ],

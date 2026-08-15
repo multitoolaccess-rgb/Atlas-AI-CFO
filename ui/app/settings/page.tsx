@@ -1659,8 +1659,9 @@ export default function SettingsPage() {
   return (
     <PageLayout>
       <PageHeader
+        eyebrow="System"
         title="Settings"
-        description="Your profile, currency preference, and account preferences."
+        description="Appearance, profile, currency, household preferences, and safe data maintenance controls."
         className="mb-6"
       />
 

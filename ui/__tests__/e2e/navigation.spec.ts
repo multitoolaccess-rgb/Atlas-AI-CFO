@@ -32,11 +32,13 @@ const NAV_ITEMS: Array<{ name: string; expectedPath: string; expectedSearch?: st
   { name: 'Mission Control', expectedPath: '/' },
   { name: 'Cash Flow', expectedPath: '/cash-flow' },
   { name: 'Plan', expectedPath: '/plan' },
+  { name: 'Wealth', expectedPath: '/wealth' },
   { name: 'Portfolio', expectedPath: '/portfolio' },
   { name: 'Goals', expectedPath: '/goals' },
-  { name: 'Recommendations', expectedPath: '/recommendations' },
-  { name: 'Accounts', expectedPath: '/accounts' },
-  { name: 'Activity', expectedPath: '/cash-flow', expectedSearch: 'view=transactions' },
+  { name: 'Decisions', expectedPath: '/decisions' },
+  { name: 'Market Intelligence', expectedPath: '/market-intelligence' },
+  { name: 'Scenario Lab', expectedPath: '/scenario-lab' },
+  { name: 'Data Connections', expectedPath: '/data-connections' },
   { name: 'Settings', expectedPath: '/settings' },
   { name: 'Help', expectedPath: '/help' },
 ]
@@ -263,6 +265,26 @@ for (const item of NAV_ITEMS) {
     ).toEqual([])
   })
 }
+
+test('Data Connections tabs preserve URL state and legacy Accounts redirects', async ({ page }) => {
+  await page.goto('/data-connections?range=YTD&view=accounts')
+  await page.waitForLoadState('networkidle')
+
+  const importsTab = page.getByRole('tab', { name: 'Imports', exact: true })
+  await expect(importsTab).toBeVisible()
+  await importsTab.click()
+  await page.waitForURL((url) => url.pathname === '/data-connections' && url.searchParams.get('view') === 'imports' && url.searchParams.get('range') === 'YTD')
+  await expect(page.locator('[data-testid="imports-tab-panel"]')).toBeVisible()
+
+  await page.getByRole('tab', { name: 'Synchronization', exact: true }).click()
+  await expect(page.locator('[data-testid="synchronization-tab-panel"]')).toBeVisible()
+  await page.getByRole('tab', { name: 'Data quality', exact: true }).click()
+  await expect(page.locator('[data-testid="data-quality-tab-panel"]')).toBeVisible()
+
+  await page.goto('/accounts?tab=all')
+  await page.waitForURL((url) => url.pathname === '/data-connections' && url.searchParams.get('tab') === 'all' && url.searchParams.get('view') === 'accounts')
+  await expect(page.locator('[data-testid="accounts-tab-panel"]')).toBeVisible()
+})
 
 test('sidebar marks the current route with aria-current="page"', async ({ page }) => {
   // /portfolio is data-driven, so we wait for it to render before

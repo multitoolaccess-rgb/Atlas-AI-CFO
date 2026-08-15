@@ -143,9 +143,9 @@ test('CSV upload completes successfully (no OperationalError 500)', async ({
   // asserts on the happy path: the success banner renders + a history
   // row appears.
   const errors = errorListener(page)
-  await page.goto('/accounts')
+  await page.goto('/data-connections')
   await expect(page.locator('h1').first()).toBeVisible({ timeout: 10_000 })
-  await page.getByRole('tab', { name: 'Statement', exact: true }).click()
+  await page.getByRole('tab', { name: 'Imports', exact: true }).click()
 
   const csvPath = path.resolve(
     __dirname,

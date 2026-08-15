@@ -9,11 +9,14 @@
 - Overall status: in_progress
 - Objective: Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.
 - Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-08-15T04:13:46Z
+- Tracker updated: 2026-08-15T04:20:37Z
 
 ## Active work
 
-- None
+- work-ui-information-architecture-step-5: Activate System information architecture migration [in_progress/medium]
+  - Objective: Activate Data Connections, Settings, and Help; preserve compatibility, consolidate navigation, and complete focused UI redesign certification.
+  - Branch: codex/ia-system-migration-step-5
+  - Paths: ui/app, ui/components/layout, ui/lib/informationArchitecture.ts, ui/lib/middleware.ts, ui/__tests__
 
 ## Blockers
 
