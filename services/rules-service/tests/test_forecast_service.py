@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.database import Base
 from app.forecasts.canonical_state import CanonicalProjectionState
 from app.forecasts.repository import IdempotencyConflict
+from app.forecast_provider.finlynq import FinlynqProjectionProviderError
 from app.forecasts.service import ForecastGenerationService, ForecastGenerationUnavailable
 from app.models import Goal, User
 
@@ -25,6 +26,13 @@ class Adapter:
 class MalformedAdapter:
     def __init__(self): self.calls = 0
     def load_projection_state(self, *, user_id, goal_id): self.calls += 1; return object()
+
+
+class ProviderUnavailableAdapter:
+    def __init__(self): self.calls = 0
+    def load_projection_state(self, *, user_id, goal_id):
+        self.calls += 1
+        raise FinlynqProjectionProviderError("projection_state_unavailable")
 
 
 @pytest.fixture()
@@ -47,6 +55,16 @@ def test_cross_user_goal_does_not_invoke_adapter(db):
     adapter=Adapter(_state())
     with pytest.raises(ForecastGenerationUnavailable): ForecastGenerationService(db,adapter).generate(user_id=2,user_sub="other",goal_id=1,idempotency_key="atlas-key",now=datetime(2026,7,2,tzinfo=timezone.utc))
     assert adapter.calls == 0
+
+
+def test_provider_unavailable_is_sanitized_without_persisting(db):
+    adapter = ProviderUnavailableAdapter()
+    with pytest.raises(ForecastGenerationUnavailable, match="forecast_generation_unavailable"):
+        ForecastGenerationService(db, adapter).generate(
+            user_id=1, user_sub="atlas-user", goal_id=1,
+            idempotency_key="atlas-provider-unavailable", now=datetime(2026, 7, 2, tzinfo=timezone.utc),
+        )
+    assert adapter.calls == 1
 
 
 def test_rejects_malformed_adapter_output_without_persisting_source_payload(db):

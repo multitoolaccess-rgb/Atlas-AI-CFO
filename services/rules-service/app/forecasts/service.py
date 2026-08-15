@@ -25,6 +25,7 @@ from app.forecasts.repository import ForecastRepository, PersistedForecastVersio
 from app.forecasts.snapshots import ASSUMPTION_SCHEMA_VERSION, TARGET_DECISION_SCHEMA_VERSION, CALCULATION_DECIMAL_SCHEMA_VERSION, calculation_decimal_string
 from app.models import Goal
 from app.config import settings
+from app.forecast_provider.finlynq import FinlynqProjectionProviderError
 
 
 class ForecastGenerationUnavailable(RuntimeError):
@@ -67,7 +68,7 @@ class ForecastGenerationService:
                 server_user_id=user_sub,
                 server_goal_id=goal_id,
             )
-        except CanonicalStateValidationError:
+        except (CanonicalStateValidationError, FinlynqProjectionProviderError):
             adapter_failure = True
         if adapter_failure:
             raise ForecastGenerationUnavailable("forecast_generation_unavailable")
