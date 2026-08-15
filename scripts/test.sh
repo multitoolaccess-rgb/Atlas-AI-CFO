@@ -15,7 +15,9 @@
 #   SKIP_VITEST=1      — skip step 2 (faster inner loop)
 #   SKIP_PLAYWRIGHT=1  — skip step 4 (CI without chromium)
 #   SKIP_TYPECHECK=1   — skip step 3 (faster inner loop)
-#   PLAYWRIGHT_TEST_ARGS — optional focused spec/grep arguments for browser checks
+#   PLAYWRIGHT_TEST_FILE — optional focused Playwright spec path
+#   PLAYWRIGHT_GREP — optional Playwright title filter for the focused spec
+#   PLAYWRIGHT_TEST_ARGS — optional raw focused spec arguments for browser checks
 #   SKIP_TESTS=1       — bypass the pre-push hook entirely
 #   FORCE_ALL_TESTS=1  — bypass the pre-push smart mode
 #
@@ -125,7 +127,13 @@ step_playwright() {
   # The browser suite exercises the real authenticated dashboard. Delegate
   # to the service-owning harness so canonical CI does not rely on
   # pre-existing local processes.
-  if [ -n "${PLAYWRIGHT_TEST_ARGS:-}" ]; then
+  if [ -n "${PLAYWRIGHT_TEST_FILE:-}" ]; then
+    if [ -n "${PLAYWRIGHT_GREP:-}" ]; then
+      bash "$SCRIPT_DIR/test-e2e.sh" "$PLAYWRIGHT_TEST_FILE" --grep "$PLAYWRIGHT_GREP"
+    else
+      bash "$SCRIPT_DIR/test-e2e.sh" "$PLAYWRIGHT_TEST_FILE"
+    fi
+  elif [ -n "${PLAYWRIGHT_TEST_ARGS:-}" ]; then
     read -r -a playwright_args <<< "$PLAYWRIGHT_TEST_ARGS"
     bash "$SCRIPT_DIR/test-e2e.sh" "${playwright_args[@]}"
   else
