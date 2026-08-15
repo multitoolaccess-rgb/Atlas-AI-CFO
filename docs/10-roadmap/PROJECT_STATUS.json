@@ -1,22 +1,5 @@
 {
-  "active_work": [
-    {
-      "branch": "codex/phase-6-scenario-lab-ui-slice-2",
-      "id": "work-p6-s2-scenario-lab-ui",
-      "issue": "",
-      "objective": "Build the complete server-backed Scenario Lab UI against the authoritative Slice 1 APIs without introducing client-side financial authority.",
-      "paths": [
-        "ui/app/scenario-lab ui/components/scenario-lab ui/lib/api_scenarios.ts"
-      ],
-      "phase_id": "phase-6",
-      "risk_tier": "medium",
-      "status": "in_progress",
-      "tests": [
-        "Focused Scenario Lab API/component tests and route-mocked browser journeys"
-      ],
-      "title": "Phase 6 Slice 2 Scenario Lab UI"
-    }
-  ],
+  "active_work": [],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -1112,14 +1095,36 @@
         "Hermetic Playwright System/navigation journey: 5 passed"
       ],
       "title": "Activate System information architecture migration"
+    },
+    {
+      "branch": "codex/phase-6-scenario-lab-ui-slice-2",
+      "commit": "0e8516a",
+      "id": "work-p6-s2-scenario-lab-ui",
+      "issue": "",
+      "objective": "Build the complete server-backed Scenario Lab UI against the authoritative Slice 1 APIs without introducing client-side financial authority.",
+      "paths": [
+        "ui/app/scenario-lab ui/components/scenario-lab ui/lib/api_scenarios.ts"
+      ],
+      "phase_id": "phase-6",
+      "pr": null,
+      "review_evidence": null,
+      "risk_tier": "medium",
+      "status": "complete",
+      "tests": [
+        "Focused Vitest: 44 passed (Scenario Lab API/component and migrated-page coverage)",
+        "TypeScript and ESLint passed",
+        "Production build passed with known backend-unavailable static-generation warnings",
+        "Route-mocked Playwright: 3 passed (generation, reload, comparison, archive, disabled/baseline recovery, URL state, keyboard, mobile overflow, dark mode)"
+      ],
+      "title": "Phase 6 Slice 2 Scenario Lab UI"
     }
   ],
   "current_objective": "Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T05:34:01Z",
+  "last_updated": "2026-08-15T05:38:23Z",
   "next_bounded_task": {
-    "description": "Next bounded product task: implement or certify the next Phase 6 Scenario Lab UI slice against the authoritative Slice 1 APIs, preserving Decimal-safe server authority and bounded supported changes.",
-    "id": "work-p6-scenario-lab-ui",
+    "description": "Run a separate clean-main Phase 6 certification matrix for Scenario Lab Slice 2 only when phase certification is authorized; do not add a completion tag without all documented exit evidence.",
+    "id": "work-p6-s2-scenario-lab-certification",
     "phase_id": "phase-6"
   },
   "overall_status": "in_progress",
