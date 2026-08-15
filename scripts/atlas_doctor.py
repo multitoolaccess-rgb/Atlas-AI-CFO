@@ -19,7 +19,7 @@ import json
 import os
 import re
 import sqlite3
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN, localcontext
 from datetime import datetime, timedelta, timezone
 import subprocess
 import sys
@@ -244,29 +244,53 @@ def _currency_authority_snapshot(conn: sqlite3.Connection) -> dict[str, str]:
     return {"state": "ready", "reason_code": "currency_authority_ready", "recovery_action": "No action required."}
 
 
-def _canonical_balance(value: Any) -> str:
+def _canonical_source_balance(value: Any) -> str:
     if isinstance(value, bool) or value is None:
-        raise ValueError("balance_invalid")
+        raise ValueError("balance_amount_invalid")
     try:
         parsed = Decimal(str(value))
     except (InvalidOperation, TypeError, ValueError) as exc:
-        raise ValueError("balance_invalid") from exc
-    if not parsed.is_finite() or parsed.copy_abs() > Decimal("1E+24"):
-        raise ValueError("balance_invalid")
+        raise ValueError("balance_amount_invalid") from exc
+    if not parsed.is_finite() or parsed.copy_abs() > Decimal("999999999999999999999999999999999999.99"):
+        raise ValueError("balance_amount_precision_unavailable")
     rendered = format(parsed, "f")
-    if "." in rendered:
-        rendered = rendered.rstrip("0").rstrip(".")
-    return rendered or "0"
+    return "0" if rendered in {"", "-0"} else rendered
 
 
-def _balance_hash_from_row(row: tuple[Any, ...]) -> str:
-    account_id, user_id, account_type, current_balance, is_active = row
+def _canonical_balance(value: Any) -> str:
+    source = _canonical_source_balance(value)
+    try:
+        with localcontext() as context:
+            context.prec = 50
+            rounded = Decimal(source).quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
+    except (InvalidOperation, ValueError) as exc:
+        raise ValueError("balance_amount_precision_unavailable") from exc
+    if not rounded.is_finite() or rounded.copy_abs() > Decimal("999999999999999999999999999999999999.99"):
+        raise ValueError("balance_amount_precision_unavailable")
+    rendered = format(rounded, "f")
+    return "0.00" if rendered == "-0.00" else rendered
+
+
+def _balance_hash_from_row(row: tuple[Any, ...], amount: str | None = None) -> str:
+    account_id, user_id, account_type, current_balance, is_active = row[:5]
+    source = _canonical_source_balance(current_balance)
+    confirmed = amount if amount is not None else _canonical_balance(source)
     payload = {
-        "account_id": int(account_id),
-        "account_type": account_type,
-        "balance_representation": _canonical_balance(current_balance),
-        "is_active": bool(is_active),
-        "user_id": int(user_id),
+        "account_id": int(account_id), "account_type": account_type,
+        "legacy_source_amount": source,
+        "confirmed_usd_cent": confirmed,
+        "is_active": bool(is_active), "user_id": int(user_id),
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")).hexdigest()
+
+
+def _evidence_state_hash_from_row(row: tuple[Any, ...], amount: str, observed: datetime) -> str:
+    source = _canonical_source_balance(row[3])
+    payload = {
+        "account_id": int(row[0]), "confirmed_usd_cent": _canonical_balance(source),
+        "currency_code": "USD", "legacy_source_amount": source,
+        "observed_at": observed.astimezone(timezone.utc).isoformat(timespec="microseconds"),
+        "source_kind": "operator_confirmed", "user_id": int(row[1]),
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")).hexdigest()
 
@@ -274,62 +298,88 @@ def _balance_hash_from_row(row: tuple[Any, ...]) -> str:
 def _balance_observation_snapshot(conn: sqlite3.Connection) -> dict[str, Any]:
     try:
         accounts = conn.execute(
-            "SELECT id, user_id, account_type, current_balance, is_active, last_sync FROM accounts WHERE is_active = 1 ORDER BY id"
+            "SELECT id, user_id, account_type, current_balance, is_active FROM accounts WHERE is_active = 1 ORDER BY id"
         ).fetchall()
         events = conn.execute(
-            """SELECT id, user_id, account_id, source_kind, actor_category, observed_at,
-                      precondition_hash, recorded_at
-               FROM account_balance_observations
-               ORDER BY recorded_at DESC, id DESC"""
+            """SELECT id, user_id, account_id, event_type, source_kind, actor_category,
+                      currency_code, amount, observed_at, recorded_at, supersedes_event_id,
+                      precondition_hash, state_hash
+               FROM account_balance_evidence
+               ORDER BY recorded_at ASC, id ASC"""
         ).fetchall()
     except sqlite3.OperationalError:
-        return {"state": "blocked", "reason_code": "balance_observation_incomplete", "recovery_action": "Run the explicit local balance-observation operator after reviewing the stored balances."}
+        return {"state": "blocked", "reason_code": "balance_evidence_incomplete", "recovery_action": "Apply the approved exact-cent balance evidence migration, then use the explicit local operator."}
     if not accounts:
-        return {"state": "blocked", "reason_code": "balance_observation_incomplete", "recovery_action": "No active account observation scope is available."}
-    latest: dict[int, tuple[Any, ...]] = {}
+        return {"state": "blocked", "reason_code": "balance_evidence_incomplete", "recovery_action": "No active account balance-authority scope is available."}
+    by_account: dict[int, list[tuple[Any, ...]]] = {}
     for event in events:
-        latest.setdefault(int(event[2]), event)
+        by_account.setdefault(int(event[2]), []).append(event)
     now = datetime.now(timezone.utc)
     reasons: list[str] = []
     for account in accounts:
-        event = latest.get(int(account[0]))
-        if event is None:
-            reasons.append("balance_observation_unknown")
+        account_events = by_account.get(int(account[0]), [])
+        assertions: dict[str, tuple[Any, ...]] = {}
+        revoked: set[str] = set()
+        invalid = False
+        for event in account_events:
+            if event[1] != account[1] or event[4] != "operator_confirmed" or event[5] != "local_operator" or event[6] != "USD":
+                invalid = True
+                break
+            if event[3] == "assertion" and event[7] is not None and event[10] is None:
+                assertions[str(event[0])] = event
+            elif event[3] != "revocation":
+                invalid = True
+                break
+        if invalid:
+            reasons.append("balance_evidence_conflict")
             continue
-        if event[1] != account[1] or event[3] != "operator_confirmed" or event[4] != "local_operator":
-            reasons.append("balance_observation_incomplete")
+        for event in account_events:
+            if event[3] == "revocation":
+                if event[7] is not None or not event[10] or str(event[10]) not in assertions:
+                    invalid = True
+                    break
+                revoked.add(str(event[10]))
+        if invalid:
+            reasons.append("balance_evidence_conflict")
             continue
-        observed = _parse_utc(event[5])
-        last_sync = _parse_utc(account[5])
+        valid = [event for event_id, event in assertions.items() if event_id not in revoked]
+        if not valid:
+            reasons.append("balance_evidence_revoked" if revoked else "balance_evidence_unknown")
+            continue
+        event = max(valid, key=lambda item: (_parse_utc(item[8]) or datetime.min.replace(tzinfo=timezone.utc), _parse_utc(item[9]) or datetime.min.replace(tzinfo=timezone.utc), str(item[0])))
+        observed = _parse_utc(event[8])
         try:
-            state_hash = _balance_hash_from_row(account)
+            amount = _canonical_balance(event[7])
+            current_amount = _canonical_balance(account[3])
+            current_hash = _balance_hash_from_row(account)
         except ValueError as exc:
             reasons.append(str(exc))
             continue
-        if observed is None or last_sync is None:
-            reasons.append("balance_observation_incomplete")
+        if observed is None:
+            reasons.append("balance_evidence_invalid")
+        elif event[11] != current_hash or amount != current_amount:
+            reasons.append("balance_evidence_changed")
+        elif event[12] != _evidence_state_hash_from_row(account, amount, observed):
+            reasons.append("balance_evidence_conflict")
         elif observed > now:
-            reasons.append("balance_observation_future")
-        elif event[6] != state_hash:
-            reasons.append("balance_observation_changed")
-        elif last_sync != observed:
-            reasons.append("balance_observation_conflict")
+            reasons.append("balance_evidence_future")
         elif now - observed > timedelta(days=7):
-            reasons.append("balance_observation_stale")
+            reasons.append("balance_evidence_stale")
         elif now - observed > timedelta(days=6):
-            reasons.append("balance_observation_nearing_expiry")
+            reasons.append("balance_evidence_nearing_expiry")
         else:
-            reasons.append("balance_observation_current")
+            reasons.append("balance_evidence_current")
     for reason in (
-        "balance_invalid", "balance_observation_changed", "balance_observation_conflict",
-        "balance_observation_future", "balance_observation_stale", "balance_observation_unknown",
-        "balance_observation_incomplete",
+        "balance_amount_invalid", "balance_amount_precision_unavailable", "balance_evidence_changed",
+        "balance_evidence_conflict", "balance_evidence_future", "balance_evidence_stale",
+        "balance_evidence_revoked", "balance_evidence_unknown", "balance_evidence_invalid",
+        "balance_evidence_incomplete",
     ):
         if reason in reasons:
-            return {"state": "blocked", "reason_code": reason, "recovery_action": "Review the stored balances, then rerun the explicit local balance-observation operator; no timestamp is refreshed automatically."}
-    if "balance_observation_nearing_expiry" in reasons:
-        return {"state": "ready", "reason_code": "balance_observation_nearing_expiry", "recovery_action": "Reconfirm the stored balances before the seven-day freshness window expires."}
-    return {"state": "ready", "reason_code": "balance_observation_current", "recovery_action": "No action required."}
+            return {"state": "blocked", "reason_code": reason, "recovery_action": "Review the stored balances, then rerun the exact-cent local evidence operator; authority never refreshes automatically."}
+    if "balance_evidence_nearing_expiry" in reasons:
+        return {"state": "ready", "reason_code": "balance_evidence_nearing_expiry", "recovery_action": "Reconfirm the stored balances before the seven-day freshness window expires."}
+    return {"state": "ready", "reason_code": "balance_evidence_current", "recovery_action": "No action required."}
 
 
 def sqlite_snapshot(path: Path | None) -> dict[str, Any]:

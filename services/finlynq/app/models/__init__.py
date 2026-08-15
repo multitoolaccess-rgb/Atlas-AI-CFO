@@ -38,6 +38,7 @@ Phase-F5 surface (canonical portfolio + transactions + state):
 # Phase-F5 lifted models (verbatim from rules-service). Alphabetical.
 from app.models.account import Account
 from app.models.account_balance_observation import AccountBalanceObservation
+from app.models.account_balance_evidence import AccountBalanceEvidence
 from app.models.account_currency_evidence import AccountCurrencyEvidence
 from app.models.budget import Budget
 from app.models.category import Category
@@ -51,6 +52,7 @@ from app.models.user import User
 __all__ = [
     "Account",
     "AccountBalanceObservation",
+    "AccountBalanceEvidence",
     "AccountCurrencyEvidence",
     "Budget",
     "Category",

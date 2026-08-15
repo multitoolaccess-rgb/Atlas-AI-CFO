@@ -4,8 +4,8 @@
 
 - Current phase: **phase-6 — Scenario Lab** (complete)
 - Overall status: **complete**
-- Current objective: Phase 6 is certified; Wave 2B is complete and Wave 2C remains blocked by the existing legacy-float partial projection-state gate after authoritative balance observations passed. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
-- Last updated: 2026-08-15T20:09:17Z
+- Current objective: Phase 6 is certified; Wave 2C exact-cent balance authority is implemented but its disposable clone gate is blocked by one active legacy balance that cannot be represented at two fractional digits without rounding. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
+- Last updated: 2026-08-15T20:20:48Z
 
 ## Active work
 - None
@@ -39,6 +39,7 @@
 - risk-p1-local-backup-recovery [high/low, mitigated]: End-to-end personal recovery/activation is not complete, although verified non-destructive backup and disposable restore tooling exists.
 - risk-p1-migration-downgrade-patched [medium/low, resolved]: Alembic 1.13.x's ApplyBatchImpl.drop_index rejects the deprecated if_exists keyword argument; the Phase 1 final cert matrix surfaced this as a full upgrade -> downgrade base failure on the e9f0a1b2c3d4 migration.
 - risk-p1-legacy-float-projection-gate [high/high, open]: The authoritative clone balance observations now pass, but Finlynq still marks stored legacy float balance representation as partial and the Rules Service forecast gate rejects partial canonical state; Wave 2C cannot generate a baseline without a separate financial-authority decision.
+- risk-p1-legacy-balance-cent-representation [high/high, open]: The disposable clone contains one active legacy Float balance with more than two fractional digits; the exact-cent evidence operator correctly fails closed, so no balance was rounded or backfilled and the forecast gate remains unproven.
 
 ## Recently completed work
 - work-p6-clean-main-certification: Clean-main Phase 6 certification — commit 9c9b554, PR None
@@ -81,6 +82,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-wave-2c-legacy-float-projection-gate: Resolve the existing legacy-float partial projection-state gate through a separately authorized financial-authority decision, prove the disposable clone forecast gate, then resume Wave 2C; do not begin Wave 3 or Phase 7.
+- work-wave-2c-balance-source-reconciliation: Establish an approved authoritative source or bounded correction for the non-cent legacy balance on the disposable clone, then rerun the exact-cent projection and forecast gate; do not access the personal database.
 
 Do not begin the next phase or task automatically.

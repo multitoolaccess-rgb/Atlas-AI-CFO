@@ -9,7 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
-from app.models import Account, Goal, GoalProjectionConfig, Institution, User
+from app.models import Account, AccountBalanceEvidence, Goal, GoalProjectionConfig, Institution, User
 from app.projection_state.confirm_balance_observations import confirm_all_active_balances_current
 from app.projection_state.confirm_currency import confirm_currency
 from app.projection_state.currency import CurrencyEvidenceConflict, effective_currency_for_account, record_currency_evidence
@@ -84,7 +84,8 @@ def test_provider_emits_deterministic_private_usd_envelope():
     assert first == second
     assert first["currency"] == "USD"
     assert first["current_value_components"][0]["amount"] == "100.25"
-    assert first["missing_data_codes"] == ["legacy_float_balance_representation"]
+    assert first["missing_data_codes"] == []
+    assert first["reconciliation_state"] == "reconciled"
     serialized = str(first)
     assert "Synthetic" not in serialized and "Atlas Test Institution" not in serialized
     assert first["provenance"][0]["source_state_hash"] != ""
@@ -126,21 +127,20 @@ def test_provider_hides_cross_user_goal_existence():
     assert str(exc.value) == "projection_state_unavailable"
 
 
-def test_provider_fails_closed_when_active_balance_observation_is_missing():
+def test_provider_fails_closed_when_authoritative_decimal_balance_evidence_is_missing():
     db = _session(); user, goal, now = _seed(db)
-    account = db.query(Account).one()
-    account.last_sync = None
+    db.query(AccountBalanceEvidence).delete()
     db.commit()
-    with pytest.raises(ProjectionStateUnavailable, match="balance_observation_incomplete"):
+    with pytest.raises(ProjectionStateUnavailable, match="balance_evidence_unknown"):
         build_projection_state(db, user_sub=user.local_user_sub, goal_id=goal.id, now=now)
 
 
-def test_provider_rejects_legacy_float_that_exceeds_v1_decimal_scale():
+def test_provider_rejects_legacy_balance_outside_authorized_numeric_bounds():
     db = _session(); user, goal, now = _seed(db)
     account = db.query(Account).one()
-    account.current_balance = 1e-19
+    account.current_balance = 1e40
     db.commit()
-    with pytest.raises(ProjectionStateUnavailable, match="balance_observation_changed"):
+    with pytest.raises(ProjectionStateUnavailable, match="balance_amount_precision_unavailable"):
         build_projection_state(db, user_sub=user.local_user_sub, goal_id=goal.id, now=now)
 
 

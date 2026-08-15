@@ -77,10 +77,46 @@ def test_readiness_reports_ready_currency_without_enabling_flags(client, db_sess
     financial = next(item for item in body["checks"] if item["component"] == "financial_authority")
     forecasts = next(item for item in body["checks"] if item["component"] == "forecasts")
     assert financial["state"] == "blocked"
-    assert financial["reason_code"] == "balance_observation_unknown"
+    assert financial["reason_code"] == "balance_evidence_unknown"
     assert forecasts["state"] == "disabled"
     assert body["feature_flags"]["atlas_forecast_persistence_enabled"] is True
     assert body["feature_flags"]["atlas_forecast_read_api_enabled"] is False
+
+
+def test_readiness_reports_exact_cent_balance_authority_ready_without_values(client, db_session, make_account, monkeypatch):
+    from datetime import datetime, timezone
+    import hashlib
+    from app.models import AccountBalanceEvidence, AccountCurrencyEvidence
+    from app.readiness import _balance_hash, _canonical_balance, _evidence_state_hash
+
+    _ready_migrations(monkeypatch)
+    account = make_account(account_name="Synthetic exact-cent account")
+    db_session.add(account)
+    db_session.commit()
+    observed = datetime.now(timezone.utc).replace(microsecond=0)
+    db_session.add(AccountCurrencyEvidence(
+        id="00000000-0000-4000-8000-000000000201", user_id=account.user_id, account_id=account.id,
+        event_type="assertion", source_kind="operator_confirmed", currency_code="USD",
+        observed_at=observed, actor_category="synthetic_test",
+        source_reference_hash=hashlib.sha256(b"synthetic-currency-2").hexdigest(),
+        idempotency_key_hash=hashlib.sha256(b"synthetic-currency-key-2").hexdigest(),
+    ))
+    amount = _canonical_balance(account.current_balance)
+    db_session.add(AccountBalanceEvidence(
+        id="00000000-0000-4000-8000-000000000202", user_id=account.user_id, account_id=account.id,
+        event_type="assertion", source_kind="operator_confirmed", actor_category="local_operator",
+        currency_code="USD", amount=account.current_balance, observed_at=observed,
+        precondition_hash=_balance_hash(account, amount), state_hash=_evidence_state_hash(account, amount, observed),
+        observation_intent_hash="a" * 64, idempotency_key_hash="b" * 64,
+    ))
+    db_session.commit()
+    body = client.get("/api/system/readiness").json()
+    balance = next(item for item in body["checks"] if item["component"] == "balance_observations")
+    financial = next(item for item in body["checks"] if item["component"] == "financial_authority")
+    assert balance["state"] == "ready"
+    assert balance["reason_code"] == "balance_evidence_current"
+    assert financial["state"] == "ready"
+    assert "current_balance" not in client.get("/api/system/readiness").text
 
 
 def test_readiness_reports_migration_mismatch_without_mutating(client, monkeypatch):

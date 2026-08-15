@@ -16,6 +16,7 @@ from app.models.budget import Budget
 from app.models.category import Category
 from app.models.account import Account
 from app.models.account_balance_observation import AccountBalanceObservation
+from app.models.account_balance_evidence import AccountBalanceEvidence
 from app.models.account_currency_evidence import AccountCurrencyEvidence
 from app.models.institution import Institution
 from app.models.transaction import Transaction
@@ -69,6 +70,7 @@ __all__ = [
     "Category",
     "Account",
     "AccountBalanceObservation",
+    "AccountBalanceEvidence",
     "AccountCurrencyEvidence",
     "Institution",
     "Transaction",

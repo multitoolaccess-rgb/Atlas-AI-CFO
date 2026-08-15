@@ -103,7 +103,39 @@ def test_sqlite_snapshot_is_read_only_and_reports_currency_fail_closed() -> None
 
 def test_migration_head_parser_includes_typed_wave2a_revision() -> None:
     heads = atlas_doctor.migration_heads()
-    assert heads == ("Y8a1b2c3d4e5",)
+    assert heads == ("Z9a1b2c3d4e5",)
+
+
+def test_exact_cent_balance_evidence_reports_aggregate_ready_without_values() -> None:
+    from datetime import datetime, timezone
+
+    with TemporaryDirectory(prefix="atlas-doctor-evidence-") as directory:
+        path = Path(directory) / "synthetic.sqlite"
+        observed = datetime.now(timezone.utc).replace(microsecond=0)
+        account = (1, 7, "checking", 100.25, 1)
+        with sqlite3.connect(path) as connection:
+            connection.executescript(
+                """
+                CREATE TABLE alembic_version (version_num VARCHAR(32));
+                INSERT INTO alembic_version(version_num) VALUES ('Z9a1b2c3d4e5');
+                CREATE TABLE accounts (id INTEGER PRIMARY KEY, user_id INTEGER, account_type TEXT, current_balance FLOAT, is_active INTEGER);
+                CREATE TABLE account_currency_evidence (id TEXT PRIMARY KEY, account_id INTEGER, event_type TEXT, source_kind TEXT, currency_code TEXT, observed_at TEXT, supersedes_event_id TEXT, recorded_at TEXT);
+                CREATE TABLE account_balance_evidence (id TEXT PRIMARY KEY, user_id INTEGER, account_id INTEGER, event_type TEXT, source_kind TEXT, actor_category TEXT, currency_code TEXT, amount NUMERIC, observed_at TEXT, recorded_at TEXT, supersedes_event_id TEXT, precondition_hash TEXT, state_hash TEXT, observation_intent_hash TEXT, idempotency_key_hash TEXT);
+                INSERT INTO accounts VALUES (1, 7, 'checking', 100.25, 1);
+                INSERT INTO account_currency_evidence VALUES ('currency-1', 1, 'assertion', 'operator_confirmed', 'USD', '2026-08-15T12:00:00Z', NULL, '2026-08-15T12:00:00Z');
+                """
+            )
+            precondition = atlas_doctor._balance_hash_from_row(account, "100.25")
+            state_hash = atlas_doctor._evidence_state_hash_from_row(account, "100.25", observed)
+            connection.execute(
+                """INSERT INTO account_balance_evidence
+                   VALUES (?, ?, ?, 'assertion', 'operator_confirmed', 'local_operator', 'USD', ?, ?, ?, NULL, ?, ?, ?, ?)""",
+                ("balance-1", 7, 1, "100.25", observed.isoformat(), observed.isoformat(), precondition, state_hash, "c" * 64, "d" * 64),
+            )
+        with patch.object(atlas_doctor, "migration_heads", return_value=("Z9a1b2c3d4e5",)):
+            report = atlas_doctor.sqlite_snapshot(path)
+        assert report["balance_observation"] == {"state": "ready", "reason_code": "balance_evidence_current", "recovery_action": "No action required."}
+        assert "100.25" not in json.dumps(report)
 
 
 def test_missing_database_fails_closed_without_creating_it() -> None:

@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Account, AccountCurrencyEvidence, Goal, GoalProjectionConfig, User
 from app.projection_state.currency import derive_effective_currency, effective_currency_for_account, validate_stable_reference
-from app.projection_state.observation import account_observation_state
+from app.projection_state.balance_evidence import account_balance_evidence_state, confirmed_balance
 
 
 PROJECTION_STATE_SCHEMA_VERSION = "atlas-projection-state/v1"
@@ -148,8 +148,8 @@ def build_projection_state(
             raise ProjectionStateUnavailable("currency_evidence_incomplete")
         if account.account_type not in LIABILITY_ACCOUNT_TYPES | ASSET_ACCOUNT_TYPES:
             raise ProjectionStateUnavailable("projection_state_unavailable")
-        balance_state = account_observation_state(db, account, now=current_time)
-        if balance_state.state != "ready" or balance_state.observed_at is None:
+        balance_state = account_balance_evidence_state(db, account, now=current_time)
+        if balance_state.state != "ready" or balance_state.observed_at is None or balance_state.amount is None:
             raise ProjectionStateUnavailable(balance_state.reason_code)
         balance_observed = balance_state.observed_at
         currency_observed = effective.observed_at
@@ -158,7 +158,10 @@ def build_projection_state(
             raise ProjectionStateUnavailable("projection_state_unavailable")
         if (current_time - included_observed).total_seconds() > MAX_FRESHNESS_DAYS * 86400:
             raise ProjectionStateUnavailable("projection_state_unavailable")
-        amount = _canonical_decimal(account.current_balance)
+        try:
+            amount = confirmed_balance(balance_state.amount).confirmed_canonical
+        except Exception:
+            raise ProjectionStateUnavailable("balance_amount_precision_unavailable") from None
         if account.account_type in LIABILITY_ACCOUNT_TYPES:
             if amount.startswith("-"):
                 raise ProjectionStateUnavailable("projection_state_unavailable")
@@ -176,11 +179,13 @@ def build_projection_state(
                 "account_type": account.account_type,
                 "amount": amount,
                 "balance_observed_at": _timestamp(balance_observed),
+                "balance_evidence_event_id": balance_state.event_id,
                 "currency_code": evidence.currency_code,
                 "currency_source": evidence.source_kind,
                 "currency_observed_at": _timestamp(currency_observed),
                 "currency_source_reference_hash": evidence.source_reference_hash,
-                "float_source_representation": True,
+                "legacy_source_representation": True,
+                "authoritative_decimal_evidence": True,
                 "precision_restored": False,
             }
         )
@@ -234,6 +239,6 @@ def build_projection_state(
             "source_updated_at": _timestamp(as_of),
         },
         "provenance": provenance,
-        "missing_data_codes": ["legacy_float_balance_representation"],
-        "reconciliation_state": "partial",
+        "missing_data_codes": [],
+        "reconciliation_state": "reconciled",
     }
