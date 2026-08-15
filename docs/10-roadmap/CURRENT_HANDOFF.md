@@ -9,11 +9,14 @@
 - Overall status: in_progress
 - Objective: Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.
 - Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-08-14T18:21:12Z
+- Tracker updated: 2026-08-14T18:21:42Z
 
 ## Active work
 
-- None
+- work-ui-information-architecture-step-3: Activate Wealth information architecture migration [in_progress/high]
+  - Objective: Atomically activate Wealth, Portfolio, and Goals destinations with authoritative existing functionality, URL-compatible tabs and legacy redirects while preserving all financial calculations, market-provider behavior, history, and authorization.
+  - Branch: codex/ia-wealth-migration-step-3
+  - Paths: ui/app, ui/components, ui/lib, docs/06-ui-ux
 
 ## Blockers
 
