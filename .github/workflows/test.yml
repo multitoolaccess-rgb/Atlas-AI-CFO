@@ -111,21 +111,21 @@ jobs:
           cache-dependency-path: 'ui/package-lock.json'
 
       - name: Install Rules Service environment
-        if: needs.scope.outputs.rules == 'true'
+        if: needs.scope.outputs.rules == 'true' || needs.scope.outputs.browser == 'true'
         run: |
           python -m venv .venv-rules
           .venv-rules/bin/python -m pip install --upgrade pip wheel setuptools
           .venv-rules/bin/python -m pip install -r services/rules-service/requirements.txt
 
       - name: Install Finlynq environment
-        if: needs.scope.outputs.finlynq == 'true'
+        if: needs.scope.outputs.finlynq == 'true' || needs.scope.outputs.browser == 'true'
         run: |
           python -m venv .venv-finlynq
           .venv-finlynq/bin/python -m pip install --upgrade pip wheel setuptools
           .venv-finlynq/bin/python -m pip install -r services/finlynq/requirements.txt
 
       - name: Install Rules Service OCR runtime
-        if: needs.scope.outputs.rules == 'true'
+        if: needs.scope.outputs.rules == 'true' || needs.scope.outputs.browser == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install --yes tesseract-ocr
