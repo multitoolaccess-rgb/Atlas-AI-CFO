@@ -1206,12 +1206,15 @@
         "Python compilation and diff/sensitive-pattern review: passed"
       ],
       "title": "Implement Wave 2A authoritative account-currency evidence",
+      "correction_commits": [
+        "7fff684b1abbb65136d1161e7848f1450c835821"
+      ],
       "validation_evidence": {
         "command": "../../.venv-finlynq/bin/python -m pytest -q tests/test_currency_evidence.py tests/test_projection_state_provider.py tests/test_parse_upload_contract.py",
         "commit": "a438df9233cb197827a5affda0c24ee4d7ec0a97",
         "environment": "isolated synthetic SQLite; no personal database",
         "kind": "local",
-        "result": "24 passed",
+        "result": "24 passed; Doctor regression 4 passed on correction head 7fff684",
         "timestamp": "2026-08-15T18:46:54Z"
       }
     }
