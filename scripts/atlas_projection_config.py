@@ -86,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
         "Atlas projection configuration: "
         + result["status"]
         + f" (projection={result['projection']}, currency={result.get('currency', 'USD')}, "
-        f"monthly_contribution={result.get('monthly_contribution', 'configured')})"
+        "monthly_contribution=configured)"
     )
     print("  owner and goal scope were resolved server-side; sensitive financial records are omitted")
     print("  no browser authority, provider call, migration, or feature-flag mutation was performed by this command")
