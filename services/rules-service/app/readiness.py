@@ -23,7 +23,7 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import Account, AccountBalanceObservation, AccountCurrencyEvidence, Forecast, User
+from app.models import Account, AccountBalanceEvidence, AccountBalanceObservation, AccountCurrencyEvidence, Forecast, User
 
 ReadinessState = Literal["ready", "unavailable", "blocked", "degraded", "disabled"]
 OverallReadinessState = Literal[
@@ -195,26 +195,39 @@ def _currency_state(db: Session, user_id: int | None) -> tuple[ReadinessState, s
 
 def _canonical_balance(value: object) -> str:
     if isinstance(value, bool) or value is None:
-        raise ValueError("balance_invalid")
+        raise ValueError("balance_amount_invalid")
     try:
         parsed = Decimal(str(value))
     except (InvalidOperation, TypeError, ValueError) as exc:
-        raise ValueError("balance_invalid") from exc
-    if not parsed.is_finite() or parsed.copy_abs() > Decimal("1E+24"):
-        raise ValueError("balance_invalid")
+        raise ValueError("balance_amount_invalid") from exc
+    if not parsed.is_finite() or parsed.copy_abs() > Decimal("999999999999999999999999999999999999.99"):
+        raise ValueError("balance_amount_precision_unavailable")
     rendered = format(parsed, "f")
-    if "." in rendered:
-        rendered = rendered.rstrip("0").rstrip(".")
-    return rendered or "0"
+    sign = "-" if rendered.startswith("-") else ""
+    unsigned = rendered[1:] if sign else rendered
+    integral, _, fractional = unsigned.partition(".")
+    if len(fractional) > 2:
+        raise ValueError("balance_amount_precision_unavailable")
+    canonical = f"{sign}{integral}.{fractional.ljust(2, '0')}"
+    return "0.00" if canonical == "-0.00" else canonical
 
 
-def _balance_hash(account: Account) -> str:
+def _balance_hash(account: Account, amount: str | None = None) -> str:
     payload = {
         "account_id": int(account.id),
         "account_type": account.account_type,
-        "balance_representation": _canonical_balance(account.current_balance),
+        "amount": amount if amount is not None else _canonical_balance(account.current_balance),
         "is_active": bool(account.is_active),
         "user_id": int(account.user_id),
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")).hexdigest()
+
+
+def _evidence_state_hash(account: Account, amount: str, observed_at: datetime) -> str:
+    payload = {
+        "account_id": int(account.id), "amount": amount, "currency_code": "USD",
+        "observed_at": observed_at.astimezone(timezone.utc).isoformat(timespec="microseconds"),
+        "source_kind": "operator_confirmed", "user_id": int(account.user_id),
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")).hexdigest()
 
@@ -222,54 +235,82 @@ def _balance_hash(account: Account) -> str:
 def _balance_state(db: Session, user_id: int | None) -> tuple[ReadinessState, str, str, bool]:
     if user_id is None:
         return "blocked", "local_user_missing", "Open Settings once to initialize the local user, then retry.", False
-    accounts = list(db.scalars(select(Account).where(Account.user_id == user_id, Account.is_active.is_(True))))
+    try:
+        accounts = list(db.scalars(select(Account).where(Account.user_id == user_id, Account.is_active.is_(True))))
+        events = list(db.scalars(select(AccountBalanceEvidence).where(
+            AccountBalanceEvidence.user_id == user_id
+        ).order_by(AccountBalanceEvidence.recorded_at.asc(), AccountBalanceEvidence.id.asc())))
+    except Exception:
+        return "blocked", "balance_evidence_incomplete", "Apply the approved exact-cent balance evidence migration; Atlas never migrates from this screen.", False
     if not accounts:
-        return "blocked", "balance_observation_incomplete", "No active account observation scope is available.", False
+        return "blocked", "balance_evidence_incomplete", "No active account balance-authority scope is available.", False
+    by_account: dict[int, list[AccountBalanceEvidence]] = {}
+    for event in events:
+        by_account.setdefault(int(event.account_id), []).append(event)
     now = datetime.now(timezone.utc)
     reasons: list[str] = []
     for account in accounts:
-        event = db.scalar(
-            select(AccountBalanceObservation)
-            .where(AccountBalanceObservation.account_id == account.id, AccountBalanceObservation.user_id == user_id)
-            .order_by(AccountBalanceObservation.recorded_at.desc(), AccountBalanceObservation.id.desc())
-        )
-        if event is None:
-            reasons.append("balance_observation_unknown")
+        account_events = by_account.get(int(account.id), [])
+        assertions: dict[str, AccountBalanceEvidence] = {}
+        revoked: set[str] = set()
+        invalid = False
+        for event in account_events:
+            if event.account_id != account.id or event.source_kind != "operator_confirmed" or event.actor_category != "local_operator" or event.currency_code != "USD":
+                invalid = True
+                break
+            if event.event_type == "assertion" and event.amount is not None and event.supersedes_event_id is None:
+                assertions[event.id] = event
+            elif event.event_type != "revocation":
+                invalid = True
+                break
+        if invalid:
+            reasons.append("balance_evidence_conflict")
             continue
-        if event.source_kind != "operator_confirmed" or event.actor_category != "local_operator":
-            reasons.append("balance_observation_incomplete")
+        for event in account_events:
+            if event.event_type == "revocation":
+                if event.amount is not None or not event.supersedes_event_id or event.supersedes_event_id not in assertions:
+                    invalid = True
+                    break
+                revoked.add(event.supersedes_event_id)
+        if invalid:
+            reasons.append("balance_evidence_conflict")
             continue
-        observed = event.observed_at.replace(tzinfo=timezone.utc) if event.observed_at and event.observed_at.tzinfo is None else event.observed_at
-        last_sync = account.last_sync.replace(tzinfo=timezone.utc) if account.last_sync and account.last_sync.tzinfo is None else account.last_sync
+        valid = [event for event_id, event in assertions.items() if event_id not in revoked]
+        if not valid:
+            reasons.append("balance_evidence_revoked" if revoked else "balance_evidence_unknown")
+            continue
+        event = max(valid, key=lambda item: (item.observed_at, item.recorded_at, item.id))
         try:
-            current_hash = _balance_hash(account)
-        except ValueError as exc:
+            observed = event.observed_at.replace(tzinfo=timezone.utc) if event.observed_at.tzinfo is None else event.observed_at.astimezone(timezone.utc)
+            amount = _canonical_balance(event.amount)
+            current_amount = _canonical_balance(account.current_balance)
+            current_hash = _balance_hash(account, current_amount)
+        except (AttributeError, ValueError) as exc:
             reasons.append(str(exc))
             continue
-        if observed is None or last_sync is None:
-            reasons.append("balance_observation_incomplete")
+        if event.precondition_hash != current_hash or amount != current_amount:
+            reasons.append("balance_evidence_changed")
+        elif event.state_hash != _evidence_state_hash(account, amount, observed):
+            reasons.append("balance_evidence_conflict")
         elif observed > now:
-            reasons.append("balance_observation_future")
-        elif event.precondition_hash != current_hash:
-            reasons.append("balance_observation_changed")
-        elif last_sync != observed:
-            reasons.append("balance_observation_conflict")
+            reasons.append("balance_evidence_future")
         elif now - observed > timedelta(days=7):
-            reasons.append("balance_observation_stale")
+            reasons.append("balance_evidence_stale")
         elif now - observed > timedelta(days=6):
-            reasons.append("balance_observation_nearing_expiry")
+            reasons.append("balance_evidence_nearing_expiry")
         else:
-            reasons.append("balance_observation_current")
+            reasons.append("balance_evidence_current")
     for reason in (
-        "balance_invalid", "balance_observation_changed", "balance_observation_conflict",
-        "balance_observation_future", "balance_observation_stale", "balance_observation_unknown",
-        "balance_observation_incomplete",
+        "balance_amount_invalid", "balance_amount_precision_unavailable", "balance_evidence_changed",
+        "balance_evidence_conflict", "balance_evidence_future", "balance_evidence_stale",
+        "balance_evidence_revoked", "balance_evidence_unknown", "balance_evidence_invalid",
+        "balance_evidence_incomplete",
     ):
         if reason in reasons:
-            return "blocked", reason, "Review the stored balances, then use the explicit local observation operator; timestamps never refresh automatically.", False
-    if "balance_observation_nearing_expiry" in reasons:
-        return "ready", "balance_observation_nearing_expiry", "Reconfirm the stored balances before the seven-day freshness window expires.", True
-    return "ready", "balance_observation_current", "No action required.", True
+            return "blocked", reason, "Review the stored balances, then use the explicit local evidence operator; evidence never refreshes automatically.", False
+    if "balance_evidence_nearing_expiry" in reasons:
+        return "ready", "balance_evidence_nearing_expiry", "Reconfirm the stored balances before the seven-day freshness window expires.", True
+    return "ready", "balance_evidence_current", "No action required.", True
 
 
 def build_readiness(db: Session, user_sub: str) -> ReadinessResponse:
@@ -317,7 +358,7 @@ def build_readiness(db: Session, user_sub: str) -> ReadinessResponse:
     checks.append(_component(
         "balance_observations", balance_state, balance_reason, balance_recovery, checked_at,
         {"owner": user is not None, "observation_audit": balance_ready, "seven_day_window": True},
-        "account-balance-observation/v1" if balance_ready else None,
+        "account-balance-evidence/v1" if balance_ready else None,
     ))
     financial_ready = currency_ready and balance_ready
     financial_state = currency_state if not currency_ready else balance_state
@@ -325,7 +366,7 @@ def build_readiness(db: Session, user_sub: str) -> ReadinessResponse:
     financial_recovery = currency_recovery if not currency_ready else balance_recovery
     checks.append(_component(
         "financial_authority", financial_state, financial_reason, financial_recovery, checked_at,
-        {"owner": user is not None, "account_currency_evidence": currency_ready, "balance_observation": balance_ready, "usd_supported": True},
+        {"owner": user is not None, "account_currency_evidence": currency_ready, "balance_evidence": balance_ready, "usd_supported": True},
         "atlas-projection-state/v1" if financial_ready else None,
     ))
 

@@ -112,7 +112,7 @@ def test_invalid_or_future_observation_fails_without_mutation(db):
             observed_at=observed + timedelta(seconds=1),
             now=observed,
         )
-    with pytest.raises(BalanceObservationError, match="balance_invalid"):
+    with pytest.raises(BalanceObservationError, match="balance_amount_precision_unavailable"):
         account = session.scalars(select(Account).order_by(Account.id)).first()
         account.current_balance = float("nan")
         session.flush()

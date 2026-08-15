@@ -13,12 +13,9 @@ from app.database import register_sqlite_compat
 
 ROOT = Path(__file__).parent.parent
 PARENT = "Q5h1i2j3k4l5"
-# Phase 3 Slice 1 adds an outcome-evaluation migration on top of the
-# Phase 2 decision-journal chain (``T8a1b2c3d4e5`` →
-# ``V0a1b2c3d4e5``). Phase 5 then adds immutable market briefs. The baseline ``alembic_version.version_num``
-# constant tracks the new chain head so the round-trip assertions
-# below stay aligned with the certified migration chain.
-REVISION = "Y8a1b2c3d4e5"
+# The balance-evidence migration extends the certified chain with the
+# exact-cent authority head used by these round-trip assertions.
+REVISION = "Z9a1b2c3d4e5"
 ACCOUNT_CURRENCY_PARENT = "R6f1g2h3i4j5"
 
 

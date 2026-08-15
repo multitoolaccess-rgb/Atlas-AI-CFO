@@ -7,9 +7,9 @@
 - Phase: phase-6 — Scenario Lab
 - Phase status: complete
 - Overall status: complete
-- Objective: Phase 6 is certified; Wave 2B is complete and Wave 2C remains blocked by the existing legacy-float partial projection-state gate after authoritative balance observations passed. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
+- Objective: Phase 6 is certified; Wave 2C exact-cent balance authority is implemented but its disposable clone gate is blocked by one active legacy balance that cannot be represented at two fractional digits without rounding. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
 - Phase exit criteria: 2/2 complete
-- Tracker updated: 2026-08-15T20:12:41Z
+- Tracker updated: 2026-08-15T20:20:48Z
 
 ## Active work
 
@@ -35,6 +35,7 @@
 - risk-p1-account-currency-authority [high/medium]: Active account balances have current operator-confirmed USD evidence and disposable-clone balance observations now pass, but the complete enabled personal journey remains unproven because the existing legacy-float partial projection-state gate blocks forecast generation.
 - risk-p1-local-backup-recovery [high/low]: End-to-end personal recovery/activation is not complete, although verified non-destructive backup and disposable restore tooling exists.
 - risk-p1-legacy-float-projection-gate [high/high]: The authoritative clone balance observations now pass, but Finlynq still marks stored legacy float balance representation as partial and the Rules Service forecast gate rejects partial canonical state; Wave 2C cannot generate a baseline without a separate financial-authority decision.
+- risk-p1-legacy-balance-cent-representation [high/high]: The disposable clone contains one active legacy Float balance with more than two fractional digits; the exact-cent evidence operator correctly fails closed, so no balance was rounded or backfilled and the forecast gate remains unproven.
 
 ## Recently completed
 
@@ -46,6 +47,6 @@
 
 ## Next bounded task
 
-- work-wave-2c-authoritative-balance-amount: Implement and prove append-only exact-cent authoritative balance evidence on a disposable clone only; stop before personal application and Wave 3/Phase 7.
+- work-wave-2c-balance-source-reconciliation: Establish an approved authoritative source or bounded correction for the non-cent legacy balance on the disposable clone, then rerun the exact-cent projection and forecast gate; do not access the personal database.
 
 Do not begin the next task automatically.
