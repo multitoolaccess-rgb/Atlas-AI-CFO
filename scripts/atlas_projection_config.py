@@ -25,7 +25,13 @@ if str(FINLYNQ_DIR) not in sys.path:
     sys.path.insert(0, str(FINLYNQ_DIR))
 
 from app.config import settings  # noqa: E402
-from app.database import SessionLocal  # noqa: E402
+from app.database import SessionLocal, engine  # noqa: E402
+
+# Finlynq's development setting enables SQLAlchemy echo for the web service.
+# This operator command has a stricter privacy contract: suppress SQL echo
+# before opening the session so even bounded local diagnostics do not print
+# identity/goal predicates or configuration payloads.
+engine.echo = False
 from app.projection_state.configuration import (  # noqa: E402
     ProjectionConfigurationError,
     apply_configuration,
