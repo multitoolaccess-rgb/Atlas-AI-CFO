@@ -143,8 +143,8 @@ def database_path(database_url: str) -> Path | None:
 def migration_heads() -> tuple[str, ...]:
     revisions: dict[str, str | None] = {}
     referenced: set[str] = set()
-    pattern = re.compile(r"^revision\s*=\s*['\"]([^'\"]+)['\"]", re.MULTILINE)
-    down_pattern = re.compile(r"^down_revision\s*=\s*(.+)$", re.MULTILINE)
+    pattern = re.compile(r"^revision(?:\s*:\s*[^=]+)?\s*=\s*['\"]([^'\"]+)['\"]", re.MULTILINE)
+    down_pattern = re.compile(r"^down_revision(?:\s*:\s*[^=]+)?\s*=\s*(.+)$", re.MULTILINE)
     for path in sorted((RULES_DIR / "alembic" / "versions").glob("*.py")):
         text = path.read_text(encoding="utf-8", errors="ignore")
         match = pattern.search(text)

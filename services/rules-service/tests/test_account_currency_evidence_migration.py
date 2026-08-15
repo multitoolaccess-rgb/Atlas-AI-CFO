@@ -54,6 +54,27 @@ def test_upgrade_adds_empty_evidence_table_without_backfill_and_clean_round_trip
             assert conn.execute(text("SELECT count(*) FROM account_currency_evidence")).scalar_one() == 0
 
 
+def test_upgrade_adopts_compatible_table_created_before_alembic(monkeypatch):
+    with tempfile.TemporaryDirectory() as tmp:
+        url = _url(tmp)
+        monkeypatch.setattr("app.config.settings.database_url", url)
+        cfg = _cfg(url)
+        command.upgrade(cfg, PARENT)
+        from app.models.account_currency_evidence import AccountCurrencyEvidence
+        from app.database import Base
+        engine = create_engine(url); register_sqlite_compat(engine)
+        Base.metadata.create_all(engine, tables=[AccountCurrencyEvidence.__table__])
+        command.upgrade(cfg, HEAD)
+        with engine.connect() as conn:
+            assert conn.execute(text("SELECT count(*) FROM account_currency_evidence")).scalar_one() == 0
+            trigger_names = {row[0] for row in conn.execute(text("SELECT name FROM sqlite_master WHERE type='trigger'"))}
+            assert {
+                "account_currency_evidence_owner_insert",
+                "account_currency_evidence_no_update",
+                "account_currency_evidence_no_delete",
+            } <= trigger_names
+
+
 def test_sqlite_evidence_guards_enforce_owner_immutability_and_shape(monkeypatch):
     with tempfile.TemporaryDirectory() as tmp:
         url = _url(tmp)
