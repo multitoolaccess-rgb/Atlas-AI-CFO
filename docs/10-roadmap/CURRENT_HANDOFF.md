@@ -9,19 +9,20 @@
 - Overall status: in_progress
 - Objective: Phase 6 remains in progress after completion of Slice 2 Scenario Lab UI; preserve server-owned financial authority and prepare the separate clean-main certification boundary.
 - Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-08-15T09:20:00Z
+- Tracker updated: 2026-08-15T09:45:00Z
 
 ## Active work
 
 - work-p6-clean-main-certification: Clean-main Phase 6 certification [in_progress/medium]
   - Objective: Reconcile the documented Phase 6 clean-main browser blockers, then rerun the complete certification matrix and create the completion tag only after every exit criterion passes.
-  - Branch: codex/phase-6-certification-browser-reconciliation
+  - Branch: main
   - Paths: ui, docs/10-roadmap
 
 ## Blockers
 
 - external-multi-user-retention-deletion-blocker [open]: External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.
-- phase-6-clean-main-certification-blocker [open]: Phase 6 clean-main certification is pending the merge of the bounded reconciliation branch. The original 14 browser failures are classified in docs/10-roadmap/PHASE6_CERTIFICATION_RECONCILIATION.md; focused replacement journeys pass, but phase-6-complete remains prohibited until the full matrix is rerun from clean main.
+- phase-6-clean-main-certification-blocker [open]: Local clean-main Phase 6 certification passes after PR #57: Rules Service 1,298 passed/10 skipped/1 expected xfail, Finlynq 106 passed, cross-service 33 passed, frontend 630 passed, TypeScript/lint/build passed, canonical Playwright 108 passed/1 skipped, and affected Scenario Lab journeys passed. The required hosted manual certification workflow cannot start because GitHub reports failed account payments or an exhausted spending limit; phase-6-complete remains prohibited until hosted certification is available and green.
+- github-actions-certification-billing-blocker [open]: Hosted clean-main certification cannot start because GitHub Actions reports failed account payments or an exhausted spending limit before any workflow step runs.
 
 ## Open risks
 
@@ -47,6 +48,6 @@
 
 ## Next bounded task
 
-- work-p6-clean-main-certification-remediation: Reconcile the documented clean-main Phase 6 certification blockers (stale pre-IA browser expectations and expected default-off 503 console handling), rerun the complete certification matrix, and create phase-6-complete only if every documented exit criterion passes.
+- work-p6-clean-main-certification-remediation: Restore hosted clean-main certification availability, then rerun the required hosted Phase 6 workflow and create phase-6-complete only if every documented exit criterion passes; local certification evidence is recorded and no Phase 7 work may begin.
 
 Do not begin the next task automatically.

@@ -5,14 +5,15 @@
 - Current phase: **phase-6 — Scenario Lab** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 6 remains in progress after completion of Slice 2 Scenario Lab UI; preserve server-owned financial authority and prepare the separate clean-main certification boundary.
-- Last updated: 2026-08-15T09:20:00Z
+- Last updated: 2026-08-15T09:45:00Z
 
 ## Active work
 - work-p6-clean-main-certification: Clean-main Phase 6 certification (in_progress, medium)
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
-- {'description': 'Phase 6 clean-main certification is pending the merge of the bounded reconciliation branch. The original 14 browser failures are classified in docs/10-roadmap/PHASE6_CERTIFICATION_RECONCILIATION.md; focused replacement journeys pass, but phase-6-complete remains prohibited until the full matrix is rerun from clean main.', 'id': 'phase-6-clean-main-certification-blocker', 'owner': 'engineering', 'related': 'Phase 6 certification run 31868205933; clean main af786bea5a80faae7341cd47528ce87d9ece9ccf', 'status': 'open'}
+- {'description': 'Local clean-main Phase 6 certification passes after PR #57: Rules Service 1,298 passed/10 skipped/1 expected xfail, Finlynq 106 passed, cross-service 33 passed, frontend 630 passed, TypeScript/lint/build passed, canonical Playwright 108 passed/1 skipped, and affected Scenario Lab journeys passed. The required hosted manual certification workflow cannot start because GitHub reports failed account payments or an exhausted spending limit; phase-6-complete remains prohibited until hosted certification is available and green.', 'id': 'phase-6-clean-main-certification-blocker', 'owner': 'engineering', 'related': 'Local clean main 4f80f0ca8a6114e5c68bc101c59a7d5b44e77eb7; hosted attempts 31896160628 and 31896202299; billing annotation on job 95039690363', 'status': 'open'}
+- {'description': 'Hosted clean-main certification cannot start because GitHub Actions reports failed account payments or an exhausted spending limit before any workflow step runs.', 'id': 'github-actions-certification-billing-blocker', 'owner': 'engineering', 'related': 'Hosted runs 31896160628 and 31896202299; GitHub check annotation on job 95039690363', 'status': 'open'}
 
 ## Phase progress
 - phase-0 — Projection foundation and Atlas baseline: complete (4/4 exit criteria)
@@ -78,6 +79,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-p6-clean-main-certification-remediation: Reconcile the documented clean-main Phase 6 certification blockers (stale pre-IA browser expectations and expected default-off 503 console handling), rerun the complete certification matrix, and create phase-6-complete only if every documented exit criterion passes.
+- work-p6-clean-main-certification-remediation: Restore hosted clean-main certification availability, then rerun the required hosted Phase 6 workflow and create phase-6-complete only if every documented exit criterion passes; local certification evidence is recorded and no Phase 7 work may begin.
 
 Do not begin the next phase or task automatically.

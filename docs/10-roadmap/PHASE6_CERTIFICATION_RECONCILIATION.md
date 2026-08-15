@@ -70,3 +70,29 @@ navigation journey (15), and Scenario Lab route-mocked journey (4), for 20
 browser checks across the affected specs. This correction remains test and
 observability scope only; server-owned feature flags, sanitized responses, and
 financial authority are unchanged.
+
+## Clean-main certification result
+
+After PR #57 merged, clean main was certified locally at
+`4f80f0ca8a6114e5c68bc101c59a7d5b44e77eb7`:
+
+- Rules Service: `1,298 passed, 10 skipped, 1 xfailed`.
+- Finlynq: `106 passed`.
+- Root cross-service/governance tests: `33 passed`.
+- Scenario and migration focus: `22 passed, 3 skipped`; the complete Rules
+  suite also passed.
+- Frontend Vitest: `630 passed` across `70` files.
+- TypeScript, ESLint, and production build: passed. Build emitted only the
+  known backend-unavailable static-generation warnings.
+- Canonical live-stack Playwright: `108 passed, 1 skipped` across `109` tests.
+- Scenario Lab route-mocked coverage was included in the canonical run: `4
+  passed`; the corrected Goals recovery journey also passed.
+- Tracker/status/render, handoff, shell syntax, and diff checks: passed.
+
+The required hosted manual clean-main certification was attempted three times
+(the initial dispatch `31896160628`, its rerun, and dispatch `31896202299`).
+Each run failed before any job step because GitHub reported: “The job was not
+started because recent account payments have failed or your spending limit
+needs to be increased.” The failure is recorded as an external billing/
+availability blocker, not a product or test result. No hosted heavy result is
+claimed as passed, and `phase-6-complete` remains absent.
