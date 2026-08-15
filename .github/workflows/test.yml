@@ -92,6 +92,9 @@ jobs:
       SKIP_VITEST: ${{ needs.scope.outputs.frontend == 'true' && '0' || '1' }}
       SKIP_TYPECHECK: ${{ needs.scope.outputs.frontend == 'true' && '0' || '1' }}
       SKIP_PLAYWRIGHT: ${{ needs.scope.outputs.browser == 'true' && '0' || '1' }}
+      # Browser-affecting PRs use the focused navigation journey in cheap CI.
+      # Full browser certification remains available through heavy/manual runs.
+      PLAYWRIGHT_TEST_ARGS: ${{ needs.scope.outputs.browser == 'true' && '__tests__/e2e/navigation.spec.ts' || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
