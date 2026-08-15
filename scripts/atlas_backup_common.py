@@ -91,9 +91,14 @@ def resolve_database_identity(name: str = DEFAULT_DATABASE_ID) -> DatabaseIdenti
         raise BackupToolError("unsupported_database_identity")
     values = _read_env_file(RULES_DIR / ".env")
     database_url = os.environ.get("DATABASE_URL") or values.get("DATABASE_URL")
-    if not database_url:
-        raise BackupToolError("database_configuration_missing")
-    path = _sqlite_path_from_url(database_url).expanduser().resolve(strict=False)
+    if database_url:
+        path = _sqlite_path_from_url(database_url)
+    else:
+        # This is the one documented shared-stack fallback: start.sh exports
+        # this exact path for both services. No directory search or alternate
+        # database guessing is permitted.
+        path = RULES_DIR / "finance.db"
+    path = path.expanduser().resolve(strict=False)
     return DatabaseIdentity(name=name, path=path)
 
 
