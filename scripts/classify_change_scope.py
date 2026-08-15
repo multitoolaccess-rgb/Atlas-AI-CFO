@@ -12,6 +12,7 @@ GOVERNANCE_FILES = {
     "CLAUDE.md",
     "README.md",
     ".github/PULL_REQUEST_TEMPLATE.md",
+    ".husky/pre-push",
     "scripts/atlas_project_status.py",
     "scripts/classify_change_scope.py",
     "tests/test_atlas_project_status.py",
@@ -32,7 +33,6 @@ FULL_PREFIXES = (
 
 def _is_root_documentation(path: str) -> bool:
     return "/" not in path and path.lower().endswith((".md", ".markdown"))
-
 
 FULL_FILES = {
     "package.json",

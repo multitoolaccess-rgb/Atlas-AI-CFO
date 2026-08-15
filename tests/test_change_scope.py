@@ -9,6 +9,7 @@ class ChangeScopeTests(unittest.TestCase):
             "docs/07-engineering/SOLO_DEVELOPMENT_POLICY.md",
             "AGENTS.md",
             ".github/workflows/test.yml",
+            ".husky/pre-push",
             "scripts/classify_change_scope.py",
             "tests/test_change_scope.py",
         ])

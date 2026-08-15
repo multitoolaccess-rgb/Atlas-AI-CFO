@@ -46,13 +46,10 @@ fi
 #
 #   changed files           → runs
 #   ─────────────────────────────────────────────────────────
-#   services/         only  →  backend pytest
-#   ui/               only  →  vitest + tsc + Playwright
-#   neither                 →  (nothing — exit 0; only docs / agents /
-#                             designs / standalone md changed)
-#   scripts/, .husky/, .github/, package*.json, tsconfig*.json,
-#   vitest/playwright/postcss/tailwind/next config files,
-#   or any .env*            →  full suite (safety net)
+#   governance-only        →  tracker tests + status/render checks
+#   services/         only →  affected backend pytest
+#   ui/               only →  vitest + tsc (+ focused browser when requested)
+#   runner/config changes  →  full unit safety net (browser remains opt-in)
 #
 # Env knobs:
 #   SKIP_TESTS=1        — bypass the hook entirely (current behavior)
@@ -145,13 +142,23 @@ if [ "$FALLBACK" = "1" ]; then
 fi
 
 # ---- 3) Classify the changed files ----
+# Governance-only changes use the canonical tracker checks rather than
+# bootstrapping application environments. The shared classifier is also used
+# by GitHub Actions, so local pre-push and hosted CI select the same scope.
+UNIQUE_FILES="$(printf '%s' "$FILES" | sed '/^[[:space:]]*$/d' | sort -u)"
+SCOPE="$(cd "$PROJECT_ROOT" && printf '%s\n' "$UNIQUE_FILES" | python3 -c 'import sys; from scripts.classify_change_scope import classify_paths; print(classify_paths(sys.stdin.read().splitlines())["scope"])')"
+if [ "$SCOPE" = "governance" ]; then
+  echo "✅ Governance-only change — running tracker and deterministic-render checks."
+  cd "$PROJECT_ROOT" || exit 1
+  python3 -m unittest tests/test_atlas_project_status.py tests/test_change_scope.py || exit $?
+  python3 scripts/atlas_project_status.py check || exit $?
+  python3 scripts/atlas_project_status.py render --check || exit $?
+  exit 0
+fi
+
 run_backend=0
 run_frontend=0
 run_all=0
-
-# unique-ify before iterating (a single push can touch the same file in
-# multiple commits; we only need to categorize it once).
-UNIQUE_FILES="$(printf '%s' "$FILES" | sed '/^[[:space:]]*$/d' | sort -u)"
 
 for file in $UNIQUE_FILES; do
   # Config / safety-net files: ANY change here triggers the full suite
