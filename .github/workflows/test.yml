@@ -83,7 +83,7 @@ jobs:
   cheap:
     name: tests (path-aware focused)
     needs: scope
-    if: needs.scope.outputs.scope != 'governance'
+    if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' && needs.scope.outputs.scope != 'governance'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
