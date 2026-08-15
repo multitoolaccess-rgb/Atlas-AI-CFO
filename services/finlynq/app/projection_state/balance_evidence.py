@@ -5,7 +5,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN, localcontext
 from typing import Any
 
 from sqlalchemy import select
@@ -15,6 +15,7 @@ from app.models import Account, AccountBalanceEvidence
 
 MAX_AGE_DAYS = 7
 MAX_NUMERIC_38_2 = Decimal("999999999999999999999999999999999999.99")
+MONEY_QUANTUM = Decimal("0.01")
 SOURCE_KIND = "operator_confirmed"
 ACTOR_CATEGORY = "local_operator"
 
@@ -25,8 +26,12 @@ class BalanceEvidenceError(ValueError):
 
 @dataclass(frozen=True)
 class ExactBalance:
+    """The server-read legacy value and its optional authorized cent result."""
+
     value: Decimal
     canonical: str
+    confirmed_value: Decimal | None = None
+    confirmed_canonical: str | None = None
 
 
 @dataclass(frozen=True)
@@ -46,8 +51,15 @@ def utc(value: datetime) -> datetime:
     return value.astimezone(timezone.utc)
 
 
+def _canonical_source(parsed: Decimal) -> str:
+    rendered = format(parsed, "f")
+    if rendered in {"", "-0"}:
+        return "0"
+    return rendered
+
+
 def exact_balance(value: Any) -> ExactBalance:
-    """Read, validate, and render a balance without rounding or quantizing it."""
+    """Read the server value as ``Decimal(str(value))`` without rounding it."""
     if isinstance(value, bool) or value is None:
         raise BalanceEvidenceError("balance_amount_invalid")
     try:
@@ -56,39 +68,60 @@ def exact_balance(value: Any) -> ExactBalance:
         raise BalanceEvidenceError("balance_amount_invalid") from exc
     if not parsed.is_finite() or parsed.copy_abs() > MAX_NUMERIC_38_2:
         raise BalanceEvidenceError("balance_amount_precision_unavailable")
-    rendered = format(parsed, "f")
-    sign = "-" if rendered.startswith("-") else ""
-    unsigned = rendered[1:] if sign else rendered
-    integral, _, fractional = unsigned.partition(".")
-    if len(fractional) > 2:
+    return ExactBalance(parsed, _canonical_source(parsed))
+
+
+def confirmed_balance(value: Any | ExactBalance) -> ExactBalance:
+    """Apply the explicitly authorized USD-cent ``ROUND_HALF_EVEN`` policy."""
+    source = value if isinstance(value, ExactBalance) else exact_balance(value)
+    try:
+        with localcontext() as context:
+            context.prec = 50
+            rounded = source.value.quantize(MONEY_QUANTUM, rounding=ROUND_HALF_EVEN)
+    except (InvalidOperation, ValueError) as exc:
+        raise BalanceEvidenceError("balance_amount_precision_unavailable") from exc
+    if not rounded.is_finite() or rounded.copy_abs() > MAX_NUMERIC_38_2:
         raise BalanceEvidenceError("balance_amount_precision_unavailable")
-    fractional = fractional.ljust(2, "0")
-    canonical = f"{sign}{integral}.{fractional}"
-    if canonical == "-0.00":
-        canonical = "0.00"
-    return ExactBalance(parsed, canonical)
+    rendered = format(rounded, "f")
+    if rendered == "-0.00":
+        rendered = "0.00"
+        rounded = Decimal("0.00")
+    return ExactBalance(
+        source.value,
+        source.canonical,
+        confirmed_value=rounded,
+        confirmed_canonical=rendered,
+    )
 
 
 def _digest(payload: dict[str, Any]) -> str:
-    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+    ).hexdigest()
 
 
 def balance_precondition_hash(account: Account, exact: ExactBalance | None = None) -> str:
-    exact = exact or exact_balance(account.current_balance)
+    """Bind evidence to the exact legacy source and its approved cent result."""
+    source = exact or exact_balance(account.current_balance)
+    confirmed = confirmed_balance(source)
     return _digest({
         "account_id": int(account.id),
         "account_type": account.account_type,
-        "amount": exact.canonical,
+        "legacy_source_amount": source.canonical,
+        "confirmed_usd_cent": confirmed.confirmed_canonical,
         "is_active": bool(account.is_active),
         "user_id": int(account.user_id),
     })
 
 
 def evidence_state_hash(account: Account, exact: ExactBalance, observed_at: datetime) -> str:
+    """Hash exact source state, confirmed cents, owner, and observation time."""
+    confirmed = confirmed_balance(exact)
     return _digest({
         "account_id": int(account.id),
-        "amount": exact.canonical,
+        "confirmed_usd_cent": confirmed.confirmed_canonical,
         "currency_code": "USD",
+        "legacy_source_amount": exact.canonical,
         "observed_at": utc(observed_at).isoformat(timespec="microseconds"),
         "source_kind": SOURCE_KIND,
         "user_id": int(account.user_id),
@@ -123,8 +156,9 @@ def account_balance_evidence_state(db: Session, account: Account, *, now: dateti
     if not account.is_active:
         return BalanceEvidenceState("excluded", "balance_evidence_inactive")
     try:
-        current = exact_balance(account.current_balance)
-        current_precondition = balance_precondition_hash(account, current)
+        current_source = exact_balance(account.current_balance)
+        current_confirmed = confirmed_balance(current_source)
+        current_precondition = balance_precondition_hash(account, current_source)
     except BalanceEvidenceError as exc:
         return BalanceEvidenceState("blocked", str(exc))
     events = _events(db, account)
@@ -137,11 +171,10 @@ def account_balance_evidence_state(db: Session, account: Account, *, now: dateti
             if event.amount is None or event.supersedes_event_id is not None:
                 return BalanceEvidenceState("blocked", "balance_evidence_conflict")
             assertions[event.id] = event
-        elif event.event_type not in {"revocation"}:
+        elif event.event_type != "revocation":
             return BalanceEvidenceState("blocked", "balance_evidence_conflict")
-    # SQLite timestamp precision can order a same-second revocation before its
-    # target assertion. Validate targets after collecting all assertions rather
-    # than trusting recorded_at ordering for referential authority.
+    # Validate revocation targets after collecting assertions because SQLite can
+    # order same-second rows differently from PostgreSQL.
     for event in events:
         if event.event_type == "revocation":
             if event.amount is not None or not event.supersedes_event_id or event.supersedes_event_id not in assertions:
@@ -153,23 +186,23 @@ def account_balance_evidence_state(db: Session, account: Account, *, now: dateti
     event = max(valid, key=lambda item: (utc(item.observed_at), utc(item.recorded_at), item.id))
     try:
         observed = utc(event.observed_at)
-        evidence_amount = exact_balance(event.amount)
+        event_confirmed = confirmed_balance(event.amount)
     except BalanceEvidenceError:
         return BalanceEvidenceState("blocked", "balance_evidence_invalid")
     if event.precondition_hash != current_precondition:
         return BalanceEvidenceState("blocked", "balance_evidence_changed", observed, event.id)
-    if event.state_hash != evidence_state_hash(account, evidence_amount, observed):
+    if event.state_hash != evidence_state_hash(account, current_source, observed):
         return BalanceEvidenceState("blocked", "balance_evidence_conflict", observed, event.id)
+    if event_confirmed.confirmed_canonical != current_confirmed.confirmed_canonical:
+        return BalanceEvidenceState("blocked", "balance_evidence_changed", observed, event.id, event_confirmed.confirmed_value)
     current_time = utc(now)
     if observed > current_time:
-        return BalanceEvidenceState("blocked", "balance_evidence_future", observed, event.id, evidence_amount.value)
-    if evidence_amount.value != current.value:
-        return BalanceEvidenceState("blocked", "balance_evidence_changed", observed, event.id, evidence_amount.value)
+        return BalanceEvidenceState("blocked", "balance_evidence_future", observed, event.id, event_confirmed.confirmed_value)
     age = current_time - observed
     if age > timedelta(days=MAX_AGE_DAYS):
-        return BalanceEvidenceState("blocked", "balance_evidence_stale", observed, event.id, evidence_amount.value)
+        return BalanceEvidenceState("blocked", "balance_evidence_stale", observed, event.id, event_confirmed.confirmed_value)
     reason = "balance_evidence_nearing_expiry" if age > timedelta(days=6) else "balance_evidence_current"
-    return BalanceEvidenceState("ready", reason, observed, event.id, evidence_amount.value)
+    return BalanceEvidenceState("ready", reason, observed, event.id, event_confirmed.confirmed_value)
 
 
 def derive_balance_evidence_state(db: Session, *, user_id: int, now: datetime) -> BalanceEvidenceState:

@@ -135,10 +135,10 @@ def test_provider_fails_closed_when_authoritative_decimal_balance_evidence_is_mi
         build_projection_state(db, user_sub=user.local_user_sub, goal_id=goal.id, now=now)
 
 
-def test_provider_rejects_legacy_float_that_exceeds_v1_decimal_scale():
+def test_provider_rejects_legacy_balance_outside_authorized_numeric_bounds():
     db = _session(); user, goal, now = _seed(db)
     account = db.query(Account).one()
-    account.current_balance = 1e-19
+    account.current_balance = 1e40
     db.commit()
     with pytest.raises(ProjectionStateUnavailable, match="balance_amount_precision_unavailable"):
         build_projection_state(db, user_sub=user.local_user_sub, goal_id=goal.id, now=now)

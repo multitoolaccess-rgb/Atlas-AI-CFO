@@ -11,7 +11,7 @@ import hashlib
 import json
 import re
 import subprocess
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN, localcontext
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Literal
@@ -193,7 +193,7 @@ def _currency_state(db: Session, user_id: int | None) -> tuple[ReadinessState, s
     return "blocked", "currency_evidence_incomplete", "Resolve authoritative USD evidence for every active account; do not substitute the user preference.", False
 
 
-def _canonical_balance(value: object) -> str:
+def _canonical_source_balance(value: object) -> str:
     if isinstance(value, bool) or value is None:
         raise ValueError("balance_amount_invalid")
     try:
@@ -203,29 +203,39 @@ def _canonical_balance(value: object) -> str:
     if not parsed.is_finite() or parsed.copy_abs() > Decimal("999999999999999999999999999999999999.99"):
         raise ValueError("balance_amount_precision_unavailable")
     rendered = format(parsed, "f")
-    sign = "-" if rendered.startswith("-") else ""
-    unsigned = rendered[1:] if sign else rendered
-    integral, _, fractional = unsigned.partition(".")
-    if len(fractional) > 2:
+    return "0" if rendered in {"", "-0"} else rendered
+
+
+def _canonical_balance(value: object) -> str:
+    source = _canonical_source_balance(value)
+    try:
+        with localcontext() as context:
+            context.prec = 50
+            rounded = Decimal(source).quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
+    except (InvalidOperation, ValueError) as exc:
+        raise ValueError("balance_amount_precision_unavailable") from exc
+    if not rounded.is_finite() or rounded.copy_abs() > Decimal("999999999999999999999999999999999999.99"):
         raise ValueError("balance_amount_precision_unavailable")
-    canonical = f"{sign}{integral}.{fractional.ljust(2, '0')}"
-    return "0.00" if canonical == "-0.00" else canonical
+    rendered = format(rounded, "f")
+    return "0.00" if rendered == "-0.00" else rendered
 
 
 def _balance_hash(account: Account, amount: str | None = None) -> str:
+    source = _canonical_source_balance(account.current_balance)
+    confirmed = amount if amount is not None else _canonical_balance(source)
     payload = {
-        "account_id": int(account.id),
-        "account_type": account.account_type,
-        "amount": amount if amount is not None else _canonical_balance(account.current_balance),
-        "is_active": bool(account.is_active),
-        "user_id": int(account.user_id),
+        "account_id": int(account.id), "account_type": account.account_type,
+        "legacy_source_amount": source, "confirmed_usd_cent": confirmed,
+        "is_active": bool(account.is_active), "user_id": int(account.user_id),
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")).hexdigest()
 
 
 def _evidence_state_hash(account: Account, amount: str, observed_at: datetime) -> str:
+    source = _canonical_source_balance(account.current_balance)
     payload = {
-        "account_id": int(account.id), "amount": amount, "currency_code": "USD",
+        "account_id": int(account.id), "confirmed_usd_cent": _canonical_balance(source),
+        "currency_code": "USD", "legacy_source_amount": source,
         "observed_at": observed_at.astimezone(timezone.utc).isoformat(timespec="microseconds"),
         "source_kind": "operator_confirmed", "user_id": int(account.user_id),
     }
@@ -284,7 +294,7 @@ def _balance_state(db: Session, user_id: int | None) -> tuple[ReadinessState, st
             observed = event.observed_at.replace(tzinfo=timezone.utc) if event.observed_at.tzinfo is None else event.observed_at.astimezone(timezone.utc)
             amount = _canonical_balance(event.amount)
             current_amount = _canonical_balance(account.current_balance)
-            current_hash = _balance_hash(account, current_amount)
+            current_hash = _balance_hash(account)
         except (AttributeError, ValueError) as exc:
             reasons.append(str(exc))
             continue

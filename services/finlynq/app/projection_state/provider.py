@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Account, AccountCurrencyEvidence, Goal, GoalProjectionConfig, User
 from app.projection_state.currency import derive_effective_currency, effective_currency_for_account, validate_stable_reference
-from app.projection_state.balance_evidence import account_balance_evidence_state, exact_balance
+from app.projection_state.balance_evidence import account_balance_evidence_state, confirmed_balance
 
 
 PROJECTION_STATE_SCHEMA_VERSION = "atlas-projection-state/v1"
@@ -159,7 +159,7 @@ def build_projection_state(
         if (current_time - included_observed).total_seconds() > MAX_FRESHNESS_DAYS * 86400:
             raise ProjectionStateUnavailable("projection_state_unavailable")
         try:
-            amount = exact_balance(balance_state.amount).canonical
+            amount = confirmed_balance(balance_state.amount).confirmed_canonical
         except Exception:
             raise ProjectionStateUnavailable("balance_amount_precision_unavailable") from None
         if account.account_type in LIABILITY_ACCOUNT_TYPES:

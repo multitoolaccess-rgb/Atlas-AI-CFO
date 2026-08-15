@@ -19,7 +19,7 @@ import json
 import os
 import re
 import sqlite3
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN, localcontext
 from datetime import datetime, timedelta, timezone
 import subprocess
 import sys
@@ -244,7 +244,7 @@ def _currency_authority_snapshot(conn: sqlite3.Connection) -> dict[str, str]:
     return {"state": "ready", "reason_code": "currency_authority_ready", "recovery_action": "No action required."}
 
 
-def _canonical_balance(value: Any) -> str:
+def _canonical_source_balance(value: Any) -> str:
     if isinstance(value, bool) or value is None:
         raise ValueError("balance_amount_invalid")
     try:
@@ -254,28 +254,41 @@ def _canonical_balance(value: Any) -> str:
     if not parsed.is_finite() or parsed.copy_abs() > Decimal("999999999999999999999999999999999999.99"):
         raise ValueError("balance_amount_precision_unavailable")
     rendered = format(parsed, "f")
-    sign = "-" if rendered.startswith("-") else ""
-    unsigned = rendered[1:] if sign else rendered
-    integral, _, fractional = unsigned.partition(".")
-    if len(fractional) > 2:
+    return "0" if rendered in {"", "-0"} else rendered
+
+
+def _canonical_balance(value: Any) -> str:
+    source = _canonical_source_balance(value)
+    try:
+        with localcontext() as context:
+            context.prec = 50
+            rounded = Decimal(source).quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
+    except (InvalidOperation, ValueError) as exc:
+        raise ValueError("balance_amount_precision_unavailable") from exc
+    if not rounded.is_finite() or rounded.copy_abs() > Decimal("999999999999999999999999999999999999.99"):
         raise ValueError("balance_amount_precision_unavailable")
-    canonical = f"{sign}{integral}.{fractional.ljust(2, '0')}"
-    return "0.00" if canonical == "-0.00" else canonical
+    rendered = format(rounded, "f")
+    return "0.00" if rendered == "-0.00" else rendered
 
 
 def _balance_hash_from_row(row: tuple[Any, ...], amount: str | None = None) -> str:
     account_id, user_id, account_type, current_balance, is_active = row[:5]
+    source = _canonical_source_balance(current_balance)
+    confirmed = amount if amount is not None else _canonical_balance(source)
     payload = {
         "account_id": int(account_id), "account_type": account_type,
-        "amount": amount if amount is not None else _canonical_balance(current_balance),
+        "legacy_source_amount": source,
+        "confirmed_usd_cent": confirmed,
         "is_active": bool(is_active), "user_id": int(user_id),
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")).hexdigest()
 
 
 def _evidence_state_hash_from_row(row: tuple[Any, ...], amount: str, observed: datetime) -> str:
+    source = _canonical_source_balance(row[3])
     payload = {
-        "account_id": int(row[0]), "amount": amount, "currency_code": "USD",
+        "account_id": int(row[0]), "confirmed_usd_cent": _canonical_balance(source),
+        "currency_code": "USD", "legacy_source_amount": source,
         "observed_at": observed.astimezone(timezone.utc).isoformat(timespec="microseconds"),
         "source_kind": "operator_confirmed", "user_id": int(row[1]),
     }
@@ -338,7 +351,7 @@ def _balance_observation_snapshot(conn: sqlite3.Connection) -> dict[str, Any]:
         try:
             amount = _canonical_balance(event[7])
             current_amount = _canonical_balance(account[3])
-            current_hash = _balance_hash_from_row(account, current_amount)
+            current_hash = _balance_hash_from_row(account)
         except ValueError as exc:
             reasons.append(str(exc))
             continue

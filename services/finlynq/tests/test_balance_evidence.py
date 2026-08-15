@@ -13,6 +13,7 @@ from app.models import Account, AccountBalanceEvidence, AccountBalanceObservatio
 from app.projection_state.balance_evidence import (
     BalanceEvidenceError,
     account_balance_evidence_state,
+    confirmed_balance,
     evidence_state_hash,
     exact_balance,
 )
@@ -80,14 +81,19 @@ def test_same_intent_is_idempotent_and_divergent_replay_is_rejected(db):
         _apply(session, user, observed + timedelta(minutes=1), intent)
 
 
-def test_precision_boundary_fails_closed_without_writing_any_evidence(db):
+def test_authorized_half_even_confirmation_rounds_without_mutating_legacy_balance(db):
     session, user = db
     account = session.scalars(select(Account).order_by(Account.id)).first()
     account.current_balance = Decimal("100.255")
     session.commit()
-    with pytest.raises(BalanceObservationError, match="balance_amount_precision_unavailable"):
-        _preview(session, user, datetime(2026, 8, 15, tzinfo=timezone.utc))
-    assert session.query(AccountBalanceEvidence).count() == 0
+    before = repr(account.current_balance)
+    observed = datetime(2026, 8, 15, tzinfo=timezone.utc)
+    preview = _preview(session, user, observed)
+    _apply(session, user, observed, preview["intent_hash"])
+    evidence = session.scalar(select(AccountBalanceEvidence).where(AccountBalanceEvidence.account_id == account.id))
+    assert evidence is not None
+    assert evidence.amount == Decimal("100.26")
+    assert repr(account.current_balance) == before
 
 
 def test_current_state_divergence_blocks_authority_until_reconfirmed(db):
@@ -123,8 +129,10 @@ def test_revocation_blocks_latest_authority_without_deleting_history(db):
     assert session.query(AccountBalanceEvidence).count() == 5
 
 
-def test_exact_balance_never_rounds_or_accepts_more_than_two_fractional_digits():
+def test_exact_source_is_preserved_and_authorized_confirmation_uses_half_even():
     assert exact_balance(Decimal("100.25")).canonical == "100.25"
-    assert exact_balance(Decimal("100.2")).canonical == "100.20"
+    assert exact_balance(Decimal("100.2")).canonical == "100.2"
+    assert confirmed_balance(Decimal("100.255")).confirmed_canonical == "100.26"
+    assert confirmed_balance(Decimal("100.245")).confirmed_canonical == "100.24"
     with pytest.raises(BalanceEvidenceError, match="balance_amount_precision_unavailable"):
-        exact_balance(Decimal("100.255"))
+        confirmed_balance(Decimal("1E+40"))

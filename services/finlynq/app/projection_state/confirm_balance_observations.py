@@ -19,6 +19,7 @@ from app.projection_state.balance_evidence import (
     SOURCE_KIND,
     BalanceEvidenceError,
     balance_precondition_hash,
+    confirmed_balance,
     evidence_state_hash,
     exact_balance,
     idempotency_hash,
@@ -40,12 +41,13 @@ def _resolve_active_accounts(db: Session, user_sub: str) -> list[Account]:
     return accounts
 
 
-def _exact_preconditions(accounts: list[Account]) -> dict[int, tuple[Any, str]]:
-    result: dict[int, tuple[Any, str]] = {}
+def _exact_preconditions(accounts: list[Account]) -> dict[int, tuple[Any, Any, str]]:
+    result: dict[int, tuple[Any, Any, str]] = {}
     for account in accounts:
         try:
             exact = exact_balance(account.current_balance)
-            result[int(account.id)] = (exact, balance_precondition_hash(account, exact))
+            confirmed = confirmed_balance(exact)
+            result[int(account.id)] = (exact, confirmed, balance_precondition_hash(account, exact))
         except BalanceEvidenceError as exc:
             raise BalanceObservationError(str(exc)) from None
     return result
@@ -59,14 +61,14 @@ def _existing_for_intent(db: Session, account: Account, key_hash: str) -> Accoun
     ))
 
 
-def _preview_status(db: Session, account: Account, *, key_hash: str, exact: Any, precondition: str, observed_at: datetime) -> str:
+def _preview_status(db: Session, account: Account, *, key_hash: str, confirmed: Any, precondition: str, observed_at: datetime) -> str:
     existing = _existing_for_intent(db, account, key_hash)
     if existing is None:
         return "ready_to_apply"
     if (
         existing.event_type == "assertion"
         and existing.amount is not None
-        and exact_balance(existing.amount).canonical == exact.canonical
+        and confirmed_balance(existing.amount).confirmed_canonical == confirmed.confirmed_canonical
         and existing.precondition_hash == precondition
         and utc(existing.observed_at) == observed_at
     ):
@@ -106,8 +108,8 @@ def confirm_all_active_balances_current(
     for account in accounts:
         key_hash = idempotency_hash(intent_hash, int(account.id))
         previews.append({"status": _preview_status(
-            db, account, key_hash=key_hash, exact=preconditions[int(account.id)][0],
-            precondition=preconditions[int(account.id)][1], observed_at=observation_time,
+            db, account, key_hash=key_hash, confirmed=preconditions[int(account.id)][1],
+            precondition=preconditions[int(account.id)][2], observed_at=observation_time,
         )})
     if not apply:
         return {
@@ -139,19 +141,19 @@ def confirm_all_active_balances_current(
         refreshed_preconditions = _exact_preconditions(refreshed)
         for account in refreshed:
             expected = preconditions[int(account.id)]
-            if refreshed_preconditions[int(account.id)][1] != expected[1]:
+            if refreshed_preconditions[int(account.id)][2] != expected[2]:
                 raise BalanceObservationError("balance_observation_precondition_failed")
             if account.last_sync is not None and utc(account.last_sync) > observation_time:
                 raise BalanceObservationError("balance_observation_conflict")
 
         for account in refreshed:
             account_id = int(account.id)
-            exact, precondition = refreshed_preconditions[account_id]
+            exact, confirmed, precondition = refreshed_preconditions[account_id]
             key_hash = idempotency_hash(intent_hash, account_id)
             existing = _existing_for_intent(db, account, key_hash)
             if existing is not None:
                 if _preview_status(
-                    db, account, key_hash=key_hash, exact=exact,
+                    db, account, key_hash=key_hash, confirmed=confirmed,
                     precondition=precondition, observed_at=observation_time,
                 ) != "idempotent_replay":
                     raise BalanceObservationError("observation_replay_conflict")
@@ -165,7 +167,7 @@ def confirm_all_active_balances_current(
                 source_kind=SOURCE_KIND,
                 actor_category=ACTOR_CATEGORY,
                 currency_code="USD",
-                amount=exact.value,
+                amount=confirmed.confirmed_value,
                 observed_at=observation_time,
                 precondition_hash=precondition,
                 state_hash=evidence_state_hash(account, exact, observation_time),
