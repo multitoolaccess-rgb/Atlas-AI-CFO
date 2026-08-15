@@ -9,14 +9,11 @@
 - Overall status: in_progress
 - Objective: Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.
 - Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-08-14T18:21:42Z
+- Tracker updated: 2026-08-15T01:02:34Z
 
 ## Active work
 
-- work-ui-information-architecture-step-3: Activate Wealth information architecture migration [in_progress/high]
-  - Objective: Atomically activate Wealth, Portfolio, and Goals destinations with authoritative existing functionality, URL-compatible tabs and legacy redirects while preserving all financial calculations, market-provider behavior, history, and authorization.
-  - Branch: codex/ia-wealth-migration-step-3
-  - Paths: ui/app, ui/components, ui/lib, docs/06-ui-ux
+- None
 
 ## Blockers
 
@@ -38,14 +35,14 @@
 
 ## Recently completed
 
-- work-analyst-coverage-clarity: Clarify partial analyst coverage states — commit 00cc0879af7bf9dfd396e64e47755d7be9a28a7f, PR 45
 - work-holdings-type-fix: Fix Fidelity import type mislabeling and repair affected portfolio data — commit 2603d5c9af7bf9dfd396e64e47755d7be9a28a7f, PR 46
 - work-market-intelligence-v2: Market Intelligence v2 (post-certification enhancement): reliable per-holding evidence, market pulse, and command-center UI — commit 4f27b6d058f26c8d89d518cc5a25258fc6d0ffa9, PR 47
 - work-ui-information-architecture-step-1: Information architecture migration Step 1 foundations — commit d7e5cde, PR 48
 - work-ui-information-architecture-step-2: Activate Money information architecture migration — commit 54974b8, PR 49
+- work-ui-information-architecture-step-3: Activate Wealth information architecture migration — commit a8e1d5b009175a27c91a521f2a156d0c4179c094, PR 50
 
 ## Next bounded task
 
-- work-ui-information-architecture-step-3: Step 3 - migrate Wealth atomically: Wealth Overview, Assets, Debts, Universe, Portfolio, Goals, and compatibility redirects.
+- work-ui-information-architecture-step-4: Step 4 - migrate Intelligence atomically: Decisions, Market Intelligence, Scenario Lab, global Scout, and compatibility redirects.
 
 Do not begin the next task automatically.
