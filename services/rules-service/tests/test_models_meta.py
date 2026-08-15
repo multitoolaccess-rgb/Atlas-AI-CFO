@@ -61,13 +61,21 @@ EXPECTED_TABLES = {
     # Phase 6 Slice 1 — owner-scoped immutable Scenario Lab identity/history.
     "scenarios",
     "scenario_versions",
+    # Wave 2 — append-only authoritative currency and balance evidence.
+    # These tables are part of the current metadata/FK closure even though
+    # they were added after the original Phase 3 inventory.
+    "account_currency_evidence",
+    "account_balance_observations",
+    "account_balance_evidence",
 }
 
 
 def test_all_lifted_models_registered_on_metadata():
-    """Phase 3 lift assertion: every backend/app/models/* class is registered
-    on ``Base.metadata``. Missing ANY here means the lift was incomplete
-    (a future alembic autogenerate would silently NOT migrate that table).
+    """Assert every current backend model is registered on ``Base.metadata``.
+
+    Missing ANY here means a future Alembic autogenerate could silently omit
+    that table. The inventory includes later Wave 2 authority models as well
+    as the original Phase 3 lift.
     """
     from app.database import Base
 
@@ -77,7 +85,7 @@ def test_all_lifted_models_registered_on_metadata():
         f"Phase 3 lift missed models registered on Base.metadata: {missing}; "
         f"make sure each model file is imported in app/models/__init__.py"
     )
-    # And no surprise tables dropped in (catches a Phase 4 feature-creep).
+    # And no surprise tables dropped in (catches an unreviewed model).
     extra = actual - EXPECTED_TABLES
     assert not extra, f"Unexpected tables in metadata: {extra}"
 
@@ -142,8 +150,7 @@ def test_budget_fks_to_users_and_categories():
 
 
 def test_no_orphan_fks_in_the_lifted_set():
-    """Every FK target MUST point at one of the lifted tables (no dangling FK
-    that would make alembic autogenerate produce an unresolvable reference)."""
+    """Every FK target must point at one of the current model tables."""
     from app.database import Base
 
     for table in Base.metadata.tables.values():

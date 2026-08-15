@@ -34,6 +34,18 @@ vi.mock('@/lib/api', () => {
         full_name: 'Test',
         currency_preference: 'USD',
       }),
+      // ReadinessSection is part of the Settings page shell. Keep this
+      // page-level mock complete so dedupe tests exercise only the wizard,
+      // not an unrelated missing method on the shared service mock.
+      getReadiness: vi.fn().mockResolvedValue({
+        schema_version: 'atlas-readiness/v1',
+        overall_state: 'ready_with_blocked_optional_capabilities',
+        checked_at: '2026-08-15T00:00:00Z',
+        checks: [],
+        feature_flags: {},
+        credentials: {},
+        prohibited_capabilities: {},
+      }),
       listFamilyMembers: vi.fn().mockResolvedValue([]),
       listMerchantRules: vi.fn().mockResolvedValue([]),
       listCategories: vi.fn().mockResolvedValue([]),

@@ -171,12 +171,19 @@ for (const item of NAV_ITEMS) {
   }) => {
     const errors: string[] = []
     let handledScenarioAvailability = false
+    let handledDecisionHistoryAvailability = false
+    let handledMarketBriefAvailability = false
     page.on('response', (response) => {
-      if (
-        response.status() === 503 &&
-        /\/api\/v1\/goals\/\d+\/scenarios(?:\?|$)/.test(response.url())
-      ) {
+      if (response.status() !== 503) return
+      const responseUrl = response.url()
+      if (/\/api\/v1\/goals\/\d+\/scenarios(?:\?|$)/.test(responseUrl)) {
         handledScenarioAvailability = true
+      }
+      if (/\/api\/v1\/goals\/\d+\/decision-history(?:\?|$)/.test(responseUrl)) {
+        handledDecisionHistoryAvailability = true
+      }
+      if (/\/api\/v1\/market-briefs(?:\/|\?|$)/.test(responseUrl)) {
+        handledMarketBriefAvailability = true
       }
     })
     page.on('console', (msg: ConsoleMessage) => {
@@ -188,11 +195,14 @@ for (const item of NAV_ITEMS) {
         // Scenario Lab recovery state. Keep that expected diagnostic from
         // becoming a browser failure, while all other 5xx/API errors still
         // flow through the normal error assertion below.
-        if (
-          item.expectedPath === '/scenario-lab' &&
-          handledScenarioAvailability &&
-          /Failed to load resource.*503/i.test(text)
-        ) return
+        const expectedAvailability = (
+          item.expectedPath === '/scenario-lab' && handledScenarioAvailability
+        ) || (
+          item.expectedPath === '/decisions' && handledDecisionHistoryAvailability
+        ) || (
+          item.expectedPath === '/market-intelligence' && handledMarketBriefAvailability
+        )
+        if (expectedAvailability && /Failed to load resource.*503/i.test(text)) return
         if (!isBenign(text, url)) errors.push(text)
       }
     })
