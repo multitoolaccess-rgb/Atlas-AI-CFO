@@ -216,16 +216,28 @@ if [ -f "$BE_DIR/.env" ] && grep -q '^JWT_SECRET=' "$BE_DIR/.env"; then
   export JWT_SECRET
   JWT_SECRET=$(grep '^JWT_SECRET=' "$BE_DIR/.env" | head -1 | cut -d= -f2-)
 fi
-export DATABASE_URL="sqlite:///$BE_DIR/finance.db"
+# The documented default is the shared Rules Service database. A caller may
+# select a disposable restored clone only with the explicit synthetic-acceptance
+# gate; ordinary startup never accepts an arbitrary database override.
+if [ "${ATLAS_SYNTHETIC_ACCEPTANCE:-0}" = "1" ] && [ -n "${DATABASE_URL:-}" ]; then
+  export DATABASE_URL
+else
+  export DATABASE_URL="sqlite:///$BE_DIR/finance.db"
+fi
 
-hr "Starting Finlynq (uvicorn → :$ATLAS_FINLYNQ_PORT, --reload)"
-(cd "$FQ_DIR" && nohup "$FINLYNQ_VENV_PY" -m uvicorn app.main:app --host 127.0.0.1 --port "$ATLAS_FINLYNQ_PORT" --reload >"$LOG_FQ" 2>&1 & echo $! >"$PID_FQ")
+hr "Starting Finlynq (uvicorn → :$ATLAS_FINLYNQ_PORT)"
+# Keep one stable service process per PID file. Uvicorn's reload supervisor
+# previously outlived/respawned the recorded child during detached local
+# startup, so health could pass once and then authenticated readiness would
+# lose its listener. File watching is an explicit developer choice outside
+# the supported Atlas lifecycle; this path owns the actual server PID.
+(cd "$FQ_DIR" && nohup "$FINLYNQ_VENV_PY" -m uvicorn app.main:app --host 127.0.0.1 --port "$ATLAS_FINLYNQ_PORT" </dev/null >"$LOG_FQ" 2>&1 & echo $! >"$PID_FQ")
 FQ_PID=$(<"$PID_FQ"); STARTED_PIDS+=("$FQ_PID")
 
 # Schema migrations are intentionally an explicit operator action. In
 # particular, starting Atlas must never apply an unmerged Phase 3 migration.
-hr "Starting Rules Service (uvicorn → :$ATLAS_RULES_PORT, --reload)"
-(cd "$BE_DIR" && FINLYNQ_BASE_URL="http://127.0.0.1:$ATLAS_FINLYNQ_PORT" nohup "$RULES_VENV_PY" -m uvicorn app.main:app --host 127.0.0.1 --port "$ATLAS_RULES_PORT" --reload >"$LOG_BE" 2>&1 & echo $! >"$PID_BE")
+hr "Starting Rules Service (uvicorn → :$ATLAS_RULES_PORT)"
+(cd "$BE_DIR" && FINLYNQ_BASE_URL="http://127.0.0.1:$ATLAS_FINLYNQ_PORT" nohup "$RULES_VENV_PY" -m uvicorn app.main:app --host 127.0.0.1 --port "$ATLAS_RULES_PORT" </dev/null >"$LOG_BE" 2>&1 & echo $! >"$PID_BE")
 BE_PID=$(<"$PID_BE"); STARTED_PIDS+=("$BE_PID")
 
 hr "Starting Atlas UI (next dev → :$ATLAS_UI_PORT)"

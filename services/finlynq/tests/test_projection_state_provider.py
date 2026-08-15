@@ -110,6 +110,15 @@ def test_provider_hides_cross_user_goal_existence():
     assert str(exc.value) == "projection_state_unavailable"
 
 
+def test_provider_fails_closed_when_active_balance_observation_is_missing():
+    db = _session(); user, goal, now = _seed(db)
+    account = db.query(Account).one()
+    account.last_sync = None
+    db.commit()
+    with pytest.raises(ProjectionStateUnavailable, match="projection_state_unavailable"):
+        build_projection_state(db, user_sub=user.local_user_sub, goal_id=goal.id, now=now)
+
+
 def test_provider_rejects_legacy_float_that_exceeds_v1_decimal_scale():
     db = _session(); user, goal, now = _seed(db)
     account = db.query(Account).one()

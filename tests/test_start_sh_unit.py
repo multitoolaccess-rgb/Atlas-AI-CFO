@@ -227,3 +227,12 @@ def test_ownership_is_working_directory_based_not_generic_process_name() -> None
     assert "finance-copilot" not in source.lower()
     assert "*uvicorn*" not in source and "*next-server*" not in source
     assert "kill -9 $pids" not in source
+
+
+def test_supported_startup_owns_stable_uvicorn_pids_without_reload_supervisors() -> None:
+    source = (ROOT / "start.sh").read_text()
+    assert "--reload" not in source
+    assert source.count("</dev/null") >= 2
+    assert "PID_FQ" in source and "PID_BE" in source
+    assert 'ATLAS_SYNTHETIC_ACCEPTANCE' in source
+    assert 'export DATABASE_URL' in source
