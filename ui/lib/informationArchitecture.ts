@@ -47,7 +47,7 @@ export const PROPOSED_NAVIGATION: readonly ProposedNavigationGroup[] = [
   { id: 'intelligence', label: 'Intelligence', destinations: [
     { id: 'decisions', label: 'Decisions', path: '/decisions', icon: 'decisions', activeMatch: ['/decisions'], activated: true, tabs: [tab('recommendations', 'Recommendations'), tab('journal', 'Decision journal'), tab('outcomes', 'Outcomes')] },
     { id: 'market-intelligence', label: 'Market Intelligence', path: '/market-intelligence', icon: 'market-intelligence', activeMatch: ['/market-intelligence'], activated: true, tabs: [tab('portfolio', 'My Portfolio'), tab('pulse', 'Market Pulse'), tab('events', 'Earnings & Events'), tab('scanner', 'S&P 500 Scanner'), tab('archive', 'Archive')] },
-    { id: 'scenario-lab', label: 'Scenario Lab', path: '/scenario-lab', icon: 'scenario-lab', activeMatch: ['/scenario-lab'], activated: true, tabs: [tab('scenarios', 'Scenarios'), tab('comparisons', 'Comparisons'), tab('life-events', 'Life events'), tab('financial-twin', 'Financial Twin')] },
+    { id: 'scenario-lab', label: 'Scenario Lab', path: '/scenario-lab', icon: 'scenario-lab', activeMatch: ['/scenario-lab'], activated: true, tabs: [tab('scenarios', 'Scenarios'), tab('comparisons', 'Comparisons'), tab('archive', 'Archive')] },
   ] },
   { id: 'system', label: 'System', destinations: [
     { id: 'data-connections', label: 'Data Connections', path: '/data-connections', icon: 'data-connections', activeMatch: ['/data-connections'], activated: false, tabs: [tab('accounts', 'Accounts'), tab('imports', 'Imports'), tab('synchronization', 'Synchronization'), tab('data-quality', 'Data quality')] },

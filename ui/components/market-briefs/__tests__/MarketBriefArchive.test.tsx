@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
+import { useRouter, useSearchParams } from 'next/navigation'
 import MarketIntelligenceCenter from '../MarketIntelligenceCenter'
 import { fetchMarketPulse, generateMarketBrief, getMarketBrief, listMarketBriefs } from '@/lib/marketBriefs'
 
@@ -26,7 +27,11 @@ vi.mock('@/lib/marketBriefs', () => ({
   }),
 }))
 
-afterEach(() => { vi.clearAllMocks() })
+afterEach(() => {
+  vi.clearAllMocks()
+  vi.mocked(useSearchParams).mockImplementation(() => new URLSearchParams() as any)
+  vi.mocked(useRouter).mockImplementation(() => ({ replace: vi.fn(), push: vi.fn(), prefetch: vi.fn() }) as any)
+})
 
 const coverage = {
   eligible_holding_count: 2,
@@ -270,6 +275,17 @@ test('Earnings & Events combines portfolio-linked and market calendar evidence',
   expect(await screen.findByRole('heading', { name: /Earnings & Events/i })).toBeInTheDocument()
   expect(screen.getByText(/portfolio-linked earnings/i)).toBeInTheDocument()
   expect(screen.getByText('MSFT')).toBeInTheDocument()
+})
+
+test('opens the bookmarked tab and preserves query state when selecting another view', async () => {
+  vi.mocked(useSearchParams).mockImplementation(() => new URLSearchParams('view=pulse&brief=archived') as any)
+  const replace = vi.fn()
+  vi.mocked(useRouter).mockImplementation(() => ({ replace, push: vi.fn(), prefetch: vi.fn() }) as any)
+  vi.mocked(fetchMarketPulse).mockResolvedValue(pulse as any)
+  render(<MarketIntelligenceCenter />)
+  expect(screen.getByRole('tab', { name: /market pulse/i })).toHaveAttribute('aria-selected', 'true')
+  fireEvent.click(screen.getByRole('tab', { name: /archive/i }))
+  expect(replace).toHaveBeenCalledWith('?view=archive&brief=archived', { scroll: false })
 })
 
 test('keyboard arrow navigation moves between tabs', async () => {

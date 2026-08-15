@@ -247,27 +247,23 @@ export function mintIdempotencyKey(): string {
 // ============================================================
 
 export function readSanitizedError(err: unknown): SanitizedEnvelope {
-  const ax = err as AxiosError<{ code?: string; message?: string }>
+  const ax = err as AxiosError<{ code?: unknown }>
   if (
     ax?.isAxiosError &&
     ax.response?.data &&
     typeof ax.response.data === 'object' &&
     typeof (ax.response.data as { code?: unknown }).code === 'string'
   ) {
-    const data = ax.response.data as { code: string; message?: unknown }
-    const validCodes: ReadonlyArray<SanitizedErrorCode> = [
-      'forecast_read_api_unavailable',
-      'forecast_not_found',
-      'recommendation_not_found',
-      'decision_version_conflict',
-      'forecast_validation_error',
-    ]
-    if ((validCodes as ReadonlyArray<string>).includes(data.code)) {
-      return {
-        code: data.code as SanitizedErrorCode,
-        message:
-          typeof data.message === 'string' ? data.message.slice(0, 280) : '',
-      }
+    const code = (ax.response.data as { code: string }).code
+    const messages: Partial<Record<Exclude<SanitizedErrorCode, 'unknown'>, string>> = {
+      forecast_read_api_unavailable: 'Forecast reads are currently disabled.',
+      forecast_not_found: 'Forecast data is unavailable for this goal.',
+      recommendation_not_found: 'The current recommendation is unavailable.',
+      decision_version_conflict: 'The recommendation changed before the decision was recorded. Review it again.',
+      forecast_validation_error: 'The server could not validate the current forecast evidence.',
+    }
+    if (code in messages) {
+      return { code: code as SanitizedErrorCode, message: messages[code as Exclude<SanitizedErrorCode, 'unknown'>] ?? '' }
     }
   }
   return { code: 'unknown', message: '' }
