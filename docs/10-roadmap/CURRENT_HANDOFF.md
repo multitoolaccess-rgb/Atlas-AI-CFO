@@ -9,7 +9,7 @@
 - Overall status: complete
 - Objective: Phases 0–6 are certified and the Personal-Use Acceptance and System Health Audit is complete; preserve server-owned financial authority and do not begin Phase 7.
 - Phase exit criteria: 2/2 complete
-- Tracker updated: 2026-08-15T18:23:26Z
+- Tracker updated: 2026-08-15T18:46:54Z
 
 ## Active work
 
@@ -31,19 +31,19 @@
 - risk-p1-dialect-parity [high/medium]: SQLite and PostgreSQL differ in exact numeric storage and concurrency semantics for immutable forecast versions.
 - risk-p1-retention-rollout-gate [high/medium]: No approved retention or user-deletion policy exists for immutable forecast history.
 - risk-p1-trusted-generation-boundary [high/medium]: An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.
-- risk-p1-account-currency-authority [high/high]: Finlynq active account balances have no authoritative currency attribute; a user preference/default cannot prove balances are USD for atlas-projection-state/v1.
+- risk-p1-account-currency-authority [high/high]: Active account balances still require explicit source-backed currency evidence; Wave 2A now enforces the lifecycle, but the personal database has not been inspected and complete current evidence remains unproven.
 - risk-p1-local-backup-recovery [high/medium]: No supported non-destructive backup, WAL-safe restore, pre-restore safety copy, or migration-compatible recovery drill exists for Atlas local SQLite data.
 
 ## Recently completed
 
-- work-ui-information-architecture-step-4: Activate Intelligence information architecture migration — commit dfd07e60a5b8512ae3c8e5a8bb72ab1a171862f0, PR 51
 - work-ui-information-architecture-step-5: Activate System information architecture migration — commit 5f79932f69e44c255793dde817b6d4a84b3764e3, PR 53
 - work-p6-s2-scenario-lab-ui: Phase 6 Slice 2 Scenario Lab UI — commit 85761ce08d2d8761aa7c71e8ae00887e4b59e16a, PR 55
 - work-p6-clean-main-certification: Clean-main Phase 6 certification — commit 9c9b554, PR not recorded
 - work-personal-use-activation-readiness-wave-1a: Implement personal-use readiness and synthetic acceptance — commit 9847f1a, PR not recorded
+- work-wave-2a-authoritative-account-currency: Implement Wave 2A authoritative account-currency evidence — commit a438df9233cb197827a5affda0c24ee4d7ec0a97, PR not recorded
 
 ## Next bounded task
 
-- work-wave-2a-authoritative-account-currency: Authorize implementation of Wave 2A authoritative account currency only; do not access personal data, implement backup/recovery, enable flags, begin Wave 2B/2C, or begin Phase 7.
+- work-wave-2b-local-backup-recovery: Implement WAL-safe non-destructive local backup and recovery only; do not access personal data or begin Wave 2C or Phase 7.
 
 Do not begin the next task automatically.
