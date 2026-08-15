@@ -9,14 +9,11 @@
 - Overall status: in_progress
 - Objective: Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.
 - Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-08-15T03:59:13Z
+- Tracker updated: 2026-08-15T04:13:46Z
 
 ## Active work
 
-- work-ui-information-architecture-step-4: Activate Intelligence information architecture migration [blocked/high]
-  - Objective: Atomically activate Decisions, Market Intelligence, Scenario Lab, and global Scout destinations while preserving immutable history, provider boundaries, authoritative Scenario APIs, ownership, and default-off behavior.
-  - Branch: codex/ia-intelligence-migration-step-4
-  - Paths: ui/app, ui/components, ui/lib, docs/06-ui-ux
+- None
 
 ## Blockers
 
@@ -38,14 +35,14 @@
 
 ## Recently completed
 
-- work-holdings-type-fix: Fix Fidelity import type mislabeling and repair affected portfolio data — commit 2603d5c9af7bf9dfd396e64e47755d7be9a28a7f, PR 46
 - work-market-intelligence-v2: Market Intelligence v2 (post-certification enhancement): reliable per-holding evidence, market pulse, and command-center UI — commit 4f27b6d058f26c8d89d518cc5a25258fc6d0ffa9, PR 47
 - work-ui-information-architecture-step-1: Information architecture migration Step 1 foundations — commit d7e5cde, PR 48
 - work-ui-information-architecture-step-2: Activate Money information architecture migration — commit 54974b8, PR 49
 - work-ui-information-architecture-step-3: Activate Wealth information architecture migration — commit a8e1d5b009175a27c91a521f2a156d0c4179c094, PR 50
+- work-ui-information-architecture-step-4: Activate Intelligence information architecture migration — commit dfd07e60a5b8512ae3c8e5a8bb72ab1a171862f0, PR 51
 
 ## Next bounded task
 
-- work-ui-information-architecture-step-4: Step 4 - migrate Intelligence atomically: Decisions, Market Intelligence, Scenario Lab, global Scout, and compatibility redirects.
+- work-ui-information-architecture-step-5: Step 5 — finalize System destinations, navigation cleanup, compatibility, and redesign certification; do not begin until separately authorized.
 
 Do not begin the next task automatically.
