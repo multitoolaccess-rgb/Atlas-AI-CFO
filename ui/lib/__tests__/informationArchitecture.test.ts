@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { COMPATIBILITY_REDIRECTS, PROPOSED_NAVIGATION, SCOUT_PLACEMENT_CONTRACT, validateInformationArchitecture } from '@/lib/informationArchitecture'
+import { ACTIVE_COMPATIBILITY_REDIRECTS, COMPATIBILITY_REDIRECTS, PROPOSED_NAVIGATION, SCOUT_PLACEMENT_CONTRACT, validateInformationArchitecture } from '@/lib/informationArchitecture'
 
 describe('information architecture activation contract', () => {
-  it('activates only the Step 2 home and Money destinations', () => {
+  it('activates Home, Money, and the complete Wealth wave', () => {
     expect(PROPOSED_NAVIGATION.map((group) => group.label)).toEqual(['Home', 'Money', 'Wealth', 'Intelligence', 'System'])
-    expect(PROPOSED_NAVIGATION.flatMap((group) => group.destinations).filter((destination) => destination.activated).map((destination) => destination.id)).toEqual(['mission-control', 'cash-flow', 'plan'])
+    expect(PROPOSED_NAVIGATION.flatMap((group) => group.destinations).filter((destination) => destination.activated).map((destination) => destination.id)).toEqual(['mission-control', 'cash-flow', 'plan', 'wealth', 'portfolio', 'goals'])
     expect(validateInformationArchitecture()).toEqual([])
   })
 
   it('maps every legacy route to a documented destination', () => {
     expect(COMPATIBILITY_REDIRECTS.map(({ from }) => from)).toEqual(['/income', '/expenses', '/activity', '/budgeting', '/debts', '/universe', '/recommendations', '/market-briefs', '/accounts'])
     expect(COMPATIBILITY_REDIRECTS.every(({ to }) => to.startsWith('/'))).toBe(true)
+    expect(ACTIVE_COMPATIBILITY_REDIRECTS.map(({ from }) => from)).toEqual(['/income', '/expenses', '/activity', '/budgeting', '/debts', '/universe'])
   })
 
   it('keeps Scout fallback accessible after header activation', () => {
