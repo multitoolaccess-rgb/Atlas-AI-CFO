@@ -9,7 +9,7 @@
 - Overall status: complete
 - Objective: Phase 6 is certified; Wave 2B is complete and Wave 2C remains blocked by the existing legacy-float partial projection-state gate after authoritative balance observations passed. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
 - Phase exit criteria: 2/2 complete
-- Tracker updated: 2026-08-15T20:09:17Z
+- Tracker updated: 2026-08-15T20:12:41Z
 
 ## Active work
 
@@ -46,6 +46,6 @@
 
 ## Next bounded task
 
-- work-wave-2c-legacy-float-projection-gate: Resolve the existing legacy-float partial projection-state gate through a separately authorized financial-authority decision, prove the disposable clone forecast gate, then resume Wave 2C; do not begin Wave 3 or Phase 7.
+- work-wave-2c-authoritative-balance-amount: Implement and prove append-only exact-cent authoritative balance evidence on a disposable clone only; stop before personal application and Wave 3/Phase 7.
 
 Do not begin the next task automatically.
