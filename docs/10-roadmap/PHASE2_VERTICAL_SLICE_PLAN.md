@@ -359,7 +359,7 @@ The single Phase 2 exit-criterion (verbatim from `docs/10-roadmap/PHASE_PLAN.md`
 | 9 | Privacy/sensitive-data tests confirm error envelopes, logs, and audit events emit NO money values, NO transaction data, NO account details, NO idempotency-key plaintext, NO JWT subject, NO statement content. | `services/rules-service/tests/test_observability.py` (extended) |
 | 10 | Complete Rules Service suite (`.venv-rules/bin/python -m pytest services/rules-service/tests/`) is green on the merged slice head with `atlas_forecast_read_api_enabled=False` (regression coverage of the disabled path); Finlynq suite unaffected; UI `tsc --noEmit` exit 0; UI `vitest` exit 0. | Cert matrix pattern (Phase 1 `PHASE1_VERIFICATION_REPORT.md`) |
 | 11 | The 5 Phase 1 OPEN risks remain OPEN in `RISK_REGISTER.md`; no new rows added in this planning turn. | `docs/10-roadmap/RISK_REGISTER.md` diff review |
-| 12 | The slice ships in two bounded PRs (see §10) carried through the standard high-risk governance (branch + PR + CI + independent review + status update). | `docs/07-engineering/DEVELOPMENT_GUIDELINES.md` Solo-development governance § |
+| 12 | The slice ships in two bounded PRs (see §10) carried through the canonical high-risk governance (branch + PR + relevant focused CI + independent review + status update). | `docs/07-engineering/SOLO_DEVELOPMENT_POLICY.md` High risk and Merge policy sections |
 
 A failure of any one criterion blocks Phase 2 certification of the slice.
 

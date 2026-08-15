@@ -17,8 +17,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Test project status utility
-        run: python3 -m unittest tests/test_atlas_project_status.py
+      - name: Test governance utilities
+        run: python3 -m unittest tests/test_atlas_project_status.py tests/test_change_scope.py
+      - name: Verify canonical solo-development policy exists
+        run: test -s docs/07-engineering/SOLO_DEVELOPMENT_POLICY.md
       # This validates existing evidence when status is present; it does not
       # require each pull request or commit to change project-status files.
       - name: Validate risk-tier evidence and project status

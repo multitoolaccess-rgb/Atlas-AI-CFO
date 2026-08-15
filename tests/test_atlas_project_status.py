@@ -78,16 +78,15 @@ class ProjectStatusTests(unittest.TestCase):
         self.assertEqual(active["risk_tier"], "medium")
         self.assertFalse(active["branch"])
 
-    def test_high_risk_review_evidence_can_document_two_cycle_cap_marker(self):
-        # The "max 2 correction-and-review cycles" rule is documentation-level;
-        # the script accepts the cycle marker inside review_evidence content.
-        # This test pins the convention so audit reviewers know the format.
+    def test_high_risk_review_evidence_has_no_fixed_cycle_marker_requirement(self):
+        # Review evidence remains required for high-risk work, but the tracker
+        # does not impose an arbitrary correction-cycle format or cap.
         self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
-        review_text = "Independent code-reviewer-minimax-m3 APPROVE on head abc1234 (cycle 2/2 of 2-cycle cap)."
+        review_text = "Fresh independent review approved the exact head; no critical or high findings remain."
         self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", review_text, "--test", "1 passed", "--ci-run-url", "https://github.com/atlas/test/actions/runs/123", "--ci-check", "status")
         completed = json.loads(self.status.read_text())["completed_work"][0]
         self.assertEqual(completed["risk_tier"], "high")
-        self.assertIn("2-cycle cap", completed["review_evidence"])
+        self.assertEqual(completed["review_evidence"], review_text)
         self.assertEqual(completed["ci_evidence"]["conclusion"], "success")
 
     def test_high_risk_work_still_requires_a_branch_on_completion(self):
