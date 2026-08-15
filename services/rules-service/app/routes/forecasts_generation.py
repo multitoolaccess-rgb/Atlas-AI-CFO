@@ -474,6 +474,11 @@ async def generate_forecast_for_goal(
     # fallback was unsafe — it would have leaked the server signing
     # secret upstream to Finlynq if the client used cookie-only auth.
     forwarded_auth = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+    if not forwarded_auth:
+        # The approved local auth flow uses the already-validated HttpOnly
+        # fc_session cookie. Forward that token to Finlynq rather than the
+        # signing secret; the dependency above has already verified it.
+        forwarded_auth = request.cookies.get("fc_session", "").strip()
     adapter = HttpFinlynqProjectionStateAdapter(
         base_url=settings.finlynq_base_url,
         authorization=("Bearer " + forwarded_auth) if forwarded_auth else "",
