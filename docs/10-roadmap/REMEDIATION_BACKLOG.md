@@ -3,7 +3,7 @@
 - **Audit date:** 2026-08-15
 - **Audited commit:** `ff85ad7bc39680a2beb13533795478e515cda931`
 - **Source:** [Personal-Use Readiness Report](../07-engineering/PERSONAL_USE_READINESS_REPORT.md) and [System Health Audit](../07-engineering/SYSTEM_HEALTH_AUDIT.md).
-- **Status:** Wave 1A, Wave 2A, Wave 2B, and the exact-cent Wave 2C correction are complete on synthetic/disposable data. Personal Wave 2C activation remains blocked by a live scope mismatch: the configured database has six active accounts while the authorized and validated scope covered four; only four have currency evidence.
+- **Status:** Wave 1A, Wave 2A, Wave 2B, and Wave 2C are complete. Six-account personal activation passed the backup-first, disposable-clone, projection, baseline, restart, and readiness gates. External provider configuration remains a separate open safety risk.
 
 ## Priority definitions
 
@@ -43,7 +43,7 @@
 
 ## Wave 2 — Financial and data correctness
 
-**Status:** Wave 2A and Wave 2B complete; Wave 2C is incomplete and blocked after backup-first personal evidence confirmation and a failed bounded activation/restart gate.
+**Status:** Wave 2A, Wave 2B, and Wave 2C complete for the authorized single-user local scope; external provider safety and multi-user retention remain open constraints.
 **Risk:** High.
 **Priority:** P0/P1.
 **Plan:** [WAVE2_CURRENCY_BACKUP_RECOVERY_PLAN.md](./WAVE2_CURRENCY_BACKUP_RECOVERY_PLAN.md) and [ADR-010](../adr/ADR-010-ACCOUNT-CURRENCY-AND-LOCAL-RECOVERY.md).
@@ -80,46 +80,36 @@ into one change or begin the next slice automatically.
 - A verified personal backup exists outside the repository; its post-evidence
   manifest is checked at `X7a1b2c3d4e5`, WAL mode, integrity `ok`.
 
-### Wave 2C — Personal activation acceptance — blocked by personal scope mismatch
+### Wave 2C — Personal activation acceptance — complete
 
-- Backup gate passed; the personal database was migrated forward from
-  `W6a1b2c3d4e5` to `X7a1b2c3d4e5` through a compatibility-safe additive path.
-- Bounded inventory found four active accounts, all unknown; authorized local
-  operator confirmation appended four USD evidence events. No conflicting or
-  non-USD evidence was overwritten.
-- Doctor/readiness and the non-disclosing goal precision gate passed for
-  currency/storage prerequisites.
-- Disposable clone restart/readiness evidence passed for currency persistence,
-  but forecast generation exposed a sanitized-unavailability integration gap
-  (fixed in `d769870`) and the personal enabled-stack attempt did not remain
-  available for authenticated readiness. The personal database is intact and
-  flags were rolled back/off.
-- Added a dry-run-first server-side operator path for exactly one owned active
-  goal. It accepts canonical `500.00`, records `USD`/`net_worth` with the
-  fixed operator-confirmed plan reference, rejects ambiguity/divergence, and
-  is idempotent under explicit confirmation.
-- Corrected the Atlas lifecycle to preserve an explicit clone database only
-  under `ATLAS_SYNTHETIC_ACCEPTANCE=1` and to run stable non-reload Uvicorn
-  processes with deterministic PID ownership. Clone UI/Rules/Finlynq health
-  and repeated authenticated readiness stayed available.
-- The balance-observation operator is now implemented as an append-only,
-  hash-bound, dry-run-first local path. On the disposable restored clone, all
-  four active accounts became fresh without changing balances; the provider
-  loaded authoritative projection state.
-- The exact-cent balance-authority correction in PR #58 established new
-  `NUMERIC(38,2)` evidence with explicitly authorized `ROUND_HALF_EVEN` policy;
-  it did not claim to restore historical Float precision. The disposable clone
-  became genuinely reconciled and passed forecast, recommendation, decision,
-  history, outcome, Scenario Lab, archive, restart, and readiness acceptance.
-- Personal activation did not proceed: the configured personal database
-  currently contains six active accounts, while the authorized and validated
-  scope covered four and only four have currency evidence. No personal
-  balance evidence, projection configuration, flags, baseline, or other
-  personal writes were made after this mismatch was detected.
-- Do not claim personal Wave 2C complete until the active-account scope is
-  reconciled with the authorized four-account scope, a fresh backup gate passes,
-  and the approved personal readiness gates are rerun without weakening
-  fail-closed behavior.
+- Explicit authorization expanded the scope from four to all six active Atlas
+  accounts. All six remained owned, active, USD-denominated, and eligible.
+- Fresh WAL-safe backup and disposable restore passed with schema
+  `Z9a1b2c3d4e5`, integrity `ok`, and verified SHA-256 metadata. The verified
+  pre-activation backup remains outside the repository; a final post-activation
+  safety backup is also preserved.
+- Six-account currency and exact-cent balance evidence is append-only,
+  hash-bound, and authoritative. No legacy balance amount was rewritten and
+  no historical Float precision was claimed restored.
+- The authorized `500.00 USD` monthly `net_worth` projection configuration and
+  one immutable personal baseline forecast are present. Forecast reads reload
+  through the authenticated API and Scenario Lab readiness recognizes the
+  baseline.
+- The disposable restored clone passed forecast, recommendation, decision,
+  history reload, pending/not-yet-measurable/measured outcome lifecycle,
+  Scenario Lab generation, comparison, archive/history, full restart, and
+  cleanup. External providers, email, scheduler, LLM, execution, trading,
+  brokerage, and money movement were disabled in child-process acceptance.
+- Personal restart acceptance passed health, authenticated readiness, goals/UI
+  route loading, baseline read/reload, persistence, and clean Atlas-owned
+  shutdown. Personal database write journeys for recommendations, decisions,
+  outcomes, and scenarios were intentionally not exercised; those writes were
+  proven only on the disposable clone.
+- PR #60 corrected the authenticated adapter seam so the already-validated
+  `fc_session` cookie is forwarded to Rules/Finlynq forecast and Scenario Lab
+  adapters without exposing the signing secret.
+- Do not begin the combined Waves 3–5 stabilization wave or Phase 7
+  automatically.
 
 ### Goal Float and other boundaries
 
@@ -133,20 +123,21 @@ into one change or begin the next slice automatically.
 
 ### Exclude
 
-- Wave 2B/2C remain unimplemented: no backup/restore, personal-data access,
-  automatic flags, currency conversion, rounding-policy
-  change, forecast-engine rewrite, optimization, tax/probability model,
-  execution, provider purchase, email, scheduler, LLM, tenancy, retention/
-  deletion policy, or Phase 7 work.
+- No additional Wave 2B/2C behavior remains in this backlog. The completed
+  work did not add currency conversion, forecast-engine rewrites, optimization,
+  tax/probability models, execution, provider purchase, email, scheduler, LLM,
+  tenancy, retention/deletion policy, or Phase 7 work.
 
-**Validation:** Wave 2A uses focused currency/provenance/auth/ownership/
-Decimal/migration/parity tests; future 2B requires synthetic WAL/manifest/restore
-tests; and 2C requires a separately authorized backup-first isolated live-stack
-journey. Full certification is not implied by this plan.
+**Validation:** Wave 2A used focused currency/provenance/auth/ownership/
+Decimal/migration/parity tests; Wave 2B used synthetic WAL/manifest/restore
+tests; and Wave 2C used the six-account backup-first clone and personal
+restart/readiness journey. Full phase certification is not implied by this
+remediation plan.
 **Rollback:** keep defaults off; append evidence corrections; refuse unsafe
 migration downgrade; use a checked pre-restore backup; never delete immutable
 history.
-**Completion criteria:** 2A proves authority or keeps activation blocked; 2B
+**Completion criteria:** 2A proves authority; 2B proves non-destructive backup/
+restore; 2C proves the authorized six-account activation and restart gates;
 proves verified local recovery; 2C proves only the explicitly authorized local
 journey.
 ## Wave 3 — Broken UI/API integrations

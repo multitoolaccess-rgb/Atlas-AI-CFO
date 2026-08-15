@@ -1,12 +1,14 @@
 # ADR-010: Authoritative Account Currency and Non-Destructive Local Recovery
 
-- **Status:** Wave 2A and Wave 2B implemented; Wave 2C authorized but blocked after backup-first evidence confirmation and failed local activation readiness
+- **Status:** Wave 2A, Wave 2B, and Wave 2C complete for the explicitly authorized six-account single-user local scope; external providers and multi-user rollout remain gated
 - **Date:** 2026-08-15
-- **Audited baseline:** `1edfaeb5d405eff70bb3eda40da19214c323a778`; Wave 2B/2C evidence through `d769870ed98212d92b06e92424e8b6fcc4ccf7ea`
+- **Audited baseline:** `1edfaeb5d405eff70bb3eda40da19214c323a778`; Wave 2C six-account evidence through `9fbe20df1345645dd7f2ce95f49a6970faf869b0`
 - **Scope:** Personal-use readiness, authoritative account currency, SQLite backup/recovery, and activation prerequisites
 - **Related:** ADR-006, ADR-008, `SCENARIO_LAB_CONTRACT.md`, `WAVE2_CURRENCY_BACKUP_RECOVERY_PLAN.md`, `RISK_REGISTER.md`
 
 ## Decision summary
+
+Wave 2C completed the authorized six-account local activation after a verified WAL-safe backup, disposable restore, append-only USD currency and Decimal balance evidence, the approved projection configuration, immutable baseline generation, and restart/readiness acceptance. The implementation does not restore historical Float precision, and future observations remain subject to freshness, divergence, ownership, and fail-closed gates.
 
 Atlas will keep the current forecast and Scenario Lab contract USD-only and
 fail closed unless every included active account has explicit, current,
@@ -243,14 +245,14 @@ selection only behind `ATLAS_SYNTHETIC_ACCEPTANCE=1`, and keeps clone UI/Rules/
 Finlynq health plus repeated authenticated readiness available.
 
 The balance-observation correction adds an append-only, hash-bound audit event
-and a dry-run-first local operator path. On the disposable restored clone, all
-four active accounts became fresh without changing balances and Finlynq loaded
-projection state. The final clone gate still blocks before forecast generation:
-the provider emits the existing `legacy_float_balance_representation` warning
-with `reconciliation_state=partial`, while Rules Service requires reconciled
-state with no missing-data codes. This separate financial-authority gate must
-not be weakened or relabeled. No personal projection configuration, baseline,
-feature flag, backup, or personal financial output was written in this retry.
-Do not mark Wave 2C complete or begin Wave 3 until the gate is separately
-resolved and the clone/personal gates pass. No financial mathematics changed
-and no immutable history was rewritten.
+and a dry-run-first local operator path. After explicit authorization expanded
+the scope to all six active accounts, each received authoritative USD currency
+and Decimal balance evidence without changing legacy balances. The disposable
+restored clone reached reconciled projection state and passed forecast,
+recommendation, decision/history, outcome, Scenario Lab, archive, restart, and
+readiness acceptance. The personal database then passed the fresh-backup,
+projection-configuration, immutable-baseline, authenticated-readiness, restart,
+and persistence gates. No financial mathematics changed and no immutable history
+was rewritten. Future observations remain subject to freshness, divergence,
+ownership, and fail-closed gates, and historical Float precision is not claimed
+restored.

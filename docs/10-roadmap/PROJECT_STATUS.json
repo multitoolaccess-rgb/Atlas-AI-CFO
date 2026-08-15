@@ -143,6 +143,11 @@
       "review_evidence": "Fresh independent code-reviewer review of PR #32 head: zero CRITICAL/HIGH; two MEDIUM items addressed in review-fix commit e4ab0bd (docstring privacy scope + race-recovery fallback).",
       "slice": "P3-S1",
       "work_id": "work-p3-outcome-evidence-reference-replacement"
+    },
+    {
+      "commit": "9fbe20d",
+      "description": "PR #60: forward validated local session cookies through trusted forecast and Scenario Lab adapters; complete six-account Wave 2C acceptance",
+      "pr": "#60"
     }
   ],
   "completed_phase1_slices": [
@@ -1310,14 +1315,39 @@
         "result": "All focused suites and the complete disposable clone forecast-to-Scenario restart journey passed",
         "timestamp": "2026-08-15T20:36:26Z"
       }
+    },
+    {
+      "branch": "codex/wave-2c-six-account-activation",
+      "commit": "9fbe20d",
+      "id": "work-wave-2c-six-account-activation",
+      "phase_id": "phase-6",
+      "pr": "60",
+      "review_evidence": "Fresh local independent review of exact head 9fbe20d approved; no unresolved critical/high findings. Cookie forwarding is limited to the already-validated fc_session token and never uses the signing secret.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Rules focused route bundle: 28 passed",
+        "Python compilation and shell syntax passed",
+        "Six-account disposable clone: forecast, recommendation, decision, history, outcome lifecycle, Scenario Lab generation/comparison/archive, restart persistence, cleanup passed",
+        "Personal backup/check/restore and authenticated restart/readiness acceptance passed"
+      ],
+      "title": "Complete six-account personal activation and restart acceptance",
+      "validation_evidence": {
+        "command": "Focused route tests; disposable six-account clone journey; personal backup/restore and restart/readiness acceptance",
+        "commit": "9fbe20d",
+        "environment": "Python 3.12 isolated Rules/Finlynq environments; synthetic clone; personal SQLite metadata/readiness only; external providers disabled in acceptance; GitHub Actions disabled",
+        "kind": "local",
+        "result": "passed",
+        "timestamp": "2026-08-15T21:20:12Z"
+      }
     }
   ],
-  "current_objective": "Phase 6 is certified; Wave 2C exact-cent balance authority is complete on the disposable clone, but personal activation is blocked by a live precondition mismatch: the configured personal database has six active accounts and only four have currency evidence while the authorized validation scope covered four. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.",
+  "current_objective": "Phase 6 is certified; Wave 2C six-account personal activation and restart acceptance are complete. Preserve server-owned financial authority and do not begin the combined Waves 3\u20135 stabilization wave or Phase 7 automatically.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T20:46:03Z",
+  "last_updated": "2026-08-15T21:20:12Z",
   "next_bounded_task": {
-    "description": "Reconcile the configured personal database active-account scope with the authorized four-account validation scope without writing personal financial state; then obtain explicit bounded authorization before rerunning backup-first Wave 2C activation.",
-    "id": "work-wave-2c-personal-scope-reconciliation",
+    "description": "Plan and obtain separate authorization for the combined Waves 3\u20135 Product Stabilization Wave; do not begin automatically.",
+    "id": "work-waves-3-5-product-stabilization",
     "phase_id": "phase-6"
   },
   "overall_status": "complete",
@@ -1559,32 +1589,32 @@
       "status": "open"
     },
     {
-      "description": "The balance-observation operator is implemented and all four disposable-clone accounts become fresh without balance mutation, but the existing legacy_float_balance_representation partial projection-state gate still blocks forecast generation; no personal baseline can be generated until that separate financial-authority decision is resolved.",
+      "description": "The balance-observation operator and exact-cent evidence contract are implemented. Six active personal accounts now have fresh, hash-bound Decimal observations without changing legacy balances; the disposable clone and personal readiness gates passed.",
       "id": "risk-p1-account-observation-freshness",
       "likelihood": "high",
-      "mitigation": "Establish freshness through an approved structured ingestion or bounded operator provenance path; never use current time, account creation, preference, or symbol as a substitute. Prove on the disposable clone before personal activation.",
+      "mitigation": "Preserve explicit operator provenance, seven-day freshness, state-hash binding, divergence detection, and fail-closed projection gating. Reconfirm through the bounded operator path when observations expire or diverge.",
       "owner": "Finlynq domain owner",
       "related": "Wave 2C clone gate; services/finlynq/app/projection_state/provider.py; e877247; 96bd7df; Y8a1b2c3d4e5 synthetic clone observation confirmation: four eligible active accounts, freshness ready, no balance mutation",
       "severity": "high",
       "status": "resolved"
     },
     {
-      "description": "The exact-cent balance-authority contract and disposable clone journey pass, but the complete enabled personal journey remains unproven because the configured personal database has six active accounts while the authorized validation scope covered four and only four have currency evidence.",
+      "description": "The append-only exact-cent balance-authority contract, six-account disposable journey, and authorized personal activation all pass without rewriting legacy balances or weakening currency gates.",
       "id": "risk-p1-account-currency-authority",
       "likelihood": "medium",
-      "mitigation": "X7a1b2c3d4e5, Y8a1b2c3d4e5, and Z9a1b2c3d4e5 enforce append-only currency/balance authority, hash-bound operator confirmation, deterministic fail-closed handling, exact-cent evidence, and no-backfill migration. The four-account disposable clone passed without legacy-balance mutation; personal activation is blocked by the six-versus-four account-scope mismatch.",
+      "mitigation": "X7a1b2c3d4e5, Y8a1b2c3d4e5, and Z9a1b2c3d4e5 enforce append-only currency/balance authority, hash-bound operator confirmation, deterministic fail-closed handling, exact-cent evidence, and no-backfill migration. Six-account clone and personal readiness evidence passed without legacy-balance mutation.",
       "owner": "Finlynq domain owner",
-      "related": "ADR-006; ADR-010; Wave 2 plan; a438df9; d769870",
+      "related": "ADR-006; ADR-010; Wave 2 plan; a438df9; d769870; Six active accounts now have authoritative USD currency evidence; fresh six-account clone and personal readiness checks passed without weakening fail-closed behavior.",
       "severity": "high",
-      "status": "open"
+      "status": "resolved"
     },
     {
-      "description": "End-to-end personal recovery/activation is not complete, although verified non-destructive backup and disposable restore tooling exists.",
+      "description": "WAL-safe local backup, disposable restore, and backup-first personal activation have passed; in-place restore remains intentionally unsupported and requires a future separately authorized recovery task.",
       "id": "risk-p1-local-backup-recovery",
       "likelihood": "low",
       "mitigation": "Wave 2B uses explicit identity, SQLite online backup, restrictive manifests/checksums, active-holder refusal, integrity/migration checks, and new-path-only restore. A verified personal backup and disposable restore passed; in-place restore remains unsupported.",
       "owner": "engineering/security",
-      "related": "ADR-010, Wave 2 plan, scripts/atlas_backup.py, scripts/atlas_restore.py",
+      "related": "ADR-010, Wave 2 plan, scripts/atlas_backup.py, scripts/atlas_restore.py; Wave 2C final backup and restore evidence",
       "severity": "high",
       "status": "mitigated"
     },
@@ -1599,10 +1629,10 @@
       "status": "resolved"
     },
     {
-      "description": "The legacy-float projection gate was resolved by the additive exact-cent evidence contract and passed on the disposable clone; personal activation remains separately blocked by a live account-scope mismatch.",
+      "description": "The legacy-float projection gate was resolved by the additive exact-cent evidence contract; six-account clone and authorized personal baseline gates passed without weakening fail-closed behavior.",
       "id": "risk-p1-legacy-float-projection-gate",
       "likelihood": "high",
-      "mitigation": "Do not weaken the fail-closed generation gate or rewrite balances. Choose a separately authorized Decimal/account-balance authority migration or an explicitly reviewed contract for the existing representation, then rerun the clone gate before personal activation.",
+      "mitigation": "Do not weaken the fail-closed generation gate or rewrite balances. Preserve the additive Decimal evidence contract and rerun freshness, ownership, currency, and divergence gates whenever personal observations expire or change.",
       "owner": "rules-service-finlynq",
       "related": "services/finlynq/app/projection_state/provider.py; services/rules-service/app/forecasts/service.py; risk-p1-legacy-goal-float; Wave 2C clone evidence",
       "severity": "high",
@@ -1619,14 +1649,14 @@
       "status": "resolved"
     },
     {
-      "description": "The configured Atlas-owned personal SQLite database currently contains six active accounts, while the authorized Wave 2C assumptions and prior clone evidence cover four; only four active accounts have currency evidence, so personal mutation must stop until the active-account scope is reconciled.",
+      "description": "The prior four-versus-six active-account scope mismatch was resolved by explicit authorization covering all six active accounts; six-account evidence, projection, baseline, restart, and readiness checks passed.",
       "id": "risk-p1-personal-account-scope-mismatch",
       "likelihood": "high",
-      "mitigation": "Do not write balance evidence, projection configuration, flags, or forecasts. Reconcile the active-account scope and obtain explicit bounded authorization for any additional accounts, then rerun backup and all preconditions.",
+      "mitigation": "Keep future personal writes bounded by an explicit account-scope confirmation, fresh backup, ownership/state-hash preconditions, and the full fail-closed readiness gate.",
       "owner": "Finlynq domain owner",
-      "related": "Wave 2C personal activation; PR #58; ADR-010",
+      "related": "Wave 2C personal activation; PR #58; ADR-010; Explicit authorization expanded scope to all six active accounts; six-account currency/balance evidence, projection configuration, baseline, restart, and readiness checks passed.",
       "severity": "high",
-      "status": "open"
+      "status": "resolved"
     }
   ],
   "schema_version": "1.0.0",

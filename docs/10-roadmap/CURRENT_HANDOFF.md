@@ -7,9 +7,9 @@
 - Phase: phase-6 — Scenario Lab
 - Phase status: complete
 - Overall status: complete
-- Objective: Phase 6 is certified; Wave 2C exact-cent balance authority is complete on the disposable clone, but personal activation is blocked by a live precondition mismatch: the configured personal database has six active accounts and only four have currency evidence while the authorized validation scope covered four. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
+- Objective: Phase 6 is certified; Wave 2C six-account personal activation and restart acceptance are complete. Preserve server-owned financial authority and do not begin the combined Waves 3–5 stabilization wave or Phase 7 automatically.
 - Phase exit criteria: 2/2 complete
-- Tracker updated: 2026-08-15T20:46:03Z
+- Tracker updated: 2026-08-15T21:20:12Z
 
 ## Active work
 
@@ -32,20 +32,18 @@
 - risk-p1-retention-rollout-gate [high/medium]: No approved retention or user-deletion policy exists for immutable forecast history.
 - risk-p1-trusted-generation-boundary [high/medium]: An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.
 - risk-p1-external-provider-local-config [high/medium]: Ignored local configuration has Market Intelligence read/generation/external-provider flags enabled and provider credentials present; no provider call was made in this task, but the local state is not safe to treat as fully disabled.
-- risk-p1-account-currency-authority [high/medium]: The exact-cent balance-authority contract and disposable clone journey pass, but the complete enabled personal journey remains unproven because the configured personal database has six active accounts while the authorized validation scope covered four and only four have currency evidence.
-- risk-p1-local-backup-recovery [high/low]: End-to-end personal recovery/activation is not complete, although verified non-destructive backup and disposable restore tooling exists.
-- risk-p1-personal-account-scope-mismatch [high/high]: The configured Atlas-owned personal SQLite database currently contains six active accounts, while the authorized Wave 2C assumptions and prior clone evidence cover four; only four active accounts have currency evidence, so personal mutation must stop until the active-account scope is reconciled.
+- risk-p1-local-backup-recovery [high/low]: WAL-safe local backup, disposable restore, and backup-first personal activation have passed; in-place restore remains intentionally unsupported and requires a future separately authorized recovery task.
 
 ## Recently completed
 
-- work-personal-use-activation-readiness-wave-1a: Implement personal-use readiness and synthetic acceptance — commit 9847f1a, PR not recorded
 - work-wave-2a-authoritative-account-currency: Implement Wave 2A authoritative account-currency evidence — commit a438df9233cb197827a5affda0c24ee4d7ec0a97, PR not recorded
 - work-wave-2b-local-backup-recovery: Implement WAL-safe local backup and recovery — commit 423f87a, PR not recorded
 - work-wave-2c-personal-activation-acceptance: Execute backup-first personal activation and restart acceptance — commit e877247, PR not recorded
 - work-wave-2c-authoritative-balance-amount: Establish exact-cent legacy balance authority — commit 50d7d198de5b28d0d37e9aa596c8e2d90b27452f, PR 58
+- work-wave-2c-six-account-activation: Complete six-account personal activation and restart acceptance — commit 9fbe20d, PR 60
 
 ## Next bounded task
 
-- work-wave-2c-personal-scope-reconciliation: Reconcile the configured personal database active-account scope with the authorized four-account validation scope without writing personal financial state; then obtain explicit bounded authorization before rerunning backup-first Wave 2C activation.
+- work-waves-3-5-product-stabilization: Plan and obtain separate authorization for the combined Waves 3–5 Product Stabilization Wave; do not begin automatically.
 
 Do not begin the next task automatically.

@@ -4,8 +4,8 @@
 
 - Current phase: **phase-6 — Scenario Lab** (complete)
 - Overall status: **complete**
-- Current objective: Phase 6 is certified; Wave 2C exact-cent balance authority is complete on the disposable clone, but personal activation is blocked by a live precondition mismatch: the configured personal database has six active accounts and only four have currency evidence while the authorized validation scope covered four. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
-- Last updated: 2026-08-15T20:46:03Z
+- Current objective: Phase 6 is certified; Wave 2C six-account personal activation and restart acceptance are complete. Preserve server-owned financial authority and do not begin the combined Waves 3–5 stabilization wave or Phase 7 automatically.
+- Last updated: 2026-08-15T21:20:12Z
 
 ## Active work
 - None
@@ -34,20 +34,20 @@
 - risk-p1-retention-rollout-gate [high/medium, open]: No approved retention or user-deletion policy exists for immutable forecast history.
 - risk-p1-trusted-generation-boundary [high/medium, open]: An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.
 - risk-p1-external-provider-local-config [high/medium, open]: Ignored local configuration has Market Intelligence read/generation/external-provider flags enabled and provider credentials present; no provider call was made in this task, but the local state is not safe to treat as fully disabled.
-- risk-p1-account-observation-freshness [high/high, resolved]: The balance-observation operator is implemented and all four disposable-clone accounts become fresh without balance mutation, but the existing legacy_float_balance_representation partial projection-state gate still blocks forecast generation; no personal baseline can be generated until that separate financial-authority decision is resolved.
-- risk-p1-account-currency-authority [high/medium, open]: The exact-cent balance-authority contract and disposable clone journey pass, but the complete enabled personal journey remains unproven because the configured personal database has six active accounts while the authorized validation scope covered four and only four have currency evidence.
-- risk-p1-local-backup-recovery [high/low, mitigated]: End-to-end personal recovery/activation is not complete, although verified non-destructive backup and disposable restore tooling exists.
+- risk-p1-account-observation-freshness [high/high, resolved]: The balance-observation operator and exact-cent evidence contract are implemented. Six active personal accounts now have fresh, hash-bound Decimal observations without changing legacy balances; the disposable clone and personal readiness gates passed.
+- risk-p1-account-currency-authority [high/medium, resolved]: The append-only exact-cent balance-authority contract, six-account disposable journey, and authorized personal activation all pass without rewriting legacy balances or weakening currency gates.
+- risk-p1-local-backup-recovery [high/low, mitigated]: WAL-safe local backup, disposable restore, and backup-first personal activation have passed; in-place restore remains intentionally unsupported and requires a future separately authorized recovery task.
 - risk-p1-migration-downgrade-patched [medium/low, resolved]: Alembic 1.13.x's ApplyBatchImpl.drop_index rejects the deprecated if_exists keyword argument; the Phase 1 final cert matrix surfaced this as a full upgrade -> downgrade base failure on the e9f0a1b2c3d4 migration.
-- risk-p1-legacy-float-projection-gate [high/high, resolved]: The legacy-float projection gate was resolved by the additive exact-cent evidence contract and passed on the disposable clone; personal activation remains separately blocked by a live account-scope mismatch.
+- risk-p1-legacy-float-projection-gate [high/high, resolved]: The legacy-float projection gate was resolved by the additive exact-cent evidence contract; six-account clone and authorized personal baseline gates passed without weakening fail-closed behavior.
 - risk-p1-legacy-balance-cent-representation [high/high, resolved]: The prior disposable-clone non-cent legacy balance blocker was resolved through explicitly authorized ROUND_HALF_EVEN USD-cent evidence; no historical Float precision was claimed restored.
-- risk-p1-personal-account-scope-mismatch [high/high, open]: The configured Atlas-owned personal SQLite database currently contains six active accounts, while the authorized Wave 2C assumptions and prior clone evidence cover four; only four active accounts have currency evidence, so personal mutation must stop until the active-account scope is reconciled.
+- risk-p1-personal-account-scope-mismatch [high/high, resolved]: The prior four-versus-six active-account scope mismatch was resolved by explicit authorization covering all six active accounts; six-account evidence, projection, baseline, restart, and readiness checks passed.
 
 ## Recently completed work
-- work-personal-use-activation-readiness-wave-1a: Implement personal-use readiness and synthetic acceptance — commit 9847f1a, PR None
 - work-wave-2a-authoritative-account-currency: Implement Wave 2A authoritative account-currency evidence — commit a438df9233cb197827a5affda0c24ee4d7ec0a97, PR None
 - work-wave-2b-local-backup-recovery: Implement WAL-safe local backup and recovery — commit 423f87a, PR None
 - work-wave-2c-personal-activation-acceptance: Execute backup-first personal activation and restart acceptance — commit e877247, PR None
 - work-wave-2c-authoritative-balance-amount: Establish exact-cent legacy balance authority — commit 50d7d198de5b28d0d37e9aa596c8e2d90b27452f, PR 58
+- work-wave-2c-six-account-activation: Complete six-account personal activation and restart acceptance — commit 9fbe20d, PR 60
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -73,6 +73,7 @@
 - 08f6f811da7c325da8a3d60adae9f2d9c2d210e8: Final certified main SHA: 'fix(db): correct Phase 1 finlynq-compatible alembic downgrade path' (annotated tag phase-1-complete resolves to this SHA on remote)
 - 642b3d488af16cd737e28ceca63c576a1238d2e1: Phase 2 Slice 1 backend cohesive PR -- four bounded commits (commit-1 schemas, commit-2 models+migration+parity, commit-3 service+engine+repo, commit-4 routes+flags+integration) accepted by user across the slice. PR opened as cohesive package; code-reviewer-minimax-m3 returned VERDICT: GREEN against PR #21 head 642b3d4 with full 13-item plan section 3/4/5/8 matrix (determinism, append-only journal, ownership-before-disclosure, default-off flags, currency fail-closed, Decimal preservation, ETags/cursors, strict bodies, real app wiring, privacy, schema_version convention, RecommendationNotFound envelope, test_decision_journal_parity): zero HIGH findings, no residual LOW items. status CI gate PASSED in 9s. Branch squash-merged to main as 3ce7fe5706530d0ec68e743fff0882c76b3434cf; local + remote branches cleaned; local main fast-forward synced. 21
 - 8955e40a74926d76bed7cd93f5fb31a8508d40c9: Phase 3 Slice 1: replace the unsafe String(512) authoritative_evidence_reference from closed PR #30 with a privacy-safe bounded evidence-source contract — allowlisted evidence_source_kind (forecast_projection / account_balance_delta / transaction_pattern) + server-derived hash-only evidence_reference_hash (64-char lowercase SHA-256). Raw evidence references are never accepted, persisted, logged, echoed, or exposed in errors. Append-only outcome_evaluations table + migration U9a1b2c3d4e5, lifecycle evidence contract, idempotent replay, sanitized OutcomeConflictError, ownership-before-existence, UNIQUE-collision race recovery, row-count-guarded downgrade. Squash-merged to main; heavy CI skipped (no-UI backend slice). 32
+- 9fbe20d: PR #60: forward validated local session cookies through trusted forecast and Scenario Lab adapters; complete six-account Wave 2C acceptance #60
 - Test test-p0-rules: Rules Service — 579 passed, 10 skipped, 1 xfailed
 - Test test-p0-finlynq: Finlynq — 93 passed
 - Test test-p0-frontend: Frontend — 496 passed
@@ -83,6 +84,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-wave-2c-personal-scope-reconciliation: Reconcile the configured personal database active-account scope with the authorized four-account validation scope without writing personal financial state; then obtain explicit bounded authorization before rerunning backup-first Wave 2C activation.
+- work-waves-3-5-product-stabilization: Plan and obtain separate authorization for the combined Waves 3–5 Product Stabilization Wave; do not begin automatically.
 
 Do not begin the next phase or task automatically.

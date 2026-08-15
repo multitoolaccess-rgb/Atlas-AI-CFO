@@ -3,7 +3,7 @@
 - **Plan date:** 2026-08-15
 - **Planning baseline:** `2a25d3eba9d71e4132b332790a0536392d62288c`
 - **Phase:** Remediation after certified Phase 6; Phase 7 is not started
-- **Status:** Wave 2A and Wave 2B implemented; Wave 2C authorized and partially executed but blocked at final local activation/readiness acceptance
+- **Status:** Wave 2A, Wave 2B, and Wave 2C complete for the explicitly authorized six-account single-user local scope; external providers and multi-user rollout remain gated
 - **Related:** [ADR-010](../adr/ADR-010-ACCOUNT-CURRENCY-AND-LOCAL-RECOVERY.md), [ADR-006](../adr/ADR-006-IMMUTABLE-FORECAST-PERSISTENCE.md), [Scenario Lab Contract](../07-engineering/SCENARIO_LAB_CONTRACT.md), [Remediation Backlog](./REMEDIATION_BACKLOG.md), [Risk Register](./RISK_REGISTER.md), [Personal Mode Proposal](../07-engineering/PERSONAL_MODE_PROPOSAL.md)
 
 ## 1. Executive decision
@@ -521,39 +521,22 @@ Required order:
 
 ### 2C exits
 
-- Explicit user authorization is recorded before any personal-data action —
-  **passed**.
-- Backup is verified before inspection or mutation — **passed**.
-- Four active accounts were evaluated; all were initially unknown and received
-  one append-only operator-confirmed USD event. No conflicting/non-USD evidence
-  existed and no blanket overwrite occurred — **passed**.
-- Migration reached `X7a1b2c3d4e5`; integrity/quick checks and the non-disclosing
-  goal precision gate passed — **passed**.
-- Doctor/readiness currency state passed, but the enabled personal stack did
-  not remain available for authenticated readiness. Personal projection
-  configuration/baseline is also absent — **BLOCKED**.
-- The clone operator path correctly records `500.00` as a Decimal-safe USD
-  `net_worth` configuration and is idempotent. The new balance-observation
-  operator confirms all four clone accounts atomically, hash-binds the current
-  state, preserves the stored balances, and the provider loads projection
-  state — **passed**.
-- Forecast generation remains blocked because the provider emits the existing
-  `legacy_float_balance_representation` warning with
-  `reconciliation_state=partial`, while Rules Service requires a reconciled
-  state with no missing-data codes. This is a separate financial-authority
-  gate; it must not be bypassed by relabeling or weakening the state —
-  **BLOCKED**.
-- The corrected disposable lifecycle keeps UI/Rules/Finlynq health at 200 and
-  authenticated readiness reachable across repeated probes — **passed**.
-- No personal projection configuration, baseline, flags, or balance-observation
-  write was made in this retry; the existing personal database and backups
-  remain preserved — **passed**.
+- Explicit user authorization was recorded before the six-account personal-data action — **passed**.
+- A fresh WAL-safe backup and disposable restore were verified before personal mutation — **passed**.
+- All six active accounts were evaluated under the expanded authorization. Each has authoritative USD currency evidence and one append-only, hash-bound Decimal balance observation; no legacy balance amount was rewritten and no blanket overwrite occurred — **passed**.
+- Migration reached `Z9a1b2c3d4e5`; integrity, ownership, and the non-disclosing goal precision gate passed — **passed**.
+- The approved `500.00 USD` monthly `net_worth` projection configuration was recorded idempotently for the single active goal — **passed**.
+- The six-account disposable clone reached reconciled projection state and passed immutable forecast generation/read/reload plus the complete synthetic recommendation, decision/history, outcome lifecycle, Scenario Lab generation/comparison/archive, restart, and cleanup journey — **passed**.
+- The personal database now has one authorized immutable baseline forecast. Authenticated readiness, goals/UI route loading, baseline retrieval, persistence, restart, and clean Atlas-owned shutdown passed — **passed**.
+- External providers, email, scheduler, LLM, execution, trading, brokerage, and money movement remained disabled during automated acceptance; the pre-existing ignored provider configuration was not changed — **passed**.
+- Personal recommendation, decision, outcome, and scenario writes were intentionally not performed; those write paths were proven only on the disposable clone — **passed**.
 
-Wave 2C is therefore not complete. The next bounded task is to resolve the
-legacy-float partial projection-state gate through a separately authorized
-financial-authority decision, rerun the disposable clone forecast/readiness gate,
-then repeat the approved personal readiness gate without creating synthetic
-decisions or scenarios in the personal database.
+Wave 2C is complete for the explicitly authorized six-account single-user local
+scope. Historical Float precision was not claimed restored; the additive
+Decimal evidence contract establishes new USD-cent authority by explicit
+operator confirmation. Future personal activation or reconfirmation remains
+subject to fresh backup, ownership, state-hash, currency, observation-freshness,
+and fail-closed readiness gates.
 
 ## 11. Explicit future authorization prompts
 
@@ -591,12 +574,13 @@ decisions or scenarios in the personal database.
   evidence were printed. No in-place restore was attempted.
 - Plaid explicit-currency ingestion is not implemented or contract-tested.
 - General CSV/PDF authoritative currency declaration is not established.
-- Personal projection configuration/baseline is absent because the clone
-  forecast gate failed before the authorized personal write.
-- The balance-observation audit path is implemented and passes on the disposable
-  clone for all four active accounts without changing balances. The remaining
-  blocker is the existing `legacy_float_balance_representation` partial-state
-  financial gate; this is not permission to relabel or weaken canonical state.
+- The approved personal projection configuration and one immutable baseline
+  forecast are present; recommendation, decision, outcome, and scenario writes
+  remain intentionally confined to the disposable clone.
+- The balance-observation and exact-cent evidence paths passed for all six active
+  accounts without changing legacy balances. Freshness and divergence remain
+  fail-closed future gates; this is not a claim that historical Float precision
+  was restored.
 - The corrected local lifecycle is proven on a disposable clone: start exits
   successfully, UI/Rules/Finlynq health remains 200, and authenticated
   readiness remains reachable across repeated probes.
