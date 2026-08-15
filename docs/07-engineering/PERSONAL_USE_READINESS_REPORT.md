@@ -4,7 +4,7 @@
 - **Audited commit:** `ff85ad7bc39680a2beb13533795478e515cda931`
 - **Verdict:** **Conditionally ready for isolated local exploration; readiness tooling is implemented, but not ready for unattended or fully activated personal use.**
 - **Phase status:** Phases 0–6 certified locally; Phase 7 not started.
-- **Related:** [Capability Matrix](../10-roadmap/ATLAS_CAPABILITY_MATRIX.md), [System Health Audit](./SYSTEM_HEALTH_AUDIT.md), [UI Acceptance Matrix](../06-ui-ux/UI_ACCEPTANCE_MATRIX.md), [Remediation Backlog](../10-roadmap/REMEDIATION_BACKLOG.md), [Personal Mode Proposal](./PERSONAL_MODE_PROPOSAL.md).
+- **Related:** [Capability Matrix](../10-roadmap/ATLAS_CAPABILITY_MATRIX.md), [System Health Audit](./SYSTEM_HEALTH_AUDIT.md), [UI Acceptance Matrix](../06-ui-ux/UI_ACCEPTANCE_MATRIX.md), [Remediation Backlog](../10-roadmap/REMEDIATION_BACKLOG.md), [Personal Mode Proposal](./PERSONAL_MODE_PROPOSAL.md), [Wave 2 Currency/Recovery Plan](../10-roadmap/WAVE2_CURRENCY_BACKUP_RECOVERY_PLAN.md), [ADR-010](../adr/ADR-010-ACCOUNT-CURRENCY-AND-LOCAL-RECOVERY.md).
 
 ## Method and evidence
 
@@ -65,7 +65,7 @@ No new evidence shows a critical financial-integrity, authorization, privacy, or
 
 ### P1 — activation and safety blockers
 
-1. **Account currency authority:** Finlynq active balances do not carry authoritative currency for the projection-state contract. A preference/default cannot prove USD. Keep forecast/scenario activation fail-closed until resolved; tracked as `risk-p1-account-currency-authority`.
+1. **Account currency authority:** The repository has nullable source-backed fields and fail-closed validators, but no authorized evidence proves every current active personal account has fresh USD authority. A preference/default cannot prove USD. Keep forecast/scenario activation fail-closed until Wave 2A resolves the evidence lifecycle; tracked as `risk-p1-account-currency-authority`.
 2. **Retention and deletion policy:** Immutable history has no approved retention/user-deletion policy. This blocks external multi-user rollout and must not be bypassed; tracked as `risk-p1-retention-rollout-gate`.
 3. **Personal activation runbook:** No single supported operator path proves the ordered configuration, synthetic baseline, flags, and recovery checks needed for an enabled local journey.
 
@@ -73,11 +73,19 @@ No new evidence shows a critical financial-integrity, authorization, privacy, or
 
 - **Completed Wave 1A:** Atlas Doctor, authenticated readiness contract/UI, and disposable synthetic acceptance command now expose safe recovery state without secrets or financial values.
 - **P2:** Complete the isolated service-restart/persistence and backup/restore acceptance drill after authoritative currency is resolved.
-- **P2:** Add a documented backup/restore drill for SQLite WAL files and migration recovery.
+- **P1:** Design and implement the non-destructive WAL-aware backup/restore contract in Wave 2B; no personal database action is authorized by this report.
 - **P2:** Reconcile screenshot matrix route inventory with the final IA so legacy aliases are labelled as compatibility captures and migrated destinations are captured directly.
 - **P3:** Quarantine or remove legacy client-side simulation calculators after compatibility references are no longer needed; do not make them financial authority.
 - **P3:** Reduce legacy names and duplicate service/model documentation after a bounded terminology decision.
 - **P3:** Address repository-wide frontend lint debt and dependency/reference inventory.
+
+## Wave 2 planning outcome
+
+Wave 2 is now planned as three separately authorized slices: 2A authoritative
+currency, 2B non-destructive local backup/recovery, and 2C backup-first personal
+activation acceptance. The plan records that the current schema is additive and
+no-backfill, but a full correction/revocation audit lifecycle and supported
+backup tool are not yet implemented. See the linked plan and ADR-010.
 
 ## Evidence gaps
 
@@ -89,4 +97,4 @@ No new evidence shows a critical financial-integrity, authorization, privacy, or
 
 ## Recommended first remediation wave
 
-Start with **Wave 1 — Personal-use blockers and activation** in [REMEDIATION_BACKLOG.md](../10-roadmap/REMEDIATION_BACKLOG.md): define the safe local activation profile, currency gate, readiness checks, synthetic acceptance command, and backup/recovery runbook. Do not enable external providers, email, execution, or Phase 7 capabilities as part of that wave.
+The next bounded authorization is **Wave 2A — authoritative account currency only**. Do not access the personal database, implement backup/recovery, enable financial flags, or begin Wave 2B/2C or Phase 7.

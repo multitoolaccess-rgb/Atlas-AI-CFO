@@ -1185,10 +1185,10 @@
   ],
   "current_objective": "Phases 0\u20136 are certified and the Personal-Use Acceptance and System Health Audit is complete; preserve server-owned financial authority and do not begin Phase 7.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T17:43:55Z",
+  "last_updated": "2026-08-15T18:23:26Z",
   "next_bounded_task": {
-    "description": "Plan and authorize Wave 2 for authoritative account currency plus non-destructive backup and recovery; do not begin implementation or Phase 7.",
-    "id": "work-wave-2-account-currency-backup-recovery",
+    "description": "Authorize implementation of Wave 2A authoritative account currency only; do not access personal data, implement backup/recovery, enable flags, begin Wave 2B/2C, or begin Phase 7.",
+    "id": "work-wave-2a-authoritative-account-currency",
     "phase_id": "phase-6"
   },
   "overall_status": "complete",
@@ -1426,6 +1426,16 @@
       "mitigation": "Add and independently review an authoritative account-currency source and migration/ingestion policy before enabling the B0 provider.",
       "owner": "Finlynq domain owner",
       "related": "B0 provider prerequisite; ADR-006 currency rule",
+      "severity": "high",
+      "status": "open"
+    },
+    {
+      "description": "No supported non-destructive backup, WAL-safe restore, pre-restore safety copy, or migration-compatible recovery drill exists for Atlas local SQLite data.",
+      "id": "risk-p1-local-backup-recovery",
+      "likelihood": "medium",
+      "mitigation": "Wave 2B must use explicit database identity, SQLite online backup, restrictive manifests/checksums, active-writer refusal, atomic restore, integrity/migration checks, and synthetic destructive tests. Never copy only the main DB file or delete immutable history.",
+      "owner": "engineering/security",
+      "related": "ADR-010, Wave 2 plan, app/database.py WAL contract",
       "severity": "high",
       "status": "open"
     },

@@ -5,7 +5,7 @@
 - Current phase: **phase-6 — Scenario Lab** (complete)
 - Overall status: **complete**
 - Current objective: Phases 0–6 are certified and the Personal-Use Acceptance and System Health Audit is complete; preserve server-owned financial authority and do not begin Phase 7.
-- Last updated: 2026-08-15T17:43:55Z
+- Last updated: 2026-08-15T18:23:26Z
 
 ## Active work
 - None
@@ -34,6 +34,7 @@
 - risk-p1-retention-rollout-gate [high/medium, open]: No approved retention or user-deletion policy exists for immutable forecast history.
 - risk-p1-trusted-generation-boundary [high/medium, open]: An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.
 - risk-p1-account-currency-authority [high/high, open]: Finlynq active account balances have no authoritative currency attribute; a user preference/default cannot prove balances are USD for atlas-projection-state/v1.
+- risk-p1-local-backup-recovery [high/medium, open]: No supported non-destructive backup, WAL-safe restore, pre-restore safety copy, or migration-compatible recovery drill exists for Atlas local SQLite data.
 - risk-p1-migration-downgrade-patched [medium/low, resolved]: Alembic 1.13.x's ApplyBatchImpl.drop_index rejects the deprecated if_exists keyword argument; the Phase 1 final cert matrix surfaced this as a full upgrade -> downgrade base failure on the e9f0a1b2c3d4 migration.
 
 ## Recently completed work
@@ -77,6 +78,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-wave-2-account-currency-backup-recovery: Plan and authorize Wave 2 for authoritative account currency plus non-destructive backup and recovery; do not begin implementation or Phase 7.
+- work-wave-2a-authoritative-account-currency: Authorize implementation of Wave 2A authoritative account currency only; do not access personal data, implement backup/recovery, enable flags, begin Wave 2B/2C, or begin Phase 7.
 
 Do not begin the next phase or task automatically.

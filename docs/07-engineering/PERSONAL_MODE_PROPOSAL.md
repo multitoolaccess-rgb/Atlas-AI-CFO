@@ -3,7 +3,7 @@
 - **Audit date:** 2026-08-15
 - **Audited commit:** `ff85ad7bc39680a2beb13533795478e515cda931`
 - **Status:** Wave 1A implementation complete for read-only diagnostics, readiness observation, synthetic contract acceptance, and activation/recovery guidance. Personal Mode still sets no financial or provider flags automatically.
-- **Related:** [Personal-Use Readiness Report](./PERSONAL_USE_READINESS_REPORT.md), [System Health Audit](./SYSTEM_HEALTH_AUDIT.md), [Remediation Backlog](../10-roadmap/REMEDIATION_BACKLOG.md), [Scenario Lab Contract](./SCENARIO_LAB_CONTRACT.md).
+- **Related:** [Personal-Use Readiness Report](./PERSONAL_USE_READINESS_REPORT.md), [System Health Audit](./SYSTEM_HEALTH_AUDIT.md), [Remediation Backlog](../10-roadmap/REMEDIATION_BACKLOG.md), [Scenario Lab Contract](./SCENARIO_LAB_CONTRACT.md), [Wave 2 Currency/Recovery Plan](../10-roadmap/WAVE2_CURRENCY_BACKUP_RECOVERY_PLAN.md), [ADR-010](../adr/ADR-010-ACCOUNT-CURRENCY-AND-LOCAL-RECOVERY.md).
 
 ## Design principles
 
@@ -96,13 +96,32 @@ Tier 3 does not imply multi-user production readiness or external rollout.
 - Remove an explicit local override by restoring the flag to `false`; never mutate persisted financial history as a rollback mechanism.
 - Keep acceptance databases disposable and separate from any personal database.
 
+## Wave 2 architecture boundary
+
+The implementation-grade [Wave 2 plan](../10-roadmap/WAVE2_CURRENCY_BACKUP_RECOVERY_PLAN.md)
+separates currency authority (2A), local backup/recovery (2B), and personal
+activation acceptance (2C). Personal Mode automatically enables none of them.
+A local operator must authorize each future slice independently. Currency
+confirmation must be evidence-backed and auditable; backup/restore must be
+explicit-path and WAL-safe; activation must be backup-first and must never
+perform blanket USD backfill.
+
 ## Remaining evidence gaps
 
-- Authoritative currency source and operator acceptance wording require a high-risk product/data decision.
-- Backup freshness and restore semantics need an approved local storage policy.
-- A supported local provider credential flow is not yet documented end-to-end.
-- A full service restart/personal database recovery drill remains unproven and belongs to the release-boundary acceptance wave.
+- The personal database has not been inspected; current active-account
+  currency completeness and migration state remain intentionally unknown.
+- Plaid explicit-currency mapping and general CSV/PDF declaration handling are
+  not yet authoritative repository contracts.
+- Current currency confirmation lacks append-only correction/revocation audit
+  history.
+- No supported backup/check/restore command or synthetic recovery drill exists.
+- A full service restart/personal database recovery drill remains unproven.
+- Goal Float precision, retention/deletion, SQLite/PostgreSQL parity, and
+  transitional tenancy remain open risks.
 
 ## Recommendation
 
-Implement Wave 1 of [REMEDIATION_BACKLOG.md](../10-roadmap/REMEDIATION_BACKLOG.md) before enabling any financial intelligence flags. This proposal is not authorization to change flags or begin Phase 7.
+Authorize **Wave 2A only** using the exact bounded prompt in the Wave 2 plan.
+Do not access the personal database, implement backup/recovery, enable flags,
+or begin Wave 2B/2C or Phase 7. This proposal does not authorize any product
+behavior change.

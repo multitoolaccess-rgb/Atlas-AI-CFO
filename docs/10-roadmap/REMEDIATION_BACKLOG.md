@@ -3,7 +3,7 @@
 - **Audit date:** 2026-08-15
 - **Audited commit:** `ff85ad7bc39680a2beb13533795478e515cda931`
 - **Source:** [Personal-Use Readiness Report](../07-engineering/PERSONAL_USE_READINESS_REPORT.md) and [System Health Audit](../07-engineering/SYSTEM_HEALTH_AUDIT.md).
-- **Status:** Wave 1A implementation is complete; authoritative currency, backup/recovery, and full activation remain deferred to the next bounded task.
+- **Status:** Wave 1A implementation is complete. Wave 2 architecture is planned only; no Wave 2A/2B/2C implementation or personal-database action is authorized.
 
 ## Priority definitions
 
@@ -43,26 +43,74 @@
 
 ## Wave 2 — Financial and data correctness
 
+**Status:** Architecture planned only; implementation is not authorized.
 **Risk:** High.
 **Priority:** P0/P1.
+**Plan:** [WAVE2_CURRENCY_BACKUP_RECOVERY_PLAN.md](./WAVE2_CURRENCY_BACKUP_RECOVERY_PLAN.md) and [ADR-010](../adr/ADR-010-ACCOUNT-CURRENCY-AND-LOCAL-RECOVERY.md).
 
-### Include
+Wave 2 is deliberately split into three bounded slices. Do not combine them
+into one change or begin the next slice automatically.
 
-- Resolve authoritative active-account currency for projection state.
-- Decide and, if approved, migrate legacy `Goal.target_amount` away from a precision-losing Float boundary.
-- Run isolated SQLite/PostgreSQL parity and migration round-trip evidence for any changed financial persistence.
-- Add a non-destructive WAL-aware backup/restore drill and recovery documentation.
-- Reconcile Rules Service Alembic authority with Finlynq startup schema behavior.
+### Wave 2A — Authoritative account currency
+
+- Define the evidence lifecycle around the existing nullable provenance fields.
+- Add an append-only evidence history only if the implementation audit proves
+  the current schema cannot provide correction/revocation auditability.
+- Map only explicit provider/structured-statement declarations; do not treat
+  Plaid IDs, symbols, locale, preferences, or account names as authority.
+- Gate projection, forecast, and Scenario Lab state on complete fresh USD
+  evidence for every included active account.
+- Add authenticated, bounded, dry-run-first operator confirmation with
+  owner isolation, idempotency, correction, revocation, and sanitized Doctor/
+  readiness integration.
+- No personal database access or activation.
+
+### Wave 2B — Non-destructive local backup and recovery
+
+- Add explicit-path backup/check/restore tools using SQLite’s online backup API.
+- Refuse ambiguous destinations, active writers, unrelated paths, and silent
+  overwrite; produce restrictive manifest/checksum/integrity evidence.
+- Create pre-restore safety backups, handle WAL/SHM sidecars, verify migration
+  compatibility, restore atomically, and never auto-start services.
+- Use only disposable synthetic databases for destructive/recovery tests.
+
+### Wave 2C — Personal activation acceptance (separate authorization)
+
+- Back up first, then perform an authorized read-only account inventory.
+- Explicitly confirm or ingest evidence without blanket USD backfill.
+- Run Doctor, verify migration/readiness, explicitly enable approved local
+  flags, restart the full stack, prove the financial journey, and roll back
+  flags if readiness fails.
+- This slice is not authorized by the current plan.
+
+### Goal Float and other boundaries
+
+- Keep `Goal.target_amount` Float unchanged in Wave 2 planning. Resolve it in
+  a separate high-risk prerequisite before Wave 2C if personal activation
+  would make target precision material; otherwise keep the existing
+  `Decimal(str(value))`/non-restored-precision disclosure.
+- Preserve the retention/deletion blocker, SQLite/PostgreSQL parity risk,
+  transitional tenancy, trusted generation boundary, and external-provider
+  restrictions.
 
 ### Exclude
 
-- No rounding-policy change, forecast-engine rewrite, optimization, tax model, probability model, execution, or personal-data migration without explicit authorization.
+- No implementation in this planning task; no schema/migration execution,
+  personal-data access, automatic flags, currency conversion, rounding-policy
+  change, forecast-engine rewrite, optimization, tax/probability model,
+  execution, provider purchase, email, scheduler, LLM, tenancy, retention/
+  deletion policy, or Phase 7 work.
 
-**Likely files:** Finlynq account models/contracts, Rules projection adapter, forecast/scenario contracts, Alembic revisions, migration tests, local operations docs.
-**Validation:** focused Decimal/parity/migration/ownership/idempotency suites plus a fresh independent local review; full certification only if the diff creates broad-regression evidence.
-**Rollback:** additive migration with downgrade refusal for immutable records; restore from an operator-validated backup; never delete history to downgrade.
-**Completion criteria:** authoritative currency is proven or activation remains disabled; precision boundaries are explicit; backup/restore and migration recovery are evidenced.
-
+**Validation for future slices:** focused currency/provenance/auth/ownership/
+Decimal/migration/parity tests for 2A; synthetic WAL/manifest/restore tests for
+2B; and a separately authorized backup-first isolated live-stack journey for
+2C. Full certification is not implied by this plan.
+**Rollback:** keep defaults off; append evidence corrections; refuse unsafe
+migration downgrade; use a checked pre-restore backup; never delete immutable
+history.
+**Completion criteria:** 2A proves authority or keeps activation blocked; 2B
+proves verified local recovery; 2C proves only the explicitly authorized local
+journey.
 ## Wave 3 — Broken UI/API integrations
 
 **Risk:** Medium unless backend authority changes, then High.

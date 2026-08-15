@@ -9,7 +9,7 @@
 - Overall status: complete
 - Objective: Phases 0–6 are certified and the Personal-Use Acceptance and System Health Audit is complete; preserve server-owned financial authority and do not begin Phase 7.
 - Phase exit criteria: 2/2 complete
-- Tracker updated: 2026-08-15T17:43:55Z
+- Tracker updated: 2026-08-15T18:23:26Z
 
 ## Active work
 
@@ -32,6 +32,7 @@
 - risk-p1-retention-rollout-gate [high/medium]: No approved retention or user-deletion policy exists for immutable forecast history.
 - risk-p1-trusted-generation-boundary [high/medium]: An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.
 - risk-p1-account-currency-authority [high/high]: Finlynq active account balances have no authoritative currency attribute; a user preference/default cannot prove balances are USD for atlas-projection-state/v1.
+- risk-p1-local-backup-recovery [high/medium]: No supported non-destructive backup, WAL-safe restore, pre-restore safety copy, or migration-compatible recovery drill exists for Atlas local SQLite data.
 
 ## Recently completed
 
@@ -43,6 +44,6 @@
 
 ## Next bounded task
 
-- work-wave-2-account-currency-backup-recovery: Plan and authorize Wave 2 for authoritative account currency plus non-destructive backup and recovery; do not begin implementation or Phase 7.
+- work-wave-2a-authoritative-account-currency: Authorize implementation of Wave 2A authoritative account currency only; do not access personal data, implement backup/recovery, enable flags, begin Wave 2B/2C, or begin Phase 7.
 
 Do not begin the next task automatically.
