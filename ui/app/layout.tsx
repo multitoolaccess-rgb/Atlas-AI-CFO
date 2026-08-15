@@ -98,6 +98,12 @@ export const metadata = {
  *    ``lib/api.ts`` so client and server agree).
  */
 async function checkBackend(): Promise<boolean> {
+  // Frontend-owned route-mocked browser journeys intentionally run without
+  // service environments. This explicit test-only switch bypasses the SSR
+  // health gate while the browser mocks client requests; production and live
+  // integration runs retain the normal backend check.
+  if (process.env.ATLAS_FRONTEND_ROUTE_MOCKS === '1') return true
+
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 1500)
   try {

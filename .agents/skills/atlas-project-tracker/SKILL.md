@@ -35,6 +35,11 @@ or lengthy logs in status files.
   Use a branch and PR, focused contract/integration tests, relevant CI, and a
   fresh independent review. Only critical/high findings block merging unless a
   medium/low finding threatens integrity, privacy, ownership, or authorization.
+  Hosted CI is optional for medium-risk work when equivalent focused local
+  validation has passed. Frontend-owned route-mocked browser tests do not
+  require Rules Service, Finlynq, OCR, or the live-stack harness; reserve the
+  live stack for genuine backend/UI integration, authentication,
+  cross-service behavior, certification, or explicit manual validation.
 
 ## Tracking policy
 
