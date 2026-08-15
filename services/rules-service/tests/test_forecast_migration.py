@@ -18,7 +18,7 @@ PARENT = "Q5h1i2j3k4l5"
 # ``V0a1b2c3d4e5``). Phase 5 then adds immutable market briefs. The baseline ``alembic_version.version_num``
 # constant tracks the new chain head so the round-trip assertions
 # below stay aligned with the certified migration chain.
-REVISION = "W6a1b2c3d4e5"
+REVISION = "X7a1b2c3d4e5"
 ACCOUNT_CURRENCY_PARENT = "R6f1g2h3i4j5"
 
 

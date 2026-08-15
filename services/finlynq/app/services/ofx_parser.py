@@ -24,8 +24,9 @@ Constraints / scope:
 - Pure OFX/QFX, no PDF (PDF stays on ``parse_pdf_file``).
 - OCR'd OFX (image-only) is out of scope \u2014 Phase 5b.2 OCR module
   handles PDF OCR; OFX is always a text-format file at the bank.
-- Currency + balance lookup are typed but not persisted (added
-  Phase 8 if a user wants a ``Transaction.currency`` column).
+- Structured statement currency is returned as bounded metadata. The
+  authenticated upload route may append it as account-currency evidence;
+  symbols, locale, and descriptive text remain non-authoritative.
 
 Tests:
 

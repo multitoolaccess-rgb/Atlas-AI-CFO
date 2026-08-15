@@ -29,7 +29,7 @@ from app.auth import require_user
 from app.database import get_db
 from app.models import Account, ImportBatch, Transaction
 from app.routes.shared import get_or_create_local_user
-from app.projection_state.currency import CurrencyEvidenceConflict, CurrencyEvidenceError, set_currency_evidence
+from app.projection_state.currency import CurrencyEvidenceConflict, CurrencyEvidenceError, record_currency_evidence
 
 _logger = logging.getLogger(__name__)
 
@@ -109,12 +109,17 @@ async def upload_statement(
             declared_currency = result.get("declared_currency")
             if declared_currency is not None:
                 try:
-                    set_currency_evidence(
-                        account,
+                    record_currency_evidence(
+                        db,
+                        account=account,
+                        event_type="assertion",
+                        source_kind="structured_statement",
                         code=declared_currency,
-                        source="statement_declared",
                         observed_at=datetime.now(timezone.utc),
                         source_reference=f"statement-import:{account.id}",
+                        actor_category="statement_parser",
+                        idempotency_key=f"statement-currency:{account.id}:{declared_currency}",
+                        apply=True,
                     )
                 except CurrencyEvidenceConflict:
                     raise HTTPException(

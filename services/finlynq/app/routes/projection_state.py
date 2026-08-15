@@ -21,4 +21,9 @@ def get_goal_projection_state(
     except ProjectionStateUnavailable as exc:
         if str(exc) == "projection_state_not_found":
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="projection state unavailable") from None
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="projection state unavailable") from None
+        safe_codes = {
+            "currency_unknown", "currency_mixed", "currency_conflict", "currency_stale",
+            "currency_unsupported", "currency_revoked", "currency_evidence_incomplete",
+        }
+        detail = str(exc) if str(exc) in safe_codes else "projection state unavailable"
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail) from None

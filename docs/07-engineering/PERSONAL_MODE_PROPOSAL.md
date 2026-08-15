@@ -112,8 +112,8 @@ perform blanket USD backfill.
   currency completeness and migration state remain intentionally unknown.
 - Plaid explicit-currency mapping and general CSV/PDF declaration handling are
   not yet authoritative repository contracts.
-- Current currency confirmation lacks append-only correction/revocation audit
-  history.
+- Wave 2A now provides append-only correction/revocation audit history, but
+  Plaid authority and personal-account completeness remain unproven.
 - No supported backup/check/restore command or synthetic recovery drill exists.
 - A full service restart/personal database recovery drill remains unproven.
 - Goal Float precision, retention/deletion, SQLite/PostgreSQL parity, and
@@ -121,7 +121,7 @@ perform blanket USD backfill.
 
 ## Recommendation
 
-Authorize **Wave 2A only** using the exact bounded prompt in the Wave 2 plan.
-Do not access the personal database, implement backup/recovery, enable flags,
-or begin Wave 2B/2C or Phase 7. This proposal does not authorize any product
-behavior change.
+Authorize **Wave 2B only** using the exact bounded prompt in the Wave 2 plan.
+Do not access the personal database, enable flags, or begin Wave 2C or Phase 7.
+This proposal does not authorize any product behavior change outside the
+completed Wave 2A currency boundary.

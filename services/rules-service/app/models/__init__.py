@@ -15,6 +15,7 @@ Re-exports every SQLAlchemy model lifted in Phase 3 (and Phase 8's
 from app.models.budget import Budget
 from app.models.category import Category
 from app.models.account import Account
+from app.models.account_currency_evidence import AccountCurrencyEvidence
 from app.models.institution import Institution
 from app.models.transaction import Transaction
 from app.models.import_batch import ImportBatch
@@ -66,6 +67,7 @@ __all__ = [
     "Budget",
     "Category",
     "Account",
+    "AccountCurrencyEvidence",
     "Institution",
     "Transaction",
     "ImportBatch",

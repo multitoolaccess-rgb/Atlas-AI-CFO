@@ -65,7 +65,7 @@ No new evidence shows a critical financial-integrity, authorization, privacy, or
 
 ### P1 — activation and safety blockers
 
-1. **Account currency authority:** The repository has nullable source-backed fields and fail-closed validators, but no authorized evidence proves every current active personal account has fresh USD authority. A preference/default cannot prove USD. Keep forecast/scenario activation fail-closed until Wave 2A resolves the evidence lifecycle; tracked as `risk-p1-account-currency-authority`.
+1. **Account currency authority:** Wave 2A now provides the append-only evidence lifecycle, deterministic effective-state derivation, and fail-closed projection gate. No personal database was inspected, so current personal-account readiness remains unproven; tracked as `risk-p1-account-currency-authority` until Wave 2C authorization.
 2. **Retention and deletion policy:** Immutable history has no approved retention/user-deletion policy. This blocks external multi-user rollout and must not be bypassed; tracked as `risk-p1-retention-rollout-gate`.
 3. **Personal activation runbook:** No single supported operator path proves the ordered configuration, synthetic baseline, flags, and recovery checks needed for an enabled local journey.
 
@@ -81,11 +81,11 @@ No new evidence shows a critical financial-integrity, authorization, privacy, or
 
 ## Wave 2 planning outcome
 
-Wave 2 is now planned as three separately authorized slices: 2A authoritative
-currency, 2B non-destructive local backup/recovery, and 2C backup-first personal
-activation acceptance. The plan records that the current schema is additive and
-no-backfill, but a full correction/revocation audit lifecycle and supported
-backup tool are not yet implemented. See the linked plan and ADR-010.
+Wave 2 is now split into three separately authorized slices: 2A authoritative
+currency (implemented), 2B non-destructive local backup/recovery, and 2C
+backup-first personal activation acceptance. Wave 2A added the no-backfill
+append-only evidence migration and deterministic gate; backup tooling and
+personal activation remain unimplemented. See the linked plan and ADR-010.
 
 ## Evidence gaps
 
@@ -97,4 +97,4 @@ backup tool are not yet implemented. See the linked plan and ADR-010.
 
 ## Recommended first remediation wave
 
-The next bounded authorization is **Wave 2A — authoritative account currency only**. Do not access the personal database, implement backup/recovery, enable financial flags, or begin Wave 2B/2C or Phase 7.
+The next bounded authorization is **Wave 2B — WAL-safe backup and recovery only**. Do not access the personal database, enable financial flags, begin Wave 2C, or begin Phase 7.

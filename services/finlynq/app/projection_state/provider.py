@@ -14,8 +14,8 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models import Account, Goal, GoalProjectionConfig, User
-from app.projection_state.currency import CurrencyEvidenceError, validate_currency_evidence, validate_stable_reference
+from app.models import Account, AccountCurrencyEvidence, Goal, GoalProjectionConfig, User
+from app.projection_state.currency import derive_effective_currency, effective_currency_for_account, validate_stable_reference
 
 
 PROJECTION_STATE_SCHEMA_VERSION = "atlas-projection-state/v1"
@@ -131,30 +131,24 @@ def build_projection_state(
         .all()
     )
     if not accounts or len(accounts) > MAX_COMPONENTS:
-        raise ProjectionStateUnavailable("projection_state_unavailable")
+        raise ProjectionStateUnavailable("currency_evidence_incomplete")
+    currency_state = derive_effective_currency(db, user_id=user.id, now=current_time)
+    if currency_state.state != "ready":
+        raise ProjectionStateUnavailable(currency_state.reason_code)
     components: list[dict[str, str]] = []
     source_rows: list[dict[str, Any]] = []
     observation_times: list[datetime] = [config_observed]
     for account in accounts:
-        if (
-            account.currency_code is None
-            or account.currency_source is None
-            or account.currency_observed_at is None
-            or account.currency_source_reference is None
-            or account.currency_code != "USD"
-        ):
-            raise ProjectionStateUnavailable("projection_state_unavailable")
+        effective = effective_currency_for_account(db, account_id=account.id, user_id=user.id, now=current_time)
+        if effective.state != "ready" or effective.evidence_event_id is None or effective.observed_at is None:
+            raise ProjectionStateUnavailable(effective.reason_code)
+        evidence = db.query(AccountCurrencyEvidence).filter(AccountCurrencyEvidence.id == effective.evidence_event_id, AccountCurrencyEvidence.account_id == account.id, AccountCurrencyEvidence.user_id == user.id).first()
+        if evidence is None or evidence.currency_code != "USD" or len(evidence.source_reference_hash) != 64:
+            raise ProjectionStateUnavailable("currency_evidence_incomplete")
         if account.account_type not in LIABILITY_ACCOUNT_TYPES | ASSET_ACCOUNT_TYPES:
             raise ProjectionStateUnavailable("projection_state_unavailable")
         balance_observed = _utc(account.last_sync)
-        currency_observed = _utc(account.currency_observed_at)
-        try:
-            validate_currency_evidence(
-                code=account.currency_code, source=account.currency_source,
-                observed_at=currency_observed, source_reference=account.currency_source_reference,
-            )
-        except CurrencyEvidenceError as exc:
-            raise ProjectionStateUnavailable("projection_state_unavailable") from exc
+        currency_observed = effective.observed_at
         included_observed = min(balance_observed, currency_observed)
         if included_observed > current_time:
             raise ProjectionStateUnavailable("projection_state_unavailable")
@@ -178,10 +172,10 @@ def build_projection_state(
                 "account_type": account.account_type,
                 "amount": amount,
                 "balance_observed_at": _timestamp(balance_observed),
-                "currency_code": account.currency_code,
-                "currency_source": account.currency_source,
+                "currency_code": evidence.currency_code,
+                "currency_source": evidence.source_kind,
                 "currency_observed_at": _timestamp(currency_observed),
-                "currency_source_reference": account.currency_source_reference,
+                "currency_source_reference_hash": evidence.source_reference_hash,
                 "float_source_representation": True,
                 "precision_restored": False,
             }

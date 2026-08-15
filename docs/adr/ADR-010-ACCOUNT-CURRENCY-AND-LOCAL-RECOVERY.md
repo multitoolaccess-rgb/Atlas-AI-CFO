@@ -1,6 +1,6 @@
 # ADR-010: Authoritative Account Currency and Non-Destructive Local Recovery
 
-- **Status:** Proposed architecture for Wave 2; implementation not authorized by this document
+- **Status:** Wave 2A implemented; Wave 2B/2C remain separately authorized
 - **Date:** 2026-08-15
 - **Audited baseline:** `2a25d3eba9d71e4132b332790a0536392d62288c`
 - **Scope:** Personal-use readiness, authoritative account currency, SQLite backup/recovery, and activation prerequisites
@@ -36,25 +36,28 @@ The baseline contains:
   `currency_source_reference` in both service model copies;
 - the additive `S7a1b2c3d4e5_add_account_currency_provenance` migration, with
   no historical backfill and SQLite/PostgreSQL guards;
+- the additive `X7a1b2c3d4e5_add_account_currency_evidence` migration and
+  mirrored `AccountCurrencyEvidence` models, with no historical backfill,
+  owner checks, idempotency uniqueness, and database-level immutability;
 - `GoalProjectionConfig` with explicit USD configuration and provenance;
 - `services/finlynq/app/projection_state/provider.py`, which includes only
   active accounts and rejects missing, mixed, stale, malformed, or non-USD
   evidence;
 - structured OFX currency extraction and statement-declared evidence in the
   upload path;
-- a bounded `confirm_currency` helper that is dry-run by default and applies
-  first evidence atomically when explicitly requested; and
+- a bounded `confirm_currency` helper that is dry-run by default and appends
+  explicit operator evidence atomically, with correction/revocation support;
 - immutable forecast/scenario snapshots that retain their recorded USD and
   provenance values.
 
-The baseline does **not** prove that a personal database has authoritative
+The implementation baseline does **not** prove that a personal database has authoritative
 currency for every active account. The database was not opened or inspected
 for this plan. Therefore the exact row-level cause of the current Doctor
 failure remains intentionally unobserved; the safe root cause is that the
 repository cannot establish the complete current evidence set without an
-explicitly authorized operator action. The existing helper also has no
-append-only evidence history, actor audit record, or revoke/correction
-workflow.
+explicitly authorized operator action. Wave 2A closes the repository-level lifecycle gap with append-only evidence
+history, actor category, hashed source reference, idempotency, correction, and
+revocation. It does not inspect or activate any personal database.
 
 ## Currency authority contract
 
@@ -70,9 +73,10 @@ support cannot silently broaden this phase.
 
 | Category | Acceptable only when | Current repository status |
 | --- | --- | --- |
-| `provider_reported` | The trusted provider payload explicitly reports an account ISO currency, with a bounded provider reference and observation time. | No Plaid provider mapping currently proves this path. `plaid_id` alone is not evidence. |
-| `statement_declared` | A structured statement format declares an ISO code; the parser preserves the declaration and provenance without inferring from symbols. | OFX has a structured declaration path. General CSV/PDF symbol/header parsing is not sufficient today. |
-| `user_confirmed` | An authenticated, bounded operator confirms one owned account or a reviewed batch against explicit external evidence; the actor and event are auditable. | Existing CLI helper is a starting point, not the complete audited lifecycle. |
+| `structured_provider` | A trusted provider payload explicitly reports an account ISO currency, with a bounded server-side reference and observation time. | No Plaid provider mapping currently proves this path. `plaid_id` alone is not evidence. |
+| `structured_statement` | A structured statement format declares an ISO code; the parser preserves the declaration and provenance without inferring from symbols. | OFX has a structured declaration path. General CSV/PDF symbol/header parsing is not sufficient today. |
+| `operator_confirmed` | A bounded local operator confirms one owned active account with explicit scope and confirmation; actor and event are auditable. | Implemented by the dry-run-first helper/CLI. |
+| `correction` / `revocation` | New immutable events supersede or revoke the current event; neither mutates prior evidence. | Implemented in the Wave 2A lifecycle. |
 
 Every accepted record requires the code, source category, UTC observation
 time, bounded non-PII source reference, authenticated owner scope, actor type,
@@ -99,15 +103,13 @@ enter the currency evidence contract.
 - A browser may request a readiness view but may not supply or sign currency
   evidence.
 
-### Evidence correction and revocation
+### Evidence correction and revocationThe current four account columns remain a compatibility projection cache;
+authority is derived from the additive `account_currency_evidence` table. It
+contains an owned account link, evidence UUID, code, source category, source
+reference hash, observed/recorded timestamps, actor category, event type,
+superseded event link, idempotency hash, and bounded reason code. Database
+triggers/constraints reject ownership violations and update/delete mutation.
 
-The current four account columns may remain a current-state projection cache,
-but future correction must append an evidence event rather than overwrite
-history. A likely additive `account_currency_evidence` table should contain an
-owned account link, evidence UUID, code, source category, source reference
-hash, observed/recorded timestamps, actor type, event state, superseded event
-link, and bounded reason code. A current pointer or transactionally updated
-cache may identify the active evidence.
 
 A correction appends a new event and changes only current account authority.
 A revocation appends a `revoked`/`reconciled` event and makes current currency
@@ -138,16 +140,16 @@ sufficient: immutable baseline, retention acknowledgement, migration head,
 ownership, and synthetic acceptance gates remain required. Existing snapshots
 are never recalculated merely because current account evidence changes.
 
-Stable recovery categories should include `currency_evidence_missing`,
-`currency_evidence_conflict`, `currency_evidence_stale`,
-`currency_mixed_or_unsupported`, `account_identity_ambiguous`,
-`projection_baseline_unavailable`, and `migration_state_unavailable`.
+Stable recovery categories include `currency_unknown`, `currency_mixed`,
+`currency_conflict`, `currency_stale`, `currency_unsupported`,
+`currency_revoked`, and `currency_evidence_incomplete`, alongside
+`projection_baseline_unavailable` and `migration_state_unavailable`.
 Messages must remain sanitized and actionable.
 
 ## Storage and recovery decision
 
 Rules Service owns the Alembic graph. The current repository reports one
-Rules head, `W6a1b2c3d4e5`; Finlynq mirrors the SQLAlchemy models and does not
+Rules head, `X7a1b2c3d4e5`; Finlynq mirrors the SQLAlchemy models and does not
 own a second migration graph. In the documented `start.sh` lifecycle,
 `DATABASE_URL` is set to the Rules Service SQLite file and both services share
 that database. A standalone Finlynq process can otherwise resolve its default
@@ -209,14 +211,18 @@ Positive consequences:
 
 Non-goals:
 
-- No implementation, migration, schema change, activation, personal database
-  access, or backup of personal data in this planning task.
+- No backup/restore, activation, personal database access, or Wave 2C
+  operation in this Wave 2A task.
 - No currency conversion, multi-currency projection, tax, probability,
   optimization, execution, brokerage, money movement, email, scheduler, LLM,
   tenancy, retention/deletion policy, or Phase 7 work.
 
 ## Implementation gate
 
-This ADR is a design record only. Wave 2A, Wave 2B, and Wave 2C each require a
-separate authorization and bounded validation record. No implementation may
-be inferred from this document.
+Wave 2A is implemented only through the evidence model, migration, trusted
+Finlynq gating, structured statement mapping, operator helper, readiness
+aggregation, and focused synthetic tests. It did not access personal data,
+change financial mathematics, enable flags, or implement backup/restore.
+Wave 2B and Wave 2C each still require separate authorization and bounded
+validation records. No implementation of those slices may be inferred from
+this document.

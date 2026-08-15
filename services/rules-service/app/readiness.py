@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Literal
 
@@ -20,7 +20,7 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import Account, Forecast, User
+from app.models import Account, AccountCurrencyEvidence, Forecast, User
 
 ReadinessState = Literal["ready", "unavailable", "blocked", "degraded", "disabled"]
 OverallReadinessState = Literal[
@@ -71,13 +71,6 @@ _FLAG_NAMES = (
     "atlas_market_brief_local_summarization_enabled",
     "atlas_scenario_lab_enabled",
 )
-
-_APPROVED_CURRENCY_SOURCES = frozenset(
-    {"provider_reported", "statement_declared", "user_confirmed"}
-)
-_CURRENCY_CODE = re.compile(r"^[A-Z]{3}$")
-_STABLE_REFERENCE = re.compile(r"^[a-z][a-z0-9._:-]{0,127}$")
-
 
 def _checked_at() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
@@ -145,20 +138,56 @@ def _currency_state(db: Session, user_id: int | None) -> tuple[ReadinessState, s
         return "blocked", "local_user_missing", "Open Settings once to initialize the local user, then retry.", False
     accounts = list(db.scalars(select(Account).where(Account.user_id == user_id, Account.is_active.is_(True))))
     if not accounts:
-        return "blocked", "active_accounts_missing", "Add or import an account with explicit currency evidence; a preference alone is not sufficient.", False
-    valid = all(
-        account.currency_code == "USD"
-        and isinstance(account.currency_source, str)
-        and account.currency_source in _APPROVED_CURRENCY_SOURCES
-        and account.currency_observed_at is not None
-        and isinstance(account.currency_source_reference, str)
-        and bool(_STABLE_REFERENCE.fullmatch(account.currency_source_reference))
-        and bool(_CURRENCY_CODE.fullmatch(account.currency_code or ""))
-        for account in accounts
-    )
-    if not valid:
-        return "blocked", "currency_evidence_missing", "Resolve authoritative USD evidence for every active account; do not substitute the user preference.", False
-    return "ready", "currency_authority_ready", "No action required.", True
+        return "blocked", "currency_evidence_incomplete", "Add or import an account with explicit currency evidence; a preference alone is not sufficient.", False
+    now = datetime.now(timezone.utc)
+    resolved: list[str] = []
+    reasons: list[str] = []
+    for account in accounts:
+        events = list(
+            db.scalars(
+                select(AccountCurrencyEvidence)
+                .where(AccountCurrencyEvidence.account_id == account.id, AccountCurrencyEvidence.user_id == user_id)
+                .order_by(AccountCurrencyEvidence.recorded_at.asc(), AccountCurrencyEvidence.id.asc())
+            )
+        )
+        active = None
+        revoked = False
+        reason = "currency_unknown"
+        for event in events:
+            if event.event_type == "assertion":
+                if active is not None and active.currency_code != event.currency_code:
+                    reason = "currency_conflict"
+                    active = None
+                    break
+                active, revoked, reason = event, False, "currency_authority_ready"
+            elif event.event_type == "correction" and active is not None and event.supersedes_event_id == active.id:
+                active, revoked, reason = event, False, "currency_authority_ready"
+            elif event.event_type == "revocation" and active is not None and event.supersedes_event_id == active.id:
+                active, revoked, reason = None, True, "currency_revoked"
+            else:
+                reason = "currency_conflict"
+                active = None
+                break
+        if active is None:
+            reason = "currency_revoked" if revoked else reason
+        elif active.currency_code != "USD":
+            resolved.append(active.currency_code or "")
+            reason = "currency_unsupported"
+        else:
+            observed_at = active.observed_at.replace(tzinfo=timezone.utc) if active.observed_at and active.observed_at.tzinfo is None else active.observed_at
+            if observed_at is None or observed_at > now or now - observed_at > timedelta(days=7):
+                reason = "currency_stale"
+            else:
+                resolved.append("USD")
+        reasons.append(reason)
+    if len(set(code for code in resolved if code)) > 1:
+        return "blocked", "currency_mixed", "Resolve mixed active-account currencies before enabling projection capabilities.", False
+    for reason in ("currency_conflict", "currency_revoked", "currency_stale", "currency_unsupported", "currency_unknown"):
+        if reason in reasons:
+            return "blocked", reason, "Resolve authoritative USD evidence for every active account; do not substitute the user preference.", False
+    if all(reason == "currency_authority_ready" for reason in reasons):
+        return "ready", "currency_authority_ready", "No action required.", True
+    return "blocked", "currency_evidence_incomplete", "Resolve authoritative USD evidence for every active account; do not substitute the user preference.", False
 
 
 def build_readiness(db: Session, user_sub: str) -> ReadinessResponse:
@@ -192,7 +221,16 @@ def build_readiness(db: Session, user_sub: str) -> ReadinessResponse:
         ),
     ]
 
-    currency_state, currency_reason, currency_recovery, currency_ready = _currency_state(db, user_id)
+    try:
+        currency_state, currency_reason, currency_recovery, currency_ready = _currency_state(db, user_id)
+    except Exception:
+        # A pre-X7 database has no evidence table yet. Readiness must report a
+        # safe blocked contract rather than turn migration drift into a 500.
+        currency_state, currency_reason, currency_recovery, currency_ready = (
+            "blocked", "currency_evidence_incomplete",
+            "Apply the approved account-currency evidence migration before reviewing currency readiness; Atlas never migrates from this screen.",
+            False,
+        )
     checks.append(_component(
         "financial_authority", currency_state, currency_reason, currency_recovery, checked_at,
         {"owner": user is not None, "account_currency_evidence": currency_ready, "usd_supported": True},

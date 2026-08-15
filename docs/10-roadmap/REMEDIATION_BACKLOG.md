@@ -3,7 +3,7 @@
 - **Audit date:** 2026-08-15
 - **Audited commit:** `ff85ad7bc39680a2beb13533795478e515cda931`
 - **Source:** [Personal-Use Readiness Report](../07-engineering/PERSONAL_USE_READINESS_REPORT.md) and [System Health Audit](../07-engineering/SYSTEM_HEALTH_AUDIT.md).
-- **Status:** Wave 1A implementation is complete. Wave 2 architecture is planned only; no Wave 2A/2B/2C implementation or personal-database action is authorized.
+- **Status:** Wave 1A and Wave 2A implementation are complete on the current bounded branch. Wave 2B/2C remain separately authorized; no personal-database action is authorized.
 
 ## Priority definitions
 
@@ -43,7 +43,7 @@
 
 ## Wave 2 — Financial and data correctness
 
-**Status:** Architecture planned only; implementation is not authorized.
+**Status:** Wave 2A complete; Wave 2B/2C remain architecture/planning only and are not authorized.
 **Risk:** High.
 **Priority:** P0/P1.
 **Plan:** [WAVE2_CURRENCY_BACKUP_RECOVERY_PLAN.md](./WAVE2_CURRENCY_BACKUP_RECOVERY_PLAN.md) and [ADR-010](../adr/ADR-010-ACCOUNT-CURRENCY-AND-LOCAL-RECOVERY.md).
@@ -51,19 +51,20 @@
 Wave 2 is deliberately split into three bounded slices. Do not combine them
 into one change or begin the next slice automatically.
 
-### Wave 2A — Authoritative account currency
+### Wave 2A — Authoritative account currency — complete
 
-- Define the evidence lifecycle around the existing nullable provenance fields.
-- Add an append-only evidence history only if the implementation audit proves
-  the current schema cannot provide correction/revocation auditability.
-- Map only explicit provider/structured-statement declarations; do not treat
-  Plaid IDs, symbols, locale, preferences, or account names as authority.
-- Gate projection, forecast, and Scenario Lab state on complete fresh USD
-  evidence for every included active account.
-- Add authenticated, bounded, dry-run-first operator confirmation with
-  owner isolation, idempotency, correction, revocation, and sanitized Doctor/
-  readiness integration.
-- No personal database access or activation.
+- Added the append-only `account_currency_evidence` lifecycle and additive
+  `X7a1b2c3d4e5` migration with no backfill, ownership guards, idempotency, and
+  immutable update/delete rejection.
+- Mapped only explicit structured-provider and structured-statement evidence;
+  Plaid IDs, symbols, locale, preferences, and account names remain
+  non-authoritative.
+- Gated projection, forecast, and Scenario Lab state on complete fresh USD
+  evidence for every included active account, with stable blocked reason codes.
+- Hardened the dry-run-first operator confirmation with owner isolation,
+  idempotency, correction, revocation, and sanitized Doctor/readiness
+  integration.
+- No personal database access, flag enablement, backup/restore, or activation.
 
 ### Wave 2B — Non-destructive local backup and recovery
 
@@ -95,16 +96,16 @@ into one change or begin the next slice automatically.
 
 ### Exclude
 
-- No implementation in this planning task; no schema/migration execution,
-  personal-data access, automatic flags, currency conversion, rounding-policy
+- Wave 2B/2C remain unimplemented: no backup/restore, personal-data access,
+  automatic flags, currency conversion, rounding-policy
   change, forecast-engine rewrite, optimization, tax/probability model,
   execution, provider purchase, email, scheduler, LLM, tenancy, retention/
   deletion policy, or Phase 7 work.
 
-**Validation for future slices:** focused currency/provenance/auth/ownership/
-Decimal/migration/parity tests for 2A; synthetic WAL/manifest/restore tests for
-2B; and a separately authorized backup-first isolated live-stack journey for
-2C. Full certification is not implied by this plan.
+**Validation:** Wave 2A uses focused currency/provenance/auth/ownership/
+Decimal/migration/parity tests; future 2B requires synthetic WAL/manifest/restore
+tests; and 2C requires a separately authorized backup-first isolated live-stack
+journey. Full certification is not implied by this plan.
 **Rollback:** keep defaults off; append evidence corrections; refuse unsafe
 migration downgrade; use a checked pre-restore backup; never delete immutable
 history.

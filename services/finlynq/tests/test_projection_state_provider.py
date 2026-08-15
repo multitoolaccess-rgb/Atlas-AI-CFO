@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from app.database import Base
 from app.models import Account, Goal, GoalProjectionConfig, Institution, User
 from app.projection_state.confirm_currency import confirm_currency
-from app.projection_state.currency import CurrencyEvidenceConflict, set_currency_evidence
+from app.projection_state.currency import CurrencyEvidenceConflict, effective_currency_for_account, record_currency_evidence
 from app.projection_state.provider import ProjectionStateUnavailable, build_projection_state
 from app.services.ofx_parser import _declared_currency
 
@@ -43,6 +43,13 @@ def _seed(db, *, currencies=("USD",), stale=False, contribution=True):
             })
         account = Account(**values)
         db.add(account)
+        db.flush()
+        if currency is not None:
+            record_currency_evidence(
+                db, account=account, event_type="assertion", source_kind="structured_provider",
+                code=currency, observed_at=observed, source_reference=f"provider-account-{index}",
+                actor_category="synthetic_provider", idempotency_key=f"provider-currency-{index}",
+            )
     if contribution:
         db.flush()
         db.add(GoalProjectionConfig(
@@ -73,21 +80,27 @@ def test_provider_applies_assets_minus_liabilities_and_hashes_currency_provenanc
     assert [item["amount"] for item in state["current_value_components"]] == ["100.25", "-100.25"]
     original_hash = state["provenance"][0]["source_state_hash"]
     account = db.query(Account).filter(Account.account_type == "credit_card").one()
-    account.currency_source_reference = "provider-account-2-reconciled"
+    correction = effective_currency_for_account(db, account_id=account.id, user_id=user.id, now=now)
+    record_currency_evidence(
+        db, account=account, event_type="correction", source_kind="correction", code="USD",
+        observed_at=now, source_reference="provider-reconciled-2", actor_category="synthetic_provider",
+        idempotency_key="provider-currency-correction-2", supersedes_event_id=correction.evidence_event_id,
+    )
     db.commit()
     changed = build_projection_state(db, user_sub=user.local_user_sub, goal_id=goal.id, now=now)
     assert changed["provenance"][0]["source_state_hash"] != original_hash
 
 
-@pytest.mark.parametrize("currencies,stale,contribution", [
-    ((None,), False, True), (("EUR",), False, True), (("USD", "EUR"), False, True),
-    (("USD",), True, True), (("USD",), False, False),
+@pytest.mark.parametrize("currencies,stale,contribution,reason", [
+    ((None,), False, True, "currency_unknown"), (("EUR",), False, True, "currency_unsupported"),
+    (("USD", "EUR"), False, True, "currency_mixed"), (("USD",), True, True, "currency_stale"),
+    (("USD",), False, False, "projection_state_unavailable"),
 ])
-def test_provider_fails_closed_for_missing_or_unsupported_authority(currencies, stale, contribution):
+def test_provider_fails_closed_for_missing_or_unsupported_authority(currencies, stale, contribution, reason):
     db = _session(); user, goal, now = _seed(db, currencies=currencies, stale=stale, contribution=contribution)
     with pytest.raises(ProjectionStateUnavailable) as exc:
         build_projection_state(db, user_sub=user.local_user_sub, goal_id=goal.id, now=now)
-    assert str(exc.value) == "projection_state_unavailable"
+    assert str(exc.value) == reason
 
 
 def test_provider_hides_cross_user_goal_existence():
@@ -121,10 +134,11 @@ def test_currency_confirmation_is_dry_run_then_atomic_apply_and_refuses_conflict
 def test_currency_confirmation_rejects_cross_user_oversized_and_rolls_back_the_batch():
     db = _session(); user, goal, now = _seed(db, currencies=(None, None))
     accounts = db.query(Account).order_by(Account.id).all()
-    accounts[1].currency_code = "EUR"
-    accounts[1].currency_source = "provider_reported"
-    accounts[1].currency_observed_at = now
-    accounts[1].currency_source_reference = "provider-account-eur"
+    record_currency_evidence(
+        db, account=accounts[1], event_type="assertion", source_kind="structured_provider",
+        code="EUR", observed_at=now, source_reference="provider-account-eur",
+        actor_category="synthetic_provider", idempotency_key="provider-currency-eur",
+    )
     db.commit()
     with pytest.raises(ValueError, match="currency_evidence_conflict"):
         confirm_currency(db, user_id=user.id, account_ids=[a.id for a in accounts], currency="USD", apply=True, observed_at=now)
@@ -139,7 +153,11 @@ def test_currency_evidence_rejects_partial_or_invalid_values_without_preference_
     db = _session(); user, goal, now = _seed(db, currencies=(None,))
     account = db.query(Account).one()
     with pytest.raises(Exception):
-        set_currency_evidence(account, code="usd", source="provider_reported", observed_at=now, source_reference="provider-1")
+        record_currency_evidence(
+            db, account=account, event_type="assertion", source_kind="structured_provider",
+            code="usd", observed_at=now, source_reference="provider-1",
+            actor_category="synthetic_provider", idempotency_key="invalid-lowercase",
+        )
     assert account.currency_code is None
     user.currency_preference = "USD"; db.commit()
     with pytest.raises(ProjectionStateUnavailable):
@@ -149,7 +167,12 @@ def test_currency_evidence_rejects_partial_or_invalid_values_without_preference_
 def test_explicit_provider_and_structured_statement_currency_are_accepted_without_symbol_inference():
     db = _session(); user, goal, now = _seed(db, currencies=(None,))
     account = db.query(Account).one()
-    assert set_currency_evidence(account, code="USD", source="provider_reported", observed_at=now, source_reference="provider-currency-1")
+    result = record_currency_evidence(
+        db, account=account, event_type="assertion", source_kind="structured_provider",
+        code="USD", observed_at=now, source_reference="provider-currency-1",
+        actor_category="synthetic_provider", idempotency_key="provider-currency-1",
+    )
+    assert result["status"] == "recorded"
     assert account.currency_code == "USD"
 
     class _Statement: currency = "USD"

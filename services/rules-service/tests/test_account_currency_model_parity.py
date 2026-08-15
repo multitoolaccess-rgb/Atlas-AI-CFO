@@ -18,3 +18,18 @@ def test_account_currency_provenance_columns_match_across_service_models():
     ):
         assert declaration in rules
         assert declaration in finlynq
+
+
+def test_append_only_currency_evidence_models_are_mirrored():
+    rules = (ROOT / "services/rules-service/app/models/account_currency_evidence.py").read_text(encoding="utf-8")
+    finlynq = (ROOT / "services/finlynq/app/models/account_currency_evidence.py").read_text(encoding="utf-8")
+    for declaration in (
+        "__tablename__ = \"account_currency_evidence\"",
+        "event_type = Column(String(16), nullable=False)",
+        "source_kind = Column(String(32), nullable=False)",
+        "source_reference_hash = Column(String(64), nullable=False)",
+        "idempotency_key_hash = Column(String(64), nullable=False)",
+        "supersedes_event_id = Column(String(36), ForeignKey(\"account_currency_evidence.id\", ondelete=\"RESTRICT\"), nullable=True)",
+    ):
+        assert declaration in rules
+        assert declaration in finlynq

@@ -3,17 +3,17 @@
 - **Plan date:** 2026-08-15
 - **Planning baseline:** `2a25d3eba9d71e4132b332790a0536392d62288c`
 - **Phase:** Remediation after certified Phase 6; Phase 7 is not started
-- **Status:** Planning only; no implementation authorized
+- **Status:** Wave 2A implemented; Wave 2B/2C remain planning-only
 - **Related:** [ADR-010](../adr/ADR-010-ACCOUNT-CURRENCY-AND-LOCAL-RECOVERY.md), [ADR-006](../adr/ADR-006-IMMUTABLE-FORECAST-PERSISTENCE.md), [Scenario Lab Contract](../07-engineering/SCENARIO_LAB_CONTRACT.md), [Remediation Backlog](./REMEDIATION_BACKLOG.md), [Risk Register](./RISK_REGISTER.md), [Personal Mode Proposal](../07-engineering/PERSONAL_MODE_PROPOSAL.md)
 
 ## 1. Executive decision
 
 Wave 2 is a high-risk financial/data-integrity remediation even though this
 turn changes documentation only. The repository already contains a nullable
-account-currency provenance schema and a fail-closed projection adapter. The
-remaining problem is operational authority: current personal-account evidence,
-correction history, safe local backup, and recovery compatibility are not
-proven.
+account-currency provenance schema and a fail-closed projection adapter. Wave
+2A now supplies the missing repository-level operational authority lifecycle;
+current personal-account evidence, safe local backup, and recovery
+compatibility remain unproven and out of scope.
 
 Do not backfill existing rows, infer USD, inspect the personal database, enable
 flags, or run migrations as part of this plan. Execute only the separately
@@ -58,20 +58,21 @@ Confirmed from repository inspection at the planning baseline:
   the projection evidence contract. Plaid can be considered usable only after
   such a mapping, provenance, replay, and privacy contract exists; it is not
   usable as authority merely because a Plaid identifier exists.
-- `confirm_currency` supports bounded owned IDs, dry-run by default, and an
-  atomic explicit apply path. It does not yet provide append-only evidence
-  history, authenticated actor records, correction/revocation, or a complete
-  operator inventory workflow.
+- Wave 2A adds `account_currency_evidence` as an append-only event table,
+  mirrored service models, deterministic effective-state derivation, and
+  database immutability/owner guards. `confirm_currency` remains bounded and
+  dry-run by default while now appending explicit operator assertions with
+  idempotency; correction and revocation are represented as new events.
 - Existing forecasts and scenarios store USD and their own source/baseline
   provenance. Current-account evidence changes must not edit those rows.
 
-**Root cause of current unavailable currency authority:** the schema and
-validators exist, but the repository cannot prove that every current active
-account in the personal database has complete, fresh, authoritative USD
- evidence without an explicitly authorized personal-data inspection. The
-Doctor’s blocked result is therefore correct. The exact account-level defect
-(missing, stale, mixed, ambiguous, or migration-unavailable) is intentionally
-not determined in this planning turn.
+**Root cause of current unavailable currency authority:** the repository
+cannot prove that every current active account in the personal database has
+complete, fresh, authoritative USD evidence without an explicitly authorized
+personal-data inspection. Wave 2A does not inspect that database; the Doctor
+must therefore remain blocked until Wave 2C authorization and evidence review.
+The exact account-level defect (missing, stale, mixed, ambiguous, or
+migration-unavailable) remains intentionally undetermined.
 
 ### Database and migration ownership
 
@@ -83,7 +84,8 @@ not determined in this planning turn.
 | Hermetic tests | Per-process temporary SQLite files under `/tmp` | Test harness | Disposable synthetic data only |
 | E2E harness | Temporary `atlas-ai-cfo-e2e-*.db` with explicit migrations | Rules Service Alembic/test runner | Disposable and deleted by runner cleanup |
 
-The repository has one Rules Alembic head, `W6a1b2c3d4e5`. Finlynq mirrors
+The repository has one Rules Alembic head, `X7a1b2c3d4e5` after Wave 2A.
+Finlynq mirrors
 models and does not own migration execution. `start.sh` intentionally does not
 run migrations; the operator or an isolated harness must perform the approved
 migration step. A future backup/restore tool must resolve the configured Atlas
@@ -162,8 +164,8 @@ browser preference or ordinary account-edit field.
 ### Schema and migration decision
 
 The current schema is sufficient for a first fail-closed read, but not for
-full correction/revocation auditability. A migration is **likely required**
-for the complete 2A contract, subject to a focused implementation audit:
+full correction/revocation auditability. The focused Wave 2A implementation
+audit confirmed that an additive migration was required and added it:
 
 - Add an append-only `account_currency_evidence` table as described above.
 - Add owner/account indexes and a uniqueness/idempotency key for one evidence
@@ -183,9 +185,9 @@ for the complete 2A contract, subject to a focused implementation audit:
 - Exercise SQLite and PostgreSQL constraint/parity tests where a PostgreSQL
   sidecar is available; do not claim PostgreSQL evidence when unavailable.
 
-If implementation proves the existing current fields plus another existing
-append-only mechanism are sufficient, do not add a redundant table. Record that
-finding in the 2A ADR/update before coding further.
+No existing append-only currency mechanism was found; the new evidence table
+is therefore not redundant. The implementation and migration evidence are
+recorded in ADR-010 and the Wave 2A implementation record above.
 
 ### Ingestion and operator confirmation
 
@@ -237,6 +239,25 @@ finding in the 2A ADR/update before coding further.
 - Doctor/readiness never leaks secrets, paths, account identifiers, balances,
   raw provider payloads, or immutable snapshots.
 - SQLite/PostgreSQL parity for constraints and timestamps where available.
+
+## Wave 2A implementation record
+
+- Migration: `X7a1b2c3d4e5_add_account_currency_evidence.py` is additive,
+  creates no evidence rows, and refuses downgrade while evidence history
+  exists.
+- Authority: only `structured_provider`, `structured_statement`, and
+  `operator_confirmed` assertions are accepted; `correction` and `revocation`
+  are explicit immutable event types.
+- Gating: active accounts are evaluated from event history, with stable
+  `currency_unknown`, `currency_mixed`, `currency_conflict`, `currency_stale`,
+  `currency_unsupported`, `currency_revoked`, and
+  `currency_evidence_incomplete` failures. Legacy account currency columns
+  cannot authorize projection state.
+- Privacy: only a SHA-256 source-reference digest enters the evidence table;
+  the compatibility cache receives an opaque event reference. No raw
+  statement/provider payload, credential, balance, or account number is used.
+- Deferred: no Plaid authority mapping, personal database inspection, flag
+  enablement, backup/restore, or restart acceptance was performed.
 
 ## 5. Wave 2B implementation plan: backup and recovery
 

@@ -48,7 +48,7 @@ def test_readiness_fails_closed_when_currency_evidence_is_unavailable(client, db
     body = response.json()
     financial = next(item for item in body["checks"] if item["component"] == "financial_authority")
     assert financial["state"] == "blocked"
-    assert financial["reason_code"] == "currency_evidence_missing"
+    assert financial["reason_code"] == "currency_unknown"
     assert body["overall_state"] == "configuration_failure"
     assert not any("current_balance" in key for key in response.json())
     assert db_session.query(Account).count() == 1
@@ -56,14 +56,20 @@ def test_readiness_fails_closed_when_currency_evidence_is_unavailable(client, db
 
 def test_readiness_reports_ready_currency_without_enabling_flags(client, db_session, make_account, monkeypatch):
     from datetime import datetime, timezone
+    import hashlib
+    from app.models import AccountCurrencyEvidence
 
     _ready_migrations(monkeypatch)
     account = make_account(account_name="Synthetic USD account")
-    account.currency_code = "USD"
-    account.currency_source = "user_confirmed"
-    account.currency_observed_at = datetime.now(timezone.utc)
-    account.currency_source_reference = "synthetic-acceptance-1"
     db_session.add(account)
+    db_session.commit()
+    db_session.add(AccountCurrencyEvidence(
+        id="00000000-0000-4000-8000-000000000101", user_id=account.user_id, account_id=account.id,
+        event_type="assertion", source_kind="operator_confirmed", currency_code="USD",
+        observed_at=datetime.now(timezone.utc), actor_category="synthetic_test",
+        source_reference_hash=hashlib.sha256(b"synthetic-acceptance-1").hexdigest(),
+        idempotency_key_hash=hashlib.sha256(b"readiness-evidence-1").hexdigest(),
+    ))
     db_session.commit()
 
     response = client.get("/api/system/readiness")
