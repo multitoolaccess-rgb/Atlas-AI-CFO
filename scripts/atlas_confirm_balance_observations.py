@@ -22,9 +22,10 @@ def _validate_database_path(value: str) -> Path:
     if path.is_symlink() or not path.is_file():
         raise ValueError("database_path_unavailable")
     current = Path(path.anchor)
+    trusted_aliases = {Path("/tmp"), Path("/var")}
     for part in path.parts[1:]:
         current /= part
-        if current.is_symlink():
+        if current.is_symlink() and current not in trusted_aliases:
             raise ValueError("database_path_symlink_rejected")
     try:
         with sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=2) as connection:
