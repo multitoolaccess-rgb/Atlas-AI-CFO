@@ -118,10 +118,11 @@ perform blanket USD backfill.
   not authoritative repository contracts.
 - Wave 2B backup/check/restore tooling and synthetic recovery tests exist.
 - The stable non-reload lifecycle now keeps clone UI, Rules, and Finlynq
-  health plus repeated authenticated readiness available. The full forecast
-  journey remains blocked because all four active accounts lack authoritative
-  balance observation timestamps (`last_sync`); no personal configuration or
-  baseline was written.
+  health plus repeated authenticated readiness available. The balance-observation
+  operator makes all four clone accounts fresh without changing balances, but
+  the full forecast journey remains blocked by the existing
+  `legacy_float_balance_representation` partial projection-state gate; no
+  personal configuration or baseline was written.
 - Ignored local configuration currently reports Market Intelligence
   read/generation/external-provider flags enabled and provider credentials
   present. No external provider was called or changed; Personal Mode must not
@@ -131,10 +132,10 @@ perform blanket USD backfill.
 
 ## Recommendation
 
-The next bounded task is **Wave 2C balance-observation readiness** using the
-exact bounded scope in the Wave 2 plan: establish authoritative freshness
-provenance for every active account without inference, prove the disposable
-clone forecast gate, then retry the approved personal readiness gate. Do not
+The next bounded task is **Wave 2C legacy-float projection-gate resolution**:
+make a separately authorized financial-authority decision for the existing
+partial legacy-float state, prove the disposable clone forecast gate without
+weakening safeguards, then retry the approved personal readiness gate. Do not
 begin Wave 3 or Phase 7. This proposal does not authorize provider activation,
 synthetic writes to the personal database, in-place restore, or any product
 behavior outside the approved Wave 2C boundary.

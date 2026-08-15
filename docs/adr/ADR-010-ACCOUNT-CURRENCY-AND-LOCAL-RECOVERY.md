@@ -242,11 +242,15 @@ The lifecycle correction removes reload supervisors, preserves clone database
 selection only behind `ATLAS_SYNTHETIC_ACCEPTANCE=1`, and keeps clone UI/Rules/
 Finlynq health plus repeated authenticated readiness available.
 
-The final clone gate remains blocked before forecast generation because all four
-active accounts lack `last_sync` balance-observation timestamps. The provider
-correctly fails closed; no timestamp was inferred, no personal projection
-configuration or baseline was written, and no personal feature flag was
-enabled. Do not mark Wave 2C complete or begin Wave 3 until authoritative
-balance-observation provenance is established and the clone/personal gates pass.
-No financial mathematics changed, no immutable history was rewritten, and no
-backup or personal financial output was committed.
+The balance-observation correction adds an append-only, hash-bound audit event
+and a dry-run-first local operator path. On the disposable restored clone, all
+four active accounts became fresh without changing balances and Finlynq loaded
+projection state. The final clone gate still blocks before forecast generation:
+the provider emits the existing `legacy_float_balance_representation` warning
+with `reconciliation_state=partial`, while Rules Service requires reconciled
+state with no missing-data codes. This separate financial-authority gate must
+not be weakened or relabeled. No personal projection configuration, baseline,
+feature flag, backup, or personal financial output was written in this retry.
+Do not mark Wave 2C complete or begin Wave 3 until the gate is separately
+resolved and the clone/personal gates pass. No financial mathematics changed
+and no immutable history was rewritten.

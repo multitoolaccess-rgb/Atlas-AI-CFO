@@ -7,9 +7,9 @@
 - Phase: phase-6 — Scenario Lab
 - Phase status: complete
 - Overall status: complete
-- Objective: Phase 6 is certified; Wave 2B is complete and Wave 2C remains blocked on authoritative balance-observation provenance. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
+- Objective: Phase 6 is certified; Wave 2B is complete and Wave 2C remains blocked by the existing legacy-float partial projection-state gate after authoritative balance observations passed. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
 - Phase exit criteria: 2/2 complete
-- Tracker updated: 2026-08-15T19:44:43Z
+- Tracker updated: 2026-08-15T20:07:07Z
 
 ## Active work
 
@@ -32,9 +32,9 @@
 - risk-p1-retention-rollout-gate [high/medium]: No approved retention or user-deletion policy exists for immutable forecast history.
 - risk-p1-trusted-generation-boundary [high/medium]: An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.
 - risk-p1-external-provider-local-config [high/medium]: Ignored local configuration has Market Intelligence read/generation/external-provider flags enabled and provider credentials present; no provider call was made in this task, but the local state is not safe to treat as fully disabled.
-- risk-p1-account-observation-freshness [high/high]: All four active personal accounts lack authoritative balance-observation timestamps (last_sync); projection correctly fails closed instead of inferring freshness, so a baseline cannot be generated.
-- risk-p1-account-currency-authority [high/medium]: Active account balances have current operator-confirmed USD evidence, but the complete enabled personal journey remains unproven because authoritative balance observation is missing.
+- risk-p1-account-currency-authority [high/medium]: Active account balances have current operator-confirmed USD evidence and disposable-clone balance observations now pass, but the complete enabled personal journey remains unproven because the existing legacy-float partial projection-state gate blocks forecast generation.
 - risk-p1-local-backup-recovery [high/low]: End-to-end personal recovery/activation is not complete, although verified non-destructive backup and disposable restore tooling exists.
+- risk-p1-legacy-float-projection-gate [high/high]: The authoritative clone balance observations now pass, but Finlynq still marks stored legacy float balance representation as partial and the Rules Service forecast gate rejects partial canonical state; Wave 2C cannot generate a baseline without a separate financial-authority decision.
 
 ## Recently completed
 
@@ -46,6 +46,6 @@
 
 ## Next bounded task
 
-- work-wave-2c-account-observation-freshness: Establish authoritative balance-observation provenance for every active account without inference, prove the disposable clone forecast/readiness gate, then rerun approved personal acceptance; do not begin Wave 3 or Phase 7.
+- work-wave-2c-legacy-float-projection-gate: Resolve the existing legacy-float partial projection-state gate through a separately authorized financial-authority decision, prove the disposable clone forecast gate, then resume Wave 2C; do not begin Wave 3 or Phase 7.
 
 Do not begin the next task automatically.

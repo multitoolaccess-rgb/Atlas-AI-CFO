@@ -533,20 +533,27 @@ Required order:
   not remain available for authenticated readiness. Personal projection
   configuration/baseline is also absent — **BLOCKED**.
 - The clone operator path correctly records `500.00` as a Decimal-safe USD
-  `net_worth` configuration and is idempotent, but the clone forecast gate
-  fails because all four active accounts lack `last_sync` observation
-  timestamps. The provider refuses to treat unknown freshness as current —
+  `net_worth` configuration and is idempotent. The new balance-observation
+  operator confirms all four clone accounts atomically, hash-binds the current
+  state, preserves the stored balances, and the provider loads projection
+  state — **passed**.
+- Forecast generation remains blocked because the provider emits the existing
+  `legacy_float_balance_representation` warning with
+  `reconciliation_state=partial`, while Rules Service requires a reconciled
+  state with no missing-data codes. This is a separate financial-authority
+  gate; it must not be bypassed by relabeling or weakening the state —
   **BLOCKED**.
 - The corrected disposable lifecycle keeps UI/Rules/Finlynq health at 200 and
   authenticated readiness reachable across repeated probes — **passed**.
-- Flags were rolled back/off, services stopped, the personal database remained
-  intact, and the pre-activation backup verifies — **passed**.
+- No personal projection configuration, baseline, flags, or balance-observation
+  write was made in this retry; the existing personal database and backups
+  remain preserved — **passed**.
 
-Wave 2C is therefore not complete. The next bounded task is to establish
-approved authoritative balance-observation provenance for every active account
-without inference, rerun the clone forecast/readiness gate, then repeat the
-approved personal readiness gate without creating synthetic decisions or
-scenarios in the personal database.
+Wave 2C is therefore not complete. The next bounded task is to resolve the
+legacy-float partial projection-state gate through a separately authorized
+financial-authority decision, rerun the disposable clone forecast/readiness gate,
+then repeat the approved personal readiness gate without creating synthetic
+decisions or scenarios in the personal database.
 
 ## 11. Explicit future authorization prompts
 
@@ -584,11 +591,12 @@ scenarios in the personal database.
   evidence were printed. No in-place restore was attempted.
 - Plaid explicit-currency ingestion is not implemented or contract-tested.
 - General CSV/PDF authoritative currency declaration is not established.
-- Personal projection configuration/baseline is absent because the clone gate
-  failed before the authorized personal write.
-- All four active accounts lack `last_sync` balance-observation timestamps;
-  this is a financial freshness provenance blocker, not permission to infer
-  current balances.
+- Personal projection configuration/baseline is absent because the clone
+  forecast gate failed before the authorized personal write.
+- The balance-observation audit path is implemented and passes on the disposable
+  clone for all four active accounts without changing balances. The remaining
+  blocker is the existing `legacy_float_balance_representation` partial-state
+  financial gate; this is not permission to relabel or weaken canonical state.
 - The corrected local lifecycle is proven on a disposable clone: start exits
   successfully, UI/Rules/Finlynq health remains 200, and authenticated
   readiness remains reachable across repeated probes.

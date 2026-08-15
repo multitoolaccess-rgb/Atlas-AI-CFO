@@ -65,9 +65,9 @@ No new evidence shows a critical financial-integrity, authorization, privacy, or
 
 ### P1 — activation and safety blockers
 
-1. **Account and balance freshness authority:** Wave 2A enforcement is complete. After a verified backup, the authorized personal inventory found four active accounts with unknown evidence; four append-only `operator_confirmed` USD events were recorded. No conflicting or non-USD evidence was overwritten. The bounded clone gate now fails closed because all four active accounts lack `last_sync` observation timestamps; no projection configuration or baseline was written to the personal database.
+1. **Account and balance freshness authority:** The bounded observation implementation now records append-only, hash-bound operator evidence. On the disposable restored clone, all four active accounts became fresh without balance mutation and authoritative projection state loaded. Forecast generation still fails closed because Finlynq emits the existing `legacy_float_balance_representation` warning with `reconciliation_state=partial`, which the Rules Service generation gate rejects; no personal projection configuration or baseline was written.
 2. **Retention and deletion policy:** Immutable history has no approved retention/user-deletion policy. This blocks external multi-user rollout and must not be bypassed; tracked as `risk-p1-retention-rollout-gate`.
-3. **Personal activation lifecycle:** The stable non-reload lifecycle correction now keeps clone UI, Rules, and Finlynq health plus repeated authenticated readiness available. Personal activation remains blocked by missing authoritative balance observation timestamps and therefore no baseline.
+3. **Personal activation lifecycle:** The stable non-reload lifecycle correction keeps clone UI, Rules, and Finlynq health plus repeated authenticated readiness available. Personal activation remains blocked at the pre-baseline financial gate; no personal flags were enabled or persisted.
 4. **Pre-existing provider configuration:** Ignored local configuration reports Market Intelligence read/generation/external-provider flags enabled and provider credentials present. No external call was made; keep this as a separate explicit safety task and do not change it during Wave 2C recovery.
 
 ## Highest-value P2/P3 findings
@@ -94,11 +94,11 @@ service lifecycle acceptance failure. See the linked plan and ADR-010.
 - No real local provider call or provider network was used. The final Doctor diagnostic detected provider credential presence and pre-existing Market Intelligence read/generation/external-provider flags in ignored local configuration; those flags were not changed or invoked and must not be treated as disabled.
 - The personal SQLite database was accessed only under the explicit Wave 2C authorization for metadata, integrity, migration, bounded account-currency evidence status, and append-only operator confirmation; balances, transactions, holdings, account numbers, and raw evidence were not printed.
 - A verified backup exists outside the repository and a disposable restore passed; no in-place personal restore was attempted.
-- The projection operator dry-run resolved one active goal and found no existing configuration; the personal write was intentionally withheld because the disposable clone gate failed on missing balance freshness.
+- The projection operator dry-run resolved one active goal and found no existing configuration; the personal write was intentionally withheld because the clone forecast gate rejects the existing partial legacy-float projection state.
 - No enabled feature-flag journey was certified against the personal database. Local flag overrides were not persisted and remain rolled back/off.
 - No production deployment or external multi-user behavior is implied.
 - The full screenshot matrix is not a clean final-IA acceptance artifact because its checked-in test still includes compatibility routes; 126 transient captures are retained outside Git for audit reference.
 
 ## Recommended first remediation wave
 
-The next bounded task is **Wave 2C balance-observation readiness**: implement or use an approved authoritative ingestion/operator path that records freshness provenance for all four active accounts without inference, prove the clone forecast gate, then repeat personal acceptance. Do not begin Wave 3 or Phase 7.
+The next bounded task is **Wave 2C legacy-float projection-gate resolution**: make a separately authorized financial-authority decision for the existing partial legacy-float state, prove the disposable clone forecast gate without weakening safeguards, then resume personal acceptance. Do not begin Wave 3 or Phase 7.

@@ -3,7 +3,7 @@
 - **Audit date:** 2026-08-15
 - **Audited commit:** `ff85ad7bc39680a2beb13533795478e515cda931`
 - **Source:** [Personal-Use Readiness Report](../07-engineering/PERSONAL_USE_READINESS_REPORT.md) and [System Health Audit](../07-engineering/SYSTEM_HEALTH_AUDIT.md).
-- **Status:** Wave 1A, Wave 2A, and Wave 2B are complete. Wave 2C was authorized and partially executed after a verified backup, but final personal activation remains blocked by missing projection configuration/baseline and an unresolved local service-lifecycle acceptance failure.
+- **Status:** Wave 1A, Wave 2A, and Wave 2B are complete. Wave 2C remains blocked after the balance-observation operator passed on a disposable clone but the existing legacy-float partial projection-state gate correctly refused forecast generation.
 
 ## Priority definitions
 
@@ -102,13 +102,17 @@ into one change or begin the next slice automatically.
   under `ATLAS_SYNTHETIC_ACCEPTANCE=1` and to run stable non-reload Uvicorn
   processes with deterministic PID ownership. Clone UI/Rules/Finlynq health
   and repeated authenticated readiness stayed available.
-- The clone gate remains blocked before forecast generation: all four active
-  accounts have missing `last_sync` observation timestamps. The provider
-  correctly fails closed rather than treating unknown balance freshness as
-  current. No personal projection configuration or baseline was written.
-- Do not claim Wave 2C complete until authoritative balance-observation
-  provenance is repaired through an approved ingestion/operator path, then the
-  isolated clone and personal readiness gates pass.
+- The balance-observation operator is now implemented as an append-only,
+  hash-bound, dry-run-first local path. On the disposable restored clone, all
+  four active accounts became fresh without changing balances; the provider
+  loaded authoritative projection state.
+- The clone forecast gate then remained blocked by the existing
+  `legacy_float_balance_representation` warning and `reconciliation_state=partial`;
+  Rules Service correctly rejects partial canonical state. No personal
+  projection configuration, baseline, flags, or personal writes were made.
+- Do not claim Wave 2C complete until this separate financial-authority gate is
+  resolved without weakening fail-closed behavior, then rerun the clone and
+  approved personal readiness gates.
 
 ### Goal Float and other boundaries
 

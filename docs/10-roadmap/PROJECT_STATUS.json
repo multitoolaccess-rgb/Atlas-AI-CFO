@@ -1185,6 +1185,9 @@
     {
       "branch": "codex/wave-2a-account-currency",
       "commit": "a438df9233cb197827a5affda0c24ee4d7ec0a97",
+      "correction_commits": [
+        "7fff684b1abbb65136d1161e7848f1450c835821"
+      ],
       "id": "work-wave-2a-authoritative-account-currency",
       "issue": null,
       "objective": "Implement append-only authoritative account-currency evidence, deterministic effective-state gating, and sanitized readiness integration without accessing personal data or changing financial mathematics.",
@@ -1206,9 +1209,6 @@
         "Python compilation and diff/sensitive-pattern review: passed"
       ],
       "title": "Implement Wave 2A authoritative account-currency evidence",
-      "correction_commits": [
-        "7fff684b1abbb65136d1161e7848f1450c835821"
-      ],
       "validation_evidence": {
         "command": "../../.venv-finlynq/bin/python -m pytest -q tests/test_currency_evidence.py tests/test_projection_state_provider.py tests/test_parse_upload_contract.py",
         "commit": "a438df9233cb197827a5affda0c24ee4d7ec0a97",
@@ -1251,17 +1251,17 @@
       "objective": "Execute backup-first personal currency confirmation and bounded local activation/restart acceptance without enabling unsupported providers or mutating immutable history.",
       "phase_id": "phase-6",
       "pr": null,
+      "reason": "Balance-observation authority is implemented and the disposable clone confirms all four observations, but the clone forecast gate still fails closed: Finlynq emits the existing legacy_float_balance_representation warning with reconciliation_state=partial, and Rules Service rejects partial canonical state. No personal configuration, baseline, flags, or personal writes were performed; resolve the separate financial-authority projection gate before retrying Wave 2C.",
       "review_evidence": "Fresh local read-only review found no unresolved critical/high issue in the bounded operator/lifecycle correction; clone financial acceptance remains blocked and is not approved for completion.",
       "risk_tier": "high",
       "status": "blocked",
-      "reason": "The disposable clone gate fails closed because all four active accounts lack authoritative balance-observation timestamps (last_sync); no personal projection configuration or baseline was written. Approved flags remain rolled back/off.",
       "tests": [
         "Verified personal backup and disposable restore: passed",
         "Migration X7a1b2c3d4e5, integrity/quick checks, four-account currency confirmation, Doctor/readiness currency state, and goal precision gate: passed",
         "Projection operator unit tests: 23 passed; provider freshness regression included",
         "Stable lifecycle tests: 12 passed; disposable clone UI/Rules/Finlynq health and repeated authenticated readiness: passed",
-        "Clone configuration is Decimal-safe/idempotent; forecast gate blocked by four missing last_sync observations; no personal write occurred",
-        "Full enabled forecast/recommendation/decision/history/outcome/Scenario restart journey: blocked"
+        "Clone observation confirmation is atomic/idempotent and all four accounts become fresh without balance mutation; projection state loads, but forecast generation remains blocked by the existing legacy_float_balance_representation partial-state gate; no personal write occurred",
+        "Full enabled forecast/recommendation/decision/history/outcome/Scenario restart journey: blocked before forecast generation by the existing partial-state financial gate"
       ],
       "title": "Execute backup-first personal activation and restart acceptance",
       "validation_evidence": {
@@ -1269,17 +1269,17 @@
         "commit": "e877247",
         "environment": "Disposable restored clone; personal database read-only diagnostics only; no real providers or financial values printed",
         "kind": "local",
-        "result": "Backup/lifecycle/configuration gates passed; clone forecast blocked by missing balance observation; no personal configuration or baseline write",
+        "result": "Backup/lifecycle/observation/configuration gates passed; clone projection state loaded, but forecast generation blocked by legacy_float_balance_representation partial state; no personal configuration or baseline write",
         "timestamp": "2026-08-15T19:44:43Z"
       }
     }
   ],
-  "current_objective": "Phase 6 is certified; Wave 2B is complete and Wave 2C remains blocked on authoritative balance-observation provenance. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.",
+  "current_objective": "Phase 6 is certified; Wave 2B is complete and Wave 2C remains blocked by the existing legacy-float partial projection-state gate after authoritative balance observations passed. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T19:44:43Z",
+  "last_updated": "2026-08-15T20:07:07Z",
   "next_bounded_task": {
-    "description": "Establish authoritative balance-observation provenance for every active account without inference, prove the disposable clone forecast/readiness gate, then rerun approved personal acceptance; do not begin Wave 3 or Phase 7.",
-    "id": "work-wave-2c-account-observation-freshness",
+    "description": "Resolve the existing legacy-float partial projection-state gate through a separately authorized financial-authority decision, prove the disposable clone forecast gate, then resume Wave 2C; do not begin Wave 3 or Phase 7.",
+    "id": "work-wave-2c-legacy-float-projection-gate",
     "phase_id": "phase-6"
   },
   "overall_status": "complete",
@@ -1521,20 +1521,20 @@
       "status": "open"
     },
     {
-      "description": "All four active personal accounts lack authoritative balance-observation timestamps (last_sync); projection correctly fails closed instead of inferring freshness, so a baseline cannot be generated.",
+      "description": "The balance-observation operator is implemented and all four disposable-clone accounts become fresh without balance mutation, but the existing legacy_float_balance_representation partial projection-state gate still blocks forecast generation; no personal baseline can be generated until that separate financial-authority decision is resolved.",
       "id": "risk-p1-account-observation-freshness",
       "likelihood": "high",
       "mitigation": "Establish freshness through an approved structured ingestion or bounded operator provenance path; never use current time, account creation, preference, or symbol as a substitute. Prove on the disposable clone before personal activation.",
       "owner": "Finlynq domain owner",
-      "related": "Wave 2C clone gate; services/finlynq/app/projection_state/provider.py; e877247",
+      "related": "Wave 2C clone gate; services/finlynq/app/projection_state/provider.py; e877247; 96bd7df; Y8a1b2c3d4e5 synthetic clone observation confirmation: four eligible active accounts, freshness ready, no balance mutation",
       "severity": "high",
-      "status": "open"
+      "status": "resolved"
     },
     {
-      "description": "Active account balances have current operator-confirmed USD evidence, but the complete enabled personal journey remains unproven because authoritative balance observation is missing.",
+      "description": "Active account balances have current operator-confirmed USD evidence and disposable-clone balance observations now pass, but the complete enabled personal journey remains unproven because the existing legacy-float partial projection-state gate blocks forecast generation.",
       "id": "risk-p1-account-currency-authority",
       "likelihood": "medium",
-      "mitigation": "X7a1b2c3d4e5 enforces append-only evidence, structured-provider/statement/operator authority, correction/revocation, deterministic fail-closed handling, and no-backfill migration. Four active accounts were confirmed without overwriting conflicting evidence; Wave 2C remains blocked by missing balance observation freshness.",
+      "mitigation": "X7a1b2c3d4e5 and Y8a1b2c3d4e5 enforce append-only currency/observation authority, hash-bound operator confirmation, deterministic fail-closed handling, and no-backfill migration. Four clone observations passed without balance mutation; Wave 2C remains blocked by the existing legacy-float partial projection-state gate.",
       "owner": "Finlynq domain owner",
       "related": "ADR-006; ADR-010; Wave 2 plan; a438df9; d769870",
       "severity": "high",
@@ -1559,6 +1559,16 @@
       "related": "1032ec9998b96046030b700e3f84a73b3797a776, 08f6f811da7c325da8a3d60adae9f2d9c2d210e8",
       "severity": "medium",
       "status": "resolved"
+    },
+    {
+      "description": "The authoritative clone balance observations now pass, but Finlynq still marks stored legacy float balance representation as partial and the Rules Service forecast gate rejects partial canonical state; Wave 2C cannot generate a baseline without a separate financial-authority decision.",
+      "id": "risk-p1-legacy-float-projection-gate",
+      "likelihood": "high",
+      "mitigation": "Do not weaken the fail-closed generation gate or rewrite balances. Choose a separately authorized Decimal/account-balance authority migration or an explicitly reviewed contract for the existing representation, then rerun the clone gate before personal activation.",
+      "owner": "rules-service-finlynq",
+      "related": "services/finlynq/app/projection_state/provider.py; services/rules-service/app/forecasts/service.py; risk-p1-legacy-goal-float; Wave 2C clone evidence",
+      "severity": "high",
+      "status": "open"
     }
   ],
   "schema_version": "1.0.0",
