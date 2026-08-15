@@ -4,8 +4,8 @@
 
 - Current phase: **phase-6 — Scenario Lab** (complete)
 - Overall status: **complete**
-- Current objective: Phase 6 is certified; Wave 2B is complete and Wave 2C remains blocked on projection baseline/configuration and local service lifecycle acceptance. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
-- Last updated: 2026-08-15T19:18:14Z
+- Current objective: Phase 6 is certified; Wave 2B is complete and Wave 2C remains blocked on authoritative balance-observation provenance. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
+- Last updated: 2026-08-15T19:44:43Z
 
 ## Active work
 - None
@@ -34,7 +34,8 @@
 - risk-p1-retention-rollout-gate [high/medium, open]: No approved retention or user-deletion policy exists for immutable forecast history.
 - risk-p1-trusted-generation-boundary [high/medium, open]: An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.
 - risk-p1-external-provider-local-config [high/medium, open]: Ignored local configuration has Market Intelligence read/generation/external-provider flags enabled and provider credentials present; no provider call was made in this task, but the local state is not safe to treat as fully disabled.
-- risk-p1-account-currency-authority [high/medium, open]: Active account balances now have current operator-confirmed USD evidence after backup-first authorization, but the complete enabled personal forecast journey remains unproven because projection configuration/baseline is absent.
+- risk-p1-account-observation-freshness [high/high, open]: All four active personal accounts lack authoritative balance-observation timestamps (last_sync); projection correctly fails closed instead of inferring freshness, so a baseline cannot be generated.
+- risk-p1-account-currency-authority [high/medium, open]: Active account balances have current operator-confirmed USD evidence, but the complete enabled personal journey remains unproven because authoritative balance observation is missing.
 - risk-p1-local-backup-recovery [high/low, mitigated]: End-to-end personal recovery/activation is not complete, although verified non-destructive backup and disposable restore tooling exists.
 - risk-p1-migration-downgrade-patched [medium/low, resolved]: Alembic 1.13.x's ApplyBatchImpl.drop_index rejects the deprecated if_exists keyword argument; the Phase 1 final cert matrix surfaced this as a full upgrade -> downgrade base failure on the e9f0a1b2c3d4 migration.
 
@@ -43,7 +44,7 @@
 - work-personal-use-activation-readiness-wave-1a: Implement personal-use readiness and synthetic acceptance — commit 9847f1a, PR None
 - work-wave-2a-authoritative-account-currency: Implement Wave 2A authoritative account-currency evidence — commit a438df9233cb197827a5affda0c24ee4d7ec0a97, PR None
 - work-wave-2b-local-backup-recovery: Implement WAL-safe local backup and recovery — commit 423f87a, PR None
-- work-wave-2c-personal-activation-acceptance: Execute backup-first personal activation and restart acceptance — commit d769870ed98212d92b06e92424e8b6fcc4ccf7ea, PR None
+- work-wave-2c-personal-activation-acceptance: Execute backup-first personal activation and restart acceptance — commit e877247, PR None
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -79,6 +80,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-wave-2c-activation-recovery: Repair and prove the disposable Wave 2C projection baseline/configuration and local service lifecycle, then rerun approved personal readiness acceptance; do not begin Wave 3 or Phase 7.
+- work-wave-2c-account-observation-freshness: Establish authoritative balance-observation provenance for every active account without inference, prove the disposable clone forecast/readiness gate, then rerun approved personal acceptance; do not begin Wave 3 or Phase 7.
 
 Do not begin the next phase or task automatically.

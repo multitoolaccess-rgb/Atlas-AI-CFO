@@ -117,9 +117,11 @@ perform blanket USD backfill.
 - Plaid explicit-currency mapping and general CSV/PDF declaration handling are
   not authoritative repository contracts.
 - Wave 2B backup/check/restore tooling and synthetic recovery tests exist.
-- A full enabled service restart/readiness journey remains unproven: the
-  personal database lacks projection configuration/baseline and the local
-  service process did not remain available for authenticated readiness.
+- The stable non-reload lifecycle now keeps clone UI, Rules, and Finlynq
+  health plus repeated authenticated readiness available. The full forecast
+  journey remains blocked because all four active accounts lack authoritative
+  balance observation timestamps (`last_sync`); no personal configuration or
+  baseline was written.
 - Ignored local configuration currently reports Market Intelligence
   read/generation/external-provider flags enabled and provider credentials
   present. No external provider was called or changed; Personal Mode must not
@@ -129,10 +131,10 @@ perform blanket USD backfill.
 
 ## Recommendation
 
-The next bounded task is **Wave 2C acceptance recovery** using the exact
-bounded scope in the Wave 2 plan: repair and prove the disposable clone’s
-projection baseline/configuration and service lifecycle first, then retry the
-approved personal readiness gate. Do not begin Wave 3 or Phase 7. This
-proposal does not authorize provider activation, synthetic writes to the
-personal database, in-place restore, or any product behavior outside the
-approved Wave 2C boundary.
+The next bounded task is **Wave 2C balance-observation readiness** using the
+exact bounded scope in the Wave 2 plan: establish authoritative freshness
+provenance for every active account without inference, prove the disposable
+clone forecast gate, then retry the approved personal readiness gate. Do not
+begin Wave 3 or Phase 7. This proposal does not authorize provider activation,
+synthetic writes to the personal database, in-place restore, or any product
+behavior outside the approved Wave 2C boundary.

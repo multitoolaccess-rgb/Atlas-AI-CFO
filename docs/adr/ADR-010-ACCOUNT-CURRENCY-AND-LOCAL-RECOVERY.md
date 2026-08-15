@@ -235,9 +235,18 @@ restore. Seven synthetic backup/restore safety tests passed.
 
 Wave 2C was explicitly authorized. The backup, disposable restore, migration,
 aggregate currency readiness, goal precision gate, and append-only operator
-confirmation passed. The final enabled personal restart/readiness gate remains
-blocked by missing projection configuration/baseline and a local process
-lifecycle failure. Do not mark Wave 2C complete, enable flags for a retry, or
-begin Wave 3 until the disposable clone proves the complete bounded journey.
+confirmation passed. A dry-run-first server-side GoalProjectionConfig operator
+path now validates exactly one owned active goal, canonical Decimal cents,
+fixed USD/net-worth provenance, idempotent replay, and divergent-state refusal.
+The lifecycle correction removes reload supervisors, preserves clone database
+selection only behind `ATLAS_SYNTHETIC_ACCEPTANCE=1`, and keeps clone UI/Rules/
+Finlynq health plus repeated authenticated readiness available.
+
+The final clone gate remains blocked before forecast generation because all four
+active accounts lack `last_sync` balance-observation timestamps. The provider
+correctly fails closed; no timestamp was inferred, no personal projection
+configuration or baseline was written, and no personal feature flag was
+enabled. Do not mark Wave 2C complete or begin Wave 3 until authoritative
+balance-observation provenance is established and the clone/personal gates pass.
 No financial mathematics changed, no immutable history was rewritten, and no
-backup or personal evidence was committed.
+backup or personal financial output was committed.

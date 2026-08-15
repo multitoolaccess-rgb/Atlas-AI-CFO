@@ -94,9 +94,21 @@ into one change or begin the next slice automatically.
   (fixed in `d769870`) and the personal enabled-stack attempt did not remain
   available for authenticated readiness. The personal database is intact and
   flags were rolled back/off.
-- Do not claim Wave 2C complete until projection configuration/baseline and the
-  service lifecycle/startup contract are repaired and the isolated clone plus
-  personal readiness gates pass.
+- Added a dry-run-first server-side operator path for exactly one owned active
+  goal. It accepts canonical `500.00`, records `USD`/`net_worth` with the
+  fixed operator-confirmed plan reference, rejects ambiguity/divergence, and
+  is idempotent under explicit confirmation.
+- Corrected the Atlas lifecycle to preserve an explicit clone database only
+  under `ATLAS_SYNTHETIC_ACCEPTANCE=1` and to run stable non-reload Uvicorn
+  processes with deterministic PID ownership. Clone UI/Rules/Finlynq health
+  and repeated authenticated readiness stayed available.
+- The clone gate remains blocked before forecast generation: all four active
+  accounts have missing `last_sync` observation timestamps. The provider
+  correctly fails closed rather than treating unknown balance freshness as
+  current. No personal projection configuration or baseline was written.
+- Do not claim Wave 2C complete until authoritative balance-observation
+  provenance is repaired through an approved ingestion/operator path, then the
+  isolated clone and personal readiness gates pass.
 
 ### Goal Float and other boundaries
 

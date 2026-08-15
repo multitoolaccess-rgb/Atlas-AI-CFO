@@ -532,16 +532,21 @@ Required order:
 - Doctor/readiness currency state passed, but the enabled personal stack did
   not remain available for authenticated readiness. Personal projection
   configuration/baseline is also absent — **BLOCKED**.
-- The disposable clone preserved currency evidence across restart and returned
-  sanitized `scenario_baseline_unavailable`; the full forecast → decision →
-  history/outcome → Scenario Lab restart journey remains unproven — **BLOCKED**.
+- The clone operator path correctly records `500.00` as a Decimal-safe USD
+  `net_worth` configuration and is idempotent, but the clone forecast gate
+  fails because all four active accounts lack `last_sync` observation
+  timestamps. The provider refuses to treat unknown freshness as current —
+  **BLOCKED**.
+- The corrected disposable lifecycle keeps UI/Rules/Finlynq health at 200 and
+  authenticated readiness reachable across repeated probes — **passed**.
 - Flags were rolled back/off, services stopped, the personal database remained
-  intact, and the post-evidence backup verifies — **passed**.
+  intact, and the pre-activation backup verifies — **passed**.
 
-Wave 2C is therefore not complete. The next bounded task is to repair the
-clone projection baseline/configuration and service lifecycle, rerun the clone
-journey, then repeat the approved personal readiness gate without creating
-synthetic decisions or scenarios in the personal database.
+Wave 2C is therefore not complete. The next bounded task is to establish
+approved authoritative balance-observation provenance for every active account
+without inference, rerun the clone forecast/readiness gate, then repeat the
+approved personal readiness gate without creating synthetic decisions or
+scenarios in the personal database.
 
 ## 11. Explicit future authorization prompts
 
@@ -579,11 +584,14 @@ synthetic decisions or scenarios in the personal database.
   evidence were printed. No in-place restore was attempted.
 - Plaid explicit-currency ingestion is not implemented or contract-tested.
 - General CSV/PDF authoritative currency declaration is not established.
-- Personal projection configuration/baseline is absent, so forecast generation
-  and the complete financial journey remain blocked.
-- The local enabled-stack process lifecycle did not remain available for
-  authenticated readiness; this must be fixed and proven on a disposable clone
-  before another personal activation attempt.
+- Personal projection configuration/baseline is absent because the clone gate
+  failed before the authorized personal write.
+- All four active accounts lack `last_sync` balance-observation timestamps;
+  this is a financial freshness provenance blocker, not permission to infer
+  current balances.
+- The corrected local lifecycle is proven on a disposable clone: start exits
+  successfully, UI/Rules/Finlynq health remains 200, and authenticated
+  readiness remains reachable across repeated probes.
 - Goal Float precision, retention/deletion, SQLite/PostgreSQL parity, and
   transitional tenancy remain open risks.
 - No external provider, email, scheduler, LLM, execution, trading, brokerage,
