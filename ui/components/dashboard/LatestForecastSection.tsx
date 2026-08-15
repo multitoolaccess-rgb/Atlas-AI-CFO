@@ -32,11 +32,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   getLatestForecastForGoal,
-  getDerivedRecommendation,
+  getDerivedRecommendationResource,
   postDecisionJournal,
   readSanitizedError,
   mintIdempotencyKey,
   type DecisionAction,
+  type DecisionETag,
   type DecisionJournalEntryWire,
   type DeterministicRecommendationWire,
   type LatestForecastState,
@@ -55,7 +56,7 @@ export interface Goal {
 interface PendingDecision {
   action: DecisionAction
   recommendationId: string
-  decisionEtag: string
+  decisionEtag: DecisionETag
   idempotencyKey: string
 }
 
@@ -66,6 +67,7 @@ interface PerGoalSliceState {
     | 'loading'
     | DeterministicRecommendationWire
   recorded: DecisionJournalEntryWire | null
+  decisionEtag: DecisionETag | null
   busy: boolean
   pendingDecision: PendingDecision | null
   decisionError: string | null
@@ -75,6 +77,7 @@ const EMPTY: PerGoalSliceState = {
   forecast: 'loading',
   recommendation: 'idle',
   recorded: null,
+  decisionEtag: null,
   busy: false,
   pendingDecision: null,
   decisionError: null,
@@ -143,13 +146,14 @@ export default function LatestForecastSection({ goals }: { goals: Goal[] }) {
 
       // 2) Recommendation.
       try {
-        const rec = await getDerivedRecommendation(fc.forecast.id)
+        const resource = await getDerivedRecommendationResource(fc.forecast.id)
         if (cancelled) return
         setPerGoal((prev) => ({
           ...prev,
           [goal.id]: {
             ...(prev[goal.id] ?? EMPTY),
-            recommendation: rec,
+            recommendation: resource.recommendation,
+            decisionEtag: resource.decisionEtag,
             pendingDecision: null,
             decisionError: null,
           },
@@ -181,6 +185,7 @@ export default function LatestForecastSection({ goals }: { goals: Goal[] }) {
     async (
       action: DecisionAction,
       rec: DeterministicRecommendationWire,
+      decisionEtag: DecisionETag,
     ) => {
       const goalId = rec.linked_goal_id
       if (decisionBusyRef.current[goalId]) return
@@ -190,12 +195,12 @@ export default function LatestForecastSection({ goals }: { goals: Goal[] }) {
         existing &&
         existing.action === action &&
         existing.recommendationId === rec.forecast_id &&
-        existing.decisionEtag === rec.forecast_etag
+        existing.decisionEtag === decisionEtag
           ? existing
           : {
               action,
               recommendationId: rec.forecast_id,
-              decisionEtag: rec.forecast_etag,
+              decisionEtag,
               idempotencyKey: mintIdempotencyKey(),
             }
       pendingDecisionsRef.current[goalId] = pendingDecision
@@ -212,7 +217,7 @@ export default function LatestForecastSection({ goals }: { goals: Goal[] }) {
       try {
         const entry = await postDecisionJournal(
           rec.forecast_id,
-          { action, decision_etag: rec.forecast_etag },
+          { action, decision_etag: decisionEtag },
           pendingDecision.idempotencyKey,
         )
         pendingDecisionsRef.current[goalId] = null
@@ -331,10 +336,12 @@ export default function LatestForecastSection({ goals }: { goals: Goal[] }) {
                 sourceDataAgeDays={
                   fcState ? fcState.version.drivers.data_age_days : 0
                 }
-                onDecide={handleDecide}
+                onDecide={(action, recommendation) => {
+                  if (state.decisionEtag) void handleDecide(action, recommendation, state.decisionEtag)
+                }}
                 onRetry={
-                  state.pendingDecision
-                    ? () => void handleDecide(state.pendingDecision!.action, rec)
+                  state.pendingDecision && state.decisionEtag
+                    ? () => void handleDecide(state.pendingDecision!.action, rec, state.decisionEtag!)
                     : undefined
                 }
                 decisionError={state.decisionError}

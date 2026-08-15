@@ -180,6 +180,10 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # The UI reads the authoritative decision ETag from the recommendation
+    # response. These are response metadata only; no financial payload or
+    # credential-bearing header is exposed to the browser.
+    expose_headers=["ETag", "Location"],
 )
 
 

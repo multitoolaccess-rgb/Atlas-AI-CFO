@@ -234,8 +234,12 @@ def test_get_recommendation_200_happy_path(
     client, enable_read_flag, db_session
 ):
     _user, _goal, forecast, _version = _build_world(db_session)
-    response = client.get(f"/api/v1/forecasts/{forecast.id}/recommendation")
+    response = client.get(
+        f"/api/v1/forecasts/{forecast.id}/recommendation",
+        headers={"Origin": "http://localhost:3000"},
+    )
     assert response.status_code == 200
+    assert "etag" in response.headers.get("access-control-expose-headers", "").lower()
     body = response.json()
     assert body["schema_version"] == "atlas-derived-recommendation/v1"
     assert body["recommendation_kind"] in {

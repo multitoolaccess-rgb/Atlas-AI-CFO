@@ -12,7 +12,7 @@
         "docs/06-ui-ux"
       ],
       "phase_id": "phase-6",
-      "reason": "Step 4 correction head 8ffc670 is pushed and hosted status/cheap checks pass, but the required fresh independent read-only re-review cannot be created in this checkout; heavy full+Playwright remains skipped by repository policy. Do not merge until an independent reviewer records an exact-head verdict.",
+      "reason": "PR #51 correction head is pending commit/push from exact reviewed head e7d4b5d. Both HIGH findings are addressed: Decisions now obtains distinct server decision ETags (uuid-d<n>) through the recommendation response, fails closed when unavailable, preserves If-Match, and loads/persists authoritative decision history with immutable IDs, lifecycle state, idempotent linkage, sanitized errors, and owner-safe unavailable handling. Server CORS now exposes only ETag/Location response metadata so the cross-origin UI can read the authoritative ETag. Local evidence: 627 UI Vitest passed; TypeScript, ESLint, production build passed; Rules decision/recommendation/history suites 48 passed; isolated route-mocked Playwright journey 1 passed. Hosted status/cheap for prior head passed; heavy remains skipped by policy. Do not merge until the correction is pushed and a fresh independent exact-head review records a verdict.",
       "risk_tier": "high",
       "status": "blocked",
       "tests": [
@@ -1063,7 +1063,7 @@
   ],
   "current_objective": "Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T01:57:29Z",
+  "last_updated": "2026-08-15T02:42:49Z",
   "next_bounded_task": {
     "description": "Step 4 - migrate Intelligence atomically: Decisions, Market Intelligence, Scenario Lab, global Scout, and compatibility redirects.",
     "id": "work-ui-information-architecture-step-4",

@@ -34,6 +34,7 @@ vi.mock('@/lib/api', () => ({
 import {
   getLatestForecastForGoal,
   getDerivedRecommendation,
+  parseDecisionETag,
   postDecisionJournal,
   readSanitizedError,
   mintIdempotencyKey,
@@ -145,7 +146,7 @@ const JOURNAL_WIRE = {
   recommendation_id: '11111111-1111-4111-8111-111111111111',
   action_taken: 'accept' as const,
   decided_at: '2026-08-01T00:01:00.000000Z',
-  decision_etag: 'aabbccdd-1111-4111-8111-aaaaaaaaaaaa-d1',
+  decision_etag: parseDecisionETag('aabbccdd-1111-4111-8111-aaaaaaaaaaaa-d1')!,
   links: [
     {
       rel: 'self' as const,
@@ -267,7 +268,7 @@ describe('api_phase2 — postDecisionJournal', () => {
     mockPost.mockResolvedValueOnce({ data: JOURNAL_WIRE })
     const body = {
       action: 'accept' as const,
-      decision_etag: 'aabbccdd-1111-4111-8111-aaaaaaaaaaaa-d1',
+      decision_etag: parseDecisionETag('aabbccdd-1111-4111-8111-aaaaaaaaaaaa-d1')!,
     }
     const idemKey = mintIdempotencyKey()
     const result = await postDecisionJournal(
@@ -298,7 +299,7 @@ describe('api_phase2 — postDecisionJournal', () => {
       .mockResolvedValueOnce({ data: JOURNAL_WIRE })
     const body = {
       action: 'accept' as const,
-      decision_etag: 'aabbccdd-1111-4111-8111-aaaaaaaaaaaa-d1',
+      decision_etag: parseDecisionETag('aabbccdd-1111-4111-8111-aaaaaaaaaaaa-d1')!,
     }
     const idemKey = mintIdempotencyKey()
     const a = await postDecisionJournal(
@@ -325,7 +326,7 @@ describe('api_phase2 — postDecisionJournal', () => {
     )
     const body = {
       action: 'accept' as const,
-      decision_etag: 'aabbccdd-1111-4111-8111-aaaaaaaaaaaa-d1',
+      decision_etag: parseDecisionETag('aabbccdd-1111-4111-8111-aaaaaaaaaaaa-d1')!,
     }
     const err = await postDecisionJournal(
       RECOMMENDATION_WIRE.forecast_id,
@@ -344,7 +345,7 @@ describe('api_phase2 — postDecisionJournal', () => {
     )
     const body = {
       action: 'accept' as const,
-      decision_etag: 'aabbccdd-1111-4111-8111-aaaaaaaaaaaa-d1',
+      decision_etag: parseDecisionETag('aabbccdd-1111-4111-8111-aaaaaaaaaaaa-d1')!,
     }
     const err = await postDecisionJournal(
       RECOMMENDATION_WIRE.forecast_id,
