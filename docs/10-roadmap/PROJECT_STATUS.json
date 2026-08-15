@@ -1,17 +1,18 @@
 {
   "active_work": [
     {
-      "branch": "main",
+      "branch": "codex/phase-6-certification-reconciliation",
       "id": "work-p6-clean-main-certification",
       "issue": "",
-      "objective": "Run the documented full Phase 6 certification matrix from clean main and create the completion tag only after every exit criterion passes.",
+      "objective": "Reconcile the documented Phase 6 clean-main browser blockers, then rerun the complete certification matrix and create the completion tag only after every exit criterion passes.",
       "paths": [
+        "ui",
         "docs/10-roadmap"
       ],
       "phase_id": "phase-6",
-      "reason": "Clean-main Phase 6 certification is blocked by the required canonical Playwright matrix: local run bash scripts/test-e2e.sh recorded 93 passed, 14 failed, 1 skipped in 7.7m; hosted manual heavy run 31868205933 also failed after 4/5 steps passed and Playwright timed out at 900s. The failures are baseline IA/default-off behavior outside the Phase 6 Slice 2 diff: removed Debts/Activity/Simulation workspace/legacy Market Brief navigation expectations, legacy Cash Flow range-state expectation, legacy Recommendations/Universe expectations, and expected default-off 503 console logging for Market Intelligence/Scenario Lab. Do not create phase-6-complete until these baseline certification blockers are separately reconciled without weakening Phase 6 authority or default-off criteria.",
+      "reason": "The prior clean-main Playwright failures are classified and corrected in the certification-reconciliation branch: eight stale IA expectations, one genuine Cash Flow URL-state race, one stale Recommendations expectation, one stale Market Briefs expectation, one handled forecast-read recovery, one stale Activity expectation, and one stale Universe expectation. Focused validation is green; complete certification remains pending the merged clean-main rerun.",
       "risk_tier": "medium",
-      "status": "blocked",
+      "status": "in_progress",
       "tests": [
         "Rules, Finlynq, cross-service, frontend, browser, accessibility, tracker, and handoff certification"
       ],
@@ -27,7 +28,7 @@
       "status": "open"
     },
     {
-      "description": "Phase 6 clean-main certification is blocked by canonical Playwright failures on baseline IA/default-off behavior; local bash scripts/test-e2e.sh recorded 93 passed, 14 failed, 1 skipped, and hosted manual heavy run 31868205933 failed after 4/5 steps passed with Playwright timing out at 900 seconds. Do not create phase-6-complete until stale pre-IA browser expectations and expected default-off 503 console handling are separately reconciled without weakening authority or default-off criteria.",
+      "description": "Phase 6 clean-main certification is pending the merge of the bounded reconciliation branch. The original 14 browser failures are classified in docs/10-roadmap/PHASE6_CERTIFICATION_RECONCILIATION.md; focused replacement journeys pass, but phase-6-complete remains prohibited until the full matrix is rerun from clean main.",
       "id": "phase-6-clean-main-certification-blocker",
       "owner": "engineering",
       "related": "Phase 6 certification run 31868205933; clean main af786bea5a80faae7341cd47528ce87d9ece9ccf",

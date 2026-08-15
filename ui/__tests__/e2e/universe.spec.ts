@@ -27,5 +27,7 @@ test('universe route loads and shows heading', async ({ page }) => {
 
   await bootstrapAuth(page)
   await page.goto('/universe')
-  await expect(page.locator('h1:has-text("Financial Universe")')).toBeVisible({ timeout: 15_000 })
+  await expect(page).toHaveURL(/\/wealth\?view=universe/)
+  await expect(page.locator('h1:has-text("Wealth")')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'Financial Universe', level: 3 })).toBeVisible({ timeout: 15_000 })
 })

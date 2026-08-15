@@ -8,11 +8,11 @@
 - Last updated: 2026-08-15T06:22:51Z
 
 ## Active work
-- work-p6-clean-main-certification: Clean-main Phase 6 certification (blocked, medium)
+- work-p6-clean-main-certification: Clean-main Phase 6 certification (in_progress, medium)
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
-- {'description': 'Phase 6 clean-main certification is blocked by canonical Playwright failures on baseline IA/default-off behavior; local bash scripts/test-e2e.sh recorded 93 passed, 14 failed, 1 skipped, and hosted manual heavy run 31868205933 failed after 4/5 steps passed with Playwright timing out at 900 seconds. Do not create phase-6-complete until stale pre-IA browser expectations and expected default-off 503 console handling are separately reconciled without weakening authority or default-off criteria.', 'id': 'phase-6-clean-main-certification-blocker', 'owner': 'engineering', 'related': 'Phase 6 certification run 31868205933; clean main af786bea5a80faae7341cd47528ce87d9ece9ccf', 'status': 'open'}
+- {'description': 'Phase 6 clean-main certification is pending the merge of the bounded reconciliation branch. The original 14 browser failures are classified in docs/10-roadmap/PHASE6_CERTIFICATION_RECONCILIATION.md; focused replacement journeys pass, but phase-6-complete remains prohibited until the full matrix is rerun from clean main.', 'id': 'phase-6-clean-main-certification-blocker', 'owner': 'engineering', 'related': 'Phase 6 certification run 31868205933; clean main af786bea5a80faae7341cd47528ce87d9ece9ccf', 'status': 'open'}
 
 ## Phase progress
 - phase-0 — Projection foundation and Atlas baseline: complete (4/4 exit criteria)

@@ -45,7 +45,13 @@ export default function PageTabs({ tabs, activeId, defaultActiveId, queryKey, on
     if (!target || target.disabled) return
     if (activeId === undefined) setInternalId(id)
     if (queryKey) {
-      router.replace(withTabQuery(searchParams.toString(), queryKey, id), { scroll: false })
+      // Read the live browser query string so a tab click immediately after
+      // another URL-synced control cannot overwrite that control's update
+      // with the hook's still-stale snapshot.
+      const liveSearch = typeof window === 'undefined'
+        ? searchParams.toString()
+        : window.location.search.replace(/^\?/, '')
+      router.replace(withTabQuery(liveSearch, queryKey, id), { scroll: false })
     }
     onChange?.(id)
   }

@@ -13,15 +13,15 @@
 
 ## Active work
 
-- work-p6-clean-main-certification: Clean-main Phase 6 certification [blocked/medium]
-  - Objective: Run the documented full Phase 6 certification matrix from clean main and create the completion tag only after every exit criterion passes.
-  - Branch: main
-  - Paths: docs/10-roadmap
+- work-p6-clean-main-certification: Clean-main Phase 6 certification [in_progress/medium]
+  - Objective: Reconcile the documented Phase 6 clean-main browser blockers, then rerun the complete certification matrix and create the completion tag only after every exit criterion passes.
+  - Branch: codex/phase-6-certification-reconciliation
+  - Paths: ui, docs/10-roadmap
 
 ## Blockers
 
 - external-multi-user-retention-deletion-blocker [open]: External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.
-- phase-6-clean-main-certification-blocker [open]: Phase 6 clean-main certification is blocked by canonical Playwright failures on baseline IA/default-off behavior; local bash scripts/test-e2e.sh recorded 93 passed, 14 failed, 1 skipped, and hosted manual heavy run 31868205933 failed after 4/5 steps passed with Playwright timing out at 900 seconds. Do not create phase-6-complete until stale pre-IA browser expectations and expected default-off 503 console handling are separately reconciled without weakening authority or default-off criteria.
+- phase-6-clean-main-certification-blocker [open]: Phase 6 clean-main certification is pending the merge of the bounded reconciliation branch. The original 14 browser failures are classified in docs/10-roadmap/PHASE6_CERTIFICATION_RECONCILIATION.md; focused replacement journeys pass, but phase-6-complete remains prohibited until the full matrix is rerun from clean main.
 
 ## Open risks
 

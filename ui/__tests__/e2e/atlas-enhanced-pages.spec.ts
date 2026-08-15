@@ -380,11 +380,11 @@ test.describe('Expenses page — enhanced with drilldown + insights', () => {
 test.describe('Debts page — enhanced with DebtTable + payoff projections', () => {
   test('loads with KPI cards and debt summary', async ({ page }) => {
     const errors = setupErrorCapture(page)
-    await page.goto('/debts')
+    await page.goto('/wealth?view=debts')
     await page.waitForLoadState('networkidle')
 
     // Page heading
-    await expect(page.locator('h1:has-text("Debts")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Wealth")')).toBeVisible({ timeout: 10_000 })
 
     // KPI cards (Total Debt, Blended APR, Monthly Minimum, Accounts)
     // OR empty state
@@ -399,10 +399,10 @@ test.describe('Debts page — enhanced with DebtTable + payoff projections', () 
 
   test('debt composition donut renders when debts exist', async ({ page }) => {
     const errors = setupErrorCapture(page)
-    await page.goto('/debts')
+    await page.goto('/wealth?view=debts')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('h1:has-text("Debts")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Wealth")')).toBeVisible({ timeout: 10_000 })
 
     // Look for "Debt Composition" heading (ChartDonut replaced the old stacked bar)
     const compositionSection = page.locator('text=Debt Composition')
@@ -420,10 +420,10 @@ test.describe('Debts page — enhanced with DebtTable + payoff projections', () 
 
   test('debt table renders when debts exist', async ({ page }) => {
     const errors = setupErrorCapture(page)
-    await page.goto('/debts')
+    await page.goto('/wealth?view=debts')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('h1:has-text("Debts")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Wealth")')).toBeVisible({ timeout: 10_000 })
 
     // Look for DebtTable — it shows account names in a table format
     // The table headers include APR, Min Payment, Utilization
@@ -438,10 +438,10 @@ test.describe('Debts page — enhanced with DebtTable + payoff projections', () 
 
   test('payoff projections render when debts have interest rates', async ({ page }) => {
     const errors = setupErrorCapture(page)
-    await page.goto('/debts')
+    await page.goto('/wealth?view=debts')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('h1:has-text("Debts")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Wealth")')).toBeVisible({ timeout: 10_000 })
 
     // Look for PayoffProjectionChart — shows "Payoff Projections" header
     const projSection = page.locator('text=Payoff Projections')
@@ -460,10 +460,10 @@ test.describe('Debts page — enhanced with DebtTable + payoff projections', () 
 
   test('no time range selector on debts page', async ({ page }) => {
     const errors = setupErrorCapture(page)
-    await page.goto('/debts')
+    await page.goto('/wealth?view=debts')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('h1:has-text("Debts")')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('h1:has-text("Wealth")')).toBeVisible({ timeout: 10_000 })
 
     // Debts are point-in-time — no time range selector should be present
     // The TimeRangeSelector has a data-testid or specific button labels
@@ -492,10 +492,12 @@ test.describe('Enhanced pages — cross-page navigation', () => {
     await expect(page).toHaveURL(/\/cash-flow/)
     await expect(page.locator('h1:has-text("Cash Flow")')).toBeVisible({ timeout: 10_000 })
 
-    // Navigate to Debts
-    await page.locator('nav a:has-text("Debts")').click()
-    await expect(page).toHaveURL(/\/debts/)
-    await expect(page.locator('h1:has-text("Debts")')).toBeVisible({ timeout: 10_000 })
+    // Debts is a specialist view owned by Wealth, not a sidebar destination.
+    await page.locator('nav a:has-text("Wealth")').click()
+    await expect(page).toHaveURL(/\/wealth/)
+    await page.getByRole('button', { name: 'Debts', exact: true }).click()
+    await expect(page).toHaveURL(/\/wealth\?view=debts/)
+    await expect(page.locator('h1:has-text("Wealth")')).toBeVisible({ timeout: 10_000 })
 
     // Navigate back to Mission Control
     await page.locator('nav a:has-text("Mission Control")').click()
@@ -508,7 +510,7 @@ test.describe('Enhanced pages — cross-page navigation', () => {
   test('each enhanced page has consistent layout with PageLayout', async ({ page }) => {
     const errors = setupErrorCapture(page)
 
-    const pages = ['/plan?view=budget', '/cash-flow?view=income', '/cash-flow?view=spending', '/debts']
+    const pages = ['/plan?view=budget', '/cash-flow?view=income', '/cash-flow?view=spending', '/wealth?view=debts']
 
     for (const path of pages) {
       await page.goto(path)

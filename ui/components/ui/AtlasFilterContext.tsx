@@ -109,7 +109,13 @@ export function AtlasFilterProvider({ children }: { children: ReactNode }) {
     const params = new URLSearchParams(searchParamsRef.current.toString())
     update(params)
     searchParamsRef.current = params
-    router.replace(`?${params.toString()}`, { scroll: false })
+    const nextSearch = `?${params.toString()}`
+    // Keep the browser URL current before the next sibling control reads it.
+    // Next's router state may refresh on the following render, so the
+    // synchronous history update prevents a rapid tab click from dropping a
+    // just-selected range or comparison value.
+    if (typeof window !== 'undefined') window.history.replaceState(window.history.state, '', nextSearch)
+    router.replace(nextSearch, { scroll: false })
   }, [router])
 
   const setTimeRange = useCallback(

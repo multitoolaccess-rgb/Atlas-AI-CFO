@@ -6,8 +6,8 @@
  *
  *  Three bounded typed methods wrap the merged Phase 1 + Phase 2 routes:
  *    1. ``getLatestForecastForGoal(goalId)``
- *       GET /api/v1/forecasts?goal_id={id}&limit=4
- *       GET /api/v1/forecasts/{forecast_id}/versions/{latest_version_number}
+ *       Fails closed until an authoritative forecast collection read route is
+ *       merged; it never infers a current forecast in the browser.
  *    2. ``getDerivedRecommendation(forecastId)``
  *       GET /api/v1/forecasts/{forecast_id}/recommendation
  *    3. ``postDecisionJournal(recommendationId, body, idempotencyKey)``
@@ -323,25 +323,12 @@ export function readSanitizedError(err: unknown): SanitizedEnvelope {
 export async function getLatestForecastForGoal(
   goalId: number,
 ): Promise<LatestForecastState> {
-  const listResp = await rulesApi.get<{ forecasts: ForecastWire[] }>(
-    '/api/v1/forecasts',
-    { params: { goal_id: goalId, limit: 4 } },
-  )
-  const forecasts = listResp.data?.forecasts ?? []
-  if (forecasts.length === 0) {
-    return { state: 'no_forecast', goal_id: goalId }
-  }
-  // Phase 1 sorts server-side by `created_at` desc; pick the first.
-  const forecast = forecasts[0]
-  const versionResp = await rulesApi.get<ForecastVersionWire>(
-    `/api/v1/forecasts/${forecast.id}/versions/${forecast.latest_version_number}`,
-  )
-  return {
-    state: 'ready',
-    goal_id: goalId,
-    forecast,
-    version: versionResp.data,
-  }
+  // The merged backend exposes forecast generation and forecast-scoped
+  // recommendation reads, but it does not expose a forecast collection read
+  // route. Do not probe an uncontracted URL or infer a current forecast from
+  // client state: fail closed until an authoritative list/read contract is
+  // added in a separate backend task.
+  return { state: 'no_forecast', goal_id: goalId }
 }
 
 // ============================================================

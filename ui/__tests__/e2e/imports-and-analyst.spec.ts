@@ -120,28 +120,17 @@ test('upload CSV, see in history, delete via 2-step confirm', async ({ page }) =
   ).toHaveCount(0, { timeout: 5_000 })
 })
 
-test('analyst-ratings panel on /recommendations loads via FE', async ({ page }) => {
+test('legacy Recommendations opens the canonical Decisions recovery state', async ({ page }) => {
   await login(page)
   await page.goto('/recommendations')
 
-  await expect(page.locator('h1', { hasText: /AI Recommendations/i })).toBeVisible()
-
-  // Analyst Insights section is present.
-  await expect(page.locator('[data-testid="analyst-section"]')).toBeVisible()
-
-  // Type a ticker + click Load.
-  await page.locator('[data-testid="analyst-ticker-input"]').fill('AAPL')
-  await page.locator('[data-testid="analyst-load-btn"]').click()
-
-  // Wait for the rendered breakdown.
-  await expect(page.locator('[data-testid="analyst-symbol"]')).toContainText(
-    'AAPL',
-    { timeout: 10000 },
-  )
-  // Aggregate counts: latest month buy=30, hold=7, sell=1
-  await expect(page.locator('[data-testid="analyst-price-target"]')).toContainText(
-    '232',
-  )
+  await expect(page).toHaveURL(/\/decisions\?view=recommendations/)
+  await expect(page.getByRole('heading', { name: 'Decisions', level: 1 })).toBeVisible()
+  // The derived recommendation read path is server-owned and may be
+  // unavailable by policy. The page must show honest recovery copy rather
+  // than fabricate a recommendation or expose the retired analyst panel.
+  await expect(page.getByRole('heading', { name: 'No recommendations to review' })).toBeVisible()
+  await expect(page.getByText(/new recommendations appear only when the server has current evidence/i)).toBeVisible()
 })
 
 /**

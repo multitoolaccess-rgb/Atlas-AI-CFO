@@ -45,7 +45,9 @@ test('Cash Flow tabs preserve range state and have one current sidebar destinati
   await page.getByRole('button', { name: 'Income' }).click()
   await expect(page).toHaveURL(/\/cash-flow\?range=YTD&view=income/)
   await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Cash Flow' })).toHaveAttribute('aria-current', 'page')
-  await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Activity' })).not.toHaveAttribute('aria-current', 'page')
+  // Activity remains reachable from Cash Flow / Transactions, but is no
+  // longer a duplicate primary sidebar destination.
+  await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Activity' })).toHaveCount(0)
 })
 
 test('Money destinations remain keyboard accessible and do not overflow at supported widths', async ({ page }) => {
