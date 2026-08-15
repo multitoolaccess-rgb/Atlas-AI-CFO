@@ -183,7 +183,11 @@ safe metadata: service/database identifier, schema revision, Git SHA, state,
 counts of checks, timestamps, checksums, and bounded reason codes. They must
 not expose database paths beyond the minimum recovery label, connection
 strings, credentials, tokens, account IDs, balances, transactions, holdings,
-forecast/scenario snapshots, or provider payloads.
+forecast/scenario snapshots, or provider payloads. An ignored local
+configuration may contain provider credentials or enabled Market Intelligence
+flags; presence is diagnostic metadata only and never authorizes a provider
+call. Any local provider configuration cleanup requires a separate explicit
+safety task.
 
 The following actions require explicit user authorization and are not implied
 by this ADR: reading personal account identifiers; listing accounts requiring

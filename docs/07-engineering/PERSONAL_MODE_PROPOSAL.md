@@ -120,6 +120,10 @@ perform blanket USD backfill.
 - A full enabled service restart/readiness journey remains unproven: the
   personal database lacks projection configuration/baseline and the local
   service process did not remain available for authenticated readiness.
+- Ignored local configuration currently reports Market Intelligence
+  read/generation/external-provider flags enabled and provider credentials
+  present. No external provider was called or changed; Personal Mode must not
+  inherit or auto-enable these values.
 - Goal Float precision, retention/deletion, SQLite/PostgreSQL parity, and
   transitional tenancy remain open risks.
 

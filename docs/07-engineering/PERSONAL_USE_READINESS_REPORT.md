@@ -67,7 +67,8 @@ No new evidence shows a critical financial-integrity, authorization, privacy, or
 
 1. **Account currency authority:** Wave 2A enforcement is complete. After a verified backup, the authorized personal inventory found four active accounts with unknown evidence; four append-only `operator_confirmed` USD events were recorded. No conflicting or non-USD evidence was overwritten. A complete enabled forecast journey remains unproven because the personal database has no projection configuration/baseline.
 2. **Retention and deletion policy:** Immutable history has no approved retention/user-deletion policy. This blocks external multi-user rollout and must not be bypassed; tracked as `risk-p1-retention-rollout-gate`.
-3. **Personal activation lifecycle:** The enabled personal stack reached health once but did not remain available for authenticated readiness. Flags were rolled back and services stopped. Resolve the startup/lifecycle contract and missing baseline before retrying Wave 2C.
+3. **Personal activation lifecycle:** The enabled personal stack reached health once but did not remain available for authenticated readiness. Forecast flags were rolled back and services stopped. Resolve the startup/lifecycle contract and missing baseline before retrying Wave 2C.
+4. **Pre-existing provider configuration:** Ignored local configuration reports Market Intelligence read/generation/external-provider flags enabled and provider credentials present. No external call was made; keep this as a separate explicit safety task and do not change it during Wave 2C recovery.
 
 ## Highest-value P2/P3 findings
 
@@ -90,7 +91,7 @@ service lifecycle acceptance failure. See the linked plan and ADR-010.
 
 ## Evidence gaps
 
-- No real local provider credentials or provider network were used.
+- No real local provider call or provider network was used. The final Doctor diagnostic detected provider credential presence and pre-existing Market Intelligence read/generation/external-provider flags in ignored local configuration; those flags were not changed or invoked and must not be treated as disabled.
 - The personal SQLite database was accessed only under the explicit Wave 2C authorization for metadata, integrity, migration, bounded account-currency evidence status, and append-only operator confirmation; balances, transactions, holdings, account numbers, and raw evidence were not printed.
 - A verified backup exists outside the repository and a disposable restore passed; no in-place personal restore was attempted.
 - No enabled feature-flag journey was certified against the personal database. Local flag overrides were not persisted by the failed activation attempt and were rolled back/off.

@@ -1509,6 +1509,16 @@
       "status": "open"
     },
     {
+      "description": "Ignored local configuration has Market Intelligence read/generation/external-provider flags enabled and provider credentials present; no provider call was made in this task, but the local state is not safe to treat as fully disabled.",
+      "id": "risk-p1-external-provider-local-config",
+      "likelihood": "medium",
+      "mitigation": "Do not call or activate external providers. Keep this as a separate explicit local-configuration safety task; never change or auto-enable these flags as part of Wave 2C recovery.",
+      "owner": "product-security",
+      "related": "Doctor final diagnostic; ignored services/rules-service/.env; Personal Mode proposal",
+      "severity": "high",
+      "status": "open"
+    },
+    {
       "description": "Active account balances now have current operator-confirmed USD evidence after backup-first authorization, but the complete enabled personal forecast journey remains unproven because projection configuration/baseline is absent.",
       "id": "risk-p1-account-currency-authority",
       "likelihood": "medium",
