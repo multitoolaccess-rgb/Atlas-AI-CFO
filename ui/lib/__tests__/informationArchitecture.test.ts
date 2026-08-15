@@ -14,6 +14,12 @@ describe('information architecture activation contract', () => {
     expect(ACTIVE_COMPATIBILITY_REDIRECTS.map(({ from }) => from)).toEqual(['/income', '/expenses', '/activity', '/budgeting', '/debts', '/universe', '/recommendations', '/market-briefs'])
   })
 
+  it('keeps Market Intelligence deep links aligned with the implemented tab state', () => {
+    const market = PROPOSED_NAVIGATION.flatMap((group) => group.destinations).find((destination) => destination.id === 'market-intelligence')
+    expect(market?.tabs?.map((tab) => tab.id)).toEqual(['portfolio', 'pulse', 'earnings', 'scanner', 'archive'])
+    expect(market?.tabs?.find((tab) => tab.id === 'earnings')?.query).toEqual({ view: 'earnings' })
+  })
+
   it('keeps Scout fallback accessible after header activation', () => {
     expect(SCOUT_PLACEMENT_CONTRACT.fallbackRoute).toBe('/assistant')
     expect(SCOUT_PLACEMENT_CONTRACT.activation).toContain('Step 2')

@@ -300,6 +300,57 @@ def _recommendation_id_for(client, db_session, enable_read_flag) -> str:
     return rec_id
 
 
+def _decision_headers(idempotency_key: str, decision_etag: str) -> dict[str, str]:
+    return {
+        "Idempotency-Key": idempotency_key,
+        "If-Match": f'"{decision_etag}"',
+    }
+
+
+def test_post_decision_422_missing_if_match(
+    client, enable_read_flag, db_session
+):
+    rec_id = _recommendation_id_for(client, db_session, enable_read_flag)
+    response = client.post(
+        f"/api/v1/recommendations/{rec_id}/decisions",
+        json={"action": "accept", "decision_etag": f"{rec_id}-d1"},
+        headers={"Idempotency-Key": "idemp-missing-if-match"},
+    )
+    assert response.status_code == 422
+    assert response.json()["errors"][0]["loc"] == ["header", "If-Match"]
+
+
+def test_post_decision_409_when_decision_etag_is_stale(
+    client, enable_read_flag, db_session
+):
+    rec_id = _recommendation_id_for(client, db_session, enable_read_flag)
+    stale_etag = f"{rec_id}-d2"
+    response = client.post(
+        f"/api/v1/recommendations/{rec_id}/decisions",
+        json={"action": "accept", "decision_etag": stale_etag},
+        headers=_decision_headers("idemp-stale-etag", stale_etag),
+    )
+    assert response.status_code == 409
+    assert response.json() == {
+        "code": "decision_version_conflict",
+        "message": "Decision etag conflict.",
+        "current_etag": f"{rec_id}-d1",
+    }
+
+
+def test_post_decision_409_when_if_match_does_not_match_body(
+    client, enable_read_flag, db_session
+):
+    rec_id = _recommendation_id_for(client, db_session, enable_read_flag)
+    response = client.post(
+        f"/api/v1/recommendations/{rec_id}/decisions",
+        json={"action": "accept", "decision_etag": f"{rec_id}-d1"},
+        headers=_decision_headers("idemp-mismatched-if-match", f"{rec_id}-d2"),
+    )
+    assert response.status_code == 409
+    assert response.json()["current_etag"] == f"{rec_id}-d1"
+
+
 def test_post_decision_503_when_disabled(client, monkeypatch, db_session):
     """Disabled-phase POST returns 503 with the canonical envelope.
 
@@ -325,7 +376,7 @@ def test_post_decision_503_when_disabled(client, monkeypatch, db_session):
     response = client.post(
         f"/api/v1/recommendations/{rec_id}/decisions",
         json={"action": "accept", "decision_etag": f"{rec_id}-d1"},
-        headers={"Idempotency-Key": "idemp1"},
+        headers=_decision_headers("idemp1", f"{rec_id}-d1"),
     )
     assert response.status_code == 503
     assert response.json()["code"] == "forecast_read_api_unavailable"
@@ -404,7 +455,7 @@ def test_post_decision_404_when_recommendation_missing(
     response = client.post(
         "/api/v1/recommendations/99999999-9999-4999-8999-999999999999/decisions",
         json={"action": "accept", "decision_etag": "99999999-9999-4999-8999-999999999999-d1"},
-        headers={"Idempotency-Key": "idemp-404"},
+        headers=_decision_headers("idemp-404", "99999999-9999-4999-8999-999999999999-d1"),
     )
     assert response.status_code == 404
     assert response.json()["code"] == "recommendation_not_found"
@@ -417,7 +468,7 @@ def test_post_decision_201_happy_path(
     response = client.post(
         f"/api/v1/recommendations/{rec_id}/decisions",
         json={"action": "accept", "decision_etag": f"{rec_id}-d1"},
-        headers={"Idempotency-Key": "idemp-happy-path"},
+        headers=_decision_headers("idemp-happy-path", f"{rec_id}-d1"),
     )
     assert response.status_code == 201
     body = response.json()
@@ -446,11 +497,11 @@ def test_post_decision_201_idempotent_replay_is_identical(
     headers = {"Idempotency-Key": "idemp-replay"}
     response_1 = client.post(
         f"/api/v1/recommendations/{rec_id}/decisions",
-        json=payload, headers=headers,
+        json=payload, headers={**headers, "If-Match": f'"{rec_id}-d1"'},
     )
     response_2 = client.post(
         f"/api/v1/recommendations/{rec_id}/decisions",
-        json=payload, headers=headers,
+        json=payload, headers={**headers, "If-Match": f'"{rec_id}-d1"'},
     )
     assert response_1.status_code == 201
     assert response_2.status_code == 201
@@ -469,7 +520,7 @@ def test_post_decision_409_cross_row_conflict(
     bare ``decision_etag`` so the UI can refresh and retry.
     """
     rec_id = _recommendation_id_for(client, db_session, enable_read_flag)
-    headers = {"Idempotency-Key": "idemp-conflict"}
+    headers = _decision_headers("idemp-conflict", f"{rec_id}-d1")
     response_1 = client.post(
         f"/api/v1/recommendations/{rec_id}/decisions",
         json={
@@ -501,13 +552,13 @@ def test_post_decision_201_replay_then_change_decision_writes_new_row(
     response_1 = client.post(
         f"/api/v1/recommendations/{rec_id}/decisions",
         json={"action": "accept", "decision_etag": f"{rec_id}-d1"},
-        headers={"Idempotency-Key": "idemp-first-accept"},
+        headers=_decision_headers("idemp-first-accept", f"{rec_id}-d1"),
     )
     assert response_1.status_code == 201
     response_2 = client.post(
         f"/api/v1/recommendations/{rec_id}/decisions",
         json={"action": "reject", "decision_etag": f"{rec_id}-d1"},
-        headers={"Idempotency-Key": "idemp-second-reject"},
+        headers=_decision_headers("idemp-second-reject", f"{rec_id}-d1"),
     )
     assert response_2.status_code == 201
     # Different canonical request -> different journal_entry_id (no replay)
@@ -541,7 +592,7 @@ def test_get_recommendation_contract_links_goal_evidence_risks_confidence_and_ap
     accepted = client.post(
         f"/api/v1/recommendations/{rec_id}/decisions",
         json={"action": "accept", "decision_etag": f"{rec_id}-d1"},
-        headers={"Idempotency-Key": "contract-accept"},
+        headers=_decision_headers("contract-accept", f"{rec_id}-d1"),
     )
     assert accepted.status_code == 201, accepted.text
     decision_id = accepted.json()["journal_entry_id"]
@@ -600,7 +651,7 @@ def test_get_recommendation_contract_excludes_rejected_and_deferred_decisions(
         response = client.post(
             f"/api/v1/recommendations/{rec_id}/decisions",
             json={"action": action, "decision_etag": f"{rec_id}-d1"},
-            headers={"Idempotency-Key": f"contract-{action}"},
+            headers=_decision_headers(f"contract-{action}", f"{rec_id}-d1"),
         )
         assert response.status_code == 201, response.text
 
