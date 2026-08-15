@@ -9,13 +9,13 @@
 - Overall status: in_progress
 - Objective: Phase 6 remains in progress after completion of Slice 2 Scenario Lab UI; preserve server-owned financial authority and prepare the separate clean-main certification boundary.
 - Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-08-15T06:22:51Z
+- Tracker updated: 2026-08-15T09:20:00Z
 
 ## Active work
 
 - work-p6-clean-main-certification: Clean-main Phase 6 certification [in_progress/medium]
   - Objective: Reconcile the documented Phase 6 clean-main browser blockers, then rerun the complete certification matrix and create the completion tag only after every exit criterion passes.
-  - Branch: codex/phase-6-certification-reconciliation
+  - Branch: codex/phase-6-certification-browser-reconciliation
   - Paths: ui, docs/10-roadmap
 
 ## Blockers

@@ -53,3 +53,20 @@ calculation was added.
 
 The complete Phase 6 certification matrix is rerun only after this correction
 is merged back to clean `main`.
+
+## Post-merge certification discovery
+
+The first clean-main rerun after PR #56 completed the backend and frontend
+matrices but exposed three remaining browser expectation issues:
+
+| Journey | Classification | Reconciliation |
+|---|---|---|
+| `goals-phase2-slice`: forecast → recommendation journey | A — stale test expectation | The merged client correctly fails closed because no authoritative forecast collection route exists. The journey now verifies that Goals renders no forecast/recommendation and does not attempt a decision write. |
+| `navigation`: Scenario Lab console diagnostics | B — expected default-off recovery | Chromium reports the resource-level `503` even though the client handles the server-owned disabled response. The navigation assertion now ignores only this exact Scenario Lab availability diagnostic; unexpected API and JavaScript errors remain failures. |
+| `scenario-lab-route-mocked`: disabled recovery auth diagnostics | D — test fixture defect | The route-mocked shell now supplies a synthetic profile response, preventing the shared profile/401 retry path from producing unrelated console errors. Scenario Lab error handling remains covered, including observable synthetic `500` behavior. |
+
+The focused reconciliation rerun passed the updated Goals journey (1), full
+navigation journey (15), and Scenario Lab route-mocked journey (4), for 20
+browser checks across the affected specs. This correction remains test and
+observability scope only; server-owned feature flags, sanitized responses, and
+financial authority are unchanged.

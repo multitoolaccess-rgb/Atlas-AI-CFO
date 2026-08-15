@@ -5,7 +5,7 @@
 - Current phase: **phase-6 — Scenario Lab** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 6 remains in progress after completion of Slice 2 Scenario Lab UI; preserve server-owned financial authority and prepare the separate clean-main certification boundary.
-- Last updated: 2026-08-15T06:22:51Z
+- Last updated: 2026-08-15T09:20:00Z
 
 ## Active work
 - work-p6-clean-main-certification: Clean-main Phase 6 certification (in_progress, medium)
