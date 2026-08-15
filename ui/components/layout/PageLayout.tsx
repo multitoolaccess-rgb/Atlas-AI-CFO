@@ -63,8 +63,8 @@ function PageLayoutInner({ children, mobileFullBleed }: { children: React.ReactN
       <Header profile={profile} loading={loading} mobileFullBleed={mobileFullBleed} />
       <main
         id="main-content"
-        className={`atlas-page-main min-w-0 px-4 py-6 pt-7 transition-[margin,padding] duration-300 ease-out sm:px-6 lg:px-10 ${mobileFullBleed ? 'ml-0 lg:ml-[var(--layout-ml)]' : 'ml-0 lg:ml-[var(--layout-ml)]'}`}
-        style={{ '--layout-ml': collapsed ? '4.5rem' : '16rem' } as React.CSSProperties}
+        className={`atlas-page-main min-w-0 px-4 py-6 pt-7 transition-[margin,padding] duration-300 ease-out sm:px-6 lg:px-10 ${mobileFullBleed ? 'ml-0 lg:ml-[var(--layout-ml)]' : 'ml-[var(--mobile-layout-ml)] lg:ml-[var(--layout-ml)]'}`}
+        style={{ '--layout-ml': collapsed ? '4.5rem' : '16rem', '--mobile-layout-ml': collapsed ? '4.5rem' : '0px' } as React.CSSProperties}
       >{children}</main>
       {/* Phase 4 — Persistent AI Copilot (orb + dock).
           On non-dashboard pages we render with empty insights; the user

@@ -25,7 +25,7 @@ when they do not affect its authoritative query.
 | `TrendChart`, `BreakdownPanel`, category detail | Cash Flow / Income or Spending | Retained in place |
 | `RecentActivity`, `/activity` | Cash Flow / Transactions | Retained in place |
 | `RecurringTransactions` | Plan / Commitments | Retained in place |
-| `FinancialPlans`, simulation components | Scenario Lab | Retained in place |
+| `FinancialPlans`, legacy simulation components | Scenario Lab | Slice 2 uses server-backed presentation; local calculators quarantined |
 | `/debts`, `/universe` | Wealth tabs | Retained in place |
 | `/assistant` | Global header Scout with accessible fallback | Retained in place |
 
@@ -148,7 +148,7 @@ Move out:
 - `TrendChart`, `BreakdownPanel`, `FinancialHealthGauges`, `SpendByCategoryBar` -> Cash Flow tabs;
 - `RecurringTransactions` -> Plan / Commitments;
 - `RecentActivity` and review queue details -> Cash Flow / Transactions;
-- `FinancialPlans`, `WealthTimeline`, `MoneyFlowSimulator`, `LifeEventSimulator`, `FinancialTwin` -> Scenario Lab;
+- `FinancialPlans` remains bounded goal planning; Scenario Lab owns server-backed what-if analysis. `WealthTimeline`, `MoneyFlowSimulator`, `LifeEventSimulator`, and `FinancialTwin` remain retained for compatibility tests but are no longer rendered from Mission Control and are not Scenario Lab authority;
 - net-worth and balance-sheet detail -> Wealth;
 - goal-specific forecast detail -> Goals;
 - detailed category movers/anomalies -> Spending or Decisions depending on actionability.
@@ -277,7 +277,7 @@ Preserve all Phase 5 evidence, archive, provider-readiness, generation, coverage
 
 Destination: Scenario Lab.
 
-Preserve Phase 6 Slice 1 scenario identity, immutable history, comparison, ownership and Decimal-safe calculations. Move `MoneyFlowSimulator`, `LifeEventSimulator`, `WealthTimeline` and `FinancialTwin` from the current Overview into Scenario Lab. Their presentational calculations must not bypass the authoritative Phase 6 APIs once migration is complete.
+Preserve Phase 6 Slice 1 scenario identity, immutable history, comparison, ownership and Decimal-safe calculations. Slice 2 uses dedicated server-result presentation components under `ui/components/scenario-lab/`. The legacy `MoneyFlowSimulator`, `LifeEventSimulator`, `WealthTimeline`, and `FinancialTwin` remain quarantined for compatibility coverage only: they are not rendered from Mission Control, do not receive Scenario Lab data, and do not provide financial authority.
 
 ### Current `/assistant`
 

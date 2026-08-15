@@ -5,7 +5,7 @@
 - Current phase: **phase-6 — Scenario Lab** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 6 remains in progress after completion of Slice 1; implement the newly authorized cohesive Atlas Visual System v2 while preserving all financial semantics and application behavior.
-- Last updated: 2026-08-15T05:10:46Z
+- Last updated: 2026-08-15T05:38:23Z
 
 ## Active work
 - None
@@ -37,11 +37,11 @@
 - risk-p1-migration-downgrade-patched [medium/low, resolved]: Alembic 1.13.x's ApplyBatchImpl.drop_index rejects the deprecated if_exists keyword argument; the Phase 1 final cert matrix surfaced this as a full upgrade -> downgrade base failure on the e9f0a1b2c3d4 migration.
 
 ## Recently completed work
-- work-ui-information-architecture-step-1: Information architecture migration Step 1 foundations — commit d7e5cde, PR 48
 - work-ui-information-architecture-step-2: Activate Money information architecture migration — commit 54974b8, PR 49
 - work-ui-information-architecture-step-3: Activate Wealth information architecture migration — commit a8e1d5b009175a27c91a521f2a156d0c4179c094, PR 50
 - work-ui-information-architecture-step-4: Activate Intelligence information architecture migration — commit dfd07e60a5b8512ae3c8e5a8bb72ab1a171862f0, PR 51
 - work-ui-information-architecture-step-5: Activate System information architecture migration — commit 5f79932f69e44c255793dde817b6d4a84b3764e3, PR 53
+- work-p6-s2-scenario-lab-ui: Phase 6 Slice 2 Scenario Lab UI — commit 0e8516a, PR None
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -77,6 +77,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-p6-scenario-lab-ui: Next bounded product task: implement or certify the next Phase 6 Scenario Lab UI slice against the authoritative Slice 1 APIs, preserving Decimal-safe server authority and bounded supported changes.
+- work-p6-s2-scenario-lab-certification: Run a separate clean-main Phase 6 certification matrix for Scenario Lab Slice 2 only when phase certification is authorized; do not add a completion tag without all documented exit evidence.
 
 Do not begin the next phase or task automatically.
