@@ -276,6 +276,53 @@ describe('createApiWithAuthRetry \u2014 factory-based 401 auto-retry', () => {
     expect(TOKEN_KEY).toBe('fc_session_token')
   })
 
+  it('logs bounded diagnostics for unexpected server errors without response payloads', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const fakeError = {
+      response: { status: 500, data: { detail: 'PRIVATE_RESPONSE_VALUE', token: 'BOUND_AUTH_VALUE' } },
+      config: { headers: new FakeAxiosHeaders(), url: '/api/v1/goals/42/scenarios' },
+      request: {},
+    }
+    const rejected = (client.interceptors.response as unknown as {
+      handlers: Array<{ rejected?: (err: unknown) => unknown }>
+    }).handlers[0].rejected
+
+    await expect(rejected?.(fakeError)).rejects.toBe(fakeError)
+    expect(errorSpy).toHaveBeenCalledWith('[cashflix] unexpected API response', 500, 'unknown')
+    expect(errorSpy.mock.calls.flat().join(' ')).not.toContain('PRIVATE_RESPONSE_VALUE')
+    expect(errorSpy.mock.calls.flat().join(' ')).not.toContain('BOUND_AUTH_VALUE')
+  })
+
+  it('keeps known recovery responses out of the browser error channel', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined)
+    const fakeError = {
+      response: { status: 503, data: { code: 'scenario_generation_unavailable', detail: 'PRIVATE_PROVIDER_VALUE' } },
+      config: { headers: new FakeAxiosHeaders(), url: '/api/v1/goals/42/scenarios' },
+      request: {},
+    }
+    const rejected = (client.interceptors.response as unknown as {
+      handlers: Array<{ rejected?: (err: unknown) => unknown }>
+    }).handlers[0].rejected
+
+    await expect(rejected?.(fakeError)).rejects.toBe(fakeError)
+    expect(errorSpy).not.toHaveBeenCalled()
+    expect(infoSpy).toHaveBeenCalledWith('[cashflix] handled response', 'scenario_generation_unavailable', 503)
+  })
+
+  it('does not log raw network request or setup error details', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const rejected = (client.interceptors.response as unknown as {
+      handlers: Array<{ rejected?: (err: unknown) => unknown }>
+    }).handlers[0].rejected
+
+    await expect(rejected?.({ request: { headers: { Authorization: 'Bearer BOUND_AUTH_VALUE' } }, message: 'PRIVATE_SETUP_VALUE' })).rejects.toBeTruthy()
+    await expect(rejected?.({ message: 'PRIVATE_SETUP_VALUE', config: undefined })).rejects.toBeTruthy()
+    expect(errorSpy.mock.calls.flat().join(' ')).not.toContain('BOUND_AUTH_VALUE')
+    expect(errorSpy.mock.calls.flat().join(' ')).not.toContain('PRIVATE_SETUP_VALUE')
+  })
+
+
   // Regression: the 401 interceptor must NEVER retry /api/auth/devlogin.
   // If it did, devLogin returning 401 would re-call deps.loginFn() (=
   // devLogin) through itself. With ``inflightLogin.current`` still

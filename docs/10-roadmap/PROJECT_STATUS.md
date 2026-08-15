@@ -4,11 +4,11 @@
 
 - Current phase: **phase-6 — Scenario Lab** (complete)
 - Overall status: **complete**
-- Current objective: Phase 6 is certified; Wave 2C six-account personal activation and restart acceptance are complete. Preserve server-owned financial authority and do not begin the combined Waves 3–5 stabilization wave or Phase 7 automatically.
-- Last updated: 2026-08-15T21:20:12Z
+- Current objective: Waves 3–5 Product Stabilization is in progress after Phase 6 certification. Preserve server-owned financial authority, do not begin Wave 6 certification, and do not begin Phase 7.
+- Last updated: 2026-08-15T21:28:28Z
 
 ## Active work
-- None
+- work-waves-3-5-product-stabilization: Combined Waves 3–5 product stabilization (in_progress, medium)
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}

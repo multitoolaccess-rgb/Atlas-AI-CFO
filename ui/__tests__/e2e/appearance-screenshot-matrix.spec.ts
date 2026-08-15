@@ -8,18 +8,19 @@ test.describe('Atlas v2.1 screenshot evidence', () => {
     const root = resolve(process.cwd(), 'artifacts/v2.1')
     mkdirSync(root, { recursive: true })
 
+    // Keep screenshot evidence aligned with the authoritative IA. Legacy
+    // routes remain covered by redirect tests, but must not be treated as
+    // primary product surfaces or used as visual-certification destinations.
     const routes = [
-      ['overview', '/'],
-      ['budgeting', '/budgeting'],
-      ['income', '/income'],
-      ['expenses', '/expenses'],
-      ['debts', '/debts'],
-      ['universe', '/universe'],
+      ['mission-control', '/'],
+      ['cash-flow', '/cash-flow'],
+      ['plan', '/plan'],
+      ['wealth', '/wealth'],
       ['portfolio', '/portfolio'],
       ['goals', '/goals'],
-      ['recommendations', '/recommendations'],
-      ['activity', '/activity'],
-      ['market-briefs', '/market-briefs'],
+      ['decisions', '/decisions'],
+      ['market-intelligence', '/market-intelligence'],
+      ['scenario-lab', '/scenario-lab'],
       ['data-connections', '/data-connections'],
       ['settings', '/settings'],
       ['help', '/help'],
@@ -51,11 +52,12 @@ test.describe('Atlas v2.1 screenshot evidence', () => {
     // matrix plus mobile/tablet captures. The screenshots use real route
     // states; they do not seed or fabricate financial values.
     const representative = [
-      ['overview', '/'],
-      ['budgeting', '/budgeting'],
+      ['mission-control', '/'],
+      ['plan', '/plan'],
       ['portfolio', '/portfolio'],
       ['goals', '/goals'],
-      ['market-briefs', '/market-briefs'],
+      ['market-intelligence', '/market-intelligence'],
+      ['scenario-lab', '/scenario-lab'],
       ['settings', '/settings'],
     ] as const
     const profiles = [

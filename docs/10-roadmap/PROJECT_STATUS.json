@@ -1,5 +1,26 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "codex/waves-3-5-product-stabilization",
+      "id": "work-waves-3-5-product-stabilization",
+      "issue": null,
+      "objective": "Stabilize delivered Phase 0–6 integration, discoverability, dead paths, accessibility, reliability, and local personal-use readiness without changing financial authority or beginning Wave 6/Phase 7.",
+      "paths": [
+        "ui",
+        "services/rules-service/app",
+        "services/rules-service/tests",
+        "docs"
+      ],
+      "phase_id": "phase-6",
+      "pr": null,
+      "risk_tier": "medium",
+      "status": "in_progress",
+      "tests": [
+        "Focused frontend, backend-contract, route-mocked browser, accessibility, and isolated synthetic integration validation"
+      ],
+      "title": "Combined Waves 3–5 product stabilization"
+    }
+  ],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -1342,9 +1363,9 @@
       }
     }
   ],
-  "current_objective": "Phase 6 is certified; Wave 2C six-account personal activation and restart acceptance are complete. Preserve server-owned financial authority and do not begin the combined Waves 3\u20135 stabilization wave or Phase 7 automatically.",
+  "current_objective": "Waves 3–5 Product Stabilization is in progress after Phase 6 certification. Preserve server-owned financial authority, do not begin Wave 6 certification, and do not begin Phase 7.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T21:20:12Z",
+  "last_updated": "2026-08-15T21:28:28Z",
   "next_bounded_task": {
     "description": "Plan and obtain separate authorization for the combined Waves 3\u20135 Product Stabilization Wave; do not begin automatically.",
     "id": "work-waves-3-5-product-stabilization",
