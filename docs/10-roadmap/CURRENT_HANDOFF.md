@@ -9,14 +9,11 @@
 - Overall status: complete
 - Objective: Phases 0–6 are certified and the Personal-Use Acceptance and System Health Audit is complete; preserve server-owned financial authority and do not begin Phase 7.
 - Phase exit criteria: 2/2 complete
-- Tracker updated: 2026-08-15T17:28:05Z
+- Tracker updated: 2026-08-15T17:43:55Z
 
 ## Active work
 
-- work-personal-use-activation-readiness-wave-1a: Implement personal-use readiness and synthetic acceptance [in_progress/medium]
-  - Objective: Add a read-only Atlas Doctor, sanitized authenticated readiness surface, Settings readiness view, disposable synthetic acceptance command, and personal activation/recovery documentation without enabling financial or provider capabilities.
-  - Branch: codex/wave-1a-readiness-synthetic-acceptance
-  - Paths: scripts, services/rules-service/app, services/rules-service/tests, ui, docs/07-engineering, docs/10-roadmap
+- None
 
 ## Blockers
 
@@ -38,14 +35,14 @@
 
 ## Recently completed
 
-- work-ui-information-architecture-step-3: Activate Wealth information architecture migration — commit a8e1d5b009175a27c91a521f2a156d0c4179c094, PR 50
 - work-ui-information-architecture-step-4: Activate Intelligence information architecture migration — commit dfd07e60a5b8512ae3c8e5a8bb72ab1a171862f0, PR 51
 - work-ui-information-architecture-step-5: Activate System information architecture migration — commit 5f79932f69e44c255793dde817b6d4a84b3764e3, PR 53
 - work-p6-s2-scenario-lab-ui: Phase 6 Slice 2 Scenario Lab UI — commit 85761ce08d2d8761aa7c71e8ae00887e4b59e16a, PR 55
 - work-p6-clean-main-certification: Clean-main Phase 6 certification — commit 9c9b554, PR not recorded
+- work-personal-use-activation-readiness-wave-1a: Implement personal-use readiness and synthetic acceptance — commit 9847f1a, PR not recorded
 
 ## Next bounded task
 
-- work-personal-use-activation-readiness-wave-1: Plan the separately authorized Wave 1 personal-use activation and readiness work; do not enable financial intelligence flags or begin Phase 7.
+- work-wave-2-account-currency-backup-recovery: Plan and authorize Wave 2 for authoritative account currency plus non-destructive backup and recovery; do not begin implementation or Phase 7.
 
 Do not begin the next task automatically.
