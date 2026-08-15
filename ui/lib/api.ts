@@ -150,21 +150,27 @@ export function createApiWithAuthRetry(options: AuthRetryOptions): AxiosInstance
           : typeof responseData?.reason_code === 'string'
             ? responseData.reason_code
             : null
-        const isHandledAvailability = err.response.status === 503 && (
+        const isKnownRecoveryRoute = (
           url.includes('/api/v1/market-briefs') ||
           url.includes('/api/v1/goals/') && url.includes('/scenarios') ||
           url.includes('/api/v1/scenarios') ||
-          url.includes('/api/v1/forecasts/') && url.endsWith('/recommendation')
+          url.includes('/api/v1/forecasts') ||
+          url.includes('/api/v1/recommendations') ||
+          url.includes('/api/v1/decision-history') ||
+          url.includes('/api/system/readiness')
         )
-        if (typeof window !== 'undefined' && !isHandledAvailability) {
+        const isHandledRecovery = isKnownRecoveryRoute && [401, 404, 409, 412, 422, 503].includes(err.response.status)
+        if (typeof window !== 'undefined' && isHandledRecovery) {
+          // Recovery responses are rendered as explicit UI states by the
+          // owning route. Keep diagnostics bounded: response bodies can
+          // contain provider details, financial values, or credentials.
           // eslint-disable-next-line no-console
-          console.error(`[${clientName}] API Error:`, err.response.data, 'Status:', err.response.status)
-        } else if (typeof window !== 'undefined' && isHandledAvailability) {
-          // Keep a bounded diagnostic without exposing the server payload or
-          // turning an intentionally rendered unavailable state into an
-          // uncaught browser console error.
+          console.info(`[${clientName}] handled response`, responseCode ?? 'unknown', err.response.status)
+        } else if (typeof window !== 'undefined') {
+          // Unexpected server failures remain observable, but never log the
+          // raw response body or request object into the browser console.
           // eslint-disable-next-line no-console
-          console.info(`[${clientName}] handled availability response`, responseCode ?? 'unknown', err.response.status)
+          console.error(`[${clientName}] unexpected API response`, err.response.status, responseCode ?? 'unknown')
         }
         if (
           err.response.status === 401 &&
@@ -211,10 +217,10 @@ export function createApiWithAuthRetry(options: AuthRetryOptions): AxiosInstance
         }
       } else if (err.request) {
         // eslint-disable-next-line no-console
-        console.error(`[${clientName}] No response received:`, err.request)
+        console.error(`[${clientName}] request failed without response`)
       } else {
         // eslint-disable-next-line no-console
-        console.error(`[${clientName}] Error:`, err.message)
+        console.error(`[${clientName}] request setup failed`)
       }
       return Promise.reject(error)
     },

@@ -3,6 +3,7 @@
 - **Audit date:** 2026-08-15
 - **Audited baseline:** `ff85ad7bc39680a2beb13533795478e515cda931`
 - **Wave 2C evidence update:** `9fbe20df1345645dd7f2ce95f49a6970faf869b0` (2026-08-15)
+- **Waves 3–5 stabilization update:** local branch evidence at the final merged stabilization head; no personal financial state was changed by this wave.
 - **Verdict:** **Ready for bounded single-user local use with explicit provider-safety caveats; not ready for unattended, external multi-user, or execution-enabled use.**
 - **Phase status:** Phases 0–6 certified locally; Phase 7 not started.
 - **Related:** [Capability Matrix](../10-roadmap/ATLAS_CAPABILITY_MATRIX.md), [System Health Audit](./SYSTEM_HEALTH_AUDIT.md), [UI Acceptance Matrix](../06-ui-ux/UI_ACCEPTANCE_MATRIX.md), [Remediation Backlog](../10-roadmap/REMEDIATION_BACKLOG.md), [Personal Mode Proposal](./PERSONAL_MODE_PROPOSAL.md), [Wave 2 Currency/Recovery Plan](../10-roadmap/WAVE2_CURRENCY_BACKUP_RECOVERY_PLAN.md), [ADR-010](../adr/ADR-010-ACCOUNT-CURRENCY-AND-LOCAL-RECOVERY.md).
@@ -16,7 +17,8 @@ Confirmed evidence:
 - Clean main, `origin/main`, GitHub main, and `phase-6-complete` target are synchronized at the audited commit.
 - Phase 6 local certification recorded Rules Service `1,298 passed, 10 skipped, 1 xfailed`; Finlynq `106 passed`; root tests `37 passed`; Scenario focus `72 passed, 3 skipped`; frontend Vitest `630 passed`; canonical Playwright `108 passed, 1 skipped`; TypeScript, ESLint, build, tracker, render, handoff, and scope checks passed.
 - Isolated synthetic browser acceptance selected 17 journeys: 16 passed and one first-run axe journey failed because the screenshot/appearance harness saw a transient Next 404 on a migrated route; rerunning that single journey passed. The focused route set therefore passed after bounded retry, without code changes.
-- The screenshot matrix produced 126 transient screenshots under `/tmp/atlas-phase0-6-audit-ff85ad7-screenshots`; the repository’s tracked screenshot directory was restored unchanged.
+- Waves 3–5 focused validation added 34 passing frontend tests, 7 passing route-mocked browser tests, TypeScript, and ESLint. The API diagnostics tests prove handled recovery responses remain out of the browser error channel while unexpected 500s remain observable without raw payloads.
+- The screenshot matrix definition now targets canonical IA destinations. Full appearance/screenshot execution remains intentionally reserved for the Wave 6 certification boundary; no new screenshot artifacts were committed.
 
 ## Score
 
@@ -24,7 +26,7 @@ Confirmed evidence:
 
 The score remains capped because external provider configuration still requires a separate safety decision, immutable-history retention/deletion policy is unresolved, Goal.target_amount remains a legacy Float boundary, and recommendation/decision/outcome/scenario personal writes were intentionally proven only on the disposable clone.
 
-This score is deliberately capped below launch-ready because a complete enabled forecast → recommendation → decision → outcome → market → scenario journey was not proven under a supported personal configuration, and account-currency authority remains an open high-risk issue. Green certification suites prove contracts and regressions; they do not prove an operator can safely enable every capability.
+This score remains deliberately capped below launch-ready because Wave 6 integrated certification has not been run, external provider configuration still requires a separate safety decision, immutable-history retention/deletion policy is unresolved, Goal.target_amount remains a legacy Float boundary, and personal recommendation/decision/outcome/scenario writes were intentionally proven only on the disposable clone. Green focused suites prove contracts and regressions; they do not replace the final local certification matrix.
 
 | Dimension | Score | Basis |
 |---|---:|---|
@@ -92,8 +94,9 @@ No new evidence shows a critical financial-integrity, authorization, privacy, or
 
 - **Completed Wave 1A:** Atlas Doctor, authenticated readiness contract/UI, and disposable synthetic acceptance command now expose safe recovery state without secrets or financial values.
 - **Completed Wave 2C:** The isolated six-account service-restart/persistence and backup/restore acceptance drill passed. No in-place restore was attempted.
-- **P2:** Reconcile screenshot matrix route inventory with the final IA so legacy aliases are labelled as compatibility captures and migrated destinations are captured directly.
-- **P3:** Quarantine or remove legacy client-side simulation calculators after compatibility references are no longer needed; do not make them financial authority.
+- **Completed Wave 3–5 route stabilization:** Screenshot evidence now targets canonical IA destinations; compatibility aliases remain covered by redirect tests and are not treated as primary visual surfaces.
+- **Completed Wave 3–5 diagnostics:** Expected route recovery responses are bounded in browser diagnostics, while unexpected server failures remain visible and raw response/request payloads are no longer logged.
+- **P3 deferred:** Quarantine or remove legacy client-side simulation calculators after a dedicated compatibility decision; current reference search found no runtime imports outside their own tests, but the code remains preserved rather than deleted in this wave. Do not make it financial authority.
 - **P3:** Reduce legacy names and duplicate service/model documentation after a bounded terminology decision.
 - **P3:** Address repository-wide frontend lint debt and dependency/reference inventory.
 
@@ -109,13 +112,16 @@ acceptance; no external provider or execution behavior was activated.
 ## Evidence gaps
 
 - No real local provider call or provider network was used. The final Doctor diagnostic detected provider credential presence and pre-existing Market Intelligence read/generation/external-provider flags in ignored local configuration; those flags were not changed or invoked and must not be treated as disabled.
+- Waves 3–5 did not mutate the personal database, change financial calculations, enable providers, or alter phase tags. Focused route-mocked tests used synthetic responses only.
 - The personal SQLite database was accessed only under the explicit Wave 2C authorization for metadata, integrity, migration, bounded account-currency evidence status, and append-only operator confirmation; balances, transactions, holdings, account numbers, and raw evidence were not printed.
 - A verified backup exists outside the repository and a disposable restore passed; no in-place personal restore was attempted.
 - The projection operator resolved one active goal and recorded the authorized `500.00 USD` configuration. The personal baseline was generated only after the six-account evidence and clone gates passed.
 - Approved local forecast persistence/read, decision-history, and Scenario Lab flags are enabled in the ignored local configuration. External provider flags were overridden off only in automated acceptance; the existing ignored provider configuration was not changed.
 - No production deployment or external multi-user behavior is implied.
-- The full screenshot matrix is not a clean final-IA acceptance artifact because its checked-in test still includes compatibility routes; 126 transient captures are retained outside Git for audit reference.
+- The screenshot matrix definition is now aligned to canonical IA destinations; legacy compatibility routes remain covered separately by redirect tests. Existing historical transient captures remain outside Git for audit reference.
 
-## Recommended first remediation wave
+## Stabilization outcome and next task
 
-The next bounded task is the **combined Waves 3–5 Product Stabilization Wave**: plan and obtain separate authorization before beginning it. Do not begin Wave 3 or Phase 7 automatically.
+The combined Waves 3–5 Product Stabilization Wave is complete for its bounded scope: canonical route evidence, compatibility disposition, sanitized diagnostics, focused accessibility/recovery coverage, and local TypeScript/ESLint validation. Full local integrated acceptance remains a separate Wave 6 certification boundary.
+
+The next bounded task is **Wave 6 — Final Personal-Use Acceptance and Release Candidate Certification**. It requires separate authorization and must not be started automatically. Phase 7 remains out of scope.

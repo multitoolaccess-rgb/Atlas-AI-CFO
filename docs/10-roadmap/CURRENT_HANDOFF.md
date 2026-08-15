@@ -7,13 +7,16 @@
 - Phase: phase-6 — Scenario Lab
 - Phase status: complete
 - Overall status: complete
-- Objective: Phase 6 is certified; Wave 2C six-account personal activation and restart acceptance are complete. Preserve server-owned financial authority and do not begin the combined Waves 3–5 stabilization wave or Phase 7 automatically.
+- Objective: Waves 3–5 Product Stabilization is in progress after Phase 6 certification. Preserve server-owned financial authority, do not begin Wave 6 certification, and do not begin Phase 7.
 - Phase exit criteria: 2/2 complete
-- Tracker updated: 2026-08-15T21:20:12Z
+- Tracker updated: 2026-08-15T21:28:28Z
 
 ## Active work
 
-- None
+- work-waves-3-5-product-stabilization: Combined Waves 3–5 product stabilization [in_progress/medium]
+  - Objective: Stabilize delivered Phase 0–6 integration, discoverability, dead paths, accessibility, reliability, and local personal-use readiness without changing financial authority or beginning Wave 6/Phase 7.
+  - Branch: codex/waves-3-5-product-stabilization
+  - Paths: ui, services/rules-service/app, services/rules-service/tests, docs
 
 ## Blockers
 

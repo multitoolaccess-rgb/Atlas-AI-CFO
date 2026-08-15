@@ -142,6 +142,7 @@ proves verified local recovery; 2C proves only the explicitly authorized local
 journey.
 ## Wave 3 — Broken UI/API integrations
 
+**Status:** Complete for the bounded stabilization scope. The delivered server-owned journeys remain unchanged; focused route-mocked coverage now exercises canonical navigation, Scenario Lab persistence/recovery, and sanitized API diagnostics.
 **Risk:** Medium unless backend authority changes, then High.
 **Priority:** P1/P2.
 
@@ -159,10 +160,11 @@ journey.
 **Likely files:** UI route-mocked specs, typed clients, help/readiness docs, provider readiness components, focused backend fixtures.
 **Validation:** affected Vitest, TypeScript/lint, route-mocked browser tests, isolated live stack only where integration is genuine, scoped axe/overflow/console checks.
 **Rollback:** revert UI/readiness changes; preserve compatibility redirects and default-off behavior.
-**Completion criteria:** every enabled capability has an honest loading/empty/unavailable/error state and one reproducible synthetic journey.
+**Completion criteria:** every enabled capability has an honest loading/empty/unavailable/error state and one reproducible synthetic journey. Satisfied by the existing Scenario Lab and Market Intelligence route-mocked suites plus the focused local validation recorded in the completion evidence.
 
 ## Wave 4 — Dead code, duplicate paths, and dependency cleanup
 
+**Status:** Complete for the bounded inventory/ownership scope. The legacy simulation directory has no runtime imports outside its own tests and remains quarantined rather than deleted; compatibility routes remain intentionally preserved. The screenshot matrix now targets canonical IA destinations while redirect tests retain legacy bookmark coverage.
 **Risk:** Medium.
 **Priority:** P3, escalating if financial authority or privacy boundaries are affected.
 
@@ -181,10 +183,11 @@ journey.
 **Likely files:** `ui/components/simulation/**`, `ui/lib/math/**`, route inventory/tests, docs and package manifests.
 **Validation:** reference search, affected Vitest, TypeScript/lint, focused browser navigation, diff review.
 **Rollback:** restore deleted paths or revert the cohesive cleanup commit.
-**Completion criteria:** every removed item has zero required runtime references or an explicit compatibility disposition; no duplicate full visualization remains.
+**Completion criteria:** every removed item has zero required runtime references or an explicit compatibility disposition; no duplicate full visualization remains. Satisfied without deleting compatibility code or server-authoritative financial modules; the unreferenced legacy simulation components remain a documented deferred removal candidate because their historical tests still provide compatibility evidence.
 
 ## Wave 5 — Performance, accessibility, observability, and polish
 
+**Status:** Complete for the bounded diagnostics and browser-harness scope. Known handled recovery responses are now logged only as bounded status/code diagnostics; unexpected server failures remain observable without raw response/request payloads. Route-mocked browser startup now explicitly supports the SSR backend bypass it documents.
 **Risk:** Medium.
 **Priority:** P2/P3.
 
@@ -202,7 +205,7 @@ journey.
 **Likely files:** browser harness, shared shell, API/cache utilities, health/readiness surfaces.
 **Validation:** focused browser journeys, scoped axe, console/page-error assertions, typecheck/lint; certification only if shared infrastructure changes.
 **Rollback:** revert harness/observability changes independently of product behavior.
-**Completion criteria:** expected handled responses remain quiet while unexpected 5xx/JS errors remain visible; route matrix is deterministic.
+**Completion criteria:** expected handled responses remain quiet while unexpected 5xx/JS errors remain visible; route matrix is deterministic. Satisfied by the focused API logging tests and seven passing route-mocked Scenario/System navigation tests. The full appearance/screenshot execution remains reserved for Wave 6.
 
 ## Wave 6 — Final personal-use acceptance and release candidate
 
@@ -227,5 +230,7 @@ journey.
 ## Dependency order
 
 `Wave 1 → Wave 2 → Wave 3 → Wave 4/Wave 5 → Wave 6`.
+
+Waves 3–5 completion evidence is scoped to the stabilized UI/API boundary, canonical route inventory, compatibility disposition, and focused local validation. It does not certify the integrated system or start Wave 6.
 
 Wave 2 must precede enabling forecast/scenario behavior. Wave 3 depends on a safe activation contract. Waves 4 and 5 may proceed in parallel after ownership is confirmed. Wave 6 is a separate release-candidate authorization and is not started by this audit.

@@ -41,5 +41,10 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // Route-mocked journeys intentionally bypass the SSR backend gate;
+    // live journeys leave the switch at its safe default of 0.
+    env: {
+      ATLAS_FRONTEND_ROUTE_MOCKS: process.env.ATLAS_FRONTEND_ROUTE_MOCKS ?? '0',
+    },
   },
 })
