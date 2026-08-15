@@ -39,7 +39,7 @@
 - work-ui-information-architecture-step-3: Activate Wealth information architecture migration — commit a8e1d5b009175a27c91a521f2a156d0c4179c094, PR 50
 - work-ui-information-architecture-step-4: Activate Intelligence information architecture migration — commit dfd07e60a5b8512ae3c8e5a8bb72ab1a171862f0, PR 51
 - work-ui-information-architecture-step-5: Activate System information architecture migration — commit 5f79932f69e44c255793dde817b6d4a84b3764e3, PR 53
-- work-p6-s2-scenario-lab-ui: Phase 6 Slice 2 Scenario Lab UI — commit 0e8516a, PR not recorded
+- work-p6-s2-scenario-lab-ui: Phase 6 Slice 2 Scenario Lab UI — commit 85761ce08d2d8761aa7c71e8ae00887e4b59e16a, PR 55
 
 ## Next bounded task
 

@@ -1098,7 +1098,12 @@
     },
     {
       "branch": "codex/phase-6-scenario-lab-ui-slice-2",
-      "commit": "0e8516a",
+      "ci_evidence": {
+        "check": "status, classify change scope, and tests (path-aware focused) passed; heavy (full + Playwright) skipped by policy",
+        "conclusion": "success",
+        "run_url": "https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/actions/runs/31867459391"
+      },
+      "commit": "85761ce08d2d8761aa7c71e8ae00887e4b59e16a",
       "id": "work-p6-s2-scenario-lab-ui",
       "issue": "",
       "objective": "Build the complete server-backed Scenario Lab UI against the authoritative Slice 1 APIs without introducing client-side financial authority.",
@@ -1106,15 +1111,16 @@
         "ui/app/scenario-lab ui/components/scenario-lab ui/lib/api_scenarios.ts"
       ],
       "phase_id": "phase-6",
-      "pr": null,
-      "review_evidence": null,
+      "pr": 55,
+      "review_evidence": "Focused medium-risk review recorded at https://github.com/multitoolaccess-rgb/Atlas-AI-CFO/pull/55#issuecomment-5300784075; no critical/high findings; independent review optional under Solo Development Policy v2.",
       "risk_tier": "medium",
       "status": "complete",
       "tests": [
         "Focused Vitest: 44 passed (Scenario Lab API/component and migrated-page coverage)",
         "TypeScript and ESLint passed",
         "Production build passed with known backend-unavailable static-generation warnings",
-        "Route-mocked Playwright: 3 passed (generation, reload, comparison, archive, disabled/baseline recovery, URL state, keyboard, mobile overflow, dark mode)"
+        "Route-mocked Playwright: 3 passed (generation, reload, comparison, archive, disabled/baseline recovery, URL state, keyboard, mobile overflow, dark mode)",
+        "Hosted status, scope classifier, and path-aware focused tests passed; hosted heavy/full Playwright was skipped by policy and not counted as passed"
       ],
       "title": "Phase 6 Slice 2 Scenario Lab UI"
     }
