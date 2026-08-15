@@ -3,7 +3,7 @@
 - **Audit date:** 2026-08-15
 - **Audited commit:** `ff85ad7bc39680a2beb13533795478e515cda931`
 - **Source:** [Personal-Use Readiness Report](../07-engineering/PERSONAL_USE_READINESS_REPORT.md) and [System Health Audit](../07-engineering/SYSTEM_HEALTH_AUDIT.md).
-- **Status:** Wave 1A, Wave 2A, and Wave 2B are complete. Wave 2C remains blocked after the balance-observation operator passed on a disposable clone but the existing legacy-float partial projection-state gate correctly refused forecast generation.
+- **Status:** Wave 1A, Wave 2A, Wave 2B, and the exact-cent Wave 2C correction are complete on synthetic/disposable data. Personal Wave 2C activation remains blocked by a live scope mismatch: the configured database has six active accounts while the authorized and validated scope covered four; only four have currency evidence.
 
 ## Priority definitions
 
@@ -80,7 +80,7 @@ into one change or begin the next slice automatically.
 - A verified personal backup exists outside the repository; its post-evidence
   manifest is checked at `X7a1b2c3d4e5`, WAL mode, integrity `ok`.
 
-### Wave 2C — Personal activation acceptance — blocked
+### Wave 2C — Personal activation acceptance — blocked by personal scope mismatch
 
 - Backup gate passed; the personal database was migrated forward from
   `W6a1b2c3d4e5` to `X7a1b2c3d4e5` through a compatibility-safe additive path.
@@ -106,13 +106,20 @@ into one change or begin the next slice automatically.
   hash-bound, dry-run-first local path. On the disposable restored clone, all
   four active accounts became fresh without changing balances; the provider
   loaded authoritative projection state.
-- The clone forecast gate then remained blocked by the existing
-  `legacy_float_balance_representation` warning and `reconciliation_state=partial`;
-  Rules Service correctly rejects partial canonical state. No personal
-  projection configuration, baseline, flags, or personal writes were made.
-- Do not claim Wave 2C complete until this separate financial-authority gate is
-  resolved without weakening fail-closed behavior, then rerun the clone and
-  approved personal readiness gates.
+- The exact-cent balance-authority correction in PR #58 established new
+  `NUMERIC(38,2)` evidence with explicitly authorized `ROUND_HALF_EVEN` policy;
+  it did not claim to restore historical Float precision. The disposable clone
+  became genuinely reconciled and passed forecast, recommendation, decision,
+  history, outcome, Scenario Lab, archive, restart, and readiness acceptance.
+- Personal activation did not proceed: the configured personal database
+  currently contains six active accounts, while the authorized and validated
+  scope covered four and only four have currency evidence. No personal
+  balance evidence, projection configuration, flags, baseline, or other
+  personal writes were made after this mismatch was detected.
+- Do not claim personal Wave 2C complete until the active-account scope is
+  reconciled with the authorized four-account scope, a fresh backup gate passes,
+  and the approved personal readiness gates are rerun without weakening
+  fail-closed behavior.
 
 ### Goal Float and other boundaries
 

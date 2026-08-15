@@ -59,13 +59,25 @@ The overall score is a risk-weighted judgment, not an average of green tests.
 
 ## P0/P1 blockers
 
+### Current Wave 2C correction status
+
+PR #58 resolved the disposable-clone legacy-float projection gate with an additive,
+append-only exact-cent evidence contract and explicitly authorized
+`ROUND_HALF_EVEN` confirmation. The clone passed the complete synthetic
+forecast-to-Scenario restart journey. Personal activation remains blocked before
+mutation because the configured database currently has six active accounts,
+while the authorized and validated scope covered four and only four have
+currency evidence. No personal balance evidence, projection configuration,
+flags, baseline, or synthetic write records were created after this mismatch
+was detected.
+
 ### P0 — none newly discovered
 
 No new evidence shows a critical financial-integrity, authorization, privacy, or destructive-loss defect in the certified code paths.
 
 ### P1 — activation and safety blockers
 
-1. **Account and balance freshness authority:** The bounded observation implementation now records append-only, hash-bound operator evidence. On the disposable restored clone, all four active accounts became fresh without balance mutation and authoritative projection state loaded. Forecast generation still fails closed because Finlynq emits the existing `legacy_float_balance_representation` warning with `reconciliation_state=partial`, which the Rules Service generation gate rejects; no personal projection configuration or baseline was written.
+1. **Personal account scope and balance authority:** The bounded observation implementation and PR #58 exact-cent evidence contract record append-only, hash-bound operator evidence. On the disposable restored clone, all four synthetic active accounts became fresh, projection state became reconciled, and the complete forecast-to-Scenario restart journey passed. Personal activation is blocked because the configured database currently has six active accounts and only four have currency evidence; no personal projection configuration or baseline was written.
 2. **Retention and deletion policy:** Immutable history has no approved retention/user-deletion policy. This blocks external multi-user rollout and must not be bypassed; tracked as `risk-p1-retention-rollout-gate`.
 3. **Personal activation lifecycle:** The stable non-reload lifecycle correction keeps clone UI, Rules, and Finlynq health plus repeated authenticated readiness available. Personal activation remains blocked at the pre-baseline financial gate; no personal flags were enabled or persisted.
 4. **Pre-existing provider configuration:** Ignored local configuration reports Market Intelligence read/generation/external-provider flags enabled and provider credentials present. No external call was made; keep this as a separate explicit safety task and do not change it during Wave 2C recovery.

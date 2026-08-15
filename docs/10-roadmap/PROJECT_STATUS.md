@@ -4,8 +4,8 @@
 
 - Current phase: **phase-6 — Scenario Lab** (complete)
 - Overall status: **complete**
-- Current objective: Phase 6 is certified; Wave 2C exact-cent balance authority is implemented but its disposable clone gate is blocked by one active legacy balance that cannot be represented at two fractional digits without rounding. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
-- Last updated: 2026-08-15T20:20:48Z
+- Current objective: Phase 6 is certified; Wave 2C exact-cent balance authority is complete on the disposable clone, but personal activation is blocked by a live precondition mismatch: the configured personal database has six active accounts and only four have currency evidence while the authorized validation scope covered four. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
+- Last updated: 2026-08-15T20:46:03Z
 
 ## Active work
 - None
@@ -35,18 +35,19 @@
 - risk-p1-trusted-generation-boundary [high/medium, open]: An untrusted generation request could forge canonical financial state or provenance if the trusted adapter boundary regresses.
 - risk-p1-external-provider-local-config [high/medium, open]: Ignored local configuration has Market Intelligence read/generation/external-provider flags enabled and provider credentials present; no provider call was made in this task, but the local state is not safe to treat as fully disabled.
 - risk-p1-account-observation-freshness [high/high, resolved]: The balance-observation operator is implemented and all four disposable-clone accounts become fresh without balance mutation, but the existing legacy_float_balance_representation partial projection-state gate still blocks forecast generation; no personal baseline can be generated until that separate financial-authority decision is resolved.
-- risk-p1-account-currency-authority [high/medium, open]: Active account balances have current operator-confirmed USD evidence and disposable-clone balance observations now pass, but the complete enabled personal journey remains unproven because the existing legacy-float partial projection-state gate blocks forecast generation.
+- risk-p1-account-currency-authority [high/medium, open]: The exact-cent balance-authority contract and disposable clone journey pass, but the complete enabled personal journey remains unproven because the configured personal database has six active accounts while the authorized validation scope covered four and only four have currency evidence.
 - risk-p1-local-backup-recovery [high/low, mitigated]: End-to-end personal recovery/activation is not complete, although verified non-destructive backup and disposable restore tooling exists.
 - risk-p1-migration-downgrade-patched [medium/low, resolved]: Alembic 1.13.x's ApplyBatchImpl.drop_index rejects the deprecated if_exists keyword argument; the Phase 1 final cert matrix surfaced this as a full upgrade -> downgrade base failure on the e9f0a1b2c3d4 migration.
-- risk-p1-legacy-float-projection-gate [high/high, open]: The authoritative clone balance observations now pass, but Finlynq still marks stored legacy float balance representation as partial and the Rules Service forecast gate rejects partial canonical state; Wave 2C cannot generate a baseline without a separate financial-authority decision.
-- risk-p1-legacy-balance-cent-representation [high/high, open]: The disposable clone contains one active legacy Float balance with more than two fractional digits; the exact-cent evidence operator correctly fails closed, so no balance was rounded or backfilled and the forecast gate remains unproven.
+- risk-p1-legacy-float-projection-gate [high/high, resolved]: The legacy-float projection gate was resolved by the additive exact-cent evidence contract and passed on the disposable clone; personal activation remains separately blocked by a live account-scope mismatch.
+- risk-p1-legacy-balance-cent-representation [high/high, resolved]: The prior disposable-clone non-cent legacy balance blocker was resolved through explicitly authorized ROUND_HALF_EVEN USD-cent evidence; no historical Float precision was claimed restored.
+- risk-p1-personal-account-scope-mismatch [high/high, open]: The configured Atlas-owned personal SQLite database currently contains six active accounts, while the authorized Wave 2C assumptions and prior clone evidence cover four; only four active accounts have currency evidence, so personal mutation must stop until the active-account scope is reconciled.
 
 ## Recently completed work
-- work-p6-clean-main-certification: Clean-main Phase 6 certification — commit 9c9b554, PR None
 - work-personal-use-activation-readiness-wave-1a: Implement personal-use readiness and synthetic acceptance — commit 9847f1a, PR None
 - work-wave-2a-authoritative-account-currency: Implement Wave 2A authoritative account-currency evidence — commit a438df9233cb197827a5affda0c24ee4d7ec0a97, PR None
 - work-wave-2b-local-backup-recovery: Implement WAL-safe local backup and recovery — commit 423f87a, PR None
 - work-wave-2c-personal-activation-acceptance: Execute backup-first personal activation and restart acceptance — commit e877247, PR None
+- work-wave-2c-authoritative-balance-amount: Establish exact-cent legacy balance authority — commit 50d7d198de5b28d0d37e9aa596c8e2d90b27452f, PR 58
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -82,6 +83,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-wave-2c-balance-source-reconciliation: Establish an approved authoritative source or bounded correction for the non-cent legacy balance on the disposable clone, then rerun the exact-cent projection and forecast gate; do not access the personal database.
+- work-wave-2c-personal-scope-reconciliation: Reconcile the configured personal database active-account scope with the authorized four-account validation scope without writing personal financial state; then obtain explicit bounded authorization before rerunning backup-first Wave 2C activation.
 
 Do not begin the next phase or task automatically.
