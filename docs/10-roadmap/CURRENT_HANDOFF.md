@@ -9,15 +9,19 @@
 - Overall status: in_progress
 - Objective: Phase 6 remains in progress after completion of Slice 2 Scenario Lab UI; preserve server-owned financial authority and prepare the separate clean-main certification boundary.
 - Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-08-15T05:38:23Z
+- Tracker updated: 2026-08-15T06:22:51Z
 
 ## Active work
 
-- None
+- work-p6-clean-main-certification: Clean-main Phase 6 certification [blocked/medium]
+  - Objective: Run the documented full Phase 6 certification matrix from clean main and create the completion tag only after every exit criterion passes.
+  - Branch: main
+  - Paths: docs/10-roadmap
 
 ## Blockers
 
 - external-multi-user-retention-deletion-blocker [open]: External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.
+- phase-6-clean-main-certification-blocker [open]: Phase 6 clean-main certification is blocked by canonical Playwright failures on baseline IA/default-off behavior; local bash scripts/test-e2e.sh recorded 93 passed, 14 failed, 1 skipped, and hosted manual heavy run 31868205933 failed after 4/5 steps passed with Playwright timing out at 900 seconds. Do not create phase-6-complete until stale pre-IA browser expectations and expected default-off 503 console handling are separately reconciled without weakening authority or default-off criteria.
 
 ## Open risks
 
@@ -43,6 +47,6 @@
 
 ## Next bounded task
 
-- work-p6-s2-scenario-lab-certification: Run a separate clean-main Phase 6 certification matrix for Scenario Lab Slice 2 only when phase certification is authorized; do not add a completion tag without all documented exit evidence.
+- work-p6-clean-main-certification-remediation: Reconcile the documented clean-main Phase 6 certification blockers (stale pre-IA browser expectations and expected default-off 503 console handling), rerun the complete certification matrix, and create phase-6-complete only if every documented exit criterion passes.
 
 Do not begin the next task automatically.

@@ -5,13 +5,14 @@
 - Current phase: **phase-6 — Scenario Lab** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Phase 6 remains in progress after completion of Slice 2 Scenario Lab UI; preserve server-owned financial authority and prepare the separate clean-main certification boundary.
-- Last updated: 2026-08-15T05:38:23Z
+- Last updated: 2026-08-15T06:22:51Z
 
 ## Active work
-- None
+- work-p6-clean-main-certification: Clean-main Phase 6 certification (blocked, medium)
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
+- {'description': 'Phase 6 clean-main certification is blocked by canonical Playwright failures on baseline IA/default-off behavior; local bash scripts/test-e2e.sh recorded 93 passed, 14 failed, 1 skipped, and hosted manual heavy run 31868205933 failed after 4/5 steps passed with Playwright timing out at 900 seconds. Do not create phase-6-complete until stale pre-IA browser expectations and expected default-off 503 console handling are separately reconciled without weakening authority or default-off criteria.', 'id': 'phase-6-clean-main-certification-blocker', 'owner': 'engineering', 'related': 'Phase 6 certification run 31868205933; clean main af786bea5a80faae7341cd47528ce87d9ece9ccf', 'status': 'open'}
 
 ## Phase progress
 - phase-0 — Projection foundation and Atlas baseline: complete (4/4 exit criteria)
@@ -77,6 +78,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-p6-s2-scenario-lab-certification: Run a separate clean-main Phase 6 certification matrix for Scenario Lab Slice 2 only when phase certification is authorized; do not add a completion tag without all documented exit evidence.
+- work-p6-clean-main-certification-remediation: Reconcile the documented clean-main Phase 6 certification blockers (stale pre-IA browser expectations and expected default-off 503 console handling), rerun the complete certification matrix, and create phase-6-complete only if every documented exit criterion passes.
 
 Do not begin the next phase or task automatically.

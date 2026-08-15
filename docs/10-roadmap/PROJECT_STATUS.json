@@ -1,11 +1,36 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "main",
+      "id": "work-p6-clean-main-certification",
+      "issue": "",
+      "objective": "Run the documented full Phase 6 certification matrix from clean main and create the completion tag only after every exit criterion passes.",
+      "paths": [
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-6",
+      "reason": "Clean-main Phase 6 certification is blocked by the required canonical Playwright matrix: local run bash scripts/test-e2e.sh recorded 93 passed, 14 failed, 1 skipped in 7.7m; hosted manual heavy run 31868205933 also failed after 4/5 steps passed and Playwright timed out at 900s. The failures are baseline IA/default-off behavior outside the Phase 6 Slice 2 diff: removed Debts/Activity/Simulation workspace/legacy Market Brief navigation expectations, legacy Cash Flow range-state expectation, legacy Recommendations/Universe expectations, and expected default-off 503 console logging for Market Intelligence/Scenario Lab. Do not create phase-6-complete until these baseline certification blockers are separately reconciled without weakening Phase 6 authority or default-off criteria.",
+      "risk_tier": "medium",
+      "status": "blocked",
+      "tests": [
+        "Rules, Finlynq, cross-service, frontend, browser, accessibility, tracker, and handoff certification"
+      ],
+      "title": "Clean-main Phase 6 certification"
+    }
+  ],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
       "id": "external-multi-user-retention-deletion-blocker",
       "owner": "product-security",
       "related": "ADR-006, issue #3, PR #4",
+      "status": "open"
+    },
+    {
+      "description": "Phase 6 clean-main certification is blocked by canonical Playwright failures on baseline IA/default-off behavior; local bash scripts/test-e2e.sh recorded 93 passed, 14 failed, 1 skipped, and hosted manual heavy run 31868205933 failed after 4/5 steps passed with Playwright timing out at 900 seconds. Do not create phase-6-complete until stale pre-IA browser expectations and expected default-off 503 console handling are separately reconciled without weakening authority or default-off criteria.",
+      "id": "phase-6-clean-main-certification-blocker",
+      "owner": "engineering",
+      "related": "Phase 6 certification run 31868205933; clean main af786bea5a80faae7341cd47528ce87d9ece9ccf",
       "status": "open"
     }
   ],
@@ -1127,10 +1152,10 @@
   ],
   "current_objective": "Phase 6 remains in progress after completion of Slice 2 Scenario Lab UI; preserve server-owned financial authority and prepare the separate clean-main certification boundary.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T05:38:23Z",
+  "last_updated": "2026-08-15T06:22:51Z",
   "next_bounded_task": {
-    "description": "Run a separate clean-main Phase 6 certification matrix for Scenario Lab Slice 2 only when phase certification is authorized; do not add a completion tag without all documented exit evidence.",
-    "id": "work-p6-s2-scenario-lab-certification",
+    "description": "Reconcile the documented clean-main Phase 6 certification blockers (stale pre-IA browser expectations and expected default-off 503 console handling), rerun the complete certification matrix, and create phase-6-complete only if every documented exit criterion passes.",
+    "id": "work-p6-clean-main-certification-remediation",
     "phase_id": "phase-6"
   },
   "overall_status": "in_progress",
