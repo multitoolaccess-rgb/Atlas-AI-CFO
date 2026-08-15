@@ -394,6 +394,21 @@ def sqlite_snapshot(path: Path | None) -> dict[str, Any]:
             wal = conn.execute("PRAGMA journal_mode").fetchone()[0]
             currency_authority = _currency_authority_snapshot(conn)
             balance_observation = _balance_observation_snapshot(conn)
+            try:
+                baseline_count = int(conn.execute(
+                    "SELECT COUNT(*) FROM forecasts WHERE lifecycle_state = 'active'"
+                ).fetchone()[0])
+                forecast_baseline = {
+                    "state": "ready" if baseline_count > 0 else "blocked",
+                    "reason_code": "baseline_forecast_ready" if baseline_count > 0 else "baseline_forecast_missing",
+                    "recovery_action": "No action required." if baseline_count > 0 else "Generate an approved immutable baseline forecast through the server-owned flow.",
+                }
+            except sqlite3.Error:
+                forecast_baseline = {
+                    "state": "blocked",
+                    "reason_code": "baseline_forecast_unavailable",
+                    "recovery_action": "Run the approved forecast-readiness check; Atlas Doctor never creates a baseline.",
+                }
     except sqlite3.Error:
         return {"state": "blocked", "reason_code": "database_readiness_unavailable", "recovery_action": "Run the approved read-only database and migration check against the selected local database."}
     heads = migration_heads()
@@ -407,6 +422,7 @@ def sqlite_snapshot(path: Path | None) -> dict[str, Any]:
         "wal_state": "enabled" if str(wal).lower() == "wal" else str(wal),
         "currency_authority": currency_authority,
         "balance_observation": balance_observation,
+        "forecast_baseline": forecast_baseline,
     }
 
 
@@ -447,9 +463,21 @@ def build_report() -> dict[str, Any]:
         "database_mode": {"state": "ready", "mode": "sqlite" if database_url.startswith("sqlite:") else "server", "recovery_action": "No action required."},
         "account_currency_authority": database.get("currency_authority", {"state": "unavailable", "reason_code": "database_probe_unavailable", "recovery_action": "Run the isolated database readiness check."}),
         "balance_observation": database.get("balance_observation", {"state": "unavailable", "reason_code": "database_probe_unavailable", "recovery_action": "Run the isolated database readiness check."}),
-        "forecast_baseline_prerequisites": {"state": "disabled" if not flags["forecast_persistence_enabled"] else "blocked", "reason_code": "forecast_flags_disabled" if not flags["forecast_persistence_enabled"] else "currency_and_baseline_must_be_proven", "recovery_action": "Keep forecast flags disabled until explicit currency authority and synthetic acceptance pass."},
-        "decision_history_readiness": {"state": "disabled" if not flags["decision_history_api_enabled"] else "blocked", "reason_code": "decision_history_disabled" if not flags["decision_history_api_enabled"] else "baseline_required", "recovery_action": "Keep the server-owned decision-history flag disabled until its dependencies pass."},
-        "scenario_lab_readiness": {"state": "disabled" if not flags["scenario_lab_enabled"] else "blocked", "reason_code": "scenario_lab_disabled" if not flags["scenario_lab_enabled"] else "baseline_required", "recovery_action": "Keep Scenario Lab disabled until a compatible immutable baseline passes synthetic acceptance."},
+        "forecast_baseline_prerequisites": {
+            "state": "disabled" if not flags["forecast_persistence_enabled"] else database.get("forecast_baseline", {}).get("state", "blocked"),
+            "reason_code": "forecast_flags_disabled" if not flags["forecast_persistence_enabled"] else database.get("forecast_baseline", {}).get("reason_code", "baseline_forecast_unavailable"),
+            "recovery_action": "Keep forecast flags disabled until explicit currency authority and synthetic acceptance pass." if not flags["forecast_persistence_enabled"] else database.get("forecast_baseline", {}).get("recovery_action", "Run the approved forecast-readiness check."),
+        },
+        "decision_history_readiness": {
+            "state": "disabled" if not flags["decision_history_api_enabled"] else "ready" if database.get("forecast_baseline", {}).get("state") == "ready" else "blocked",
+            "reason_code": "decision_history_disabled" if not flags["decision_history_api_enabled"] else "decision_history_ready" if database.get("forecast_baseline", {}).get("state") == "ready" else "baseline_required",
+            "recovery_action": "Keep the server-owned decision-history flag disabled until its dependencies pass." if not flags["decision_history_api_enabled"] else "No action required." if database.get("forecast_baseline", {}).get("state") == "ready" else "Generate an approved immutable baseline forecast through the server-owned flow.",
+        },
+        "scenario_lab_readiness": {
+            "state": "disabled" if not flags["scenario_lab_enabled"] else "ready" if database.get("forecast_baseline", {}).get("state") == "ready" else "blocked",
+            "reason_code": "scenario_lab_disabled" if not flags["scenario_lab_enabled"] else "scenario_lab_ready" if database.get("forecast_baseline", {}).get("state") == "ready" else "baseline_required",
+            "recovery_action": "Keep Scenario Lab disabled until a compatible immutable baseline passes synthetic acceptance." if not flags["scenario_lab_enabled"] else "No action required." if database.get("forecast_baseline", {}).get("state") == "ready" else "Generate an approved immutable baseline forecast through the server-owned flow.",
+        },
         "market_intelligence_readiness": {"state": "disabled" if not flags["market_brief_read_api_enabled"] else "blocked", "reason_code": "market_intelligence_disabled" if not flags["market_brief_read_api_enabled"] else "provider_readiness_required", "recovery_action": "Keep Market Intelligence disabled unless approved server-side provider configuration is reviewed."},
         "privacy_safety": {"state": "ready" if not any(flags[key] for key in ("market_brief_email_delivery_enabled", "market_brief_scheduler_enabled", "market_brief_local_summarization_enabled")) else "unsafe", "reason_code": "prohibited_capabilities_disabled" if not any(flags[key] for key in ("market_brief_email_delivery_enabled", "market_brief_scheduler_enabled", "market_brief_local_summarization_enabled")) else "optional_unsafe_capability_enabled", "recovery_action": "Disable email, scheduler, and summarization flags; never use Doctor to change them."},
     }
