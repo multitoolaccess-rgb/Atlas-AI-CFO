@@ -503,3 +503,46 @@ def test_regression_non_v1_path_422_falls_back_to_default_detail_shape(
         # paths.  Auth failure is acceptable as long as the response was
         # produced (no 500).
         assert response.status_code in (401, 405)
+
+
+def test_authenticated_forecast_reads_return_latest_and_immutable_version(
+    client: TestClient, stub_adapter, monkeypatch
+) -> None:
+    monkeypatch.setattr(settings, "atlas_forecast_read_api_enabled", True)
+    created = _post(client, goal_id=1, headers=_auth_headers(idem="atlas-read-1"))
+    assert created.status_code == 201
+    forecast_id = created.json()["forecast_id"]
+
+    latest = client.get(
+        f"/api/v1/forecasts/{forecast_id}", headers=_auth_headers(idem=None)
+    )
+    version = client.get(
+        f"/api/v1/forecasts/{forecast_id}/versions/1",
+        headers=_auth_headers(idem=None),
+    )
+    assert latest.status_code == 200
+    assert version.status_code == 200
+    assert latest.json() == version.json() == created.json()
+    assert latest.headers["ETag"] == created.headers["ETag"]
+
+
+def test_forecast_read_is_owner_scoped_and_default_off(
+    client: TestClient, stub_adapter, monkeypatch
+) -> None:
+    created = _post(client, goal_id=1, headers=_auth_headers(idem="atlas-read-2"))
+    assert created.status_code == 201
+    forecast_id = created.json()["forecast_id"]
+
+    disabled = client.get(
+        f"/api/v1/forecasts/{forecast_id}", headers=_auth_headers(idem=None)
+    )
+    assert disabled.status_code == 503
+    assert disabled.json()["code"] == "forecast_read_api_unavailable"
+
+    monkeypatch.setattr(settings, "atlas_forecast_read_api_enabled", True)
+    missing = client.get(
+        "/api/v1/forecasts/00000000-0000-0000-0000-000000000000",
+        headers=_auth_headers(idem=None),
+    )
+    assert missing.status_code == 404
+    assert missing.json()["code"] == "forecast_not_found"

@@ -54,17 +54,20 @@ from app.forecasts.canonical_state import (
 from app.forecasts.mappers import build_forecast_version_response
 from app.forecasts.repository import (
     IdempotencyConflict,
+    PersistedForecastVersion,
     StaleForecastVersion,
 )  # ForecastRepository removed (unused)
 from app.forecasts.schemas import (
     ERROR_CODE_BAD_REQUEST,
     BadRequestEnvelope,
     ForecastGenerationDisabledEnvelope,
+    ForecastNotFoundEnvelope,
     ForecastVersionConflictEnvelope,
     GenerationRequestEnvelope,
     GoalNotFoundEnvelope,
     IdempotencyConflictEnvelope,
     PreconditionFailedEnvelope,
+    ReadApiDisabledEnvelope,
     ValidationErrorEntry,
     ValidationErrorEnvelope,
 )
@@ -73,7 +76,7 @@ from app.forecasts.service import (
     ForecastGenerationUnavailable,
 )
 from app.forecast_provider.finlynq import HttpFinlynqProjectionStateAdapter
-from app.models import Forecast, Goal, User
+from app.models import Forecast, ForecastVersion, Goal, User
 
 
 router = APIRouter(tags=["forecasts"])
@@ -209,6 +212,102 @@ def _existing_forecast_for_user_goal(db: Session, *, user_id: int, goal_id: int)
             Forecast.user_id == int(user_id),
             Forecast.goal_id == int(goal_id),
         )
+    )
+
+
+# ----------------------------------------------------------------------
+# Authenticated immutable forecast reads
+# ----------------------------------------------------------------------
+
+
+def _forecast_read_disabled() -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content=ReadApiDisabledEnvelope().model_dump(),
+    )
+
+
+def _forecast_not_found() -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content=ForecastNotFoundEnvelope().model_dump(),
+    )
+
+
+def _read_forecast_version(
+    request: Request,
+    db: Session,
+    *,
+    user_sub: str,
+    forecast_id: str,
+    version_number: int | None,
+) -> JSONResponse:
+    """Read one owner-scoped immutable version through the canonical mapper."""
+    if not settings.atlas_forecast_read_api_enabled:
+        return _forecast_read_disabled()
+
+    user_id = _resolve_user_sub_to_id(db, user_sub)
+    forecast = db.scalar(
+        select(Forecast).where(
+            Forecast.id == forecast_id,
+            Forecast.user_id == user_id,
+            Forecast.forecast_kind == "goal_projection",
+            Forecast.currency == "USD",
+        )
+    )
+    if forecast is None:
+        return _forecast_not_found()
+
+    version_query = select(ForecastVersion).where(ForecastVersion.forecast_id == forecast.id)
+    if version_number is not None:
+        version_query = version_query.where(ForecastVersion.version_number == version_number)
+    else:
+        version_query = version_query.order_by(ForecastVersion.version_number.desc()).limit(1)
+    version = db.scalar(version_query)
+    if version is None:
+        return _forecast_not_found()
+
+    envelope = build_forecast_version_response(
+        PersistedForecastVersion(
+            forecast=forecast,
+            version=version,
+            created=False,
+            input_snapshot_json=version.input_snapshot_json,
+        ),
+        base_url=str(request.base_url).rstrip("/"),
+    )
+    return JSONResponse(
+        status_code=200,
+        content=envelope.model_dump(),
+        headers={"ETag": format_forecast_etag_header(
+            forecast_id=str(forecast.id),
+            version_number=int(version.version_number),
+        )},
+    )
+
+
+@router.get("/api/v1/forecasts/{forecast_id}", response_model=None)
+async def read_latest_forecast(
+    request: Request,
+    user_sub: Annotated[str, Depends(require_user)],
+    db: Annotated[Session, Depends(_get_db)],
+    forecast_id: str = Path(min_length=1, max_length=36),
+) -> JSONResponse:
+    return _read_forecast_version(
+        request, db, user_sub=user_sub, forecast_id=forecast_id, version_number=None,
+    )
+
+
+@router.get("/api/v1/forecasts/{forecast_id}/versions/{version_number}", response_model=None)
+async def read_forecast_version(
+    request: Request,
+    user_sub: Annotated[str, Depends(require_user)],
+    db: Annotated[Session, Depends(_get_db)],
+    forecast_id: str = Path(min_length=1, max_length=36),
+    version_number: int = Path(ge=1),
+) -> JSONResponse:
+    return _read_forecast_version(
+        request, db, user_sub=user_sub, forecast_id=forecast_id, version_number=version_number,
     )
 
 
