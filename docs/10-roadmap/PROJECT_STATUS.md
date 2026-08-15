@@ -4,8 +4,8 @@
 
 - Current phase: **phase-6 — Scenario Lab** (complete)
 - Overall status: **complete**
-- Current objective: Phase 6 Scenario Lab is locally certified from clean main; preserve server-owned financial authority and begin only the separately authorized personal-use acceptance and system-health audit.
-- Last updated: 2026-08-15T17:18:40Z
+- Current objective: Phases 0–6 are certified and the Personal-Use Acceptance and System Health Audit is complete; preserve server-owned financial authority and do not begin Phase 7.
+- Last updated: 2026-08-15T17:28:05Z
 
 ## Active work
 - None
@@ -77,6 +77,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-personal-use-acceptance-system-health-audit: Run the separately authorized Phases 0–6 Personal-Use Acceptance and System Health Audit; do not begin Phase 7.
+- work-personal-use-activation-readiness-wave-1: Plan the separately authorized Wave 1 personal-use activation and readiness work; do not enable financial intelligence flags or begin Phase 7.
 
 Do not begin the next phase or task automatically.

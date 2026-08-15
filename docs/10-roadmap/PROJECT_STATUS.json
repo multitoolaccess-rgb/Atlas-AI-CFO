@@ -1154,12 +1154,12 @@
       "title": "Clean-main Phase 6 certification"
     }
   ],
-  "current_objective": "Phase 6 Scenario Lab is locally certified from clean main; preserve server-owned financial authority and begin only the separately authorized personal-use acceptance and system-health audit.",
+  "current_objective": "Phases 0–6 are certified and the Personal-Use Acceptance and System Health Audit is complete; preserve server-owned financial authority and do not begin Phase 7.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T17:18:40Z",
+  "last_updated": "2026-08-15T17:28:05Z",
   "next_bounded_task": {
-    "description": "Run the separately authorized Phases 0–6 Personal-Use Acceptance and System Health Audit; do not begin Phase 7.",
-    "id": "work-personal-use-acceptance-system-health-audit",
+    "description": "Plan the separately authorized Wave 1 personal-use activation and readiness work; do not enable financial intelligence flags or begin Phase 7.",
+    "id": "work-personal-use-activation-readiness-wave-1",
     "phase_id": "phase-6"
   },
   "overall_status": "complete",

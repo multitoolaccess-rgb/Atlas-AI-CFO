@@ -7,9 +7,9 @@
 - Phase: phase-6 — Scenario Lab
 - Phase status: complete
 - Overall status: complete
-- Objective: Phase 6 Scenario Lab is locally certified from clean main; preserve server-owned financial authority and begin only the separately authorized personal-use acceptance and system-health audit.
+- Objective: Phases 0–6 are certified and the Personal-Use Acceptance and System Health Audit is complete; preserve server-owned financial authority and do not begin Phase 7.
 - Phase exit criteria: 2/2 complete
-- Tracker updated: 2026-08-15T17:18:40Z
+- Tracker updated: 2026-08-15T17:28:05Z
 
 ## Active work
 
@@ -43,6 +43,6 @@
 
 ## Next bounded task
 
-- work-personal-use-acceptance-system-health-audit: Run the separately authorized Phases 0–6 Personal-Use Acceptance and System Health Audit; do not begin Phase 7.
+- work-personal-use-activation-readiness-wave-1: Plan the separately authorized Wave 1 personal-use activation and readiness work; do not enable financial intelligence flags or begin Phase 7.
 
 Do not begin the next task automatically.
