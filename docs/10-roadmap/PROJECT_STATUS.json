@@ -1246,6 +1246,11 @@
     {
       "branch": "codex/wave-2c-projection-lifecycle",
       "commit": "e877247",
+      "correction_commits": [
+        "15f261e",
+        "96bd7df",
+        "c1f2062"
+      ],
       "id": "work-wave-2c-personal-activation-acceptance",
       "issue": null,
       "objective": "Execute backup-first personal currency confirmation and bounded local activation/restart acceptance without enabling unsupported providers or mutating immutable history.",
@@ -1265,18 +1270,18 @@
       ],
       "title": "Execute backup-first personal activation and restart acceptance",
       "validation_evidence": {
-        "command": "Projection operator, provider freshness, stable lifecycle, pre-activation backup/restore, clone configuration, and authenticated readiness probes",
-        "commit": "e877247",
-        "environment": "Disposable restored clone; personal database read-only diagnostics only; no real providers or financial values printed",
+        "command": "Focused observation/provider/migration/readiness/forecast tests plus disposable restored-clone observation and projection-state gate",
+        "commit": "15f261e",
+        "environment": "Disposable restored clone only for the retry; no personal database mutation, no real providers, and no financial values printed",
         "kind": "local",
-        "result": "Backup/lifecycle/observation/configuration gates passed; clone projection state loaded, but forecast generation blocked by legacy_float_balance_representation partial state; no personal configuration or baseline write",
-        "timestamp": "2026-08-15T19:44:43Z"
+        "result": "23 Finlynq observation/provider tests, 17 Rules migration/readiness tests, 52 forecast/gate tests, Doctor/start tests, UI readiness tests, TypeScript, compilation, and shell checks passed; clone observations and projection state passed, forecast generation remained blocked by the existing legacy_float_balance_representation partial-state gate",
+        "timestamp": "2026-08-15T20:08:13Z"
       }
     }
   ],
   "current_objective": "Phase 6 is certified; Wave 2B is complete and Wave 2C remains blocked by the existing legacy-float partial projection-state gate after authoritative balance observations passed. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T20:07:07Z",
+  "last_updated": "2026-08-15T20:09:17Z",
   "next_bounded_task": {
     "description": "Resolve the existing legacy-float partial projection-state gate through a separately authorized financial-authority decision, prove the disposable clone forecast gate, then resume Wave 2C; do not begin Wave 3 or Phase 7.",
     "id": "work-wave-2c-legacy-float-projection-gate",

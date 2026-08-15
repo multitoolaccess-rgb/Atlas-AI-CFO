@@ -5,7 +5,7 @@
 - Current phase: **phase-6 — Scenario Lab** (complete)
 - Overall status: **complete**
 - Current objective: Phase 6 is certified; Wave 2B is complete and Wave 2C remains blocked by the existing legacy-float partial projection-state gate after authoritative balance observations passed. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
-- Last updated: 2026-08-15T20:07:07Z
+- Last updated: 2026-08-15T20:09:17Z
 
 ## Active work
 - None

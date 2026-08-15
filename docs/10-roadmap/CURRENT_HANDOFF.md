@@ -9,7 +9,7 @@
 - Overall status: complete
 - Objective: Phase 6 is certified; Wave 2B is complete and Wave 2C remains blocked by the existing legacy-float partial projection-state gate after authoritative balance observations passed. Preserve server-owned financial authority and do not begin Wave 3 or Phase 7.
 - Phase exit criteria: 2/2 complete
-- Tracker updated: 2026-08-15T20:07:07Z
+- Tracker updated: 2026-08-15T20:09:17Z
 
 ## Active work
 
