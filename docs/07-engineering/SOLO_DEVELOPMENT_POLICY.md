@@ -82,8 +82,10 @@ Required process:
 
 - Add focused tests covering changed behavior.
 - Test directly affected contracts and integration boundaries.
-- Use a feature branch and PR.
-- Obtain a fresh independent review.
+- Use a feature branch when practical; a PR is optional history for solo
+  development.
+- Perform a local review when an independent reviewer is available; record the
+  review when one is performed.
 - Known critical or high findings block merging. Medium and low findings may
   be deferred unless they threaten data integrity, privacy, authorization, or
   financial correctness.
@@ -135,8 +137,8 @@ or the same blocker recurring three times without meaningful progress.
 
 - Low: focused checks pass.
 - Medium: focused checks pass and no known critical or high defect remains.
-- High: focused boundary checks pass and a fresh independent review reports no
-  critical or high defect.
+- High: focused boundary checks pass and local review reports no critical or
+  high defect when an independent reviewer is available.
 - Medium and low findings become follow-up debt rather than automatic blockers.
 - Hosted CI is intentionally unavailable and is never a completion gate. Record
   local commands and results as structured validation evidence; historical

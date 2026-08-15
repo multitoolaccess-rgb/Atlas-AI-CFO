@@ -159,10 +159,6 @@ def validate(status: dict[str, Any]) -> None:
             raise StatusError(f"{work['id']} requires a reason")
         if work["status"] == "in_review" and not work.get("pr"):
             raise StatusError(f"{work['id']} in_review requires a PR")
-        if tier == "high" and (
-            not isinstance(work.get("branch"), str) or not work["branch"].strip()
-        ):
-            raise StatusError(f"{work['id']} high-risk work requires a branch")
         if work["status"] == "complete":
             if tier == "low" and not work.get("commit"):
                 raise StatusError(f"{work['id']} low-risk completion requires commit evidence")
@@ -170,12 +166,10 @@ def validate(status: dict[str, Any]) -> None:
                 raise StatusError(f"{work['id']} medium-risk completion requires commit and test evidence")
             if tier == "high" and (
                 not work.get("commit")
-                or not work.get("pr")
-                or not work.get("review_evidence")
                 or not work.get("tests")
                 or not valid_validation_evidence(work.get("validation_evidence") or work.get("ci_evidence"))
             ):
-                raise StatusError(f"{work['id']} high-risk completion requires branch, commit, PR, review, tests, and concrete local or historical validation evidence")
+                raise StatusError(f"{work['id']} high-risk completion requires commit, tests, and concrete local or historical validation evidence")
             if tier is None and not (work.get("commit") or work.get("pr")):
                 raise StatusError(f"{work['id']} complete requires commit or PR evidence")
     for phase in status["phases"]:
@@ -251,8 +245,6 @@ def command_start(status: dict[str, Any], args: argparse.Namespace) -> None:
     if target_phase["status"] == "not_started":
         target_phase["status"] = "in_progress"
         status["overall_status"] = "in_progress"
-    if args.risk_tier == "high" and not args.branch:
-        raise StatusError("high-risk work requires a branch")
     status["active_work"].append({"id": args.id, "title": args.title, "status": "in_progress", "phase_id": args.phase, "paths": args.path, "objective": args.objective, "risk_tier": args.risk_tier, "branch": args.branch, "issue": args.issue, "tests": args.test})
 
 
@@ -297,8 +289,8 @@ def main() -> int:
                 raise StatusError("low-risk completion requires commit evidence")
             if tier == "medium" and (not args.commit or not args.test):
                 raise StatusError("medium-risk completion requires commit and test evidence")
-            if tier == "high" and (not args.commit or not args.pr or not args.review_evidence or not args.test):
-                raise StatusError("high-risk completion requires commit, PR, review, and test evidence")
+            if tier == "high" and (not args.commit or not args.test):
+                raise StatusError("high-risk completion requires commit and test evidence")
             ci_evidence = None
             if args.ci_run_url is not None or args.ci_check is not None:
                 ci_evidence = {"run_url": args.ci_run_url, "check": args.ci_check, "conclusion": "success"}

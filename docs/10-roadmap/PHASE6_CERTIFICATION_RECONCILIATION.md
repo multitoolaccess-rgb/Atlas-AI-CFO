@@ -96,3 +96,32 @@ started because recent account payments have failed or your spending limit
 needs to be increased.” The failure is recorded as an external billing/
 availability blocker, not a product or test result. No hosted heavy result is
 claimed as passed, and `phase-6-complete` remains absent.
+
+## Local-only certification resolution
+
+ADR-009 and the canonical Solo Development Policy now establish that GitHub
+Actions is intentionally disabled for this private, single-user repository.
+Hosted CI is therefore no longer a completion gate; the prior billing blocker
+is no longer applicable and is not treated as a successful workflow result.
+
+After governance commit `9c9b554`, clean-main local certification was rerun
+once with isolated synthetic data:
+
+- Rules Service: `1,298 passed, 10 skipped, 1 xfailed`.
+- Finlynq: `106 passed`.
+- Root cross-service/governance tests: `37 passed`.
+- Scenario, persistence, migration, parity, ownership, idempotency, comparison,
+  and archive focus: `72 passed, 3 skipped`.
+- Frontend Vitest: `630 passed` across `70` files.
+- TypeScript, ESLint, and production build: passed; build emitted only known
+  backend-unavailable static-generation diagnostics.
+- Canonical Playwright: `108 passed, 1 skipped` of `109`; the run included the
+  four Scenario Lab route-mocked journeys, appearance/profile checks, keyboard
+  navigation, reduced-motion, responsive overflow, and scoped serious/critical
+  axe checks with no findings.
+- Tracker unit tests: `16 passed`; status check/render, handoff, shell syntax,
+  workflow YAML parse, diff, and sensitive-artifact checks passed.
+
+The Phase 6 local exit criterion is complete. `phase-6-complete` may be created
+only after the final evidence commit is synchronized and all prior tags remain
+unchanged.

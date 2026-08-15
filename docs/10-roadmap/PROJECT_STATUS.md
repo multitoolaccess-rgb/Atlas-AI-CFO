@@ -2,18 +2,16 @@
 
 > Generated from `PROJECT_STATUS.json`; regenerate with `python3 scripts/atlas_project_status.py render`.
 
-- Current phase: **phase-6 — Scenario Lab** (in_progress)
-- Overall status: **in_progress**
-- Current objective: Phase 6 remains in progress after completion of Slice 2 Scenario Lab UI; preserve server-owned financial authority and prepare the separate clean-main certification boundary.
-- Last updated: 2026-08-15T09:45:00Z
+- Current phase: **phase-6 — Scenario Lab** (complete)
+- Overall status: **complete**
+- Current objective: Phase 6 Scenario Lab is locally certified from clean main; preserve server-owned financial authority and begin only the separately authorized personal-use acceptance and system-health audit.
+- Last updated: 2026-08-15T17:18:40Z
 
 ## Active work
-- work-p6-clean-main-certification: Clean-main Phase 6 certification (in_progress, medium)
+- None
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
-- {'description': 'Local clean-main Phase 6 certification passes after PR #57: Rules Service 1,298 passed/10 skipped/1 expected xfail, Finlynq 106 passed, cross-service 33 passed, frontend 630 passed, TypeScript/lint/build passed, canonical Playwright 108 passed/1 skipped, and affected Scenario Lab journeys passed. The required hosted manual certification workflow cannot start because GitHub reports failed account payments or an exhausted spending limit; phase-6-complete remains prohibited until hosted certification is available and green.', 'id': 'phase-6-clean-main-certification-blocker', 'owner': 'engineering', 'related': 'Local clean main 4f80f0ca8a6114e5c68bc101c59a7d5b44e77eb7; hosted attempts 31896160628 and 31896202299; billing annotation on job 95039690363', 'status': 'open'}
-- {'description': 'Hosted clean-main certification cannot start because GitHub Actions reports failed account payments or an exhausted spending limit before any workflow step runs.', 'id': 'github-actions-certification-billing-blocker', 'owner': 'engineering', 'related': 'Hosted runs 31896160628 and 31896202299; GitHub check annotation on job 95039690363', 'status': 'open'}
 
 ## Phase progress
 - phase-0 — Projection foundation and Atlas baseline: complete (4/4 exit criteria)
@@ -22,7 +20,7 @@
 - phase-3 — Goal-linked recommendations: complete (1/1 exit criteria)
 - phase-4 — Decision journal: complete (1/1 exit criteria)
 - phase-5 — Market Intelligence Brief: complete (1/1 exit criteria)
-- phase-6 — Scenario Lab: in_progress (1/1 exit criteria)
+- phase-6 — Scenario Lab: complete (2/2 exit criteria)
 
 ## Current risks
 - risk-frontend-lint-debt [medium/high, open]: Repository-wide frontend lint debt remains outside Phase 0 scope.
@@ -39,11 +37,11 @@
 - risk-p1-migration-downgrade-patched [medium/low, resolved]: Alembic 1.13.x's ApplyBatchImpl.drop_index rejects the deprecated if_exists keyword argument; the Phase 1 final cert matrix surfaced this as a full upgrade -> downgrade base failure on the e9f0a1b2c3d4 migration.
 
 ## Recently completed work
-- work-ui-information-architecture-step-2: Activate Money information architecture migration — commit 54974b8, PR 49
 - work-ui-information-architecture-step-3: Activate Wealth information architecture migration — commit a8e1d5b009175a27c91a521f2a156d0c4179c094, PR 50
 - work-ui-information-architecture-step-4: Activate Intelligence information architecture migration — commit dfd07e60a5b8512ae3c8e5a8bb72ab1a171862f0, PR 51
 - work-ui-information-architecture-step-5: Activate System information architecture migration — commit 5f79932f69e44c255793dde817b6d4a84b3764e3, PR 53
 - work-p6-s2-scenario-lab-ui: Phase 6 Slice 2 Scenario Lab UI — commit 85761ce08d2d8761aa7c71e8ae00887e4b59e16a, PR 55
+- work-p6-clean-main-certification: Clean-main Phase 6 certification — commit 9c9b554, PR None
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -79,6 +77,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-p6-clean-main-certification-remediation: Restore hosted clean-main certification availability, then rerun the required hosted Phase 6 workflow and create phase-6-complete only if every documented exit criterion passes; local certification evidence is recorded and no Phase 7 work may begin.
+- work-personal-use-acceptance-system-health-audit: Run the separately authorized Phases 0–6 Personal-Use Acceptance and System Health Audit; do not begin Phase 7.
 
 Do not begin the next phase or task automatically.

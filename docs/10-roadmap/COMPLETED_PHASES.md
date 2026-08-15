@@ -92,3 +92,13 @@ criteria are complete.
 - ADRs: ADR-007-MARKET-INTELLIGENCE-ZERO-DOLLAR-BOUNDARY.md
 - Known limitations: All market-brief read/generation/provider/email/scheduler/local-summarization flags remain default-off; generation requires reviewed local Finnhub key and SEC User-Agent; no authoritative holding-to-CIK mapping exists, so SEC filing events are omitted with a data-quality warning; no real provider/email/personal database was used for correction validation.
 - Authorized next phase: Phase 6 Scenario Lab remains unstarted and requires separate explicit authorization using docs/10-roadmap/PHASE6_SCENARIO_LAB_CAPABILITY_AUDIT_AND_PLAN.md.
+
+## phase-6 — Scenario Lab
+
+- Completion date: 2026-08-15
+- Certification baseline: `9c9b554` (local-only governance adoption; final evidence commit contains this record)
+- Merged PRs: 41, 55, 57
+- Test evidence: Rules Service `1,298 passed, 10 skipped, 1 xfailed`; Finlynq `106 passed`; root cross-service/governance `37 passed`; Scenario/persistence/migration/parity/ownership/idempotency/comparison/archive focus `72 passed, 3 skipped`; frontend Vitest `630 passed` across 70 files; TypeScript, ESLint, and production build passed with only known backend-unavailable static-generation diagnostics; canonical Playwright `108 passed, 1 skipped` of 109; Scenario Lab route-mocked journeys `4 passed`; tracker tests `16 passed`; status/render, handoff, workflow YAML, shell, diff, and sensitive-artifact checks passed.
+- ADRs: ADR-008-SCENARIO-LAB-BACKEND-FOUNDATION.md, ADR-009-LOCAL-VALIDATION-GOVERNANCE.md
+- Known limitations: GitHub Actions is intentionally disabled and no hosted workflow was required; external multi-user rollout remains blocked by the retention/user-deletion policy; deterministic Scenario Lab bands are not probabilities and no Phase 7 capability is authorized.
+- Authorized next phase: Run the separately authorized Phases 0–6 Personal-Use Acceptance and System Health Audit; do not begin Phase 7.

@@ -1,44 +1,11 @@
 {
-  "active_work": [
-    {
-      "branch": "main",
-      "id": "work-p6-clean-main-certification",
-      "issue": "",
-      "objective": "Reconcile the documented Phase 6 clean-main browser blockers, then rerun the complete certification matrix and create the completion tag only after every exit criterion passes.",
-      "paths": [
-        "ui",
-        "docs/10-roadmap"
-      ],
-      "phase_id": "phase-6",
-      "reason": "The prior clean-main Playwright failures are classified and corrected in the certification-reconciliation branch. The post-merge certification matrix found three remaining blockers: one stale forecast expectation, one expected default-off Scenario Lab 503 browser diagnostic, and one route-mocked auth fixture diagnostic. This branch reconciles those bounded test and observability expectations before the clean-main rerun.",
-      "risk_tier": "medium",
-      "status": "in_progress",
-      "tests": [
-        "Rules, Finlynq, cross-service, frontend, browser, accessibility, tracker, and handoff certification"
-      ],
-      "title": "Clean-main Phase 6 certification"
-    }
-  ],
+  "active_work": [],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
       "id": "external-multi-user-retention-deletion-blocker",
       "owner": "product-security",
       "related": "ADR-006, issue #3, PR #4",
-      "status": "open"
-    },
-    {
-      "description": "Local clean-main Phase 6 certification passes after PR #57: Rules Service 1,298 passed/10 skipped/1 expected xfail, Finlynq 106 passed, cross-service 33 passed, frontend 630 passed, TypeScript/lint/build passed, canonical Playwright 108 passed/1 skipped, and affected Scenario Lab journeys passed. The required hosted manual certification workflow cannot start because GitHub reports failed account payments or an exhausted spending limit; phase-6-complete remains prohibited until hosted certification is available and green.",
-      "id": "phase-6-clean-main-certification-blocker",
-      "owner": "engineering",
-      "related": "Local clean main 4f80f0ca8a6114e5c68bc101c59a7d5b44e77eb7; hosted attempts 31896160628 and 31896202299; billing annotation on job 95039690363",
-      "status": "open"
-    },
-    {
-      "description": "Hosted clean-main certification cannot start because GitHub Actions reports failed account payments or an exhausted spending limit before any workflow step runs.",
-      "id": "github-actions-certification-billing-blocker",
-      "owner": "engineering",
-      "related": "Hosted runs 31896160628 and 31896202299; GitHub check annotation on job 95039690363",
       "status": "open"
     }
   ],
@@ -1156,17 +1123,46 @@
         "Hosted status, scope classifier, and path-aware focused tests passed; hosted heavy/full Playwright was skipped by policy and not counted as passed"
       ],
       "title": "Phase 6 Slice 2 Scenario Lab UI"
+    },
+    {
+      "branch": "main",
+      "commit": "9c9b554",
+      "id": "work-p6-clean-main-certification",
+      "issue": "",
+      "objective": "Reconcile the documented Phase 6 clean-main browser blockers, then rerun the complete certification matrix and create the completion tag only after every exit criterion passes.",
+      "paths": [
+        "ui",
+        "docs/10-roadmap"
+      ],
+      "phase_id": "phase-6",
+      "pr": null,
+      "reason": "The prior clean-main Playwright failures are classified and corrected in the certification-reconciliation branch. The post-merge certification matrix found three remaining blockers: one stale forecast expectation, one expected default-off Scenario Lab 503 browser diagnostic, and one route-mocked auth fixture diagnostic. This branch reconciles those bounded test and observability expectations before the clean-main rerun.",
+      "review_evidence": null,
+      "risk_tier": "medium",
+      "status": "complete",
+      "tests": [
+        "Rules Service: 1,298 passed, 10 skipped, 1 expected xfail",
+        "Finlynq: 106 passed",
+        "Root tests: 37 passed",
+        "Scenario/migration focus: 72 passed, 3 skipped",
+        "Frontend Vitest: 630 passed",
+        "TypeScript, ESLint, production build: passed",
+        "Canonical Playwright: 108 passed, 1 skipped",
+        "Focused Scenario Lab journey: 4 passed",
+        "Tracker/render/handoff/shell/scope checks: passed"
+      ],
+      "title": "Clean-main Phase 6 certification"
     }
   ],
-  "current_objective": "Phase 6 remains in progress after completion of Slice 2 Scenario Lab UI; preserve server-owned financial authority and prepare the separate clean-main certification boundary.",
+  "current_objective": "Phase 6 Scenario Lab is locally certified from clean main; preserve server-owned financial authority and begin only the separately authorized personal-use acceptance and system-health audit.",
   "current_phase_id": "phase-6",
-  "last_updated": "2026-08-15T09:45:00Z",
+  "last_updated": "2026-08-15T17:18:40Z",
   "next_bounded_task": {
-    "description": "Restore hosted clean-main certification availability, then rerun the required hosted Phase 6 workflow and create phase-6-complete only if every documented exit criterion passes; local certification evidence is recorded and no Phase 7 work may begin.",
-    "id": "work-p6-clean-main-certification-remediation",
+    "description": "Run the separately authorized Phases 0–6 Personal-Use Acceptance and System Health Audit; do not begin Phase 7.",
+    "id": "work-personal-use-acceptance-system-health-audit",
     "phase_id": "phase-6"
   },
-  "overall_status": "in_progress",
+  "overall_status": "complete",
   "phases": [
     {
       "exit_criteria": [
@@ -1279,13 +1275,18 @@
       "exit_criteria": [
         {
           "complete": true,
-          "description": "Phase 6 Slice 1 provides a deterministic Decimal-safe goal-scoped Scenario Lab backend extending the immutable authoritative forecast system, with bounded scenario inputs, immutable version history, owner-scoped APIs, migration parity, and no UI or execution surface. Evidence: PR #41 merged at 86c272a329b83f86fd2f4118d2e1b0e0f4957d70; required governance and cheap checks passed; heavy check skipped by established workflow policy; focused and regression evidence recorded below.",
+          "description": "Phase 6 Slice 1 provides a deterministic Decimal-safe goal-scoped Scenario Lab backend extending the immutable authoritative forecast system, with bounded scenario inputs, immutable version history, owner-scoped APIs, migration parity, and no UI or execution surface. Evidence: PR #41 merged at 86c272a329b83f86fd2f4118d2e1b0e0f4957d70; local focused and regression evidence preserved in completed work.",
           "id": "ec-p6-s1-authoritative-scenario-lab"
+        },
+        {
+          "complete": true,
+          "description": "Clean-main Phase 6 certification passed using local Rules Service, Finlynq, cross-service, Scenario/migration, frontend, build, canonical Playwright, accessibility, tracker, render, handoff, shell, and scope evidence after local-only governance adoption. GitHub Actions is intentionally disabled and no hosted workflow was required.",
+          "id": "ec-p6-clean-main-local-certification"
         }
       ],
       "id": "phase-6",
       "name": "Scenario Lab",
-      "status": "in_progress"
+      "status": "complete"
     }
   ],
   "risks": [

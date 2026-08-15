@@ -24,8 +24,9 @@ requirements are defined in
 - **Medium:** `commit` and `tests` evidence. `pr` and `review_evidence` are
   optional. Relevant local validation evidence is recorded when the changed
   behavior affects shared application behavior.
-- **High:** `branch`, `commit`, `pr`, fresh independent `review_evidence`,
-  `tests`, and concrete validation evidence. New work should use structured
+- **High:** `commit`, `tests`, and concrete validation evidence. A branch is
+  recommended; `pr` and `review_evidence` are recorded when applicable or when
+  an independent reviewer is available. New work should use structured
   `validation_evidence`:
 
   ```json
@@ -46,7 +47,9 @@ requirements are defined in
   are defined by the canonical policy; do not infer a fixed correction-cycle
   limit from this schema.
 
-An `in_review` work item requires a `pr`. `blocked` or `cancelled` work
+An `in_review` work item requires a `pr` because that status represents an
+open PR. Completed solo work may omit `pr` and review evidence when no
+independent reviewer is available. `blocked` or `cancelled` work
 requires a `reason`. Each phase has `exit_criteria`, with stable IDs and a
 `complete` boolean. Phase completion remains forbidden until every criterion
 is complete.

@@ -79,8 +79,8 @@ class ProjectStatusTests(unittest.TestCase):
         self.assertFalse(active["branch"])
 
     def test_high_risk_review_evidence_has_no_fixed_cycle_marker_requirement(self):
-        # Review evidence remains required for high-risk work, but the tracker
-        # does not impose an arbitrary correction-cycle format or cap.
+        # When review evidence is available, the tracker preserves it without
+        # imposing an arbitrary correction-cycle format or cap.
         self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
         review_text = "Fresh independent review approved the exact head; no critical or high findings remain."
         self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", review_text, "--test", "1 passed", "--ci-run-url", "https://github.com/atlas/test/actions/runs/123", "--ci-check", "status")
@@ -90,10 +90,10 @@ class ProjectStatusTests(unittest.TestCase):
         self.assertEqual(completed["ci_evidence"]["conclusion"], "success")
 
     def test_high_risk_completion_accepts_structured_local_validation_evidence(self):
-        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
+        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high")
         self.invoke(
-            "complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7",
-            "--review-evidence", "local review approved", "--test", "focused contract: 3 passed",
+            "complete-work", "--id", "work-1", "--commit", "abc123",
+            "--test", "focused contract: 3 passed",
             "--local-command", "python3 -m pytest services/rules-service/tests/test_contract.py -q",
             "--local-result", "3 passed", "--local-environment", "Python 3.12 isolated Rules Service environment",
         )
@@ -124,33 +124,25 @@ class ProjectStatusTests(unittest.TestCase):
         self.assertEqual(completed["ci_evidence"]["run_url"], "https://github.com/atlas/test/actions/runs/123")
         self.assertNotIn("validation_evidence", completed)
 
-    def test_high_risk_work_still_requires_a_branch_on_completion(self):
-        # Backward-compat: high-risk work requires a branch even after the
-        # simplified policy. This catches regressions in command_start / validate.
-        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
-        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", "approved", "--test", "1 passed", "--ci-run-url", "https://github.com/atlas/test/actions/runs/123", "--ci-check", "status")
-        payload = json.loads(self.status.read_text())
-        payload["completed_work"][0].pop("branch")
-        self.status.write_text(json.dumps(payload), encoding="utf-8")
-        self.invoke("check", expect=1)
-
-    def test_high_risk_completion_requires_branch_pr_review_and_ci_evidence(self):
-        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
+    def test_high_risk_completion_requires_concrete_validation_evidence(self):
+        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high")
         self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--test", "1 passed", expect=1)
-        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--test", "1 passed", expect=1)
-        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", "independent review approved", "--test", "1 passed", expect=1)
-        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", "independent review approved", "--test", "1 passed", "--ci-run-url", "https://github.com/atlas/test/actions/runs/123", "--ci-check", "passed", expect=1)
-        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", "independent review approved", "--test", "1 passed", "--ci-run-url", "https://github.com/atlas/test/actions/runs/123", "--ci-check", "status")
+        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--test", "1 passed", "--ci-run-url", "https://github.com/atlas/test/actions/runs/123", "--ci-check", "passed", expect=1)
+        self.invoke(
+            "complete-work", "--id", "work-1", "--commit", "abc123", "--test", "1 passed",
+            "--local-command", "python3 -m pytest tests/test.py -q", "--local-result", "1 passed",
+            "--local-environment", "Python 3.12",)
         completed = json.loads(self.status.read_text())["completed_work"][0]
-        self.assertEqual(completed["ci_evidence"]["conclusion"], "success")
+        self.assertEqual(completed["validation_evidence"]["kind"], "local")
 
-    def test_completed_high_risk_work_without_branch_is_rejected(self):
-        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
-        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", "independent review approved", "--test", "1 passed", "--ci-run-url", "https://github.com/atlas/test/actions/runs/123", "--ci-check", "status")
-        payload = json.loads(self.status.read_text())
-        payload["completed_work"][0].pop("branch")
-        self.status.write_text(json.dumps(payload), encoding="utf-8")
-        self.invoke("check", expect=1)
+    def test_high_risk_completion_allows_no_branch_or_pr_for_solo_work(self):
+        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high")
+        self.invoke(
+            "complete-work", "--id", "work-1", "--commit", "abc123", "--test", "1 passed",
+            "--local-command", "python3 -m pytest tests/test.py -q", "--local-result", "1 passed",
+            "--local-environment", "Python 3.12",
+        )
+        self.invoke("check")
 
     def test_check_workflow_does_not_mutate_status(self):
         self.invoke("render")

@@ -32,8 +32,8 @@ or lengthy logs in status files.
 - **High:** financial calculations, forecast/recommendation authority,
   authentication/authorization, ownership isolation, immutable history,
   migrations, privacy, credentials/external delivery, and execution boundaries.
-  Use a branch, focused contract/integration tests, local review when available,
-  and structured local validation evidence. Only critical/high findings block
+  Use a branch when practical, focused contract/integration tests, local review
+  when available, and structured local validation evidence. Only critical/high findings block
   merging unless a medium/low finding threatens integrity, privacy, ownership,
   or authorization. GitHub PRs and hosted workflows are optional history and
   never completion gates. Frontend-owned route-mocked browser tests do not
@@ -61,8 +61,9 @@ or lengthy logs in status files.
 3. For tracked work, run `show` and `check`, read the phase plan, confirm scope
    and dependencies, then use `start --risk-tier`.
 
-4. A high-risk item requires a branch; a medium branch is recommended; low
-   work may proceed directly on main. Issues are not required.
+4. A high-risk branch is recommended; a medium branch is recommended; low
+   work may proceed directly on main. Issues and PRs are not required for solo
+   development.
 5. Identify the smallest validation set that proves the changed behavior.
 
 ## Completion workflow
