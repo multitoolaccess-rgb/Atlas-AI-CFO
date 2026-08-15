@@ -21,11 +21,13 @@ RISK_TIERS = {"low", "medium", "high"}
 # Risk-tier enforcement summary. The canonical policy is:
 #   docs/07-engineering/SOLO_DEVELOPMENT_POLICY.md
 # Low needs focused commit evidence only; medium needs commit + direct tests;
-# high needs branch, PR, focused tests, relevant CI, and fresh review evidence.
+# high needs branch, focused tests, and local validation evidence (or a
+# preserved historical hosted-CI record) plus fresh review evidence.
 # This utility validates evidence shape and phase status; it does not impose a
 # fixed correction-cycle limit or require unrelated full-suite evidence.
 CI_RUN_URL = re.compile(r"^https://github\.com/[^/]+/[^/]+/actions/runs/[0-9]+(?:/job/[0-9]+)?$")
 GENERIC_CI_CHECK_NAMES = {"passed", "success", "successful", "green", "ok"}
+GENERIC_LOCAL_COMMANDS = {"passed", "success", "successful", "green", "ok", "tests"}
 
 
 class StatusError(ValueError):
@@ -74,7 +76,7 @@ def work_risk_tier(item: dict[str, Any]) -> str | None:
 
 
 def valid_ci_evidence(value: Any) -> bool:
-    """Accept only a concrete successful GitHub Actions check reference."""
+    """Accept preserved historical successful GitHub Actions evidence."""
     if not isinstance(value, dict) or set(value) != {"run_url", "check", "conclusion"}:
         return False
     run_url = value["run_url"]
@@ -89,6 +91,37 @@ def valid_ci_evidence(value: Any) -> bool:
         and len(check) <= 160
         and conclusion == "success"
     )
+
+
+def valid_local_evidence(value: Any) -> bool:
+    """Accept concrete structured local validation evidence for new work."""
+    if not isinstance(value, dict):
+        return False
+    required = {"kind", "commit", "command", "result", "timestamp", "environment"}
+    if not required.issubset(value) or value.get("kind") != "local":
+        return False
+    commit = value.get("commit")
+    command = value.get("command")
+    result = value.get("result")
+    timestamp = value.get("timestamp")
+    environment = value.get("environment")
+    if not all(isinstance(item, str) and item.strip() for item in (commit, command, result, timestamp, environment)):
+        return False
+    if command.strip().lower() in GENERIC_LOCAL_COMMANDS or len(command) > 500:
+        return False
+    if len(result) > 160 or len(environment) > 300:
+        return False
+    try:
+        dt.datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    count = value.get("test_count")
+    return count is None or (isinstance(count, int) and count >= 0)
+
+
+def valid_validation_evidence(value: Any) -> bool:
+    """Accept new local evidence or unchanged historical hosted evidence."""
+    return valid_local_evidence(value) or valid_ci_evidence(value)
 
 
 def validate(status: dict[str, Any]) -> None:
@@ -135,8 +168,14 @@ def validate(status: dict[str, Any]) -> None:
                 raise StatusError(f"{work['id']} low-risk completion requires commit evidence")
             if tier == "medium" and (not work.get("commit") or not work.get("tests")):
                 raise StatusError(f"{work['id']} medium-risk completion requires commit and test evidence")
-            if tier == "high" and (not work.get("commit") or not work.get("pr") or not work.get("review_evidence") or not work.get("tests") or not valid_ci_evidence(work.get("ci_evidence"))):
-                raise StatusError(f"{work['id']} high-risk completion requires branch, commit, PR, review, test, and successful CI evidence")
+            if tier == "high" and (
+                not work.get("commit")
+                or not work.get("pr")
+                or not work.get("review_evidence")
+                or not work.get("tests")
+                or not valid_validation_evidence(work.get("validation_evidence") or work.get("ci_evidence"))
+            ):
+                raise StatusError(f"{work['id']} high-risk completion requires branch, commit, PR, review, tests, and concrete local or historical validation evidence")
             if tier is None and not (work.get("commit") or work.get("pr")):
                 raise StatusError(f"{work['id']} complete requires commit or PR evidence")
     for phase in status["phases"]:
@@ -233,7 +272,7 @@ def parser() -> argparse.ArgumentParser:
     start = sub.add_parser("start"); start.add_argument("--id", required=True); start.add_argument("--title", required=True); start.add_argument("--phase", required=True); start.add_argument("--path", action="append", required=True); start.add_argument("--objective", required=True); start.add_argument("--risk-tier", choices=sorted(RISK_TIERS), default="medium"); start.add_argument("--branch", default=""); start.add_argument("--issue", default=""); start.add_argument("--test", action="append", default=[])
     block = sub.add_parser("block"); block.add_argument("--id", required=True); block.add_argument("--reason", required=True)
     review = sub.add_parser("review"); review.add_argument("--id", required=True); review.add_argument("--pr", required=True)
-    complete = sub.add_parser("complete-work"); complete.add_argument("--id", required=True); complete.add_argument("--commit"); complete.add_argument("--pr"); complete.add_argument("--review-evidence"); complete.add_argument("--test", action="append", default=[]); complete.add_argument("--ci-run-url"); complete.add_argument("--ci-check")
+    complete = sub.add_parser("complete-work"); complete.add_argument("--id", required=True); complete.add_argument("--commit"); complete.add_argument("--pr"); complete.add_argument("--review-evidence"); complete.add_argument("--test", action="append", default=[]); complete.add_argument("--ci-run-url"); complete.add_argument("--ci-check"); complete.add_argument("--local-command"); complete.add_argument("--local-result"); complete.add_argument("--local-environment", default="")
     complete_phase = sub.add_parser("complete-phase"); complete_phase.add_argument("--phase", required=True); complete_phase.add_argument("--commit", required=True); complete_phase.add_argument("--pr", action="append", default=[]); complete_phase.add_argument("--test", action="append", required=True); complete_phase.add_argument("--adr", action="append", required=True); complete_phase.add_argument("--limitation", action="append", required=True); complete_phase.add_argument("--next-task", required=True)
     add_risk = sub.add_parser("add-risk"); add_risk.add_argument("--id", required=True); add_risk.add_argument("--description", required=True); add_risk.add_argument("--severity", required=True); add_risk.add_argument("--likelihood", required=True); add_risk.add_argument("--mitigation", required=True); add_risk.add_argument("--owner", required=True); add_risk.add_argument("--related", default="")
     resolve = sub.add_parser("resolve-risk"); resolve.add_argument("--id", required=True); resolve.add_argument("--evidence", required=True)
@@ -263,8 +302,21 @@ def main() -> int:
             ci_evidence = None
             if args.ci_run_url is not None or args.ci_check is not None:
                 ci_evidence = {"run_url": args.ci_run_url, "check": args.ci_check, "conclusion": "success"}
-            if tier == "high" and not valid_ci_evidence(ci_evidence):
-                raise StatusError("high-risk completion requires a concrete successful CI run URL and check name")
+            local_evidence = None
+            if args.local_command is not None or args.local_result is not None or args.local_environment:
+                local_evidence = {
+                    "kind": "local",
+                    "commit": args.commit,
+                    "command": args.local_command,
+                    "result": args.local_result,
+                    "timestamp": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+                    "environment": args.local_environment,
+                }
+            if tier == "high":
+                if ci_evidence is not None and local_evidence is not None:
+                    raise StatusError("provide either historical CI evidence or local validation evidence, not both")
+                if not valid_validation_evidence(local_evidence or ci_evidence):
+                    raise StatusError("high-risk completion requires concrete local validation evidence or preserved historical CI evidence")
             completion = {
                 "status": "complete",
                 "commit": args.commit,
@@ -273,7 +325,10 @@ def main() -> int:
                 "tests": args.test,
             }
             if tier == "high":
-                completion["ci_evidence"] = ci_evidence
+                if local_evidence is not None:
+                    completion["validation_evidence"] = local_evidence
+                else:
+                    completion["ci_evidence"] = ci_evidence
             item.update(completion); status["active_work"].remove(item); status["completed_work"].append(item)
         elif args.command == "complete-phase":
             target = phase(status, args.phase)

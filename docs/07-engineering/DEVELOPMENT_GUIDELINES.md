@@ -4,8 +4,10 @@
 
 Apply `docs/07-engineering/SOLO_DEVELOPMENT_POLICY.md` for Atlas’s risk
 classification, focused test selection, review and merge gates, autonomy,
-stop conditions, and full-certification rules. This document describes
-engineering practices and must not duplicate or strengthen that policy.
+stop conditions, local-only validation, and full-certification rules. This
+document describes engineering practices and must not duplicate or strengthen
+that policy. GitHub Actions is intentionally disabled; local commands and
+bounded suites are the authoritative evidence.
 
 ## Financial correctness
 
@@ -21,8 +23,9 @@ Models cannot directly write canonical records or execute actions.
 
 Use unit tests for calculations and policies, contract tests for connectors,
 integration tests for workflows, end-to-end tests for critical journeys, and
-golden evaluations for agent behavior. Select the smallest test set that proves
-the changed behavior and expand only when evidence shows a wider dependency.
+golden evaluations for agent behavior. Select the smallest local test set that
+proves the changed behavior and expand only when evidence shows a wider
+dependency; run the complete local matrix at phase and release boundaries.
 
 ## Reliability
 

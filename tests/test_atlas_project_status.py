@@ -89,6 +89,41 @@ class ProjectStatusTests(unittest.TestCase):
         self.assertEqual(completed["review_evidence"], review_text)
         self.assertEqual(completed["ci_evidence"]["conclusion"], "success")
 
+    def test_high_risk_completion_accepts_structured_local_validation_evidence(self):
+        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
+        self.invoke(
+            "complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7",
+            "--review-evidence", "local review approved", "--test", "focused contract: 3 passed",
+            "--local-command", "python3 -m pytest services/rules-service/tests/test_contract.py -q",
+            "--local-result", "3 passed", "--local-environment", "Python 3.12 isolated Rules Service environment",
+        )
+        completed = json.loads(self.status.read_text())["completed_work"][0]
+        self.assertEqual(completed["validation_evidence"]["kind"], "local")
+        self.assertEqual(completed["validation_evidence"]["commit"], "abc123")
+        self.assertEqual(completed["validation_evidence"]["result"], "3 passed")
+        self.assertNotIn("ci_evidence", completed)
+
+    def test_high_risk_completion_rejects_missing_or_generic_local_evidence(self):
+        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
+        common = ("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", "approved", "--test", "1 passed")
+        self.invoke(*common, "--local-result", "1 passed", "--local-environment", "Python 3.12", expect=1)
+        self.invoke(*common, "--local-command", "passed", "--local-result", "1 passed", "--local-environment", "Python 3.12", expect=1)
+        self.invoke(*common, "--local-command", "python3 -m pytest tests/test.py -q", "--local-result", "1 passed", expect=1)
+
+    def test_high_risk_completion_rejects_local_evidence_with_missing_commit(self):
+        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
+        self.invoke(
+            "complete-work", "--id", "work-1", "--pr", "#7", "--review-evidence", "approved", "--test", "1 passed",
+            "--local-command", "python3 -m pytest tests/test.py -q", "--local-result", "1 passed", "--local-environment", "Python 3.12", expect=1,
+        )
+
+    def test_high_risk_historical_hosted_evidence_remains_accepted(self):
+        self.invoke("start", "--id", "work-1", "--title", "One", "--phase", "phase-1", "--path", "services/rules-service", "--objective", "test", "--risk-tier", "high", "--branch", "codex/high-risk")
+        self.invoke("complete-work", "--id", "work-1", "--commit", "abc123", "--pr", "#7", "--review-evidence", "historical review approved", "--test", "1 passed", "--ci-run-url", "https://github.com/atlas/test/actions/runs/123", "--ci-check", "status")
+        completed = json.loads(self.status.read_text())["completed_work"][0]
+        self.assertEqual(completed["ci_evidence"]["run_url"], "https://github.com/atlas/test/actions/runs/123")
+        self.assertNotIn("validation_evidence", completed)
+
     def test_high_risk_work_still_requires_a_branch_on_completion(self):
         # Backward-compat: high-risk work requires a branch even after the
         # simplified policy. This catches regressions in command_start / validate.

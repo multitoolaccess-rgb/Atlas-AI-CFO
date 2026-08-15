@@ -27,8 +27,9 @@ correction-cycle caps beyond the canonical policy.
 
 Before implementation, identify affected documents and acceptance criteria.
 After implementation, report the exact focused tests, assumptions, risks, and
-unresolved decisions. Do not claim skipped checks passed and do not rerun
-unrelated green suites.
+unresolved decisions. Local validation is authoritative because GitHub Actions
+is intentionally disabled; PRs and workflow URLs are optional history only.
+Do not claim skipped checks passed and do not rerun unrelated green suites.
 
 Use `$atlas-handoff` when starting, resuming, transferring, closing, or
 checking material Atlas work, or for project-status and next-task requests.

@@ -19,9 +19,11 @@ stop conditions.
 Use `.agents/skills/atlas-project-tracker/SKILL.md` and
 `docs/07-engineering/DEVELOPMENT_GUIDELINES.md` for local enforcement details;
 they must not introduce stricter ceremony that conflicts with the canonical
-policy. Preserve the stronger boundary tests required for financial
-correctness, authorization, ownership isolation, privacy, migrations,
-immutable history, credentials, and execution safety.
+policy. Local validation is authoritative because GitHub Actions is intentionally
+disabled; GitHub PRs and workflow URLs are optional history, never completion
+gates. Preserve the stronger boundary tests required for financial correctness,
+authorization, ownership isolation, privacy, migrations, immutable history,
+credentials, and execution safety.
 
 Use the tracker's lightweight `check` workflow for read-only reviews and
 low-risk documentation work. Update project status only for material

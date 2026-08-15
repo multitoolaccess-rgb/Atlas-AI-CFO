@@ -8,7 +8,13 @@
 Atlas is currently a personal, single-user application in pre-production. It
 is not managing or moving real money autonomously. Documented non-critical bugs
 are acceptable while the product is being built. Development is optimized for
-useful progress, reasonable safety, and low agent and CI cost.
+useful progress, reasonable safety, and low agent and local-validation cost.
+
+GitHub is Atlas's private source repository and history backup. GitHub Actions
+is intentionally disabled for this repository, so hosted CI is never required
+for normal changes, phase completion, releases, or tags. Local validation is
+authoritative; no workflow URL is required as evidence. Pull requests remain
+optional history and collaboration records for a solo developer.
 
 This policy changes delivery ceremony, not product safety. Financial
 calculations, forecast and recommendation authority, authentication and
@@ -81,7 +87,10 @@ Required process:
 - Known critical or high findings block merging. Medium and low findings may
   be deferred unless they threaten data integrity, privacy, authorization, or
   financial correctness.
-- Run relevant focused CI; a complete repository regression is not automatic.
+- Run relevant focused local contract and integration validation; a complete
+  repository regression is not automatic.
+- A local review is required when an independent reviewer is available; no
+  hosted CI or workflow run is required.
 
 ## Full certification
 
@@ -129,8 +138,17 @@ or the same blocker recurring three times without meaningful progress.
 - High: focused boundary checks pass and a fresh independent review reports no
   critical or high defect.
 - Medium and low findings become follow-up debt rather than automatic blockers.
-- Hosted heavy CI may be skipped when this policy allows; record it as skipped,
-  never as passed.
+- Hosted CI is intentionally unavailable and is never a completion gate. Record
+  local commands and results as structured validation evidence; historical
+  hosted-CI evidence remains valid and unchanged.
+
+## Local validation evidence
+
+New material work records concrete local evidence with its commit SHA,
+command or bounded suite name, result, timestamp, and environment where
+material. Generic claims without a command or suite and commit are invalid.
+Historical `ci_evidence` records remain accepted for provenance but are not
+required for new work.
 
 ## Maintenance
 

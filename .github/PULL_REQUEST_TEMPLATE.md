@@ -12,7 +12,8 @@
 - Frontend TypeScript/lint, if applicable:
 - Focused browser journey, if interaction/navigation/URL behavior changed:
 - Relevant backend or contract tests, if applicable:
-- Hosted checks: record passed, failed, pending, or skipped accurately:
+- Local validation evidence: commit, command or bounded suite, result, timestamp, and environment:
+- Hosted workflows: intentionally disabled and never a completion gate; do not require a run URL:
 
 ## Safety and follow-up
 

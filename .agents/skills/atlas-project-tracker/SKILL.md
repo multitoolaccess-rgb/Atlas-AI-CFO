@@ -20,9 +20,9 @@ or lengthy logs in status files.
 
 - **Low:** documentation, copy, styling, visual tokens, generated tracker or
   handoff updates, isolated test corrections, and non-behavioral refactors.
-  Focused validation is enough; direct main commit is allowed and no PR,
-  review, hosted CI, or active tracker item is required unless part of a phase
-  exit.
+  Focused local validation is enough; direct main commit is allowed and no PR,
+  review, hosted workflow, or active tracker item is required unless part of a
+  phase exit.
 - **Medium:** UI pages, navigation, redirects, client state, shared visual
   components, non-financial clients, accessibility/responsive corrections, and
   normal tooling. Add directly affected tests; use TypeScript/lint for
@@ -32,14 +32,15 @@ or lengthy logs in status files.
 - **High:** financial calculations, forecast/recommendation authority,
   authentication/authorization, ownership isolation, immutable history,
   migrations, privacy, credentials/external delivery, and execution boundaries.
-  Use a branch and PR, focused contract/integration tests, relevant CI, and a
-  fresh independent review. Only critical/high findings block merging unless a
-  medium/low finding threatens integrity, privacy, ownership, or authorization.
-  Hosted CI is optional for medium-risk work when equivalent focused local
-  validation has passed. Frontend-owned route-mocked browser tests do not
+  Use a branch, focused contract/integration tests, local review when available,
+  and structured local validation evidence. Only critical/high findings block
+  merging unless a medium/low finding threatens integrity, privacy, ownership,
+  or authorization. GitHub PRs and hosted workflows are optional history and
+  never completion gates. Frontend-owned route-mocked browser tests do not
   require Rules Service, Finlynq, OCR, or the live-stack harness; reserve the
   live stack for genuine backend/UI integration, authentication,
   cross-service behavior, certification, or explicit manual validation.
+
 
 ## Tracking policy
 
@@ -59,6 +60,7 @@ or lengthy logs in status files.
    creating status work solely for the prompt.
 3. For tracked work, run `show` and `check`, read the phase plan, confirm scope
    and dependencies, then use `start --risk-tier`.
+
 4. A high-risk item requires a branch; a medium branch is recommended; low
    work may proceed directly on main. Issues are not required.
 5. Identify the smallest validation set that proves the changed behavior.
@@ -68,8 +70,9 @@ or lengthy logs in status files.
 1. Run scoped validation and review the diff.
 2. For tracked work, use `complete-work` consistent with the risk tier:
    low requires commit evidence; medium requires commit and tests; high
-   requires branch, commit, PR, fresh review evidence, relevant tests, and
-   successful relevant CI evidence.
+   requires branch, commit, focused tests, structured local validation evidence,
+   and local review when available. Historical hosted-CI evidence remains
+   accepted for provenance.
 3. Update risks, exit criteria, and next task only when they materially change.
 4. Run `render`, then `check` and `render --check` after a status mutation.
 5. Report exactly what ran, including skipped checks, and report the next

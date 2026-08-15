@@ -22,23 +22,29 @@ requirements are defined in
 - **Low:** `commit` evidence (a hash or short SHA from the local repo).
   `pr`, `review_evidence`, and `ci_evidence` are not required.
 - **Medium:** `commit` and `tests` evidence. `pr` and `review_evidence` are
-  optional. Relevant CI evidence is recorded when the changed behavior affects
-  shared application behavior.
+  optional. Relevant local validation evidence is recorded when the changed
+  behavior affects shared application behavior.
 - **High:** `branch`, `commit`, `pr`, fresh independent `review_evidence`,
-  `tests`, and relevant successful `ci_evidence`. The CI record is exactly:
+  `tests`, and concrete validation evidence. New work should use structured
+  `validation_evidence`:
 
   ```json
   {
-    "run_url": "https://github.com/OWNER/REPOSITORY/actions/runs/RUN_ID",
-    "check": "concrete check name (not a generic claim)",
-    "conclusion": "success"
+    "kind": "local",
+    "commit": "abc123",
+    "command": "python3 -m pytest tests/test_contract.py -q",
+    "result": "3 passed",
+    "timestamp": "2026-08-15T12:00:00Z",
+    "environment": "Python 3.12 isolated Rules Service environment"
   }
   ```
 
-  The run URL must identify a GitHub Actions run and the conclusion must be
-  `success`; empty or generic check claims such as `passed` are invalid.
-  Findings that block a high-risk merge are defined by the canonical policy;
-  do not infer a fixed correction-cycle limit from this schema.
+  The command or bounded suite and commit are mandatory; generic claims without
+  them are invalid. Historical `ci_evidence` records with a concrete successful
+  GitHub Actions URL remain valid and unchanged for provenance, but no hosted
+  workflow URL is required for new work. Findings that block a high-risk merge
+  are defined by the canonical policy; do not infer a fixed correction-cycle
+  limit from this schema.
 
 An `in_review` work item requires a `pr`. `blocked` or `cancelled` work
 requires a `reason`. Each phase has `exit_criteria`, with stable IDs and a
@@ -54,3 +60,6 @@ is complete.
 - Preserve historical evidence and existing internally consistent records.
 
 Run `python3 scripts/atlas_project_status.py check` after every mutation.
+Local evidence is authoritative because GitHub Actions is intentionally
+disabled; stored workflow files and historical CI records are not completion
+gates.
