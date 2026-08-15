@@ -505,6 +505,27 @@ def test_regression_non_v1_path_422_falls_back_to_default_detail_shape(
         assert response.status_code in (401, 405)
 
 
+def test_forecast_generation_forwards_validated_session_cookie(
+    client: TestClient, monkeypatch
+) -> None:
+    captured: dict[str, str] = {}
+
+    class _CookieAdapter(_StubAdapter):
+        def __init__(self, **kwargs):
+            captured.update({key: str(value) for key, value in kwargs.items()})
+            super().__init__(_stub_state(settings.local_user, 1, "1000"))
+
+    monkeypatch.setattr(
+        "app.routes.forecasts_generation.HttpFinlynqProjectionStateAdapter",
+        _CookieAdapter,
+    )
+    client.cookies.set("fc_session", issue_token())
+    response = _post(client, goal_id=1, headers={"Idempotency-Key": "atlas-cookie-forward"})
+    assert response.status_code == 201
+    assert captured["authorization"].startswith("Bearer ")
+    assert captured["authorization"] != settings.jwt_secret
+
+
 def test_authenticated_forecast_reads_return_latest_and_immutable_version(
     client: TestClient, stub_adapter, monkeypatch
 ) -> None:
@@ -529,6 +550,9 @@ def test_authenticated_forecast_reads_return_latest_and_immutable_version(
 def test_forecast_read_is_owner_scoped_and_default_off(
     client: TestClient, stub_adapter, monkeypatch
 ) -> None:
+    # Keep this default-off assertion hermetic even when a developer's
+    # ignored local environment enables the read API for personal use.
+    monkeypatch.setattr(settings, "atlas_forecast_read_api_enabled", False)
     created = _post(client, goal_id=1, headers=_auth_headers(idem="atlas-read-2"))
     assert created.status_code == 201
     forecast_id = created.json()["forecast_id"]

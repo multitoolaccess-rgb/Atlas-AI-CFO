@@ -79,6 +79,11 @@ def _parse_compare_body(raw: bytes) -> ScenarioCompareRequest | JSONResponse:
 
 def _adapter(request: Request):
     forwarded = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+    if not forwarded:
+        # Local UI authentication is carried by the already-validated
+        # HttpOnly session cookie. Forward that token to Finlynq, never the
+        # signing secret or any client-supplied financial state.
+        forwarded = request.cookies.get("fc_session", "").strip()
     return HttpFinlynqProjectionStateAdapter(
         base_url=settings.finlynq_base_url,
         authorization=("Bearer " + forwarded) if forwarded else "",

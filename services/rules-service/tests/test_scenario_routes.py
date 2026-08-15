@@ -90,6 +90,24 @@ def scenario_world(client, db_session, monkeypatch):
     return client, db_session, adapter
 
 
+def test_scenario_generation_forwards_validated_session_cookie(scenario_world, monkeypatch):
+    client, _db, adapter = scenario_world
+    captured = {}
+    monkeypatch.setattr(
+        "app.routes.scenarios.HttpFinlynqProjectionStateAdapter",
+        lambda **kwargs: (captured.update(kwargs) or adapter),
+    )
+    response = client.post(
+        "/api/v1/goals/1/scenarios",
+        json={"monthly_contribution_delta": "10"},
+        headers={"Idempotency-Key": "cookie-scenario-forward"},
+    )
+    assert response.status_code == 201
+    assert captured["authorization"].startswith("Bearer ")
+    from app.config import settings
+    assert captured["authorization"] != settings.jwt_secret
+
+
 def test_generate_read_compare_list_and_archive_are_owner_scoped(scenario_world):
     client, db, adapter = scenario_world
     headers = {"Idempotency-Key": "route-scenario-1"}
