@@ -111,7 +111,7 @@ export default function HelpPage() {
           <h2 id="help-readiness-title" className="headline-md text-primary">Local readiness runbook</h2>
         </div>
         <p className="body-md text-secondary">Start with the default Atlas shell. Keep financial, market-provider, email, scheduler, local-LLM, execution, trading, and money-movement flags off unless a separately reviewed local activation gate is satisfied. Read the Settings → Readiness recovery action before changing anything.</p>
-        <pre className="mt-4 overflow-x-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-surface-container p-4 text-xs text-secondary" aria-label="Readiness commands"><code>{'python3 scripts/atlas_doctor.py --json\npython3 scripts/synthetic_personal_acceptance.py'}</code></pre>
+        <pre className="mt-4 overflow-x-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-surface-container p-4 text-xs text-secondary" aria-label="Readiness commands"><code>{'python3 scripts/atlas_doctor.py --json\npython3 scripts/synthetic_personal_acceptance.py\npython3 scripts/atlas_confirm_new_accounts.py --database-path /absolute/path/finance.db'}</code></pre>
         <p className="body-md text-secondary mt-3">Rollback is configuration-only: restore any explicit local override to false. Never delete or downgrade immutable financial history as a rollback mechanism.</p>
       </section>
 

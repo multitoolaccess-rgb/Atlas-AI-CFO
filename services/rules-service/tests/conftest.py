@@ -54,10 +54,19 @@ os.environ.setdefault("FINLYNQ_BASE_URL", "http://localhost:8001")
 
 
 def _disable_env_file_lookup():
+    # ``from app.config import Settings`` instantiates the module-level
+    # ``settings = Settings()`` singleton DURING the import — before the class
+    # patch below takes effect — so a host ``services/rules-service/.env``
+    # (e.g. locally enabled feature flags) would leak into every test.  Patch
+    # the class first, then re-create the singleton against the patched
+    # config so tests stay hermetic regardless of local overrides.
     from app.config import Settings
 
     old = dict(Settings.model_config)
     Settings.model_config = {**old, "env_file": None}
+    import app.config as _app_config
+
+    _app_config.settings = Settings()
 
 
 _disable_env_file_lookup()

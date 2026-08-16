@@ -36,11 +36,18 @@ os.environ.setdefault(
 
 
 def _disable_env_file_lookup():
-    """Same env_file backdoor close as rules-service/tests/conftest.py."""
+    """Same env_file backdoor close as rules-service/tests/conftest.py.
+
+    Re-creates the module-level ``settings`` singleton after the class patch
+    so a host ``services/finlynq/.env`` cannot leak into tests.
+    """
     try:
         from app.config import Settings
         old = dict(Settings.model_config)
         Settings.model_config = {**old, "env_file": None}
+        import app.config as _app_config
+
+        _app_config.settings = Settings()
     except Exception:
         pass
 
