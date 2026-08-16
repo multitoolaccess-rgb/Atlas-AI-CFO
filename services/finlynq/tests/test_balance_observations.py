@@ -119,6 +119,51 @@ def test_invalid_or_future_observation_fails_without_mutation(db):
         confirm_all_active_balances_current(session, user_sub=user.local_user_sub, observed_at=observed, now=observed)
 
 
+def test_scoped_confirmation_touches_only_requested_accounts(db):
+    session, user = db
+    observed = datetime(2026, 8, 15, tzinfo=timezone.utc)
+    accounts = session.scalars(select(Account).order_by(Account.id)).all()
+    target = [int(accounts[1].id), int(accounts[2].id)]
+    preview = confirm_all_active_balances_current(
+        session, user_sub=user.local_user_sub, observed_at=observed,
+        apply=False, account_ids=target, now=observed,
+    )
+    assert preview["mode"] == "dry_run"
+    assert preview["eligible_active_accounts"] == 2
+    result = confirm_all_active_balances_current(
+        session, user_sub=user.local_user_sub, observed_at=observed,
+        apply=True, confirm_all_active=True, expected_intent_hash=preview["intent_hash"],
+        account_ids=target, now=observed,
+    )
+    assert result["mode"] == "apply"
+    observed_rows = session.query(AccountBalanceObservation).all()
+    assert len(observed_rows) == 2
+    assert {row.account_id for row in observed_rows} == set(target)
+    untouched = [account for account in accounts if int(account.id) not in target]
+    assert all(account.last_sync is None for account in untouched)
+
+
+def test_scoped_confirmation_rejects_unknown_or_inactive_targets(db):
+    session, user = db
+    observed = datetime(2026, 8, 15, tzinfo=timezone.utc)
+    accounts = session.scalars(select(Account).order_by(Account.id)).all()
+    target = [int(accounts[0].id), 9999]
+    with pytest.raises(BalanceObservationError, match="balance_observation_scope_invalid"):
+        confirm_all_active_balances_current(
+            session, user_sub=user.local_user_sub, observed_at=observed,
+            apply=False, account_ids=target, now=observed,
+        )
+    inactive = accounts[0]
+    inactive.is_active = False
+    session.commit()
+    with pytest.raises(BalanceObservationError, match="balance_observation_scope_invalid"):
+        confirm_all_active_balances_current(
+            session, user_sub=user.local_user_sub, observed_at=observed,
+            apply=False, account_ids=[int(inactive.id)], now=observed,
+        )
+    assert session.query(AccountBalanceObservation).count() == 0
+
+
 def test_inactive_accounts_are_excluded_but_unknown_active_accounts_block(db):
     session, user = db
     account = session.scalars(select(Account).order_by(Account.id)).first()

@@ -41,6 +41,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--observed-at", help="UTC RFC3339 observation time; defaults to current UTC.")
     parser.add_argument("--apply", action="store_true", help="Permit the append-only observation write.")
     parser.add_argument("--confirm-all-active-balances-current", action="store_true", help="Required exact confirmation for writes.")
+    parser.add_argument("--account-id", action="append", type=int, help="Optional bounded scope: confirm only these active owned accounts.")
     parser.add_argument("--intent-hash", help="Intent hash returned by the matching dry-run.")
     parser.add_argument("--json", action="store_true", help="Emit bounded machine-readable output.")
     args = parser.parse_args(argv)
@@ -71,6 +72,7 @@ def main(argv: list[str] | None = None) -> int:
                 apply=args.apply,
                 confirm_all_active=args.confirm_all_active_balances_current,
                 expected_intent_hash=args.intent_hash,
+                account_ids=args.account_id,
             )
     except Exception as exc:
         reason = exc.args[0] if exc.args and isinstance(exc.args[0], str) else "balance_observation_operator_failed"

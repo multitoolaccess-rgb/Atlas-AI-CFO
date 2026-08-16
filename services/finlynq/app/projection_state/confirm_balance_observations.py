@@ -29,7 +29,9 @@ from app.projection_state.balance_evidence import (
 from app.projection_state.observation import BalanceObservationError, balance_state_hash
 
 
-def _resolve_active_accounts(db: Session, user_sub: str) -> list[Account]:
+def _resolve_active_accounts(
+    db: Session, user_sub: str, *, account_ids: list[int] | None = None,
+) -> list[Account]:
     user = db.scalar(select(User).where(User.local_user_sub == user_sub, User.is_active.is_(True)))
     if user is None:
         raise BalanceObservationError("operator_user_unavailable")
@@ -38,6 +40,12 @@ def _resolve_active_accounts(db: Session, user_sub: str) -> list[Account]:
     ).order_by(Account.id.asc())))
     if not accounts:
         raise BalanceObservationError("balance_observation_incomplete")
+    if account_ids:
+        requested = set(account_ids)
+        scoped = [account for account in accounts if int(account.id) in requested]
+        if len(scoped) != len(requested) or {int(account.id) for account in scoped} != requested:
+            raise BalanceObservationError("balance_observation_scope_invalid")
+        return scoped
     return accounts
 
 
@@ -85,15 +93,21 @@ def confirm_all_active_balances_current(
     confirm_all_active: bool = False,
     expected_intent_hash: str | None = None,
     now: datetime | None = None,
+    account_ids: list[int] | None = None,
 ) -> dict[str, Any]:
-    """Preview or atomically append exact-cent evidence for every active account."""
+    """Preview or atomically append exact-cent evidence for active accounts.
+
+    When ``account_ids`` is provided, only those active owned accounts are
+    included in the observation intent and writes. The confirmation flag
+    still must be explicit.
+    """
     if apply and not confirm_all_active:
         raise BalanceObservationError("explicit_all_active_confirmation_required")
     observation_time = utc(observed_at)
     current_time = utc(now or datetime.now(timezone.utc))
     if observation_time > current_time:
         raise BalanceObservationError("observation_timestamp_in_future")
-    accounts = _resolve_active_accounts(db, user_sub)
+    accounts = _resolve_active_accounts(db, user_sub, account_ids=account_ids)
     preconditions = _exact_preconditions(accounts)
     try:
         intent_hash = observation_intent_hash(accounts, observed_at=observation_time)
@@ -120,7 +134,7 @@ def confirm_all_active_balances_current(
             "accounts": previews,
         }
 
-    account_ids = [int(account.id) for account in accounts]
+    scoped_account_ids = [int(account.id) for account in accounts]
     owner_id = int(accounts[0].user_id)
     try:
         # SQLite's deferred transaction would leave a race between the dry-run
@@ -136,7 +150,12 @@ def confirm_all_active_balances_current(
             refreshed = list(db.scalars(select(Account).where(
                 Account.user_id == owner_id, Account.is_active.is_(True)
             ).with_for_update().order_by(Account.id.asc())))
-        if [int(account.id) for account in refreshed] != account_ids:
+        if account_ids:
+            requested = set(account_ids)
+            refreshed = [account for account in refreshed if int(account.id) in requested]
+            if {int(account.id) for account in refreshed} != requested:
+                raise BalanceObservationError("balance_observation_scope_changed")
+        elif [int(account.id) for account in refreshed] != scoped_account_ids:
             raise BalanceObservationError("balance_observation_scope_changed")
         refreshed_preconditions = _exact_preconditions(refreshed)
         for account in refreshed:
