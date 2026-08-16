@@ -5,7 +5,7 @@ import React, { useState, useRef, useEffect, useCallback, KeyboardEvent, cloneEl
 export interface DropdownItem {
   id: string;
   label: string;
-  icon?: string;
+  icon?: React.ReactNode;
   onClick?: () => void;
   disabled?: boolean;
   destructive?: boolean;
@@ -209,7 +209,7 @@ const Dropdown: React.FC<DropdownProps> = ({
                 `}
               >
                 {item.icon && (
-                  <span className="material-symbols-outlined text-base leading-none" aria-hidden="true">
+                  <span className="text-base leading-none" aria-hidden="true">
                     {item.icon}
                   </span>
                 )}

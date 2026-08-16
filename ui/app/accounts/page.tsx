@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Plus, Landmark, Pencil, Trash2, Loader2, Eye, EyeOff } from 'lucide-react'
+import { Plus, Landmark, Pencil, Trash2, Loader2, Eye, EyeOff, Upload, RefreshCw, BadgeCheck } from 'lucide-react'
 import PageLayout from '@/components/layout/PageLayout'
 import { AtlasFilterProvider } from '@/components/ui/AtlasFilterContext'
 import FloatingTimeRangeBar from '@/components/ui/FloatingTimeRangeBar'
@@ -392,7 +392,7 @@ export default function AccountsPage() {
           {
             id: 'accounts',
             label: 'Accounts',
-            icon: 'account_balance',
+            icon: <Landmark className="w-4 h-4" aria-hidden="true" />,
             content: (
               <div data-testid="accounts-tab-panel">
                 {showForm && (
@@ -671,7 +671,7 @@ export default function AccountsPage() {
           {
             id: 'imports',
             label: 'Imports',
-            icon: 'upload_file',
+            icon: <Upload className="w-4 h-4" aria-hidden="true" />,
             content: (
               <div data-testid="imports-tab-panel">
                 <ImportStatementUpload
@@ -684,7 +684,7 @@ export default function AccountsPage() {
           {
             id: 'synchronization',
             label: 'Synchronization',
-            icon: 'sync',
+            icon: <RefreshCw className="w-4 h-4" aria-hidden="true" />,
             content: (
               <section className="card p-6" data-testid="synchronization-tab-panel">
                 <h2 className="headline-md text-primary">Synchronization</h2>
@@ -696,7 +696,7 @@ export default function AccountsPage() {
           {
             id: 'data-quality',
             label: 'Data quality',
-            icon: 'fact_check',
+            icon: <BadgeCheck className="w-4 h-4" aria-hidden="true" />,
             content: (
               <section className="card p-6" data-testid="data-quality-tab-panel">
                 <h2 className="headline-md text-primary">Data quality</h2>

@@ -27,7 +27,6 @@ import {
 } from 'lucide-react'
 import { formatNumber } from '@/lib/format'
 import { classifyErrorMessage } from '@/lib/errors'
-import FloatingTimeRangeBar from '@/components/ui/FloatingTimeRangeBar'
 import PageHeader from '@/components/ui/PageHeader'
 import { useEmbeddedMoneyView } from '@/components/money/EmbeddedMoneyView'
 
@@ -156,11 +155,11 @@ function BudgetingContent({ embedded = false }: { embedded?: boolean }) {
         description="Give each month a clear plan, then adjust it with the evidence you collect."
       />}
 
-      {/* Migrated from <FloatingFilterBar> children-pass-through (period input
-          + Add Budget button). The floating bar's own range selector changes
-          ?range=… (URL-only, no BE impact yet because budgeting keys by month);
-          both controls render left-to-right inside the same bar. */}
-      {embedded ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3">{budgetControls}</div> : <FloatingTimeRangeBar>{budgetControls}</FloatingTimeRangeBar>}
+      {/* Time controls stay consistent: budgeting keys by month, so the
+          canonical date-window Range selector would be a no-op here. Only the
+          authoritative month "Period" input is shown (same bar as the embedded
+          Plan → Budget tab) — no dead range control. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3">{budgetControls}</div>
 
       {/* Add Budget Form */}
       {showAddForm && (

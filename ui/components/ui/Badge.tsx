@@ -8,7 +8,7 @@ type BadgeSize = 'sm' | 'md';
 interface BadgeProps {
   variant?: BadgeVariant;
   size?: BadgeSize;
-  icon?: string;
+  icon?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }
@@ -49,7 +49,7 @@ const Badge: React.FC<BadgeProps> = ({
       `}
       role="status"
     >
-      {icon && <span className="material-symbols-outlined text-sm leading-none">{icon}</span>}
+      {icon && <span className="text-sm leading-none">{icon}</span>}
       <span className="leading-none">{children}</span>
     </span>
   );

@@ -11,8 +11,8 @@ interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, '
   error?: string;
   size?: InputSize;
   state?: InputState;
-  leftIcon?: string;
-  rightIcon?: string;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
   containerClassName?: string;
 }
 
@@ -60,7 +60,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(({
       <div className="relative">
         {leftIcon && (
           <span
-            className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] pointer-events-none text-lg"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] pointer-events-none"
             aria-hidden="true"
           >
             {leftIcon}
@@ -91,7 +91,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(({
         />
         {rightIcon && (
           <span
-            className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] pointer-events-none text-lg"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] pointer-events-none"
             aria-hidden="true"
           >
             {rightIcon}
