@@ -201,7 +201,8 @@ start_rules() {
 start_ui() {
   echo "→ Starting isolated UI server on :3000..."
   cd "$UI_DIR"
-  npm run dev -- --hostname 127.0.0.1 --port 3000 > "$UI_LOG" 2>&1 &
+  NEXT_PUBLIC_API_BASE_URL='http://127.0.0.1:8000' \
+    npm run dev -- --hostname 127.0.0.1 --port 3000 > "$UI_LOG" 2>&1 &
   UI_PID=$!
   STARTED_UI=1
   for i in $(seq 1 "$UI_STARTUP_TIMEOUT_SECONDS"); do

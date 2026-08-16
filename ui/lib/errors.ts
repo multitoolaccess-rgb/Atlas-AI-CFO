@@ -29,8 +29,8 @@
  *   - 5xx    -> "The server hit an error. Please try again in a
  *               moment." (our own crash; operator intervention)
  *   - other  -> upstream detail
- *   - no res -> "Can't reach the backend. Start the rules-service on
- *               :8000 (bash scripts/start.sh)."
+ *   - no res -> "Can't reach the backend. Start Atlas via
+ *               ./start.sh."
  */
 
 /** Coarse-grained category for auto-retry / telemetry hooks. */

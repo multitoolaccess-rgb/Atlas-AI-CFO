@@ -1518,7 +1518,7 @@ export interface ImportResult {
 // loginFn that calls the (module-local) ``rulesService.devLogin``.
 // This breaks the previous circular dep: ``api`` no longer needs to
 // reference ``rulesService`` at interceptor-registration time.
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8888'
 const api = createApiWithAuthRetry({
   // Keep the browser API host on the same host string as the UI origin
   // so the `fc_session` SameSite=Lax cookie can be sent on XHR requests.
