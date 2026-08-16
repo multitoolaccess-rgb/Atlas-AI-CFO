@@ -28,7 +28,7 @@ from app.scenarios.repository import (
     ScenarioRepository,
     ScenarioRepositoryConflict,
 )
-from app.scenarios.service import GeneratedScenario, ScenarioGenerationUnavailable, ScenarioService
+from app.scenarios.service import GeneratedScenario, ScenarioGenerationUnavailable, ScenarioInputValidationError, ScenarioService
 
 router = APIRouter(tags=["scenarios"])
 
@@ -164,6 +164,11 @@ async def generate_scenario(
             idempotency_key=idempotency_key,
             now=datetime.now(timezone.utc),
         )
+    except ScenarioInputValidationError as exc:
+        # Sanitized user-input failures (dates outside the projection horizon,
+        # negative contribution, insufficient liquidity) are validation errors
+        # with a precise recovery path, not availability failures.
+        return _error("scenario_validation_error", str(exc), 422)
     except ScenarioGenerationUnavailable as exc:
         if str(exc) == "baseline_forecast_required":
             return _error("scenario_baseline_unavailable", "An immutable baseline forecast is required.", 409)

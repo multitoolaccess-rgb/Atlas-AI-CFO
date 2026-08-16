@@ -20,7 +20,7 @@ from app.forecasts.canonical_state import (
 from app.forecasts.service import ForecastGenerationService, ForecastGenerationUnavailable
 from app.models import Forecast, ForecastVersion, Goal, Scenario
 from app.scenarios.contracts import ScenarioInput
-from app.scenarios.engine import calculate_scenario
+from app.scenarios.engine import ScenarioInputValidationError, calculate_scenario
 from app.scenarios.repository import (
     PersistedScenario,
     ScenarioNotFound,
@@ -134,6 +134,12 @@ class ScenarioService:
                 baseline_input_state_hash=baseline_canonical_hash,
                 baseline_output_snapshot=json.loads(baseline_version.output_snapshot_json),
             )
+        except ScenarioInputValidationError:
+            # User-input conditions (dates outside the horizon, negative
+            # contribution, insufficient liquidity) are validation failures,
+            # not availability failures. Let them propagate so the route can
+            # return a precise 422 scenario_validation_error.
+            raise
         except (ValueError, KeyError, TypeError, json.JSONDecodeError):
             raise ScenarioGenerationUnavailable("scenario_generation_unavailable") from None
         persisted = ScenarioRepository(self._session).persist(

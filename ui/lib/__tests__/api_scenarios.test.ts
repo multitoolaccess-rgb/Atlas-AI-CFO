@@ -68,4 +68,12 @@ describe('Scenario Lab API client', () => {
       recovery: 'Retry when the service is available. Atlas will not estimate a result locally.',
     })
   })
+
+  it('surfaces an actionable sanitized message for scenario validation failures', () => {
+    expect(readScenarioError({ isAxiosError: true, response: { data: { code: 'scenario_validation_error' } } })).toEqual({
+      code: 'scenario_validation_error',
+      message: 'Scenario Lab could not complete that request. One of the dates or amounts you entered is outside the supported projection window.',
+      recovery: 'Review the supported fields and dates, then try again.',
+    })
+  })
 })

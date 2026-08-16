@@ -170,6 +170,37 @@ def test_default_off_is_server_owned(scenario_world, monkeypatch):
     assert adapter.calls == 0
 
 
+def test_scenario_dates_outside_the_projection_horizon_return_422_validation(scenario_world):
+    """A user date beyond the baseline horizon is a validation error, not a 503.
+
+    The synthetic baseline runs 12 monthly boundaries through 2026-12-31, so a
+    contribution stop date in 2027 must fail with an actionable
+    ``scenario_validation_error`` instead of the generic availability 503 the
+    UI previously showed as "Scenario Lab could not complete that request".
+    """
+    client, _, _ = scenario_world
+    response = client.post(
+        "/api/v1/goals/1/scenarios",
+        json={"monthly_contribution_delta": "50", "contribution_stop_date": "2027-01-15"},
+        headers={"Idempotency-Key": "validation-horizon-1"},
+    )
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "scenario_validation_error"
+    assert "horizon" in body["message"]
+
+
+def test_negative_contribution_scenario_returns_422_validation(scenario_world):
+    client, _, _ = scenario_world
+    response = client.post(
+        "/api/v1/goals/1/scenarios",
+        json={"monthly_contribution_delta": "-1000"},
+        headers={"Idempotency-Key": "validation-negative-1"},
+    )
+    assert response.status_code == 422
+    assert response.json()["code"] == "scenario_validation_error"
+
+
 def test_compare_limit_and_incompatible_owner_resources_are_bounded(scenario_world):
     client, _, _ = scenario_world
     ids = []
