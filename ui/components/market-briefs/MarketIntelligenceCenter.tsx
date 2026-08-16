@@ -111,6 +111,24 @@ function reasonLabel(reason: MarketBriefReasonCode) {
   return reason.replaceAll('_', ' ')
 }
 
+// Failure reasons that genuinely mean the market-data provider is down or
+// misconfigured. Every other failure (coverage below threshold, unsupported
+// symbols, stale quotes, currency ambiguity) means the provider responded but
+// the portfolio could not be safely covered — the badge must say "Coverage
+// limited", not "Provider unavailable".
+const PROVIDER_FAILURE_REASONS: ReadonlySet<MarketBriefReasonCode> = new Set([
+  'provider_configuration_missing',
+  'provider_transport_failure',
+  'provider_authentication_failed',
+  'provider_rate_limited',
+  'invalid_quote',
+  'market_brief_generation_unavailable',
+])
+
+function isProviderFailureReason(code: MarketBriefReasonCode): boolean {
+  return PROVIDER_FAILURE_REASONS.has(code)
+}
+
 function coveragePercent(coverage: CoverageSummary | null | undefined) {
   if (!coverage?.coverage_percentage) return 'Not calculated'
   const value = Number(coverage.coverage_percentage) * 100
@@ -1147,7 +1165,7 @@ export default function MarketIntelligenceCenter() {
   const providerStatus = generating
     ? 'checking'
     : generationError
-      ? 'unavailable'
+      ? (isProviderFailureReason(generationError.reasonCode) ? 'unavailable' : 'degraded')
       : brief?.provider_readiness?.status ?? 'not_checked'
   const providerStatusLabel = providerStatus === 'checking'
     ? 'Checking market data'

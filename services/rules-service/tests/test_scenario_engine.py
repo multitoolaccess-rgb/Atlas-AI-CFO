@@ -6,7 +6,7 @@ import pytest
 
 from app.calculations.projection import ProjectionRequest, project_scenarios
 from app.scenarios.contracts import OneTimeOutflow, ScenarioInput
-from app.scenarios.engine import ScenarioCalculationError, calculate_scenario
+from app.scenarios.engine import ScenarioCalculationError, ScenarioInputValidationError, calculate_scenario
 
 
 def _request(*, balance="1000", contribution="100", target="2500") -> ProjectionRequest:
@@ -85,6 +85,26 @@ def test_outflow_at_horizon_boundary_is_valid_and_outside_horizon_fails() -> Non
     assert valid.result_snapshot["deterministic_bands"]["base"]["one_time_liquidity_consumed"] == "1"
     with pytest.raises(ScenarioCalculationError):
         _calculate(ScenarioInput(one_time_outflow=OneTimeOutflow(date=date(2027, 1, 1), amount="1")))
+
+
+def test_user_input_failures_raise_input_validation_not_generic_calculation_error() -> None:
+    """Dates outside the horizon and negative contributions are user-input
+    validation failures, so the route can return 422 instead of a generic 503."""
+    with pytest.raises(ScenarioInputValidationError, match="horizon"):
+        _calculate(
+            ScenarioInput(
+                monthly_contribution_delta="10",
+                contribution_stop_date=date(2027, 1, 15),
+            )
+        )
+    with pytest.raises(ScenarioInputValidationError, match="cannot be negative"):
+        _calculate(ScenarioInput(monthly_contribution_delta="-101"))
+    # The generic superclass still catches them (existing callers keep working).
+    with pytest.raises(ScenarioCalculationError, match="liquidity"):
+        _calculate(
+            ScenarioInput(one_time_outflow=OneTimeOutflow(date=date(2026, 1, 15), amount="1000000")),
+            _request(balance="0", contribution="0"),
+        )
 
 
 def test_outflow_cannot_silently_create_debt() -> None:

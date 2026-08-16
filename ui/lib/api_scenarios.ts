@@ -188,6 +188,10 @@ export interface ScenarioErrorState {
 }
 
 const SAFE_ERROR_MESSAGE = 'Scenario Lab could not complete that request. No client-side result was calculated.'
+// User-input failures carry a precise, sanitized server reason (e.g. a date
+// outside the goal's projection horizon) so the user knows to adjust the
+// form instead of treating the feature as unavailable.
+const VALIDATION_ERROR_MESSAGE = 'Scenario Lab could not complete that request. One of the dates or amounts you entered is outside the supported projection window.'
 const KNOWN_CODES: readonly ScenarioErrorCode[] = [
   'scenario_generation_unavailable',
   'scenario_baseline_unavailable',
@@ -221,7 +225,11 @@ export function readScenarioError(error: unknown): ScenarioErrorState {
   const code: ScenarioErrorCode = typeof rawCode === 'string' && KNOWN_CODES.includes(rawCode as ScenarioErrorCode)
     ? rawCode as ScenarioErrorCode
     : 'unknown'
-  return { code, message: SAFE_ERROR_MESSAGE, recovery: recoveryFor(code) }
+  return {
+    code,
+    message: code === 'scenario_validation_error' ? VALIDATION_ERROR_MESSAGE : SAFE_ERROR_MESSAGE,
+    recovery: recoveryFor(code),
+  }
 }
 
 export async function listScenarios(goalId: number, includeArchived = true): Promise<ScenarioListEnvelope> {

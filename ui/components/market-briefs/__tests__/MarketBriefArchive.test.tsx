@@ -20,6 +20,9 @@ vi.mock('@/lib/marketBriefs', () => ({
     if (reason === 'provider_configuration_missing') {
       return { reasonCode: reason, title: 'Provider setup needed', message: 'The approved market-data provider is not ready on the server.', recovery: 'Ask the local operator to configure the provider, then retry.', retryable: false }
     }
+    if (reason === 'insufficient_portfolio_coverage') {
+      return { reasonCode: reason, title: 'Coverage is below the safe threshold', message: 'Too little of the eligible portfolio has trustworthy market coverage.', recovery: 'Resolve omitted holdings before generating a complete portfolio brief.', retryable: false, omittedSymbols: error?.response?.data?.omitted_symbols ?? [] }
+    }
     if (!error?.response) {
       return { reasonCode: 'provider_transport_failure', title: 'Market data is unreachable', message: 'The provider could not be reached, so no market data was saved.', recovery: 'Check the provider connection and retry.', retryable: true }
     }
@@ -179,7 +182,27 @@ test('lists the actual omitted symbols instead of a dead review instruction', as
   const panel = await screen.findByTestId('omitted-symbols')
   expect(panel).toHaveTextContent('NON40OJJ2')
   expect(panel).toHaveTextContent('NON40OXLT')
-  expect(screen.getByText('Provider unavailable')).toBeInTheDocument()
+  // Unsupported symbols are a portfolio/data limitation, not a provider
+  // outage — the badge must say "Coverage limited", never "Provider unavailable".
+  expect(screen.getByText('Coverage limited')).toBeInTheDocument()
+  expect(screen.queryByText('Provider unavailable')).not.toBeInTheDocument()
+})
+
+test('labels insufficient portfolio coverage as Coverage limited, not a provider outage', async () => {
+  vi.mocked(generateMarketBrief).mockRejectedValue({
+    response: {
+      status: 503,
+      data: {
+        reason_code: 'insufficient_portfolio_coverage',
+        omitted_symbols: ['FXAIX', 'FNILX'],
+      },
+    },
+  })
+  render(<MarketIntelligenceCenter />)
+  fireEvent.click(await screen.findByRole('button', { name: /^generate brief$/i }))
+  expect(await screen.findByText(/below the safe threshold/i)).toBeInTheDocument()
+  expect(screen.getByText('Coverage limited')).toBeInTheDocument()
+  expect(screen.queryByText('Provider unavailable')).not.toBeInTheDocument()
 })
 
 test('clears a generation error when an archived brief is opened', async () => {

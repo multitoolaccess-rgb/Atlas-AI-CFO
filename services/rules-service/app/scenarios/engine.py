@@ -36,6 +36,16 @@ class ScenarioCalculationError(ValueError):
     """Sanitized deterministic scenario calculation failure."""
 
 
+class ScenarioInputValidationError(ScenarioCalculationError):
+    """Sanitized user-input validation failure (dates or amounts) for a scenario.
+
+    Distinct from ``ScenarioCalculationError`` so the route layer can surface
+    an actionable 422 ``scenario_validation_error`` instead of a generic
+    availability 503. The engine never interpolates user data into these
+    messages, so they are safe to return to the UI.
+    """
+
+
 @dataclass(frozen=True)
 class ScenarioCalculation:
     """Complete server-derived scenario result and comparison snapshot."""
@@ -82,7 +92,7 @@ def _boundary_index(boundaries: tuple[date, ...], value: date | None) -> int | N
     for index, boundary in enumerate(boundaries):
         if boundary >= value:
             return index
-    raise ScenarioCalculationError("scenario date is outside the projection horizon")
+    raise ScenarioInputValidationError("scenario date is outside the projection horizon")
 
 
 def _scenario_hash(*, baseline_forecast_id: str, baseline_version_number: int, baseline_input_state_hash: str, scenario_payload: Mapping[str, Any]) -> str:
@@ -158,18 +168,18 @@ def calculate_scenario(
     stop_index = _boundary_index(boundaries, scenario_input.contribution_stop_date)
     outflow_index = _boundary_index(boundaries, scenario_input.one_time_outflow.date if scenario_input.one_time_outflow else None)
     if scenario_input.contribution_start_date is not None and scenario_input.contribution_start_date < request.calculation_date:
-        raise ScenarioCalculationError("contribution start date is before the projection date")
+        raise ScenarioInputValidationError("contribution start date is before the projection date")
     if scenario_input.contribution_stop_date is not None and scenario_input.contribution_stop_date < request.calculation_date:
-        raise ScenarioCalculationError("contribution stop date is before the projection date")
+        raise ScenarioInputValidationError("contribution stop date is before the projection date")
     if scenario_input.one_time_outflow is not None and scenario_input.one_time_outflow.date < request.calculation_date:
-        raise ScenarioCalculationError("outflow date is before the projection date")
+        raise ScenarioInputValidationError("outflow date is before the projection date")
     if start_index is not None and stop_index is not None and start_index > stop_index:
-        raise ScenarioCalculationError("contribution start date is after stop date at the monthly boundary")
+        raise ScenarioInputValidationError("contribution start date is after stop date at the monthly boundary")
 
     delta = Decimal(scenario_input.monthly_contribution_delta or "0")
     adjusted_contribution = request.monthly_contribution + delta
     if adjusted_contribution < 0:
-        raise ScenarioCalculationError("scenario contribution cannot be negative")
+        raise ScenarioInputValidationError("scenario contribution cannot be negative")
     outflow = Decimal(scenario_input.one_time_outflow.amount) if scenario_input.one_time_outflow else Decimal("0")
     scenario_payload = scenario_input.canonical_payload()
     scenario_hash = _scenario_hash(
@@ -214,7 +224,7 @@ def calculate_scenario(
                 total_contributions += contribution
                 if outflow_index is not None and index == outflow_index:
                     if balance < outflow:
-                        raise ScenarioCalculationError("one-time outflow exceeds available liquidity")
+                        raise ScenarioInputValidationError("one-time outflow exceeds available liquidity")
                     balance -= outflow
                     consumed = outflow
             ending = _money(balance)
