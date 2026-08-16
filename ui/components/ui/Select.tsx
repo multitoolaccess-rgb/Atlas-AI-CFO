@@ -1,6 +1,7 @@
 'use client';
 
 import React, { forwardRef, useId } from 'react';
+import { ChevronDown } from 'lucide-react';
 
 type SelectSize = 'sm' | 'md' | 'lg';
 type SelectState = 'default' | 'error' | 'success';
@@ -102,12 +103,10 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(({
             </option>
           ))}
         </select>
-        <span
-          className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] pointer-events-none text-lg"
+        <ChevronDown
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)] pointer-events-none"
           aria-hidden="true"
-        >
-          expand_more
-        </span>
+        />
       </div>
       {error && (
         <p id={`${selectId}-error`} className="body-sm text-[var(--danger-600)]" role="alert">

@@ -180,7 +180,6 @@ const MIGRATED_PAGES: Array<[string, React.ComponentType]> = [
   // Phase A+B — already-proxied pages
   ['expenses', ExpensesPage],
   ['income', IncomePage],
-  ['budgeting', BudgetingPage],
   ['debts', DebtsPage],
   // Phase C — newly migrated pages
   ['activity', ActivityPage],
@@ -189,6 +188,11 @@ const MIGRATED_PAGES: Array<[string, React.ComponentType]> = [
   ['accounts', AccountsPage],
   ['portfolio', PortfolioPage],
 ]
+
+// Budgeting keys by month (BE budget contract), so it deliberately shows
+// only the authoritative month "Period" control and NOT the date-window
+// Range selector — the old dual control was a dead Range no-op next to
+// the real Period input (consistency fix). Guarded separately below.
 
 const ALL_PRESETS = ['7D', '30D', '90D', 'MTD', 'QTD', 'YTD', '1Y', 'All']
 
@@ -246,3 +250,16 @@ describe.each(MIGRATED_PAGES)(
     })
   },
 )
+
+describe('Floating time-range bar — /budgeting page (month-period contract)', () => {
+  it('renders the authoritative month Period control and NO Range selector', () => {
+    render(<BudgetingPage />)
+    // The month input drives every budget read/write (getBudgetStatus,
+    // listBudgets, createBudget) — it is the only time control here.
+    expect(screen.getByLabelText('Period')).toBeInTheDocument()
+    // The date-window Range selector is intentionally absent: budgeting
+    // keys by month, so the presets would be a dead control.
+    expect(screen.queryByText(/^Range$/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+  })
+})

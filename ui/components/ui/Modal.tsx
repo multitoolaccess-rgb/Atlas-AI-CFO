@@ -9,6 +9,7 @@ import React, {
   MouseEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 
 type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -161,9 +162,7 @@ const Modal: React.FC<ModalProps> = ({
                 ml-auto
               "
             >
-              <span className="material-symbols-outlined text-lg leading-none" aria-hidden="true">
-                close
-              </span>
+              <X className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         )}

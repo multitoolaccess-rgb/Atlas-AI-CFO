@@ -7,7 +7,7 @@ type TabsVariant = 'underline' | 'pill';
 export interface TabsGroupItem {
   id: string;
   label: string;
-  icon?: string;
+  icon?: React.ReactNode;
   content: React.ReactNode;
   disabled?: boolean;
 }
@@ -120,11 +120,7 @@ const TabsGroup: React.FC<TabsGroupProps> = ({
               onKeyDown={(e) => handleKeyDown(e, idx)}
               className={tabClass(item, isActive)}
             >
-              {item.icon && (
-                <span className="material-symbols-outlined text-base leading-none" aria-hidden="true">
-                  {item.icon}
-                </span>
-              )}
+              {item.icon}
               {item.label}
             </button>
           );
