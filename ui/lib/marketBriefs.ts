@@ -320,9 +320,9 @@ const ERROR_COPY: Record<MarketBriefReasonCode, Omit<MarketBriefErrorState, 'rea
     retryable: false,
   },
   insufficient_portfolio_coverage: {
-    title: 'Coverage is below the safe threshold',
-    message: 'Too little of the eligible portfolio has trustworthy market coverage.',
-    recovery: 'Resolve omitted holdings before generating a complete portfolio brief.',
+    title: 'Portfolio coverage is limited',
+    message: 'The brief includes only holdings the provider can price; the rest are disclosed with reasons.',
+    recovery: 'Review the disclosed omitted holdings and their reasons in the brief.',
     retryable: false,
   },
   no_market_addressable_holdings: {

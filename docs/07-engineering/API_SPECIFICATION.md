@@ -73,10 +73,12 @@ not modeled and therefore do not expand the accepted window.
 Every active non-cash holding is evaluated independently. Coverage is
 `value_weighted` when every eligible holding has a finite non-negative current
 value and the total is positive; otherwise it is `position_count`. Generation
-requires at least `0.80` coverage on the selected basis, and always fails closed
-when no holding is covered, currency is mixed/ambiguous, or required quote
-inputs are invalid. New records persist eligible, covered, omitted counts,
-coverage percentage/basis, omitted symbols, and bounded omission reason codes.
+builds the brief from the covered holdings and discloses every omission with
+its bounded reason code — partial coverage is allowed and never silently
+filled in. Generation always fails closed when no holding is covered, currency
+is mixed/ambiguous, or required quote inputs are invalid. New records persist
+eligible, covered, omitted counts, coverage percentage/basis, omitted symbols,
+and bounded omission reason codes.
 The coverage and price basis are included in the canonical input/universe
 hashes, so an idempotent replay cannot silently change its data basis.
 

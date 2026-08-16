@@ -39,8 +39,6 @@ from .contracts import (
     SecFilingEvent,
 )
 
-MINIMUM_COVERAGE = Decimal("0.80")
-
 _FAILURE_REASON_CODES = {
     FailureClass.UNCONFIGURED: MarketBriefReasonCode.PROVIDER_CONFIGURATION_MISSING,
     FailureClass.TIMEOUT: MarketBriefReasonCode.PROVIDER_TRANSPORT_FAILURE,
@@ -73,7 +71,7 @@ _SAFE_RECOVERY_GUIDANCE = {
     MarketBriefReasonCode.INVALID_QUOTE: "Ask the local operator to verify the provider response, then retry.",
     MarketBriefReasonCode.LIVE_QUOTE_STALE: "Retry during market hours or use the accepted prior-close mode outside the session.",
     MarketBriefReasonCode.PRIOR_CLOSE_TOO_OLD: "Refresh provider data before generating another brief.",
-    MarketBriefReasonCode.INSUFFICIENT_PORTFOLIO_COVERAGE: "Resolve the omitted holdings before generating a complete portfolio brief.",
+    MarketBriefReasonCode.INSUFFICIENT_PORTFOLIO_COVERAGE: "Review the disclosed omitted holdings; covered holdings are briefed with their own evidence.",
     MarketBriefReasonCode.NO_MARKET_ADDRESSABLE_HOLDINGS: "Add or correct an eligible holding before generating a brief.",
     MarketBriefReasonCode.AMBIGUOUS_CURRENCY: "Resolve the portfolio currency ambiguity before generating a brief.",
     MarketBriefReasonCode.MARKET_BRIEF_GENERATION_UNAVAILABLE: "Retry after the local operator resolves the reported readiness issue.",
@@ -437,7 +435,6 @@ class TrustedMarketBriefComposer:
                 covered.append(holding)
 
         coverage = self._coverage(eligible, covered, omissions)
-        percentage = _decimal(coverage.coverage_percentage) or Decimal(0)
         omitted_symbols = tuple(
             sorted({item.symbol for item in omissions if item.symbol != "UNKNOWN"})
         )
@@ -462,12 +459,12 @@ class TrustedMarketBriefComposer:
                 MarketBriefReasonCode.NO_MARKET_ADDRESSABLE_HOLDINGS,
                 omitted_symbols,
             )
-        if percentage < MINIMUM_COVERAGE:
-            raise MarketBriefCompositionError(
-                "Portfolio coverage is below the minimum meaningful threshold.",
-                MarketBriefReasonCode.INSUFFICIENT_PORTFOLIO_COVERAGE,
-                omitted_symbols,
-            )
+        # Partial-coverage briefs are allowed. The coverage summary and the
+        # briefing renderer disclose every omission with its stable reason
+        # code (``CoveragePanel``/``data_quality`` sections), so the brief
+        # never fabricates evidence for holdings the provider cannot price.
+        # Provider-level failures (config, transport, auth, rate limit) and
+        # currency ambiguity still fail closed above.
 
         currencies = {covered_by_symbol[(holding.symbol or "").strip().upper()].currency for holding in covered}
         if len(currencies) != 1:

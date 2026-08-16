@@ -75,8 +75,8 @@ _REASON_MESSAGES: dict[MarketBriefReasonCode, tuple[str, str]] = {
         "Resolve the portfolio currency ambiguity before generating a brief.",
     ),
     MarketBriefReasonCode.INSUFFICIENT_PORTFOLIO_COVERAGE: (
-        "Too little of the eligible portfolio has trustworthy market coverage.",
-        "Resolve omitted holdings before generating a complete portfolio brief.",
+        "Portfolio coverage is limited; the brief includes only covered holdings.",
+        "Review the disclosed omitted holdings and their reasons in the brief.",
     ),
     MarketBriefReasonCode.NO_MARKET_ADDRESSABLE_HOLDINGS: (
         "No trustworthy market-addressable holdings remain.",

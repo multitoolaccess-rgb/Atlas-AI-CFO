@@ -237,9 +237,11 @@ closes are not modeled.
 
 Coverage evaluates every active non-cash holding. It uses value-weighted
 coverage if all eligible holding values are finite and non-negative with a
-positive total, otherwise position-count coverage. The exact minimum meaningful
-threshold is 80%. No covered holdings, below-threshold coverage, ambiguous
-currency, invalid canonical evidence, and ownership violations fail closed.
+positive total, otherwise position-count coverage. Partial coverage is
+allowed: the brief is built from the covered holdings and every omission is
+disclosed with its bounded reason code, never silently filled in. Generation
+fails closed when no holding is covered, currency is mixed/ambiguous, invalid
+canonical evidence is present, or ownership is violated.
 New brief payloads retain immutable/idempotent persistence while adding
 coverage counts/basis/percentage, omitted symbols/reason codes, provider
 readiness, price basis, freshness, and canonical identity inputs.
@@ -270,8 +272,9 @@ capability.
   can fail independently: failures become `EvidenceAvailability` omissions
   with a stable reason code and user-safe recovery guidance, and never kill
   the complete brief.
-- The brief fails closed only when trustworthy portfolio coverage falls below
-  the tested 80% threshold (or no holding is market-addressable).
+- The brief fails closed only when no holding is market-addressable; partial
+  coverage builds the brief from the covered holdings and discloses every
+  omission with its bounded reason code.
 - Anticipated provider/composition failures are converted at the route
   boundary into sanitized stable responses; raw provider text and secrets
   never reach the client, and nothing is persisted when complete generation

@@ -327,7 +327,7 @@ function CoveragePanel({ coverage }: { coverage: CoverageSummary }) {
             <Badge variant="warning" size="sm" className="market-brief-warning !bg-amber-100 !text-amber-900 dark:!bg-amber-900 dark:!text-amber-100">{coveragePercent(coverage)} covered</Badge>
           </div>
           <p className="mt-1 text-sm leading-relaxed text-warning-900">
-            {coverage.covered_holding_count} of {coverage.eligible_holding_count} eligible holdings are covered using {coverage.coverage_basis.replace('_', ' ')} coverage. The safe minimum is {Number(coverage.minimum_required_percentage) * 100}%.
+            {coverage.covered_holding_count} of {coverage.eligible_holding_count} eligible holdings are covered using {coverage.coverage_basis.replace('_', ' ')} coverage. This brief includes only the covered holdings; the rest are listed below with reasons and are never silently guessed.
           </p>
           {coverage.omissions.length > 0 && (
             <ul className="mt-3 grid gap-2 text-sm text-warning-900 sm:grid-cols-2" aria-label="Omitted holdings and reasons">

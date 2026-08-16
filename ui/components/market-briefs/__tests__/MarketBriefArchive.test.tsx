@@ -21,7 +21,7 @@ vi.mock('@/lib/marketBriefs', () => ({
       return { reasonCode: reason, title: 'Provider setup needed', message: 'The approved market-data provider is not ready on the server.', recovery: 'Ask the local operator to configure the provider, then retry.', retryable: false }
     }
     if (reason === 'insufficient_portfolio_coverage') {
-      return { reasonCode: reason, title: 'Coverage is below the safe threshold', message: 'Too little of the eligible portfolio has trustworthy market coverage.', recovery: 'Resolve omitted holdings before generating a complete portfolio brief.', retryable: false, omittedSymbols: error?.response?.data?.omitted_symbols ?? [] }
+      return { reasonCode: reason, title: 'Portfolio coverage is limited', message: 'The brief includes only holdings the provider can price; the rest are disclosed with reasons.', recovery: 'Review the disclosed omitted holdings and their reasons in the brief.', retryable: false, omittedSymbols: error?.response?.data?.omitted_symbols ?? [] }
     }
     if (!error?.response) {
       return { reasonCode: 'provider_transport_failure', title: 'Market data is unreachable', message: 'The provider could not be reached, so no market data was saved.', recovery: 'Check the provider connection and retry.', retryable: true }
@@ -200,7 +200,7 @@ test('labels insufficient portfolio coverage as Coverage limited, not a provider
   })
   render(<MarketIntelligenceCenter />)
   fireEvent.click(await screen.findByRole('button', { name: /^generate brief$/i }))
-  expect(await screen.findByText(/below the safe threshold/i)).toBeInTheDocument()
+  expect(await screen.findByText(/Portfolio coverage is limited/i)).toBeInTheDocument()
   expect(screen.getByText('Coverage limited')).toBeInTheDocument()
   expect(screen.queryByText('Provider unavailable')).not.toBeInTheDocument()
 })

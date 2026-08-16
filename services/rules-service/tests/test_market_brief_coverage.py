@@ -114,16 +114,25 @@ def test_position_count_coverage_is_used_when_current_values_are_not_complete() 
     assert brief_input.coverage.coverage_percentage == "0.8"
 
 
-def test_below_threshold_no_coverage_and_mixed_currency_fail_closed() -> None:
-    with pytest.raises(MarketBriefCompositionError) as below:
-        TrustedMarketBriefComposer(Providers(missing={"MSFT"}), now=lambda: NOW).assemble(
-            session_for(holding("AAPL", 50), holding("MSFT", 50)), owner_id=1, report_window="latest"
-        )
-    assert below.value.reason_code is MarketBriefReasonCode.INSUFFICIENT_PORTFOLIO_COVERAGE
-    # The omitted symbols travel with the error so the API can tell the
-    # user WHICH holdings blocked the brief (not a dead "review details").
-    assert below.value.omitted_symbols == ("MSFT",)
+def test_below_threshold_coverage_still_generates_partial_brief_with_disclosure() -> None:
+    """Below-threshold coverage no longer blocks generation: the brief is
+    built from covered holdings and discloses every omission with its reason.
+    """
+    brief_input = TrustedMarketBriefComposer(Providers(missing={"MSFT"}), now=lambda: NOW).assemble(
+        session_for(holding("AAPL", 50), holding("MSFT", 50)), owner_id=1, report_window="latest"
+    )
+    assert brief_input.coverage is not None
+    assert brief_input.coverage.coverage_percentage == "0.5"
+    assert brief_input.coverage.covered_holding_count == 1
+    assert brief_input.coverage.omitted_holding_count == 1
+    assert brief_input.coverage.omitted_symbols == ("MSFT",)
+    assert brief_input.coverage.omissions[0].reason_code is MarketBriefReasonCode.UNSUPPORTED_SYMBOL
+    # The brief renders only the covered position and carries the omissions.
+    assert [position.symbol for position in brief_input.positions] == ["AAPL"]
+    assert brief_input.provider_readiness.status == "degraded"
 
+
+def test_no_covered_holdings_and_mixed_currency_fail_closed() -> None:
     with pytest.raises(MarketBriefCompositionError) as none:
         TrustedMarketBriefComposer(Providers(missing={"AAPL"}), now=lambda: NOW).assemble(
             session_for(holding("AAPL", 100)), owner_id=1, report_window="latest"
