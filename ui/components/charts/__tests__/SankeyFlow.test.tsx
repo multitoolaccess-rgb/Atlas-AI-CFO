@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import SankeyFlow from '../SankeyFlow'
 
 describe('SankeyFlow', () => {
@@ -15,5 +15,93 @@ describe('SankeyFlow', () => {
 
     expect(screen.getByText('No flow data yet')).toBeInTheDocument()
     expect(container.querySelector('svg')).not.toBeInTheDocument()
+  })
+
+  // Salary → Expenses → Uncategorized → Debt chain: a single source node, one
+  // group node, and two category nodes. Hover must be stable (one highlight
+  // target) and emphasize the hovered element plus its connections.
+  const chainNodes = [
+    { name: 'Salary', node_type: 'income' as const },
+    { name: 'Expenses', node_type: 'expense' as const },
+    { name: 'Uncategorized', node_type: 'expense' as const },
+    { name: 'Debt', node_type: 'debt' as const },
+  ]
+  const chainLinks = [
+    { source: 0, target: 1, value: 100 },
+    { source: 1, target: 2, value: 60 },
+    { source: 2, target: 3, value: 20 },
+  ]
+
+  function linkPathOpacity(container: HTMLElement, index: number): string | null {
+    return container.querySelector(`#sankey-link-path-${index}`)?.getAttribute('opacity') ?? null
+  }
+
+  function nodeOpacity(container: HTMLElement, index: number): string | null {
+    return container.querySelector(`#sankey-node-${index}`)?.getAttribute('style')?.match(/opacity:\s*([^;]+)/)?.[1] ?? null
+  }
+
+  it('highlights the connected flow when a node is hovered and dims disconnected elements', () => {
+    const { container } = render(<SankeyFlow nodes={chainNodes} links={chainLinks} />)
+
+    // Initial state: everything fully visible.
+    expect(linkPathOpacity(container, 0)).toBe('1')
+    expect(linkPathOpacity(container, 1)).toBe('1')
+    expect(linkPathOpacity(container, 2)).toBe('1')
+
+    // Hover the middle node (Expenses).
+    fireEvent.mouseEnter(screen.getByRole('option', { name: /^Expenses,/ }))
+
+    // Both links touching Expenses stay bright; the disconnected link dims.
+    expect(linkPathOpacity(container, 0)).toBe('0.85')
+    expect(linkPathOpacity(container, 1)).toBe('0.85')
+    expect(linkPathOpacity(container, 2)).toBe('0.08')
+    // Connected nodes stay bright; the disconnected node dims.
+    expect(nodeOpacity(container, 0)).toBe('1')
+    expect(nodeOpacity(container, 2)).toBe('1')
+    expect(nodeOpacity(container, 3)).toBe('0.3')
+
+    // Moving the pointer to a different node must not reset the highlight to
+    // "everything bright" (the old flicker): hover the source node instead.
+    fireEvent.mouseEnter(screen.getByRole('option', { name: /^Salary,/ }))
+    expect(linkPathOpacity(container, 0)).toBe('0.85')
+    expect(linkPathOpacity(container, 1)).toBe('0.08')
+    expect(linkPathOpacity(container, 2)).toBe('0.08')
+    expect(nodeOpacity(container, 1)).toBe('1')
+    expect(nodeOpacity(container, 2)).toBe('0.3')
+
+    // Leaving the whole diagram clears the highlight completely.
+    fireEvent.mouseLeave(container.querySelector('svg')!)
+    expect(linkPathOpacity(container, 0)).toBe('1')
+    expect(linkPathOpacity(container, 1)).toBe('1')
+    expect(linkPathOpacity(container, 2)).toBe('1')
+    expect(nodeOpacity(container, 3)).toBe('1')
+  })
+
+  it('highlights connected links when a link is hovered and restores on leave', () => {
+    const { container } = render(<SankeyFlow nodes={chainNodes} links={chainLinks} />)
+
+    // The first path inside each link group is the invisible wide hit area
+    // (the visible path has pointer-events disabled so it cannot steal hover).
+    const firstLinkGroup = container.querySelector('#sankey-links g')!
+    fireEvent.mouseEnter(firstLinkGroup.querySelector('path')!)
+
+    expect(linkPathOpacity(container, 0)).toBe('1')
+    expect(linkPathOpacity(container, 1)).toBe('0.85')
+    expect(linkPathOpacity(container, 2)).toBe('0.08')
+    expect(nodeOpacity(container, 2)).toBe('0.3')
+
+    fireEvent.mouseLeave(container.querySelector('svg')!)
+    expect(linkPathOpacity(container, 0)).toBe('1')
+    expect(linkPathOpacity(container, 1)).toBe('1')
+    expect(linkPathOpacity(container, 2)).toBe('1')
+  })
+
+  it('never lets the traveling particle or the visible path capture hover', () => {
+    const { container } = render(<SankeyFlow nodes={chainNodes} links={chainLinks} />)
+
+    const visiblePath = container.querySelector('#sankey-link-path-0')!
+    const particle = container.querySelector('#sankey-links g:nth-child(2) circle')!
+    expect(visiblePath).toHaveStyle({ pointerEvents: 'none' })
+    expect(particle).toHaveStyle({ pointerEvents: 'none' })
   })
 })
