@@ -88,10 +88,11 @@ export default function SankeyHero({ flows, loading, className }: SankeyHeroProp
       {/* Header row — Phase 3: more prominent title, CountUp summary chips */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
-          {/* Icon container — token-driven tint with no inline style.
-              Tailwind opacity overlay (`bg-{n}/40`) gives the alpha tint
-              without depending on color-mix() (Safari < 16.2 fallback). */}
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--primary-100)] ring-1 ring-[var(--primary-500)]/40 dark:bg-[var(--primary-900)]">
+          {/* Icon container — same token-driven treatment as every other
+              dashboard card (primary-50 tile + primary-200 border). The CSS
+              vars flip in dark mode, so the tile stays a dark tint instead
+              of the near-white primary-900 inverted token. */}
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--primary-50)] border border-[var(--primary-200)]">
             <GitBranch className="w-4 h-4 text-[var(--primary-600)]" aria-hidden="true" />
           </div>
           <div>

@@ -54,6 +54,11 @@ interface DatumLink {
   y1?: number
 }
 
+/** What the pointer is currently over: a link (by layout index) or a node
+ *  (by name). One state drives the whole diagram so the highlight cannot
+ *  flicker between adjacent elements. */
+type HoverTarget = { kind: 'link'; index: number } | { kind: 'node'; name: string } | null
+
 /* ---------------------------------------------------------------------------
  * d3-sankey type gymnastics:
  * The library's generics (SankeyNode<N,L>, SankeyLink<N,L>) are notoriously
@@ -154,7 +159,10 @@ const SANKEY_MARGIN = { top: 8, right: 180, bottom: 16, left: 24 }
 const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, onNodeClick, activeNode }: SankeyFlowProps) {
   const reducedMotion = useReducedMotion()
   const isDark = useThemeMode()
-  const [hoveredLink, setHoveredLink] = useState<number | null>(null)
+  // Single hover target for the whole diagram. Keeping one state avoids the
+  // enter/leave flicker between adjacent links and nodes: the highlight is
+  // only cleared when the pointer leaves the entire SVG.
+  const [hovered, setHovered] = useState<HoverTarget>(null)
   const [focusedNode, setFocusedNode] = useState<number | null>(null)
   const nodeRefs = useRef<(SVGGElement | null)[]>([])
   const width = 960
@@ -173,8 +181,11 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
   )
 
   // Stable callbacks for hover handlers (avoids inline arrow allocation per link)
-  const handleLinkEnter = useCallback((i: number) => setHoveredLink(i), [])
-  const handleLinkLeave = useCallback(() => setHoveredLink(null), [])
+  const handleLinkEnter = useCallback((i: number) => setHovered({ kind: 'link', index: i }), [])
+  const handleNodeEnter = useCallback((name: string) => setHovered({ kind: 'node', name }), [])
+  // The highlight is cleared only when the pointer leaves the whole diagram,
+  // never when it moves between adjacent links/nodes (which caused flicker).
+  const handleHoverLeave = useCallback(() => setHovered(null), [])
   const margin = SANKEY_MARGIN
 
   // d3-sankey mutates input — deep clone inside useMemo
@@ -217,11 +228,38 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
   const transition = reducedMotion ? 'none' : 'opacity 150ms ease-out'
   const borderStroke = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
 
-  // Compute the connected link set once per render for hover highlighting
-  const connectedSet = useMemo(
-    () => getConnectedSet(hoveredLink, computedLinks),
-    [hoveredLink, computedLinks],
-  )
+  // Compute the connected link set once per render for hover highlighting.
+  const connectedSet = useMemo(() => {
+    if (!hovered) return new Set<number>()
+    if (hovered.kind === 'link') return getConnectedSet(hovered.index, computedLinks)
+    // Node hover: every link touching the hovered node is connected.
+    const name = hovered.name
+    const set = new Set<number>()
+    for (let j = 0; j < computedLinks.length; j++) {
+      const link = computedLinks[j]
+      if ((link.source as DatumNode).name === name || (link.target as DatumNode).name === name) set.add(j)
+    }
+    return set
+  }, [hovered, computedLinks])
+
+  // Node names that stay bright while something is hovered: for link hover
+  // the source and target of that link; for node hover every node sharing a
+  // link with the hovered node, so the whole flow path stays visible.
+  const connectedNodeNames = useMemo(() => {
+    if (!hovered) return new Set<string>()
+    if (hovered.kind === 'node') {
+      const names = new Set<string>()
+      for (const j of connectedSet) {
+        const link = computedLinks[j]
+        names.add((link.source as DatumNode).name)
+        names.add((link.target as DatumNode).name)
+      }
+      return names
+    }
+    const hLink = computedLinks[hovered.index]
+    if (!hLink) return new Set<string>()
+    return new Set<string>([(hLink.source as DatumNode).name, (hLink.target as DatumNode).name])
+  }, [hovered, connectedSet, computedLinks])
 
   if (!nodes.length || !validLinks.length) {
     return (
@@ -248,6 +286,7 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
         viewBox={`0 0 ${width} ${height}`}
         width="100%"
         style={{ overflow: 'visible' }}
+        onMouseLeave={handleHoverLeave}
       >
         {/* Defs: gradient per link + SVG glow filter for Phase 3 node hover */}
         <defs>
@@ -300,21 +339,38 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
 
             // Opacity: hover takes priority over activeNode click
             let linkOpacity = 1
-            if (hoveredLink !== null) {
-              if (i === hoveredLink) {
+            if (hovered !== null) {
+              if (hovered.kind === 'link' && i === hovered.index) {
                 linkOpacity = 1 // hovered link is fully bright
-              } else if (connectedSet.has(i)) {
-                linkOpacity = 0.6 // connected links stay visible
+              } else if (
+                (hovered.kind === 'node' && (src.name === hovered.name || tgt.name === hovered.name)) ||
+                connectedSet.has(i)
+              ) {
+                linkOpacity = 0.85 // connected links stay visible
               } else {
-                linkOpacity = 0.06 // disconnected links dim
+                linkOpacity = 0.08 // disconnected links dim
               }
             } else if (activeNode) {
               const isConnected = src.name === activeNode || tgt.name === activeNode
-              linkOpacity = isConnected ? 0.85 : 0.06
+              linkOpacity = isConnected ? 0.85 : 0.08
             }
 
             return (
               <g key={`link-${i}`}>
+                {/* Invisible wide hit area so thin ribbons are easy to hover.
+                    pointerEvents="stroke" keeps the whole ribbon sensitive
+                    without a visible stroke change. All interactivity lives
+                    here; the visible path and particle cannot steal hover. */}
+                <path
+                  d={path ?? ''}
+                  stroke="transparent"
+                  strokeWidth={Math.max(12, (link.width ?? 2) + 8)}
+                  fill="none"
+                  pointerEvents="stroke"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => onNodeClick?.(tgt.name)}
+                  onMouseEnter={() => handleLinkEnter(i)}
+                />
                 <path
                   id={`sankey-link-path-${i}`}
                   d={path ?? ''}
@@ -326,21 +382,19 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
                   className={reducedMotion ? undefined : 'sankey-link'}
                   style={{
                     transition,
-                    cursor: 'pointer',
+                    pointerEvents: 'none',
                     '--sankey-delay': `${i * 80}ms`,
                   } as React.CSSProperties}
-                  onClick={() => onNodeClick?.(tgt.name)}
-                  onMouseEnter={() => handleLinkEnter(i)}
-                  onMouseLeave={handleLinkLeave}
                 />
                 {/* Energy-flow particle traveling along the link.
-                    Hidden for reduced-motion users. */}
+                    Hidden for reduced-motion users. pointer-events are
+                    disabled so the moving particle never steals hover. */}
                 {!reducedMotion && (
                   <circle
                     r="3"
                     className="sankey-particle"
                     opacity={linkOpacity}
-                    style={{ transition }}
+                    style={{ transition, pointerEvents: 'none' }}
                   >
                     <animateMotion
                       dur="2s"
@@ -373,31 +427,29 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
             const labelX = x + w + 14
             const labelY = y + h / 2
 
-            // Check if this node is connected to the hovered link
-            let isConnectedToNodeHover = false
-            if (hoveredLink !== null) {
-              const hLink = computedLinks[hoveredLink]
-              if (hLink) {
-                const hSrc = (hLink.source as DatumNode).name
-                const hTgt = (hLink.target as DatumNode).name
-                isConnectedToNodeHover = node.name === hSrc || node.name === hTgt
-              }
-            }
-
             // Highlight logic — hover takes priority over activeNode click.
-            // Phase 3: hovered/active nodes get the glow filter for a premium
-            //       halo effect (reduced-motion users skip the filter).
+            // The hovered element and its connections stay bright; everything
+            // else dims so the flow path stays readable.
             let nodeOpacity = 1
             let strokeColor = borderStroke
             let strokeWidth = 1
             let nodeFilter: string | undefined = undefined
-            if (hoveredLink !== null) {
-              if (isConnectedToNodeHover) {
+            if (hovered !== null) {
+              const isHoveredNode = hovered.kind === 'node' && node.name === hovered.name
+              const isConnectedToHover = connectedNodeNames.has(node.name)
+              if (isHoveredNode) {
+                strokeColor = getNodeFill(node, isDark)
+                strokeWidth = 2
+                nodeFilter = reducedMotion ? undefined : 'url(#sankey-node-glow)'
+              } else if (hovered.kind === 'node' && isConnectedToHover) {
+                // Connected nodes stay bright so the flow path stays visible,
+                // but only the hovered node gets the glow halo.
+              } else if (isConnectedToHover) {
                 strokeColor = getNodeFill(node, isDark)
                 strokeWidth = 2
                 nodeFilter = reducedMotion ? undefined : 'url(#sankey-node-glow)'
               } else {
-                nodeOpacity = 0.25
+                nodeOpacity = 0.3
               }
             } else if (activeNode) {
               if (node.name === activeNode) {
@@ -405,7 +457,7 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
                 strokeWidth = 2
                 nodeFilter = reducedMotion ? undefined : 'url(#sankey-node-glow)'
               } else {
-                nodeOpacity = 0.25
+                nodeOpacity = 0.3
               }
             }
 
@@ -426,6 +478,7 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
                 tabIndex={focusedNode === i || (focusedNode === null && i === 0) ? 0 : -1}
                 style={{ cursor: 'pointer', transition, opacity: nodeOpacity, outline: 'none', filter: nodeFilter }}
                 onClick={() => onNodeClick?.(node.name)}
+                onMouseEnter={() => handleNodeEnter(node.name)}
                 onFocus={() => setFocusedNode(i)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
