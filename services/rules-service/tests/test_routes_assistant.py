@@ -335,3 +335,73 @@ def test_assistant_chat_get_merchant_spend_dispatches(
     body = resp.json()
     assert body["tool_used"] == "get_merchant_spend"
     assert body["tool_result"]["total_spend"] == 120.0
+
+
+def test_assistant_chat_nl_fallback_surfaces_tool_result_when_reply_empty(
+    client, db_session, monkeypatch, make_account, make_transaction
+):
+    """Phase 30f — when the NL-generation round returns a dict without
+    a usable ``reply`` key, the user should still see the real tool
+    numbers instead of the dead-end "I couldn't generate a response."
+    message."""
+    seed_default_categories(db_session)
+    db_session.commit()
+    account = make_account(account_name="FallbackAcct", account_type="checking", current_balance=7000.0)
+    db_session.add(account)
+    db_session.commit()
+    db_session.refresh(account)
+    for t in [
+        make_transaction(account_id=account.id, description="SALARY", amount=5000.0, merchant_name="EMP"),
+        make_transaction(account_id=account.id, description="RENT", amount=-1500.0, merchant_name="LANDLORD"),
+    ]:
+        db_session.add(t)
+    db_session.commit()
+
+    call_count = {"n": 0}
+
+    async def _fake_chat_async(messages, **kwargs):
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            return {"tool": "get_cash_flow", "params": {"months_back": 0}, "intent": "cash flow"}
+        # NL round returns a malformed/empty reply.
+        return {"something_else": True}
+
+    monkeypatch.setattr(_llm_client, "post_ollama_chat_async", _fake_chat_async)
+    monkeypatch.setattr(_orch, "post_ollama_chat_async", _fake_chat_async)
+
+    resp = client.post(
+        "/api/assistant/chat",
+        json={"message": "Show me my cash flow."},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["tool_used"] == "get_cash_flow"
+    # The reply must surface the real numbers, not the dead-end error.
+    assert "couldn't generate" not in body["reply"].lower()
+    assert "$3,500.00" in body["reply"]  # 5000 - 1500 net cash flow
+
+
+def test_assistant_chat_nl_fallback_keeps_generic_when_no_tool_result(
+    client, db_session, monkeypatch
+):
+    """Phase 30f — when there is no tool result AND the NL round fails,
+    the generic fallback message is preserved (no crash)."""
+    call_count = {"n": 0}
+
+    async def _fake_chat_async(messages, **kwargs):
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            return {"tool": "none", "params": {}, "intent": "unknown"}
+        return {"something_else": True}
+
+    monkeypatch.setattr(_llm_client, "post_ollama_chat_async", _fake_chat_async)
+    monkeypatch.setattr(_orch, "post_ollama_chat_async", _fake_chat_async)
+
+    resp = client.post(
+        "/api/assistant/chat",
+        json={"message": "What's the weather?"},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["status"] == "ok"
+    assert "couldn't generate" in body["reply"].lower()

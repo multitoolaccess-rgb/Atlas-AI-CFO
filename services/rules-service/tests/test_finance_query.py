@@ -154,6 +154,41 @@ def test_get_category_spend_missing_category_returns_note(
     assert "not found" in result.get("note", "").lower()
 
 
+def test_get_category_spend_resolves_dining_alias(
+    client, db_session, seeded_finance_data
+):
+    """Phase 30f — the LLM passes "dining" but the canonical category
+    is "Food & Dining". The alias map must resolve it so the user sees
+    real spend instead of a silent 0."""
+    uid = seeded_finance_data["user_id"]
+    result = get_category_spend(db_session, {"category": "dining", "months_back": 0}, uid)
+    assert result["category"] == "Food & Dining"
+    assert result["total_spend"] == 200.0
+    assert result["transaction_count"] == 1
+
+
+def test_get_category_spend_resolves_food_alias(
+    client, db_session, seeded_finance_data
+):
+    """"food" resolves to "Food & Dining" via the alias map."""
+    uid = seeded_finance_data["user_id"]
+    result = get_category_spend(db_session, {"category": "food", "months_back": 0}, uid)
+    assert result["category"] == "Food & Dining"
+    assert result["total_spend"] == 200.0
+
+
+def test_get_category_spend_resolves_substring_match(
+    client, db_session, seeded_finance_data
+):
+    """A query not in the alias map still resolves via substring match
+    against canonical names ("shopp" is a prefix of "Shopping")."""
+    uid = seeded_finance_data["user_id"]
+    result = get_category_spend(db_session, {"category": "shopp", "months_back": 0}, uid)
+    assert result["category"] == "Shopping"
+    assert result["total_spend"] == 800.0
+    assert result["transaction_count"] == 1
+
+
 def test_get_category_spend_missing_param_returns_error(
     client, db_session, seeded_finance_data
 ):

@@ -32,6 +32,7 @@ The ``months_back`` parameter is an integer: 0 = current month-to-date,
 from __future__ import annotations
 
 import logging
+import re
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
@@ -43,6 +44,122 @@ from app.account_types import CREDIT_ACCOUNT_TYPES
 from app.models import Account, Category, Goal, Transaction
 
 LOG = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------
+# Category-name resolution.
+# ---------------------------------------------------------------------
+# The assistant's LLM passes a natural-language category name ("dining",
+# "food", "groceries") that rarely matches the canonical DB name
+# ("Food & Dining", "Groceries") exactly. Resolve loosely so a fuzzy
+# query still returns real spend instead of a silent 0.
+
+# Canonical aliases: a user/LLM word -> the canonical category name.
+# Lower-cased, punctuation-stripped keys. These are the categories the
+# seed creates (see ``app.services.categorizer.DEFAULT_CATEGORIES``).
+_CATEGORY_ALIASES: dict[str, str] = {
+    "dining": "Food & Dining",
+    "food": "Food & Dining",
+    "food and dining": "Food & Dining",
+    "restaurant": "Food & Dining",
+    "restaurants": "Food & Dining",
+    "eat out": "Food & Dining",
+    "eatout": "Food & Dining",
+    "takeout": "Food & Dining",
+    "grocery": "Groceries",
+    "groceries": "Groceries",
+    "supermarket": "Groceries",
+    "supermarkets": "Groceries",
+    "transport": "Transportation",
+    "transportation": "Transportation",
+    "gas": "Transportation",
+    "transit": "Transportation",
+    "rideshare": "Transportation",
+    "uber": "Transportation",
+    "shopping": "Shopping",
+    "retail": "Shopping",
+    "entertainment": "Entertainment",
+    "movies": "Entertainment",
+    "streaming": "Entertainment",
+    "bills": "Bills & Utilities",
+    "bills and utilities": "Bills & Utilities",
+    "utilities": "Bills & Utilities",
+    "electric": "Bills & Utilities",
+    "internet": "Bills & Utilities",
+    "health": "Health",
+    "medical": "Health",
+    "pharmacy": "Health",
+    "travel": "Travel",
+    "flights": "Travel",
+    "hotel": "Travel",
+    "education": "Education",
+    "tuition": "Education",
+    "other": "Other",
+    "transfer": "Transfer",
+    "income": "Income",
+    "salary": "Income",
+    "payroll": "Income",
+    "base salary": "Base Salary",
+}
+
+
+# ``&`` and ``/`` are common in canonical names ("Food & Dining",
+# "Bills & Utilities") but rare in what a user types; treat them as
+# separators when normalising so "food&dining" == "food dining".
+def _normalise_category_word(raw: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", raw.lower()).strip()
+
+
+def _resolve_category_name(db: Session, raw: str) -> Optional[Category]:
+    """Resolve a user/LLM-supplied category name to a ``Category`` row.
+
+    Resolution order:
+    1. Exact case-insensitive match on the canonical name.
+    2. Canonical alias map ("dining" -> "Food & Dining").
+    3. Substring match against canonical names ("dining" is a
+       substring of "Food & Dining").
+
+    Returns ``None`` when nothing matches so the caller can return a
+    "not found" note instead of silently querying nothing.
+    """
+    if not raw or not raw.strip():
+        return None
+    stripped = raw.strip()
+
+    # 1. Exact (case-insensitive) match.
+    exact = (
+        db.query(Category)
+        .filter(func.lower(Category.name) == stripped.lower())
+        .first()
+    )
+    if exact is not None:
+        return exact
+
+    # 2. Canonical alias map.
+    key = _normalise_category_word(stripped)
+    if key in _CATEGORY_ALIASES:
+        alias_row = (
+            db.query(Category)
+            .filter(func.lower(Category.name) == _CATEGORY_ALIASES[key].lower())
+            .first()
+        )
+        if alias_row is not None:
+            return alias_row
+
+    # 3. Substring match against canonical names. Pick the SHORTEST
+    # canonical name that contains the query — e.g. "dining" is a
+    # substring of "Food & Dining" (and nothing else), so it resolves
+    # cleanly. Shortest-wins avoids a generic query like "pay" matching
+    # a long name when a shorter, more specific one exists.
+    best: Optional[Category] = None
+    best_len = 0
+    for row in db.query(Category).all():
+        row_name = (row.name or "").lower()
+        if stripped.lower() in row_name:
+            if best is None or len(row_name) < best_len:
+                best = row
+                best_len = len(row_name)
+    return best
 
 
 # ---------------------------------------------------------------------
@@ -190,12 +307,10 @@ def get_category_spend(db: Session, params: dict, user_id: int) -> dict[str, Any
 
     months_back = _coerce_int(params.get("months_back"), default=1)
 
-    # Resolve category by name (case-insensitive).
-    category = (
-        db.query(Category)
-        .filter(func.lower(Category.name) == category_name.lower())
-        .first()
-    )
+    # Resolve category by name — exact, then alias, then substring so
+    # the LLM's "dining" resolves to the canonical "Food & Dining"
+    # instead of returning a silent 0 (Phase 30f fix).
+    category = _resolve_category_name(db, category_name)
     if category is None:
         return {
             "category": category_name,

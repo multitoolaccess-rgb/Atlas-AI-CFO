@@ -106,15 +106,22 @@ def _load_agent_file(filename: str, fallback: str) -> str:
 
 def build_system_prompt() -> str:
     """Assemble the system prompt from SOUL.md + STYLE.md + uncertainty
-    rules + the tool whitelist."""
+    rules + the tool whitelist + the canonical category names."""
     soul = _load_agent_file("SOUL.md", _FALLBACK_SOUL)
     style = _load_agent_file("STYLE.md", _FALLBACK_STYLE)
     tool_list = ", ".join(f'"{name}"' for name in TOOLS)
+    # Canonical category names — the get_category_spend tool matches
+    # these EXACTLY, so telling the LLM the real names ("Food & Dining",
+    # "Bills & Utilities") stops it from passing a loose "dining" and
+    # getting a silent 0 back.
+    category_list = _canonical_category_names()
     return (
         f"{soul}\n\n"
         f"Communication style: {style}\n\n"
         f"{_UNCERTAINTY_RULES}\n\n"
         f"Available tools: {tool_list}\n\n"
+        f"Canonical category names (use these EXACT strings for the "
+        f"get_category_spend tool): {category_list}\n\n"
         "When the user asks a question, respond with a JSON object with "
         "this exact shape (no prose):\n"
         "{\n"
@@ -123,6 +130,19 @@ def build_system_prompt() -> str:
         '  "intent": "<short description of what the user wants>"\n'
         "}\n\n"
         "If no tool fits, set \"tool\": \"none\" and \"params\": {}."
+    )
+
+
+def _canonical_category_names() -> str:
+    """Return the canonical category names as a comma-separated string.
+
+    Derived from the categorizer's ``DEFAULT_CATEGORIES`` seed so the
+    assistant prompt and the actual DB taxonomy never drift apart.
+    """
+    from app.services.categorizer import DEFAULT_CATEGORIES
+
+    return ", ".join(
+        c["name"] for c in DEFAULT_CATEGORIES if c.get("name")
     )
 
 
@@ -403,6 +423,51 @@ def _prune_old_conversations(db: Session, user_id: int) -> int:
     return deleted
 
 
+def _format_tool_result_reply(tool_result: dict) -> str:
+    """Render a tool result dict into a readable one-line summary.
+
+    Used when the NL-generation round returns an empty/malformed reply
+    (or Ollama goes offline mid-generation) but the tool DID return
+    real data — the user should see the numbers instead of a dead-end
+    "I couldn't generate a response." message.
+
+    Returns an empty string when ``tool_result`` is an error dict or
+    has no human-readable fields, so the caller can keep its generic
+    fallback.
+    """
+    if not isinstance(tool_result, dict) or "error" in tool_result:
+        return ""
+    # Ordered, human-friendly labels for the fields the tools return.
+    label_map: dict[str, str] = {
+        "total_balance": "Total balance",
+        "total_income_month": "Income this month",
+        "total_expenses_month": "Expenses this month",
+        "income": "Income",
+        "expenses": "Expenses",
+        "net_cash_flow": "Net cash flow",
+        "net": "Net",
+        "savings_rate": "Savings rate",
+        "category": "Category",
+        "total_spend": "Total spend",
+        "transaction_count": "Transactions",
+        "merchant": "Merchant",
+        "months_back": "Months back",
+    }
+    parts: list[str] = []
+    for key, label in label_map.items():
+        if key in tool_result and tool_result[key] is not None:
+            value = tool_result[key]
+            if key == "savings_rate":
+                parts.append(f"{label}: {value}%")
+            elif isinstance(value, float):
+                parts.append(f"{label}: ${value:,.2f}")
+            else:
+                parts.append(f"{label}: {value}")
+    if not parts:
+        return ""
+    return "Here's what I found: " + "; ".join(parts) + "."
+
+
 def _is_model_loaded(base_url: str, model: str) -> bool:
     """True if ``model`` is already warm in Ollama memory.
 
@@ -625,16 +690,16 @@ async def orchestrate(
         )
         reply = nl_response.get("reply", "")
         if not isinstance(reply, str) or not reply.strip():
-            reply = "I couldn't generate a response. Please try again."
+            # Empty/malformed NL reply — fall back to the tool data if
+            # we have any, so the user sees the numbers instead of a
+            # dead-end error.
+            reply = _format_tool_result_reply(tool_result) if tool_result else ""
+            if not reply:
+                reply = "I couldn't generate a response. Please try again."
     except (httpx.TransportError, ValueError, KeyError, TypeError) as exc:
         LOG.warning("Assistant: NL generation failed: %s", exc)
-        if tool_result is not None and "error" not in tool_result:
-            reply = (
-                f"Here's what I found: {tool_result}. "
-                "(The AI helper went offline while generating this "
-                "response, so the summary is minimal.)"
-            )
-        else:
+        reply = _format_tool_result_reply(tool_result) if tool_result else ""
+        if not reply:
             reply = "I couldn't generate a response. Please try again."
 
     # --- Phase 30c: persist the assistant message ---
@@ -909,15 +974,12 @@ async def orchestrate_stream(
         )
         reply = nl_response.get("reply", "")
         if not isinstance(reply, str) or not reply.strip():
-            reply = "I couldn't generate a response. Please try again."
+            reply = _format_tool_result_reply(tool_result) if tool_result else ""
+            if not reply:
+                reply = "I couldn't generate a response. Please try again."
     except (httpx.TransportError, ValueError, KeyError, TypeError):
-        if tool_result is not None and "error" not in tool_result:
-            reply = (
-                f"Here's what I found: {tool_result}. "
-                "(The AI helper went offline while generating this "
-                "response, so the summary is minimal.)"
-            )
-        else:
+        reply = _format_tool_result_reply(tool_result) if tool_result else ""
+        if not reply:
             reply = "I couldn't generate a response. Please try again."
 
     # Emit reply in chunks (word-by-word for a typewriter effect).
