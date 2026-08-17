@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Loader2, Bot, User, Plus, MessageSquare, ChevronLeft, Wrench } from 'lucide-react';
+import { Send, Loader2, Bot, User, Plus, MessageSquare, ChevronLeft, Wrench, Cpu } from 'lucide-react';
 import { rulesService, type AssistantConversation } from '@/lib/api';
+import Select from '@/components/ui/Select';
+import { getAssistantModel, setAssistantModel } from '@/lib/assistantModelPrefs';
 import ToolCard from './ToolCard';
 
 /**
@@ -89,6 +91,70 @@ export default function ChatPanel({ pendingQuery }: ChatPanelProps = {}) {
 
   // Phase 30e — streaming state.
   const [streamStatus, setStreamStatus] = useState<string | null>(null);
+
+  // Phase 30f — Scout model picker. Lets the user choose which local
+  // Ollama model drives the assistant instead of silently defaulting.
+  const [models, setModels] = useState<string[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelWarming, setModelWarming] = useState(false);
+  const [modelStatus, setModelStatus] = useState<'warmed' | 'offline' | null>(null);
+
+  // Load the installed model list on mount + restore the user's pick.
+  // Also auto-warm the initial model once (fire-and-forget in the
+  // background) so the first message after opening Scout doesn't stall
+  // on a cold load — the model is already resident by the time the user
+  // types. Guarded by a ref so it only warms the initial default, not
+  // on every picker change (those go through handleModelChange).
+  const autoWarmedRef = useRef<string | null>(null);
+  const loadModels = useCallback(async () => {
+    setModelsLoading(true);
+    try {
+      const data = await rulesService.listAssistantModels();
+      setModels(data.models ?? []);
+      // Restore the saved pick if it's still installed; otherwise fall
+      // back to the service default (null = use default).
+      const saved = getAssistantModel();
+      const initial =
+        saved && (data.models ?? []).includes(saved)
+          ? saved
+          : (data.default ?? null);
+      setSelectedModel(initial);
+      if (initial && autoWarmedRef.current !== initial) {
+        autoWarmedRef.current = initial;
+        void rulesService.warmAssistantModel(initial).catch(() => {
+          // Silent: an offline Ollama means the default just stays
+          // cold; the stream's model_loading event still covers that.
+        });
+      }
+    } catch {
+      // Model discovery is a convenience — a failure just leaves the
+      // picker empty and Scout keeps using the service default.
+    } finally {
+      setModelsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadModels();
+  }, [loadModels]);
+
+  // When the user picks a model, persist it and warm it so the first
+  // chat after a switch doesn't stall on a cold load.
+  const handleModelChange = async (next: string) => {
+    setSelectedModel(next);
+    setAssistantModel(next);
+    setModelStatus(null);
+    setModelWarming(true);
+    try {
+      const result = await rulesService.warmAssistantModel(next);
+      setModelStatus(result.status);
+    } catch {
+      setModelStatus('offline');
+    } finally {
+      setModelWarming(false);
+    }
+  };
 
   // Load conversation list on mount.
   const loadConversations = useCallback(async () => {
@@ -207,8 +273,17 @@ export default function ChatPanel({ pendingQuery }: ChatPanelProps = {}) {
       let resultFollowUps: string[] = [];
 
       try {
-        for await (const evt of rulesService.assistantChatStream(text, conversationId)) {
+        for await (const evt of rulesService.assistantChatStream(text, conversationId, selectedModel)) {
           switch (evt.event) {
+            case 'model_loading': {
+              // Cold start: Ollama is loading the chosen model into
+              // memory. Surface a distinct status so the user sees
+              // "Loading model…" instead of an apparently-stuck
+              // "thinking" spinner (the BE uses a longer timeout for
+              // this first round so it won't 504 mid-load).
+              setStreamStatus('model_loading');
+              break;
+            }
             case 'conversation': {
               const cid = evt.data.conversation_id as number | null;
               const ctitle = evt.data.conversation_title as string | null;
@@ -331,7 +406,7 @@ export default function ChatPanel({ pendingQuery }: ChatPanelProps = {}) {
         // Remove the placeholder assistant message.
         setMessages((prev) => prev.slice(0, assistantIndex));
 
-        const result = await rulesService.assistantChat(text, resultConversationId);
+        const result = await rulesService.assistantChat(text, resultConversationId, selectedModel);
         setMessages((prev) => [
           ...prev,
           {
@@ -460,6 +535,49 @@ export default function ChatPanel({ pendingQuery }: ChatPanelProps = {}) {
               {conversationTitle || 'New conversation'}
             </h2>
           </div>
+          {/* Phase 30f — Scout model picker. Lets the user choose which
+              local Ollama model drives the assistant instead of silently
+              defaulting. Disabled while models are loading or when Ollama
+              is offline (empty list). */}
+          <div className="flex-shrink-0 flex items-center gap-1.5" data-testid="chat-model-picker">
+            {modelWarming ? (
+              <span
+                className="flex items-center gap-1.5 text-xs text-tertiary px-2 py-1 rounded-full bg-surface-container"
+                data-testid="chat-model-warming"
+              >
+                <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+                <span>Loading model…</span>
+              </span>
+            ) : modelStatus === 'offline' ? (
+              <span
+                className="flex items-center gap-1.5 text-xs text-[var(--warning-700)] px-2 py-1 rounded-full bg-[var(--warning-50)] border border-[var(--warning-200)]"
+                data-testid="chat-model-offline"
+                title="Ollama is offline — Scout will use the default model when it's back up."
+              >
+                <Cpu className="w-3 h-3" aria-hidden="true" />
+                <span>Ollama offline</span>
+              </span>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <Cpu className="w-3.5 h-3.5 text-tertiary" aria-hidden="true" />
+                <Select
+                  aria-label="Scout model"
+                  size="sm"
+                  value={selectedModel ?? ''}
+                  disabled={modelsLoading || models.length === 0}
+                  onChange={(e) => void handleModelChange(e.target.value)}
+                  options={
+                    models.length > 0
+                      ? models.map((m) => ({ value: m, label: m }))
+                      : [{ value: '', label: modelsLoading ? 'Loading…' : 'No models found' }]
+                  }
+                  data-testid="chat-model-select"
+                  containerClassName="w-auto"
+                  className="max-w-[220px]"
+                />
+              </div>
+            )}
+          </div>
           {/* Phase 30e — streaming status indicator */}
           {streamStatus && (
             <div
@@ -467,7 +585,9 @@ export default function ChatPanel({ pendingQuery }: ChatPanelProps = {}) {
               data-testid="chat-stream-status"
             >
               <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
-              <span className="capitalize">{streamStatus}</span>
+              <span className="capitalize">
+                {streamStatus === 'model_loading' ? 'Loading model…' : streamStatus}
+              </span>
             </div>
           )}
         </div>

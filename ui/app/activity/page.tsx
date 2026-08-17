@@ -778,80 +778,86 @@ function ActivityContent({ embedded = false }: { embedded?: boolean }) {
     }
   }
 
+  // Shared categorize toolbar — rendered in the standalone page header and
+  // in the embedded (Cash Flow → Transactions) view so the LLM Pass-4
+  // auto-tag option stays reachable under the canonical information
+  // architecture.
+  const categorizeActions = (
+    <div className="flex items-center gap-2">
+      <Button
+        type="button"
+        variant="tertiary"
+        size="sm"
+        onClick={() => setRetryCount((c) => c + 1)}
+        icon={<RefreshCw className="w-4 h-4" aria-hidden="true" />}
+        data-testid="activity-refresh-button"
+      >
+        Refresh
+      </Button>
+      <Button
+        type="button"
+        variant="primary"
+        size="sm"
+        onClick={handleAutoCategorize}
+        disabled={autoTagging || loading}
+        icon={
+          autoTagging ? (
+            <RefreshCw
+              className="w-4 h-4 animate-spin"
+              aria-hidden="true"
+            />
+          ) : (
+            <Sparkles className="w-4 h-4" aria-hidden="true" />
+          )
+        }
+        data-testid="activity-auto-categorize-button"
+      >
+        {autoTagging ? 'Tagging…' : 'Auto-categorize'}
+      </Button>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={handleAiCategorizeUntagged}
+        disabled={
+          llmLoading ||
+          autoTagging ||
+          loading ||
+          untaggedRows.length === 0
+        }
+        icon={
+          llmLoading ? (
+            <RefreshCw
+              className="w-4 h-4 animate-spin"
+              aria-hidden="true"
+            />
+          ) : (
+            <Wand2 className="w-4 h-4" aria-hidden="true" />
+          )
+        }
+        data-testid="activity-ai-categorize-button"
+        title={
+          untaggedRows.length === 0
+            ? 'No untagged rows to send to Ollama'
+            : `Send ${Math.min(untaggedRows.length, 100)} untagged ` +
+              `transaction(s) to Ollama (Pass 4) for AI tagging.`
+        }
+      >
+        {llmLoading
+          ? 'Asking Ollama…'
+          : untaggedRows.length === 0
+            ? 'AI auto-tag (none)'
+            : `AI auto-tag (${untaggedRows.length})`}
+      </Button>
+    </div>
+  )
+
   return (
     <>
       {!embedded && <PageHeader
         title="Transaction History"
         description="Every recorded transaction across your accounts. Filter by account, type, category, status, or date; sort by any column."
-        actions={(
-          <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="tertiary"
-            size="sm"
-            onClick={() => setRetryCount((c) => c + 1)}
-            icon={<RefreshCw className="w-4 h-4" aria-hidden="true" />}
-            data-testid="activity-refresh-button"
-          >
-            Refresh
-          </Button>
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={handleAutoCategorize}
-            disabled={autoTagging || loading}
-            icon={
-              autoTagging ? (
-                <RefreshCw
-                  className="w-4 h-4 animate-spin"
-                  aria-hidden="true"
-                />
-              ) : (
-                <Sparkles className="w-4 h-4" aria-hidden="true" />
-              )
-            }
-            data-testid="activity-auto-categorize-button"
-          >
-            {autoTagging ? 'Tagging…' : 'Auto-categorize'}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={handleAiCategorizeUntagged}
-            disabled={
-              llmLoading ||
-              autoTagging ||
-              loading ||
-              untaggedRows.length === 0
-            }
-            icon={
-              llmLoading ? (
-                <RefreshCw
-                  className="w-4 h-4 animate-spin"
-                  aria-hidden="true"
-                />
-              ) : (
-                <Wand2 className="w-4 h-4" aria-hidden="true" />
-              )
-            }
-            data-testid="activity-ai-categorize-button"
-            title={
-              untaggedRows.length === 0
-                ? 'No untagged rows to send to Ollama'
-                : `Send ${Math.min(untaggedRows.length, 100)} untagged ` +
-                  `transaction(s) to Ollama (Pass 4) for AI tagging.`
-            }
-          >
-            {llmLoading
-              ? 'Asking Ollama…'
-              : untaggedRows.length === 0
-                ? 'AI auto-tag (none)'
-                : `AI auto-tag (${untaggedRows.length})`}
-          </Button>
-          </div>
-        )}
+        actions={categorizeActions}
         className="mb-6"
       />}
 
@@ -1274,6 +1280,16 @@ function ActivityContent({ embedded = false }: { embedded?: boolean }) {
               or “Skip” to drop it.
             </p>
           )}
+        </div>
+      )}
+
+      {/* Embedded toolbar — the canonical Cash Flow → Transactions view
+          hides the standalone PageHeader, so surface the same categorize
+          actions here to keep heuristic + LLM auto-tag reachable. */}
+      {embedded && (
+        <div className="card p-3 mb-4 flex flex-wrap items-center gap-2" data-testid="activity-embedded-toolbar">
+          <span className="label-md text-secondary mr-auto">Categorize</span>
+          {categorizeActions}
         </div>
       )}
 

@@ -56,7 +56,10 @@ from app.services.finance_query import (
 )
 from app.services.llm_client import (
     DEFAULT_MODEL,
+    MODEL_LOAD_TIMEOUT_SECONDS,
     OLLAMA_DEFAULT_BASE_URL,
+    REQUEST_TIMEOUT_SECONDS,
+    get_loaded_ollama_models,
     post_ollama_chat_async,
 )
 
@@ -400,6 +403,21 @@ def _prune_old_conversations(db: Session, user_id: int) -> int:
     return deleted
 
 
+def _is_model_loaded(base_url: str, model: str) -> bool:
+    """True if ``model`` is already warm in Ollama memory.
+
+    Best-effort: any discovery failure (Ollama offline, malformed
+    /api/ps body) returns ``False`` so the caller falls back to the
+    longer load timeout — a cold start must never look like a hang or
+    time out mid-load.
+    """
+    try:
+        loaded = get_loaded_ollama_models(base_url)
+    except (httpx.TransportError, ValueError):
+        return False
+    return model in loaded
+
+
 def _bump_updated_at(db: Session, conversation_id: int) -> None:
     """Explicitly update the conversation's ``updated_at`` so the
     sidebar sorts by last-active (``onupdate`` only fires on row
@@ -480,11 +498,20 @@ async def orchestrate(
     ]
 
     # Step 1: Ask the LLM which tool to call.
+    # Cold-start tolerance: if the chosen model isn't warm yet, use the
+    # longer load timeout so the first inference round doesn't 504 mid-
+    # load (the stream variant emits a ``model_loading`` event; the
+    # blocking variant just waits a bit longer).
+    model_loading = not _is_model_loaded(base_url, model)
+    first_call_timeout = (
+        MODEL_LOAD_TIMEOUT_SECONDS if model_loading else REQUEST_TIMEOUT_SECONDS
+    )
     try:
         tool_decision = await post_ollama_chat_async(
             llm_messages_for_tool,
             base_url=base_url,
             model=model,
+            timeout_seconds=first_call_timeout,
         )
     except httpx.TransportError as exc:
         LOG.warning("Assistant: Ollama unreachable (%s)", type(exc).__name__)
@@ -728,6 +755,17 @@ async def orchestrate_stream(
     # Emit thinking.
     yield {"event": "thinking", "data": {}}
 
+    # Cold-start detection: if the chosen model isn't warm in Ollama
+    # memory yet, emit a ``model_loading`` event so the FE can render a
+    # "Loading model…" state instead of a silent hang, and use the
+    # longer load timeout for the first inference round.
+    model_loading = not _is_model_loaded(base_url, model)
+    if model_loading:
+        yield {"event": "model_loading", "data": {"model": model}}
+    first_call_timeout = (
+        MODEL_LOAD_TIMEOUT_SECONDS if model_loading else REQUEST_TIMEOUT_SECONDS
+    )
+
     llm_messages_for_tool: list[dict[str, str]] = [
         {"role": "system", "content": system_prompt},
         *history,
@@ -740,6 +778,7 @@ async def orchestrate_stream(
             llm_messages_for_tool,
             base_url=base_url,
             model=model,
+            timeout_seconds=first_call_timeout,
         )
     except httpx.TransportError:
         fallback_reply = (

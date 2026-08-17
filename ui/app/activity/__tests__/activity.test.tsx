@@ -30,6 +30,8 @@
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
+import { EmbeddedMoneyView } from '@/components/money/EmbeddedMoneyView'
+import { AtlasFilterProvider } from '@/components/ui/AtlasFilterContext'
 
 const {
   listTransactions,
@@ -388,5 +390,49 @@ describe('Activity Page — Phase 28 + 30 Untagged filter', () => {
       expect(banner.textContent).toContain('tagged 3 of 4')
       expect(banner.textContent).toContain('1 already tagged')
     })
+  })
+})
+
+describe('Activity Page — categorize toolbar visibility', () => {
+  beforeEach(() => {
+    listTransactions.mockReset()
+    listAccounts.mockReset()
+    listCategories.mockReset()
+    listTransactions.mockResolvedValue([])
+    listAccounts.mockResolvedValue([])
+    listCategories.mockResolvedValue([])
+  })
+
+  it('renders the AI auto-tag button in the standalone page header', () => {
+    render(<ActivityPage />)
+    expect(screen.getByTestId('activity-ai-categorize-button')).toBeInTheDocument()
+    expect(screen.getByTestId('activity-auto-categorize-button')).toBeInTheDocument()
+  })
+
+  it('renders the AI auto-tag button in the embedded Cash Flow view', () => {
+    render(
+      <AtlasFilterProvider>
+        <EmbeddedMoneyView>
+          <ActivityPage />
+        </EmbeddedMoneyView>
+      </AtlasFilterProvider>,
+    )
+    // The embedded toolbar surfaces the same categorize actions that the
+    // standalone page header shows, so LLM auto-tag stays reachable under
+    // the canonical information architecture.
+    expect(screen.getByTestId('activity-embedded-toolbar')).toBeInTheDocument()
+    expect(screen.getByTestId('activity-ai-categorize-button')).toBeInTheDocument()
+    expect(screen.getByTestId('activity-auto-categorize-button')).toBeInTheDocument()
+  })
+
+  it('embedded view does not render the standalone page header', () => {
+    render(
+      <AtlasFilterProvider>
+        <EmbeddedMoneyView>
+          <ActivityPage />
+        </EmbeddedMoneyView>
+      </AtlasFilterProvider>,
+    )
+    expect(screen.queryByText('Transaction History')).not.toBeInTheDocument()
   })
 })

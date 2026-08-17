@@ -1130,6 +1130,26 @@ class AssistantChatRequest(BaseModel):
 
     message: str = Field(..., min_length=1, max_length=2000)
     conversation_id: Optional[int] = None
+    # Optional explicit Ollama model name. When omitted, the
+    # orchestrator falls back to ``DEFAULT_MODEL``. The Scout UI
+    # sends this when the user picks a model from the local picker.
+    model: Optional[str] = None
+
+
+class AssistantModelsResponse(BaseModel):
+    """Response shape for ``GET /api/assistant/models``.
+
+    - ``models``: every model installed in the local Ollama (sorted),
+      so the Scout UI can render a picker instead of silently
+      defaulting to ``DEFAULT_MODEL``.
+    - ``default``: the service's current default model name.
+    - ``loaded``: the subset of ``models`` currently warm in Ollama
+      memory (empty when Ollama is offline — the FE renders a hint).
+    """
+
+    models: List[str] = Field(default_factory=list)
+    default: Optional[str] = None
+    loaded: List[str] = Field(default_factory=list)
 
 
 class AssistantResponse(BaseModel):

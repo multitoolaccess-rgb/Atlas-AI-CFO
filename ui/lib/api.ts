@@ -2460,6 +2460,7 @@ export const rulesService = {
   assistantChat: async (
     message: string,
     conversationId?: number | null,
+    model?: string | null,
   ): Promise<{
     reply: string
     tool_used: string | null
@@ -2472,6 +2473,34 @@ export const rulesService = {
     const response = await api.post('/api/assistant/chat', {
       message,
       conversation_id: conversationId ?? null,
+      model: model ?? null,
+    })
+    return response.data
+  },
+
+  // Phase 30f — Scout model picker. Lists the models installed in the
+  // local Ollama plus which are already warm in memory, so the UI can
+  // render a picker instead of silently defaulting to the service's
+  // DEFAULT_MODEL. Returns an empty ``models`` list when Ollama is
+  // offline (the FE renders a disabled picker with a hint, not an
+  // error toast).
+  listAssistantModels: async (): Promise<{
+    models: string[]
+    default: string | null
+    loaded: string[]
+  }> => {
+    const response = await api.get('/api/assistant/models')
+    return response.data
+  },
+
+  // Phase 30f — pre-load a model into Ollama memory so the first chat
+  // after a model switch doesn't stall on a cold load. Returns
+  // ``{ model, status: 'warmed' | 'offline' }``.
+  warmAssistantModel: async (
+    model?: string | null,
+  ): Promise<{ model: string; status: 'warmed' | 'offline' }> => {
+    const response = await api.post('/api/assistant/warm', {
+      model: model ?? null,
     })
     return response.data
   },
@@ -2507,6 +2536,7 @@ export const rulesService = {
   assistantChatStream: async function* (
     message: string,
     conversationId?: number | null,
+    model?: string | null,
   ): AsyncGenerator<{ event: string; data: Record<string, unknown> }> {
     const token = getStoredToken()
     const baseURL =
@@ -2523,6 +2553,7 @@ export const rulesService = {
       body: JSON.stringify({
         message,
         conversation_id: conversationId ?? null,
+        model: model ?? null,
       }),
     })
     if (!response.ok) {

@@ -19,6 +19,8 @@ vi.mock('@/lib/api', () => ({
     assistantChatStream: vi.fn(),
     listAssistantConversations: vi.fn(),
     getAssistantConversation: vi.fn(),
+    listAssistantModels: vi.fn(),
+    warmAssistantModel: vi.fn(),
   },
 }))
 
@@ -40,8 +42,15 @@ describe('Phase 30a + 30c + 30e — ChatPanel', () => {
     vi.mocked(rulesService.assistantChatStream).mockReset()
     vi.mocked(rulesService.listAssistantConversations).mockReset()
     vi.mocked(rulesService.getAssistantConversation).mockReset()
-    // Default: no conversations on mount.
+    vi.mocked(rulesService.listAssistantModels).mockReset()
+    vi.mocked(rulesService.warmAssistantModel).mockReset()
+    // Default: no conversations + no models on mount.
     vi.mocked(rulesService.listAssistantConversations).mockResolvedValue([])
+    vi.mocked(rulesService.listAssistantModels).mockResolvedValue({
+      models: [],
+      default: 'qwen2.5-coder:latest',
+      loaded: [],
+    })
   })
 
   it('renders the chat panel with an initial greeting', () => {
@@ -352,6 +361,168 @@ describe('Phase 30a + 30c + 30e — ChatPanel', () => {
     await waitFor(() => {
       const reply = screen.getByTestId('chat-message-2')
       expect(reply.textContent).toMatch(/Fallback reply/)
+    })
+  })
+})
+
+describe('Phase 30f — Scout model picker', () => {
+  beforeEach(() => {
+    vi.mocked(rulesService.assistantChat).mockReset()
+    vi.mocked(rulesService.assistantChatStream).mockReset()
+    vi.mocked(rulesService.listAssistantConversations).mockReset()
+    vi.mocked(rulesService.getAssistantConversation).mockReset()
+    vi.mocked(rulesService.listAssistantModels).mockReset()
+    vi.mocked(rulesService.warmAssistantModel).mockReset()
+    vi.mocked(rulesService.listAssistantConversations).mockResolvedValue([])
+  })
+
+  it('renders the model picker with installed models and selects the default', async () => {
+    vi.mocked(rulesService.listAssistantModels).mockResolvedValueOnce({
+      models: ['llama3.1:8b', 'qwen2.5-coder:latest'],
+      default: 'qwen2.5-coder:latest',
+      loaded: ['qwen2.5-coder:latest'],
+    })
+
+    render(<ChatPanel />)
+    const picker = await screen.findByTestId('chat-model-picker')
+    expect(picker).toBeTruthy()
+
+    const select = screen.getByTestId('chat-model-select') as HTMLSelectElement
+    expect(select.options.length).toBe(2)
+    // The service default is selected on mount.
+    expect(select.value).toBe('qwen2.5-coder:latest')
+  })
+
+  it('persists the picked model and warms it on change', async () => {
+    vi.mocked(rulesService.listAssistantModels).mockResolvedValueOnce({
+      models: ['llama3.1:8b', 'qwen2.5-coder:latest'],
+      default: 'qwen2.5-coder:latest',
+      loaded: ['qwen2.5-coder:latest'],
+    })
+    vi.mocked(rulesService.warmAssistantModel).mockResolvedValueOnce({
+      model: 'llama3.1:8b',
+      status: 'warmed',
+    })
+
+    render(<ChatPanel />)
+    const select = await screen.findByTestId('chat-model-select') as HTMLSelectElement
+
+    fireEvent.change(select, { target: { value: 'llama3.1:8b' } })
+
+    await waitFor(() => {
+      expect(vi.mocked(rulesService.warmAssistantModel)).toHaveBeenCalledWith('llama3.1:8b')
+    })
+    // The preference is persisted to localStorage.
+    expect(window.localStorage.getItem('fc_assistant_model')).toBe('llama3.1:8b')
+  })
+
+  it('sends the selected model with the chat stream', async () => {
+    vi.mocked(rulesService.listAssistantModels).mockResolvedValueOnce({
+      models: ['llama3.1:8b', 'qwen2.5-coder:latest'],
+      default: 'qwen2.5-coder:latest',
+      loaded: ['qwen2.5-coder:latest'],
+    })
+    vi.mocked(rulesService.warmAssistantModel).mockResolvedValueOnce({
+      model: 'llama3.1:8b',
+      status: 'warmed',
+    })
+    vi.mocked(rulesService.assistantChatStream).mockReturnValueOnce(
+      makeMockStream([
+        { event: 'conversation', data: { conversation_id: 1, conversation_title: 'Test' } },
+        { event: 'thinking', data: {} },
+        { event: 'reply_chunk', data: { chunk: 'Reply.' } },
+        {
+          event: 'done',
+          data: {
+            reply: 'Reply.',
+            tool_used: null,
+            tool_result: null,
+            follow_ups: [],
+            status: 'ok',
+            conversation_id: 1,
+            conversation_title: 'Test',
+          },
+        },
+      ])(),
+    )
+
+    render(<ChatPanel />)
+    const select = await screen.findByTestId('chat-model-select') as HTMLSelectElement
+    fireEvent.change(select, { target: { value: 'llama3.1:8b' } })
+    await waitFor(() => {
+      expect(vi.mocked(rulesService.warmAssistantModel)).toHaveBeenCalled()
+    })
+
+    const input = screen.getByTestId('chat-input') as HTMLTextAreaElement
+    fireEvent.change(input, { target: { value: 'Hello' } })
+    fireEvent.click(screen.getByTestId('chat-send'))
+
+    await waitFor(() => {
+      expect(vi.mocked(rulesService.assistantChatStream)).toHaveBeenCalledWith(
+        'Hello',
+        null,
+        'llama3.1:8b',
+      )
+    })
+  })
+
+  it('shows a loading status when the stream emits model_loading', async () => {
+    vi.mocked(rulesService.listAssistantModels).mockResolvedValueOnce({
+      models: ['llama3.1:8b', 'qwen2.5-coder:latest'],
+      default: 'qwen2.5-coder:latest',
+      loaded: ['qwen2.5-coder:latest'],
+    })
+    vi.mocked(rulesService.assistantChatStream).mockReturnValueOnce(
+      makeMockStream([
+        { event: 'conversation', data: { conversation_id: 1, conversation_title: 'Test' } },
+        { event: 'thinking', data: {} },
+        { event: 'model_loading', data: { model: 'llama3.1:8b' } },
+        { event: 'reply_chunk', data: { chunk: 'Reply.' } },
+        {
+          event: 'done',
+          data: {
+            reply: 'Reply.',
+            tool_used: null,
+            tool_result: null,
+            follow_ups: [],
+            status: 'ok',
+            conversation_id: 1,
+            conversation_title: 'Test',
+          },
+        },
+      ])(),
+    )
+
+    render(<ChatPanel />)
+    const input = screen.getByTestId('chat-input') as HTMLTextAreaElement
+    fireEvent.change(input, { target: { value: 'Hello' } })
+    fireEvent.click(screen.getByTestId('chat-send'))
+
+    // The stream status indicator should show the loading state.
+    await waitFor(() => {
+      const status = screen.getByTestId('chat-stream-status')
+      expect(status.textContent).toMatch(/Loading model/i)
+    })
+  })
+
+  it('shows an offline hint when Ollama is unreachable during warm', async () => {
+    vi.mocked(rulesService.listAssistantModels).mockResolvedValueOnce({
+      models: ['llama3.1:8b', 'qwen2.5-coder:latest'],
+      default: 'qwen2.5-coder:latest',
+      loaded: [],
+    })
+    vi.mocked(rulesService.warmAssistantModel).mockResolvedValueOnce({
+      model: 'llama3.1:8b',
+      status: 'offline',
+    })
+
+    render(<ChatPanel />)
+    const select = await screen.findByTestId('chat-model-select') as HTMLSelectElement
+    fireEvent.change(select, { target: { value: 'llama3.1:8b' } })
+
+    await waitFor(() => {
+      const offline = screen.getByTestId('chat-model-offline')
+      expect(offline.textContent).toMatch(/offline/i)
     })
   })
 })

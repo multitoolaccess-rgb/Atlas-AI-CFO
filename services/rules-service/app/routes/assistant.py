@@ -18,10 +18,12 @@ with all its messages.
 """
 import json
 import logging
-from typing import List
+from typing import List, Optional
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.auth import require_user
@@ -32,9 +34,17 @@ from app.schemas import (
     AssistantChatRequest,
     AssistantConversationResponse,
     AssistantMessageResponse,
+    AssistantModelsResponse,
     AssistantResponse,
 )
 from app.services.assistant_orchestrator import orchestrate, orchestrate_stream
+from app.services.llm_client import (
+    DEFAULT_MODEL,
+    OLLAMA_DEFAULT_BASE_URL,
+    get_loaded_ollama_models,
+    list_ollama_models,
+    warm_ollama_model,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -95,6 +105,7 @@ async def chat(
         user_sub=local_user.local_user_sub,
         user_id=local_user.id,
         conversation_id=payload.conversation_id,
+        model=payload.model,
     )
 
     return AssistantResponse(**result)
@@ -129,6 +140,7 @@ async def chat_stream(
             user_sub=local_user.local_user_sub,
             user_id=local_user.id,
             conversation_id=payload.conversation_id,
+            model=payload.model,
         ):
             event_type = event.get("event", "message")
             event_data = json.dumps(event.get("data", {}))
@@ -216,3 +228,64 @@ async def get_conversation(
         updated_at=conv.updated_at,
         messages=[_message_to_response(m) for m in messages],
     )
+
+
+# ---------------------------------------------------------------------
+# Model picker — lets the user choose which local Ollama model Scout
+# uses instead of silently defaulting to ``DEFAULT_MODEL``.
+# ---------------------------------------------------------------------
+
+
+class WarmModelRequest(BaseModel):
+    model: Optional[str] = None
+
+
+@router.get("/models", response_model=AssistantModelsResponse)
+async def list_models(
+    _db: Session = Depends(get_db),
+    _current_user: str = Depends(require_user),
+) -> AssistantModelsResponse:
+    """Return the models installed in the local Ollama + which are warm.
+
+    The Scout UI renders a picker from this. When Ollama is offline,
+    the endpoint returns an empty ``models`` list (rather than 503) so
+    the FE can render a disabled picker with an offline hint instead of
+    an error toast.
+    """
+    try:
+        models = list_ollama_models(OLLAMA_DEFAULT_BASE_URL)
+        loaded = get_loaded_ollama_models(OLLAMA_DEFAULT_BASE_URL)
+    except (httpx.TransportError, ValueError) as exc:
+        LOG.warning("Assistant: model discovery failed (%s)", type(exc).__name__)
+        return AssistantModelsResponse(models=[], default=DEFAULT_MODEL, loaded=[])
+    return AssistantModelsResponse(
+        models=models,
+        default=DEFAULT_MODEL,
+        loaded=loaded,
+    )
+
+
+@router.post("/warm")
+async def warm_model(
+    payload: WarmModelRequest,
+    _db: Session = Depends(get_db),
+    _current_user: str = Depends(require_user),
+) -> dict:
+    """Pre-load a model into Ollama memory so the next chat is fast.
+
+    The FE calls this when the user picks a model in the Scout picker
+    (or on first mount for the default). The request can take a while
+    on a cold start — the FE shows a "Loading model…" state — but the
+    subsequent chat no longer stalls on model loading.
+
+    Returns ``{"model": ..., "status": "warmed"}`` on success, or
+    ``{"model": ..., "status": "offline"}`` when Ollama is unreachable
+    (the FE surfaces a hint and keeps the picker usable).
+    """
+    model = (payload.model or DEFAULT_MODEL).strip()
+    try:
+        warm_ollama_model(OLLAMA_DEFAULT_BASE_URL, model)
+    except httpx.TransportError as exc:
+        LOG.warning("Assistant: warm failed, Ollama unreachable (%s)", type(exc).__name__)
+        return {"model": model, "status": "offline"}
+    return {"model": model, "status": "warmed"}

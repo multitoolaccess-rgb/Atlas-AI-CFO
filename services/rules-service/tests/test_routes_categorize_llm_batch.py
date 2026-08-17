@@ -340,6 +340,78 @@ def test_post_categorize_llm_batch_json_mode_enforced(
 
 
 # ---------------------------------------------------------------
+# Singular /api/categorize/llm route — loads owned transactions from
+# the DB (ownership flows through Account.user_id, not a direct
+# Transaction.user_id column) and calls the same Ollama service.
+# ---------------------------------------------------------------
+def test_post_categorize_llm_singular_loads_owned_transactions(
+    client, db_session, make_account, make_transaction, monkeypatch,
+):
+    """The FE's ``categorizeWithLlm({transaction_ids})`` contract loads
+    the local user's rows via the Account join and returns suggestions.
+    Regression guard: the route previously filtered on a non-existent
+    ``Transaction.user_id`` column and 500'd with AttributeError."""
+    from app.models import Account, Transaction
+
+    account = make_account(account_name="LLM Route Account")
+    db_session.add(account)
+    db_session.flush()
+    txn = make_transaction(account_id=account.id, description="BLUE BOTTLE COFFEE", amount=-6.50)
+    db_session.add(txn)
+    db_session.commit()
+    txn_id = txn.id
+
+    state = mock_ollama_chat(
+        monkeypatch,
+        [{"categories": [{"transaction_id": txn_id, "category": "Food & Dining",
+                          "confidence": 0.9}]}],
+    )
+
+    resp = client.post(
+        "/api/categorize/llm",
+        json={"transaction_ids": [txn_id]},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["suggestions"]
+    assert body["suggestions"][0]["txn_id"] == txn_id
+    assert ollama_call_count(state) == 1
+
+
+def test_post_categorize_llm_singular_never_leaks_cross_user_rows(
+    client, db_session, make_account, make_transaction, monkeypatch,
+):
+    """A transaction owned by another user must never be loaded or sent
+    to Ollama — ownership scope resolves through Account.user_id."""
+    from app.models import Account, Transaction, User
+
+    account = make_account(account_name="Other User Account")
+    db_session.add(account)
+    db_session.flush()
+    txn = make_transaction(account_id=account.id, description="PRIVATE OTHER USER", amount=-9.99)
+    db_session.add(txn)
+    db_session.commit()
+    txn_id = txn.id
+
+    # Re-point the transaction's account at a different user.
+    other_user = User(local_user_sub="other-llm-user", email="other@example.com", hashed_password="x", is_active=True)
+    db_session.add(other_user)
+    db_session.flush()
+    account.user_id = other_user.id
+    db_session.commit()
+
+    state = mock_ollama_chat(monkeypatch, [])
+    resp = client.post(
+        "/api/categorize/llm",
+        json={"transaction_ids": [txn_id]},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["suggestions"] == []
+    # No Ollama call: the unowned row was filtered before the service.
+    assert ollama_call_count(state) == 0
+
+
+# ---------------------------------------------------------------
 # Helper: expose cache key computation for the TTL test.
 # ---------------------------------------------------------------
 def _PROMPT_CACHE_KEY_FOR_TEST(input_row: dict) -> str:

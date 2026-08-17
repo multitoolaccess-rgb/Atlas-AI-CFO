@@ -30,7 +30,7 @@ from app.auth import require_user
 # dependency injection resolves the request-scoped session (matches
 # the pattern used by every other route in this service).
 from app.database import get_db
-from app.models import Transaction
+from app.models import Account, Transaction
 from app.routes.shared import get_or_create_local_user
 from app.services.categorizer import categorize_transactions
 from app.services.llm_categorizer import (
@@ -183,11 +183,15 @@ async def categorize_with_llm(
         return LLMBatchResponse(suggestions=[])
     local_user = get_or_create_local_user(db, _current_user)
     # Load only the local user's rows (cross-user leak guard).
+    # ``Transaction`` has no direct ``user_id`` column: ownership flows
+    # through the owning ``Account`` (mirrors the transactions list
+    # route's join), so filter through ``Account.user_id``.
     txn_rows = (
         db.query(Transaction)
+        .join(Account, Account.id == Transaction.account_id)
         .filter(
             Transaction.id.in_(payload.transaction_ids),
-            Transaction.user_id == local_user.id,
+            Account.user_id == local_user.id,
         )
         .all()
     )
