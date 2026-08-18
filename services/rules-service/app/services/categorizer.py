@@ -146,6 +146,10 @@ DEFAULT_CATEGORIES: list[dict[str, Optional[str]]] = [
     {"name": "Retirement", "description": "401k, IRA, retirement contributions", "icon": "🏖️", "color": "#5b21b6", "group": "Investments"},
     # ── Transfer (neutral) ────────────────────────────────────────
     {"name": "Transfer", "description": "Internal movements between accounts", "icon": "🔁", "color": "#64748b", "group": "Transfer"},
+    # Phase 30g — direction sub-buckets for transfers that CANNOT be
+    # paired internally (money moving to/from accounts outside Atlas).
+    {"name": "Transfer In", "description": "External money arriving: deposits, Zelle/Venmo received, wires in, transfers from external accounts", "icon": "📥", "color": "#64748b", "group": "Transfer"},
+    {"name": "Transfer Out", "description": "Money leaving to external destinations: withdrawals, Zelle/Venmo sent, wires out, transfers to external accounts", "icon": "📤", "color": "#64748b", "group": "Transfer"},
 ]
 
 # Phase 24 — REPLACED THE PUBLIC `MERCHANT_RULES` dict with this

@@ -62,6 +62,7 @@ from app.routes.shared import (
 )
 from app.schemas import ImportBatchResponse, ImportResponse, TransactionResponse
 from app.services.categorizer import categorize_transactions
+from app.services.transfer_classifier import run_transfer_detection
 from app.services.import_parser import (
     extract_pdf_transactions,
     parse_uploaded_statement,
@@ -1481,13 +1482,29 @@ async def upload_statement(
                 auto_categorized, auto_categorize_no_match, _conflicts = (
                     categorize_transactions(db, just_added_txns)
                 )
-                if auto_categorized > 0:
+                # Phase 30g — transfer detection (pair internal
+                # transfers + classify unpaired rows by direction).
+                # Scoped to the batch owner so cross-user rows are
+                # never touched. Runs AFTER the heuristic passes so
+                # Debt/loan rows that matched a keyword rule keep
+                # their category and are only LINKED, never
+                # re-categorised.
+                transfer_result = run_transfer_detection(db, batch.user_id)
+                # Recount in-memory: the transfer pass also categorises
+                # rows the heuristics left blank (Transfer In/Out,
+                # paired Transfer), so ``auto_categorized`` reflects
+                # every batch row that now has a category.
+                auto_categorized = sum(
+                    1 for t in just_added_txns if t.category_id is not None
+                )
+                if auto_categorized > 0 or transfer_result["pairs"] > 0 or transfer_result["classified"] > 0:
                     db.commit()
                 _logger.info(
                     "Import %s: auto-categorized %d/%d just-imported transaction(s) "
-                    "(no_match=%d filename=%s batch_id=%d)",
+                    "(no_match=%d transfers=%s filename=%s batch_id=%d)",
                     batch.filename, auto_categorized, auto_categorize_total,
-                    auto_categorize_no_match, batch.filename, batch.id,
+                    auto_categorize_no_match, transfer_result,
+                    batch.filename, batch.id,
                 )
         except Exception as _cat_exc:
             # Auto-categorize is best-effort post-commit. The data IS

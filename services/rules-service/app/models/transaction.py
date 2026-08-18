@@ -83,6 +83,14 @@ class Transaction(Base):
     # resolve them (keep this, keep original, keep all).
     is_duplicate = Column(Boolean, default=False, nullable=False, index=True)
     duplicate_of_id = Column(Integer, ForeignKey("transactions.id"), nullable=True)
+    # Phase 30g — internal transfer pairing. When the transfer detector
+    # matches an outflow on account A to an inflow on account B (same
+    # amount, near date, different accounts), BOTH rows point at each
+    # other via this self-FK so reports can treat the pair as one
+    # neutral movement. NULL = not part of a detected internal pair.
+    transfer_pair_id = Column(
+        Integer, ForeignKey("transactions.id"), nullable=True, index=True
+    )
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

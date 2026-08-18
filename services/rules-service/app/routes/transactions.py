@@ -43,6 +43,7 @@ from app.services.categorizer import (
     find_all_matching_rules,
     learn_alias_for_category,
 )
+from app.services.transfer_classifier import run_transfer_detection
 from app.models import MerchantRule
 
 router = APIRouter(prefix="/api/transactions", tags=["transactions"])
@@ -588,14 +589,28 @@ async def auto_categorize_transactions(
     # that were previously auto-categorized to a different bucket.
     before = sum(1 for t in all_txns if t.category_id is None)
     categorized, skipped, conflicts = categorize_transactions(db, all_txns)
+    # Phase 30g — transfer detection: pair internal transfers (outflow
+    # on account A ↔ inflow on account B) and classify the remaining
+    # unpaired rows by direction (Transfer In / Transfer Out). Runs
+    # AFTER the heuristic passes so Debt/loan rows that matched a
+    # keyword rule keep their category and are only LINKED, never
+    # re-categorised.
+    transfer_result = run_transfer_detection(db, local_user.id)
+    # Recount in-memory: the transfer pass also categorises rows the
+    # heuristics left blank, so the FE toast's "tagged" count matches
+    # persisted state (rows that went uncategorised → categorised).
+    categorized = sum(
+        1 for t in all_txns if t.category_id is not None
+    ) - (len(all_txns) - before)
     db.commit()
     _logger.info(
-        "Auto-categorize: user=%s total=%d tagged=%d skipped=%d",
-        local_user.email, before, categorized, skipped,
+        "Auto-categorize: user=%s total=%d tagged=%d skipped=%d transfers=%s",
+        local_user.email, before, categorized, skipped, transfer_result,
     )
     return {
         "categorized": categorized,
         "skipped": skipped,
         "total": before,
         "conflicts": conflicts,
+        "transfers": transfer_result,
     }
