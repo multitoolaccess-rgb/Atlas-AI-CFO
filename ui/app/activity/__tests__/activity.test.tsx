@@ -40,6 +40,7 @@ const {
   autoCategorizeAll,
   createMerchantRule,
   updateTransaction,
+  acceptCategoryProposal,
 } = vi.hoisted(() => ({
   listTransactions: vi.fn(),
   listAccounts: vi.fn(),
@@ -49,6 +50,7 @@ const {
     .mockResolvedValue({ categorized: 0, skipped: 0, total: 0 }),
   createMerchantRule: vi.fn(),
   updateTransaction: vi.fn(),
+  acceptCategoryProposal: vi.fn(),
 }))
 
 const { rulesServiceModule } = vi.hoisted(() => ({
@@ -62,6 +64,8 @@ const { rulesServiceModule } = vi.hoisted(() => ({
     categorizeWithLlm: vi.fn().mockResolvedValue({ suggestions: [] }),
     createMerchantRule: (...args: unknown[]) =>
       createMerchantRule(...args),
+    acceptCategoryProposal: (...args: unknown[]) =>
+      acceptCategoryProposal(...args),
     // PageLayout's bootstrap `useEffect` (which wraps every page in
     // the chrome shell) calls getProfile() once at mount. Provide a
     // resolved stub so the activity page mounts cleanly even when
@@ -434,5 +438,126 @@ describe('Activity Page — categorize toolbar visibility', () => {
       </AtlasFilterProvider>,
     )
     expect(screen.queryByText('Transaction History')).not.toBeInTheDocument()
+  })
+})
+
+describe('Activity Page — LLM new-category proposals', () => {
+  beforeEach(() => {
+    listTransactions.mockReset()
+    listAccounts.mockReset()
+    listCategories.mockReset()
+    autoCategorizeAll.mockReset()
+    createMerchantRule.mockReset()
+    updateTransaction.mockReset()
+    acceptCategoryProposal.mockReset()
+    listAccounts.mockResolvedValue([])
+    listCategories.mockResolvedValue([])
+    autoCategorizeAll.mockResolvedValue({
+      categorized: 0,
+      skipped: 0,
+      total: 0,
+    })
+    updateTransaction.mockResolvedValue({ id: 1, category_id: 5 })
+    // A single untagged transaction the LLM will propose a new
+    // category for.
+    listTransactions.mockResolvedValue([
+      {
+        id: 1,
+        account_id: 10,
+        description: 'PETSMART',
+        merchant_name: 'PETSMART',
+        amount: -45.0,
+        transaction_date: '2026-08-01',
+        category_id: null,
+        is_duplicate: false,
+      },
+    ])
+  })
+
+  it('renders the propose-new chip and accepts via acceptCategoryProposal', async () => {
+    const { categorizeWithLlm } = rulesServiceModule
+    ;(categorizeWithLlm as ReturnType<typeof vi.fn>).mockResolvedValue({
+      suggestions: [
+        {
+          txn_id: 1,
+          suggested_category: 'Other',
+          confidence: 0.92,
+          coerced: true,
+          is_new: true,
+          proposed_category: 'Pet Supplies',
+          proposed_parent: 'Shopping',
+        },
+      ],
+    })
+    ;(acceptCategoryProposal as ReturnType<typeof vi.fn>).mockResolvedValue({
+      transaction_id: 1,
+      category_id: 77,
+      category_name: 'Pet Supplies',
+      category_created: true,
+      parent_name: 'Shopping',
+      rule_id: 5,
+      rule_created: true,
+    })
+
+    render(<ActivityPage />)
+    // Wait for the untagged row to load (the button is disabled until
+    // ``untaggedRows`` is non-empty, and the click handler bails on
+    // an empty candidate set).
+    await waitFor(() => {
+      expect(screen.getByTestId('activity-ai-categorize-button')).not.toBeDisabled()
+    })
+    fireEvent.click(screen.getByTestId('activity-ai-categorize-button'))
+
+    // The proposal chip renders with the proposed name + parent.
+    const chip = await screen.findByTestId('activity-llm-proposal-1')
+    expect(chip.textContent).toContain('Pet Supplies')
+    expect(chip.textContent).toContain('Shopping')
+
+    fireEvent.click(screen.getByTestId('activity-llm-accept-1'))
+
+    await waitFor(() => {
+      expect(acceptCategoryProposal).toHaveBeenCalledWith({
+        transaction_id: 1,
+        proposed_category: 'Pet Supplies',
+        proposed_parent: 'Shopping',
+        keyword: 'PETSMART',
+      })
+    })
+    // The suggestion is removed from the panel after accept.
+    await waitFor(() => {
+      expect(screen.queryByTestId('activity-llm-proposal-1')).not.toBeInTheDocument()
+    })
+    // The new category list is refreshed so the taxonomy picks it up.
+    expect(listCategories).toHaveBeenCalled()
+  })
+
+  it('regular (non-proposal) accept still routes through updateTransaction', async () => {
+    const { categorizeWithLlm } = rulesServiceModule
+    ;(categorizeWithLlm as ReturnType<typeof vi.fn>).mockResolvedValue({
+      suggestions: [
+        {
+          txn_id: 1,
+          suggested_category: 'Food & Dining',
+          confidence: 0.9,
+        },
+      ],
+    })
+    listCategories.mockResolvedValue([
+      { id: 3, name: 'Food & Dining', group: 'Expenses' },
+    ])
+
+    render(<ActivityPage />)
+    await waitFor(() => {
+      expect(screen.getByTestId('activity-ai-categorize-button')).not.toBeDisabled()
+    })
+    fireEvent.click(screen.getByTestId('activity-ai-categorize-button'))
+
+    await screen.findByTestId('activity-llm-accept-1')
+    fireEvent.click(screen.getByTestId('activity-llm-accept-1'))
+
+    await waitFor(() => {
+      expect(updateTransaction).toHaveBeenCalled()
+    })
+    expect(acceptCategoryProposal).not.toHaveBeenCalled()
   })
 })

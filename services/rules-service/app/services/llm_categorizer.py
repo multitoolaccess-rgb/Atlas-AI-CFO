@@ -102,7 +102,20 @@ CANONICAL_CATEGORIES: tuple[str, ...] = (
 # The prompt template version contributes to the cache key. Bump
 # this constant on any instruction rewrite, schema change, or
 # output-format tweak -- every existing cache entry invalidates.
-PROMPT_TEMPLATE_VERSION: str = "v1"
+PROMPT_TEMPLATE_VERSION: str = "v2"
+
+# Phase 30h — new-category proposals. The Pass-4 prompt now lets the
+# LLM propose a category that does not exist in the canonical list
+# (e.g. a specific merchant vertical like "Pet Supplies"). To keep
+# the feature from becoming noise, a proposal is only surfaced when
+# the LLM is HIGHLY confident AND it explicitly did NOT find a
+# canonical fit. The FE renders these as distinct "Propose new…"
+# rows; Accepting one calls the accept-proposal endpoint which
+# creates the category (+ parent) and a merchant rule.
+_NEW_CATEGORY_CONFIDENCE_FLOOR: float = 0.85
+# Cap the proposed name length so a hallucinated sentence can't
+# become a category row.
+_NEW_CATEGORY_MAX_LENGTH: int = 60
 
 # The user spec says <=20 rows/batch. The route layer enforces this
 # too (422 over the cap), but defining it here lets future code
@@ -177,8 +190,8 @@ def clear_prompt_cache() -> int:
 _SYSTEM_PROMPT = """You are a deterministic financial-transaction categorizer.
 
 Given one or more transactions, label EACH with EXACTLY one of the
-canonical categories below. Do NOT invent any other category name.
-If unsure, reply with ``Other`` and a low confidence.
+canonical categories below. PREFER the canonical list. If unsure,
+reply with ``Other`` and a low confidence.
 
 Canonical categories:
 {canonical_list}
@@ -187,9 +200,11 @@ Output format -- a single JSON object with this exact shape, no prose:
 {{
   "categories": [
     {{
-      "transaction_id": <int from input>,
-      "category":       "<one of the canonical names>",
-      "confidence":     <float 0.0-1.0 reflecting how certain you are>
+      "transaction_id":       <int from input>,
+      "category":             "<one of the canonical names>",
+      "new_category":         "<concise new category name, or empty string>",
+      "new_category_parent":  "<canonical parent name, or empty string>",
+      "confidence":           <float 0.0-1.0 reflecting how certain you are>
     }},
     ...one entry per transaction, in input order...
   ]
@@ -200,6 +215,14 @@ Rules:
 - Confidence >= 0.85 only if the merchant text is unambiguous.
 - A negative amount usually means expense; a positive usually means income
   or refund. Use the AMOUNT sign as a weak signal, not as the primary one.
+- NEW-CATEGORY PROPOSALS (rare, high bar): set ``new_category`` ONLY when
+  the transaction clearly belongs to a category that does NOT exist in the
+  list AND no canonical category is a good fit (e.g. a specific merchant
+  vertical like "Pet Supplies" or "Gym Memberships"). Set
+  ``new_category_parent`` to the closest canonical parent (e.g. "Shopping"
+  for "Pet Supplies"). Only propose when you are VERY confident
+  (confidence >= 0.85). Otherwise leave ``new_category`` EMPTY and use the
+  closest canonical category (or ``Other``).
 - If you cannot tell, use ``Other`` with confidence <= 0.3.
 """
 
@@ -380,6 +403,49 @@ def _mark_cached(
     return out
 
 
+def _build_new_category_proposal(
+    llm_row: dict, tid: int, confidence_raw: float,
+) -> Optional[dict]:
+    """Build a new-category proposal dict, or ``None`` if the LLM row
+    does not clear the (deliberately high) proposal bar.
+
+    A proposal is only surfaced when ALL of:
+    - the LLM provided a non-empty ``new_category`` name,
+    - that name is NOT already a canonical category (nothing to create),
+    - the LLM did NOT pick a canonical ``category`` for the same row
+      (if it found a canonical fit, trust that over the proposal),
+    - confidence is at or above :data:`_NEW_CATEGORY_CONFIDENCE_FLOOR`.
+
+    The ``suggested_category`` of a proposal is always ``Other`` — the
+    safe fallback the user lands on if they Reject the proposal.
+    ``proposed_parent`` is kept only when it is a canonical category
+    name (a non-canonical parent is noise and would 404 the accept
+    flow, which resolves parents by name).
+    """
+    proposed = (llm_row.get("new_category") or "").strip()
+    if not proposed or proposed in CANONICAL_CATEGORIES:
+        return None
+    raw_category = llm_row.get("category")
+    if isinstance(raw_category, str) and raw_category.strip() in CANONICAL_CATEGORIES:
+        # A canonical fit exists — trust it over the proposal.
+        return None
+    if confidence_raw < _NEW_CATEGORY_CONFIDENCE_FLOOR:
+        return None
+    proposed = proposed[:_NEW_CATEGORY_MAX_LENGTH]
+    parent = (llm_row.get("new_category_parent") or "").strip()
+    if parent and parent not in CANONICAL_CATEGORIES:
+        parent = ""
+    return {
+        "txn_id": tid,
+        "suggested_category": "Other",
+        "confidence": round(confidence_raw, 3),
+        "coerced": True,
+        "is_new": True,
+        "proposed_category": proposed,
+        "proposed_parent": parent or None,
+    }
+
+
 def _validate_response(
     response_dict: dict, input_transactions: list[dict],
 ) -> list[Optional[dict]]:
@@ -388,6 +454,12 @@ def _validate_response(
     Returns a list (one slot per input txn) of suggestion dicts.
     ``None`` for any LLM row that was missing or invalid. The route
     layer drops Nones before responding.
+
+    Phase 30h — a row can now ALSO carry a new-category proposal
+    (``is_new=True`` with ``proposed_category`` / ``proposed_parent``)
+    when the LLM is highly confident a brand-new category is right.
+    Such rows keep ``suggested_category="Other"`` as the safe
+    fallback so a Reject lands on a canonical bucket, never a dead end.
     """
     # Build id -> input map (defensive: cap duplicate ids).
     id_to_input: dict[int, dict] = {}
@@ -418,11 +490,21 @@ def _validate_response(
             # knows to fall back to inline pick.
             out.append(None)
             continue
+        confidence_raw = _normalise_confidence(llm_row.get("confidence"))
+
+        # Phase 30h — new-category proposal path (checked first so a
+        # confident proposal is not swallowed by the Other-coercion).
+        proposal = _build_new_category_proposal(
+            llm_row, tid, confidence_raw,
+        )
+        if proposal is not None:
+            out.append(proposal)
+            continue
+
         canonical, coerced = _validate_category_name(llm_row.get("category"))
         if canonical is None:
             out.append(None)
             continue
-        confidence_raw = _normalise_confidence(llm_row.get("confidence"))
         if coerced:
             # Visibly down-weight coerced rows so the FE pre-ticks
             # them for an eyeball pass.

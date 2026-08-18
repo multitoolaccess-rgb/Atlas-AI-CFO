@@ -287,6 +287,7 @@ class CategoryCreate(BaseModel):
     color: Optional[str] = None
     budget_group: Optional[str] = "flexible"
     group: Optional[str] = "Expenses"
+    parent_id: Optional[int] = None
 
 
 class CategoryUpdate(BaseModel):
@@ -302,6 +303,7 @@ class CategoryUpdate(BaseModel):
     color: Optional[str] = None
     budget_group: Optional[str] = None
     group: Optional[str] = None
+    parent_id: Optional[int] = None
 
 
 class CategoryResponse(BaseModel):
@@ -312,6 +314,8 @@ class CategoryResponse(BaseModel):
     color: Optional[str] = None
     budget_group: Optional[str] = "flexible"
     group: Optional[str] = "Expenses"
+    parent_id: Optional[int] = None
+    parent_name: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

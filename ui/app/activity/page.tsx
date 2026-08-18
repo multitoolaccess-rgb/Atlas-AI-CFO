@@ -191,6 +191,10 @@ function ActivityContent({ embedded = false }: { embedded?: boolean }) {
       confidence: number
       coerced?: boolean
       cached?: boolean
+      // Phase 30h — new-category proposal rows.
+      is_new?: boolean
+      proposed_category?: string | null
+      proposed_parent?: string | null
     }>
   >([])
   const [llmBulkApplying, setLlmBulkApplying] = useState(false)
@@ -673,34 +677,53 @@ function ActivityContent({ embedded = false }: { embedded?: boolean }) {
     }
   }
 
-  const handleAcceptLlmSuggestion = async (
-    txnId: number,
-    categoryName: string,
-  ) => {
-    const cat = categories.find((c) => c.name === categoryName)
-    if (!cat) {
+  const handleAcceptLlmSuggestion = async (s: (typeof llmSuggestions)[number]) => {
+    // Phase 30h — new-category proposals skip the taxonomy lookup
+    // entirely (the category does not exist yet): the BE creates it
+    // (+ parent) and an llm-source merchant rule, then tags the txn.
+    const cat = s.is_new
+      ? undefined
+      : categories.find((c) => c.name === s.suggested_category)
+    if (!s.is_new && !cat) {
       setLlmError(
-        `Could not find category "${categoryName}" in your local taxonomy. ` +
+        `Could not find category "${s.suggested_category}" in your local taxonomy. ` +
           `Click Skip to drop this suggestion.`,
       )
       return
     }
     setPerLlmAcceptingIds((prev) => {
       const next = new Set(prev)
-      next.add(txnId)
+      next.add(s.txn_id)
       return next
     })
     try {
-      await handleInlineCategoryChange(txnId, cat.id)
-      setLlmSuggestions((prev) => prev.filter((s) => s.txn_id !== txnId))
-    } catch {
-      // Inline change already surfaces the error in the main page
-      // banner; we leave the suggestion in the panel so the user
-      // can retry or skip.
+      if (s.is_new && s.proposed_category) {
+        const txn = transactions.find((t) => t.id === s.txn_id)
+        const keyword = txn?.merchant_name || txn?.description || null
+        await rulesService.acceptCategoryProposal({
+          transaction_id: s.txn_id,
+          proposed_category: s.proposed_category,
+          proposed_parent: s.proposed_parent ?? null,
+          keyword,
+        })
+        // The new category now exists — refresh the taxonomy so the
+        // table's category chip + filters pick it up.
+        const cats = await rulesService.listCategories()
+        setCategories(cats)
+      } else {
+        await handleInlineCategoryChange(s.txn_id, cat!.id)
+      }
+      setLlmSuggestions((prev) => prev.filter((x) => x.txn_id !== s.txn_id))
+    } catch (err: any) {
+      setLlmError(
+        err?.response?.data?.detail ??
+          err?.message ??
+          'Could not apply this suggestion.',
+      )
     } finally {
       setPerLlmAcceptingIds((prev) => {
         const next = new Set(prev)
-        next.delete(txnId)
+        next.delete(s.txn_id)
         return next
       })
     }
@@ -715,7 +738,7 @@ function ActivityContent({ embedded = false }: { embedded?: boolean }) {
       // pending rows the button is disabled (we cap candidates at
       // 100) so a sequential loop is fine.
       for (const s of llmSuggestions) {
-        await handleAcceptLlmSuggestion(s.txn_id, s.suggested_category)
+        await handleAcceptLlmSuggestion(s)
       }
     } finally {
       setLlmBulkApplying(false)
@@ -1177,6 +1200,23 @@ function ActivityContent({ embedded = false }: { embedded?: boolean }) {
                           <span className="label-sm text-[var(--primary-700)] font-semibold">
                             {s.suggested_category}
                           </span>
+                          {s.is_new && s.proposed_category && (
+                            <span
+                              className="
+                                inline-flex items-center gap-1
+                                px-1.5 py-0.5 rounded
+                                bg-[var(--primary-50)]
+                                text-[var(--primary-700)]
+                                text-[10px] font-semibold
+                              "
+                              data-testid={`activity-llm-proposal-${s.txn_id}`}
+                              title={`The model proposes creating a new category "${s.proposed_category}"${s.proposed_parent ? ` under ${s.proposed_parent}` : ''}. Accept to create it + a merchant rule.`}
+                            >
+                              <Sparkles className="w-3 h-3" aria-hidden="true" />
+                              propose new: {s.proposed_category}
+                              {s.proposed_parent ? ` (under ${s.proposed_parent})` : ''}
+                            </span>
+                          )}
                           <span className="label-sm text-tertiary">
                             {(s.confidence * 100).toFixed(0)}% confidence
                           </span>
@@ -1239,12 +1279,7 @@ function ActivityContent({ embedded = false }: { embedded?: boolean }) {
                           type="button"
                           variant="primary"
                           size="sm"
-                          onClick={() =>
-                            handleAcceptLlmSuggestion(
-                              s.txn_id,
-                              s.suggested_category,
-                            )
-                          }
+                          onClick={() => handleAcceptLlmSuggestion(s)}
                           disabled={accepting || llmBulkApplying}
                           icon={
                             accepting ? (

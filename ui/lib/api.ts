@@ -1879,6 +1879,13 @@ export const rulesService = {
       confidence: number
       coerced?: boolean
       cached?: boolean
+      // Phase 30h — new-category proposal. ``is_new`` rows carry a
+      // proposed category (optionally under a parent) the LLM is
+      // confident does not exist yet; ``suggested_category`` stays
+      // ``Other`` as the safe fallback if the user Rejects.
+      is_new?: boolean
+      proposed_category?: string | null
+      proposed_parent?: string | null
     }>
   }> => {
     // Drop undefined keys so the BE's Pydantic model sees clean
@@ -1894,6 +1901,36 @@ export const rulesService = {
     const response = await api.post('/api/categorize/llm-batch', {
       transactions: cleaned,
     })
+    return response.data
+  },
+
+  /** Phase 30h — accept a Pass-4 new-category proposal. Creates the
+   *  category (+ optional parent), an ``llm``-source merchant rule,
+   *  and tags the transaction in one BE commit. Idempotent: re-
+   *  accepting reuses the category + rule.
+   */
+  acceptCategoryProposal: async (payload: {
+    transaction_id: number
+    proposed_category: string
+    proposed_parent?: string | null
+    keyword?: string | null
+  }): Promise<{
+    transaction_id: number
+    category_id: number
+    category_name: string
+    category_created: boolean
+    parent_id?: number | null
+    parent_name?: string | null
+    rule_id?: number | null
+    rule_created: boolean
+  }> => {
+    const cleaned: Record<string, unknown> = {
+      transaction_id: payload.transaction_id,
+      proposed_category: payload.proposed_category,
+    }
+    if (payload.proposed_parent) cleaned.proposed_parent = payload.proposed_parent
+    if (payload.keyword) cleaned.keyword = payload.keyword
+    const response = await api.post('/api/categories/accept-proposal', cleaned)
     return response.data
   },
 

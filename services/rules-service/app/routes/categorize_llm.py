@@ -65,6 +65,14 @@ class LLMSuggestionOut(BaseModel):
     confidence: float
     coerced: Optional[bool] = None
     cached: Optional[bool] = None
+    # Phase 30h — new-category proposal. When ``is_new`` is true the
+    # LLM is highly confident the transaction belongs to a category
+    # that does not exist yet; ``proposed_category`` / ``proposed_
+    # parent`` name it. ``suggested_category`` stays ``Other`` as the
+    # safe fallback if the user Rejects.
+    is_new: Optional[bool] = None
+    proposed_category: Optional[str] = None
+    proposed_parent: Optional[str] = None
 
 
 class LLMBatchResponse(BaseModel):

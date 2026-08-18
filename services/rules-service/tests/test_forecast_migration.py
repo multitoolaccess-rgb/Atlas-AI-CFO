@@ -14,8 +14,10 @@ from app.database import register_sqlite_compat
 ROOT = Path(__file__).parent.parent
 PARENT = "Q5h1i2j3k4l5"
 # The balance-evidence migration extends the certified chain with the
-# exact-cent authority head used by these round-trip assertions.
-REVISION = "Z9a1b2c3d4e5"
+# exact-cent authority head used by these round-trip assertions. Phase
+# 30g (transfer pairing) and 30h (category hierarchy) add newer heads
+# on top of it.
+REVISION = "U3e4f5a6b7c8"
 ACCOUNT_CURRENCY_PARENT = "R6f1g2h3i4j5"
 
 
