@@ -308,6 +308,12 @@ The Chair cannot resolve a failed deterministic gate by majority vote. Risk has 
 
 ## 7. Scoring
 
+### Deterministic conviction authority
+
+The LLM never chooses, edits, or reports an authoritative conviction score. It provides grounded findings, evidence references, assumptions, and uncertainty. Atlas computes conviction reproducibly from versioned structured inputs including evidence quality, freshness, completeness, signal agreement, fundamental strength, valuation, technical signal, macro context, quantitative signal, portfolio fit, risk, and uncertainty.
+
+The implementation owner is a deterministic Rules Service calculator, proposed at `services/rules-service/app/investments/conviction.py`. Its typed result belongs in the investment recommendation contract/schema and records component scores, weights, caps, blockers, drivers, uncertainty, formula version, and input hashes. Missing evidence, invalid identity/currency, stale required inputs, partial portfolio coverage, or blocking risk/policy results cap or block conviction and are never treated as neutral evidence. The model may explain the server-computed result only. Exact weights and thresholds require an approved implementation ADR before actionable recommendation rollout. Tests belong in `services/rules-service/tests/test_investment_conviction.py` and recommendation-gate suites.
+
 Scoring is deterministic and performed outside the model. The committee produces inputs and interpretations; Atlas computes the final score from validated dimensions.
 
 ### 7.1 Suggested score dimensions
@@ -619,6 +625,16 @@ The deterministic gates confirm that no actionable ADD is suitable. Atlas persis
 The UI presents the recommendation, evidence, uncertainty, dissent, and “Challenge this recommendation.” The user may accept, reject, defer, or challenge. Atlas records that decision; it places no order and performs no trade.
 
 ---
+
+## Human decision boundary
+
+```text
+Research → Analysis → Recommendation → User Decision
+
+Never: Research → Analysis → Recommendation → Automatic Execution
+```
+
+External/open-source projects remain bounded adapters, data sources, analytical engines, or research tools. Atlas validates their outputs and remains the canonical financial model, portfolio state, provenance, recommendation authority, and decision record.
 
 ## Final recommendation
 

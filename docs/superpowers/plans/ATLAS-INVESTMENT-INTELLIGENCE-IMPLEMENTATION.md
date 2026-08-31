@@ -36,7 +36,61 @@ The completed project is currently marked **phase-6 complete**, with the explici
 9. **Every phase is reversible and testable.** Feature flags, additive migrations, synthetic fixtures, focused tests, and compatibility projections are required.
 10. **Personal-use scope remains explicit.** The existing retention/deletion blocker and transitional tenancy risk continue to block external multi-user rollout.
 
-## 3. Dependency gates before Phase II
+## Program phase vocabulary
+
+Investment Intelligence uses independent program phase IDs `INV-01` through `INV-12`. These are not Atlas global project phases; the global roadmap continues to use `phase-*`. Completing an `INV-*` phase does not advance or authorize unrelated Atlas work.
+
+| Program ID | Capability |
+|---|---|
+| INV-01 | Investment Intelligence Foundation |
+| INV-02 | Market & Security Data |
+| INV-03 | Portfolio Intelligence |
+| INV-04 | Fundamental Research |
+| INV-05 | Technical Research |
+| INV-06 | Macro Intelligence |
+| INV-07 | Quantitative Research |
+| INV-08 | AI Investment Committee |
+| INV-09 | Investment Recommendations |
+| INV-10 | CIO Reporting |
+| INV-11 | Recommendation Tracking |
+| INV-12 | Evaluation & Backtesting |
+
+## Global Atlas phases versus Investment Intelligence phases
+
+Global Atlas `phase-*` advancement is controlled only by the canonical roadmap, project status, and `docs/07-engineering/SOLO_DEVELOPMENT_POLICY.md`. `INV-*` advancement is a bounded workstream inside separately authorized scope. An `INV-*` milestone does not advance or authorize global Atlas work.
+
+## Program-level authorization
+
+A separate, explicit user authorization may approve the complete bounded program `INV-01 → INV-12` for autonomous advancement in dependency order. Once active, the agent may proceed through ordinary approved `INV-*` phases without requesting confirmation between them. This authorization never permits automatic trading, broker orders, rebalancing, money movement, credential acquisition, destructive production actions, unauthorized personal-data access, unapproved architecture changes, unrelated product work, global phase advancement, or bypassing validation, ownership, privacy, provenance, recovery, review, or approval gates.
+
+`docs/07-engineering/SOLO_DEVELOPMENT_POLICY.md` remains authoritative. Its mandatory stop conditions—including unknown financial facts, unauthorized access or mutation, destructive operations, credentials, external-provider activation, trading/execution, material expansion, failed integrity/recovery preconditions, persistent tool failure, or insufficient resources—pause or end the program. The user may revoke or narrow authorization at any time.
+
+## Program phase gates
+
+Each `INV-*` phase has an entry gate, bounded task sequence, and exit gate. Entry requires dependencies complete, authorization active, required ADRs approved, scope unchanged, blockers clear, and fixtures available. Exit requires acceptance criteria, focused validation evidence, review requirements, rollback understanding, and no mandatory global stop condition. These gates operationalize, but do not replace or strengthen, the canonical policy.
+
+## Human decision boundary
+
+```text
+Research → Analysis → Recommendation → User Decision
+
+Never: Research → Analysis → Recommendation → Automatic Execution
+```
+
+## Investment Data Authority Invariants
+
+```text
+Current Holding ≠ Historical Investment Truth
+Unknown ≠ Zero
+Missing ≠ No Change
+Stale ≠ Current
+Estimated ≠ Observed
+LLM Claim ≠ Financial Fact
+```
+
+A current holding is only a current-state observation and cannot establish historical lots, cost basis, or performance. Unknown must remain distinguishable from zero so exposure is not silently understated. Missing data is not evidence of no change. Stale observations must not be presented as current. Estimates require assumptions and must not be labeled observed facts. LLM claims are interpretations requiring validated evidence and cannot become canonical financial facts. These distinctions are mandatory in contracts, calculations, provenance, API/UI status, and tests.
+
+# 3. Dependency gates before Investment Intelligence program
 
 Before implementation of the first investment slice, the owner must explicitly authorize a new phase and confirm:
 
@@ -59,24 +113,24 @@ The correct implementation order is:
 
 | Phase | Name | Primary outcome | Depends on |
 |---|---|---|---|
-| II-A | Investment Intelligence foundation | Stable identities, ownership, immutable context/evidence contracts, feature gates | Phase-6 baseline; new domain ADR |
-| II-B | Market/security data | Validated security master and market observations | II-A |
-| II-C | Portfolio intelligence | Canonical portfolio snapshots and deterministic analytics | II-A, II-B |
-| II-D | Fundamental research | Filing/fact/statement evidence and deterministic fundamental metrics | II-A, II-B; II-C for portfolio fit |
-| II-E | Technical research | Point-in-time technical metrics/signals | II-B, II-C |
-| II-F | Macro intelligence | Macro observations, regimes, and sector context | II-B; evidence foundation |
-| II-G | Quant research | Factors, risk, optimization/backtesting research contracts | II-B, II-C, II-E; leakage controls |
-| II-H | AI Investment Committee | Typed specialist findings, bull/bear challenge, chair draft | II-C, II-D; selected II-E–G |
-| II-I | Investment recommendations | Existing lifecycle extension and user-facing recommendation | II-H plus all deterministic gates |
-| II-J | CIO reports | Daily/weekly/monthly evidence-backed reports | II-I; scheduling/operational approval |
-| II-K | Recommendation tracking | Supersession, decisions, review, and outcome measurement | II-I, existing decision/outcome infrastructure |
-| II-L | Backtesting/evaluation | Historical replay, calibration, and committee evaluation | II-G, II-H, II-I, II-K |
+| INV-01 | Investment Intelligence foundation | Stable identities, ownership, immutable context/evidence contracts, feature gates | Phase-6 baseline; new domain ADR |
+| INV-02 | Market/security data | Validated security master and market observations | INV-01 |
+| INV-03 | Portfolio intelligence | Canonical portfolio snapshots and deterministic analytics | INV-01, INV-02 |
+| INV-04 | Fundamental research | Filing/fact/statement evidence and deterministic fundamental metrics | INV-01, INV-02; INV-03 for portfolio fit |
+| INV-05 | Technical research | Point-in-time technical metrics/signals | INV-02, INV-03 |
+| INV-06 | Macro intelligence | Macro observations, regimes, and sector context | INV-02; evidence foundation |
+| INV-07 | Quant research | Factors, risk, optimization/backtesting research contracts | INV-02, INV-03, INV-05; leakage controls |
+| INV-08 | AI Investment Committee | Typed specialist findings, bull/bear challenge, chair draft | INV-03, INV-04; selected INV-05–G |
+| INV-09 | Investment recommendations | Existing lifecycle extension and user-facing recommendation | INV-08 plus all deterministic gates |
+| INV-10 | CIO reports | Daily/weekly/monthly evidence-backed reports | INV-09; scheduling/operational approval |
+| INV-11 | Recommendation tracking | Supersession, decisions, review, and outcome measurement | INV-09, existing decision/outcome infrastructure |
+| INV-12 | Backtesting/evaluation | Historical replay, calibration, and committee evaluation | INV-07, INV-08, INV-09, INV-11 |
 
-The order deliberately puts canonical identity and portfolio state before AI, reports, and recommendation delivery. II-E and II-F may be developed in parallel after their input contracts stabilize. II-G is later because point-in-time datasets and leakage controls are high risk. II-H must not begin as a prompt-only feature.
+The order deliberately puts canonical identity and portfolio state before AI, reports, and recommendation delivery. INV-05 and INV-06 may be developed in parallel after their input contracts stabilize. INV-07 is later because point-in-time datasets and leakage controls are high risk. INV-08 must not begin as a prompt-only feature.
 
 ---
 
-# 5. Phase II-A — Investment Intelligence foundation
+# 5. Phase INV-01 — Investment Intelligence foundation
 
 ## Objective
 
@@ -160,7 +214,7 @@ Authenticate and authorize owner scope before context assembly; keep credentials
 
 ## Agent tasks
 
-### II-A-01 — Approve canonical investment authority
+### INV-01-01 — Approve canonical investment authority
 
 - **Objective:** Record the exact ownership between Finlynq, Rules Service, deterministic calculations, evidence providers, and AI.
 - **Inputs:** Completed audit, domain design, ADR-001/002/004, current service boundaries.
@@ -169,7 +223,7 @@ Authenticate and authorize owner scope before context assembly; keep credentials
 - **Tests:** Documentation/status validation and link/path checks.
 - **Acceptance:** No ambiguous authority remains; ADR does not claim unimplemented models.
 
-### II-A-02 — Define versioned investment context contracts
+### INV-01-02 — Define versioned investment context contracts
 
 - **Objective:** Create provider-neutral, privacy-safe context/evidence/run contracts.
 - **Inputs:** Domain object classifications and current Market Intelligence contracts.
@@ -178,7 +232,7 @@ Authenticate and authorize owner scope before context assembly; keep credentials
 - **Tests:** Contract, serialization, hashing, privacy, and fail-closed tests.
 - **Acceptance:** Identical canonical inputs hash identically; unauthorized or malformed context is rejected.
 
-### II-A-03 — Add default-off investment configuration
+### INV-01-03 — Add default-off investment configuration
 
 - **Objective:** Gate future investment data and analysis without activating providers.
 - **Inputs:** Existing configuration conventions and provider-safety risks.
@@ -187,7 +241,7 @@ Authenticate and authorize owner scope before context assembly; keep credentials
 - **Tests:** Default-off and explicit-enable tests; environment parsing tests.
 - **Acceptance:** Fresh configuration cannot call an external provider or generate a recommendation.
 
-### II-A-04 — Define read-only assistant boundary
+### INV-01-04 — Define read-only assistant boundary
 
 - **Objective:** Establish how the existing assistant may request investment context later.
 - **Inputs:** `assistant_orchestrator.py`, `llm_client.py`, existing tool whitelist.
@@ -198,7 +252,12 @@ Authenticate and authorize owner scope before context assembly; keep credentials
 
 ---
 
-# 6. Phase II-B — Market/security data
+# 6. Phase INV-02 — Market/security data
+
+## Pre-authority evaluation harness
+
+Before `INV-08` or `INV-09` becomes production-authoritative, a lightweight evaluation harness must pass factual accuracy, evidence coverage and correctness, citation correctness, deterministic calculation-reference correctness, structured-output validity, replay consistency, confidence-score reproducibility, stale-data detection, hallucination/invented-number detection, Bull/Bear disagreement preservation, prompt-injection resistance, and ownership isolation. Full historical replay, outcome calibration, and comprehensive backtesting remain in `INV-12`. This is `INV-01-05` and is an exit prerequisite for `INV-08` and `INV-09`.
+
 
 ## Objective
 
@@ -214,7 +273,7 @@ Build a stable instrument identity and immutable, provider-neutral market-observ
 
 ## Dependencies
 
-II-A; current `Holding` routes/models; existing `market_intelligence` contracts, adapters, caching, pacing, and normalized failures.
+INV-01; current `Holding` routes/models; existing `market_intelligence` contracts, adapters, caching, pacing, and normalized failures.
 
 ## Exact repository paths
 
@@ -277,16 +336,16 @@ Provider credentials stay server-side; source URLs are sanitized; identity resol
 
 ## Agent tasks
 
-### II-B-01 — Implement Security identity contract and model
+### INV-02-01 — Implement Security identity contract and model
 
 - **Objective:** Introduce stable security identity without replacing `Holding`.
-- **Inputs:** II-A contracts, current Holding model/routes, provider identifier research.
+- **Inputs:** INV-01 contracts, current Holding model/routes, provider identifier research.
 - **Files:** `app/investments/securities.py`, model exports, additive migration, focused tests.
 - **Implementation requirements:** UUID/internal ID, instrument type, issuer/company reference placeholder, effective-dated identifiers, unresolved state, strict ownership rules for private annotations.
 - **Tests:** Identity, ambiguity, unsupported asset, migration, and ownership tests.
 - **Acceptance:** Existing symbol-based holdings can map to a resolved or explicit unresolved state without silent guessing.
 
-### II-B-02 — Add immutable market observations
+### INV-02-02 — Add immutable market observations
 
 - **Objective:** Store validated point-in-time market data for supported instruments.
 - **Inputs:** Market Intelligence contracts/adapters and security identity.
@@ -295,7 +354,7 @@ Provider credentials stay server-side; source URLs are sanitized; identity resol
 - **Tests:** Numeric, timestamp, duplicate/idempotency, stale/failure, and immutability tests.
 - **Acceptance:** Same source observation is idempotent; corrections create new versions.
 
-### II-B-03 — Add provider adapter mapping
+### INV-02-03 — Add provider adapter mapping
 
 - **Objective:** Reuse existing normalized provider adapters for security and market data.
 - **Inputs:** Existing Finnhub/SEC adapters and open-source research decisions.
@@ -304,7 +363,7 @@ Provider credentials stay server-side; source URLs are sanitized; identity resol
 - **Tests:** Synthetic transport and provider contract suite.
 - **Acceptance:** Provider outage produces an explicit unavailable result and no fabricated observation.
 
-### II-B-04 — Build legacy Holding compatibility projection
+### INV-02-04 — Build legacy Holding compatibility projection
 
 - **Objective:** Make current holdings analyzable without claiming historical completeness.
 - **Inputs:** Existing Account/Holding data and unresolved identity rules.
@@ -315,7 +374,7 @@ Provider credentials stay server-side; source URLs are sanitized; identity resol
 
 ---
 
-# 7. Phase II-C — Portfolio intelligence
+# 7. Phase INV-03 — Portfolio intelligence
 
 ## Objective
 
@@ -332,7 +391,7 @@ Create immutable owner-scoped portfolio snapshots and deterministic portfolio an
 
 ## Dependencies
 
-II-A, II-B, existing Accounts/Holdings/Transactions, exact-value authority, goal and forecast context, existing recommendation/decision infrastructure.
+INV-01, INV-02, existing Accounts/Holdings/Transactions, exact-value authority, goal and forecast context, existing recommendation/decision infrastructure.
 
 ## Exact repository paths
 
@@ -395,7 +454,7 @@ Strict owner/account checks before existence-sensitive reads; aggregate context 
 
 ## Agent tasks
 
-### II-C-01 — Reconstruct positions and portfolio snapshots
+### INV-03-01 — Reconstruct positions and portfolio snapshots
 
 - **Objective:** Produce an immutable snapshot from supported canonical inputs and explicit completeness status.
 - **Inputs:** Security identity, holdings/transactions, market observations, currency authority.
@@ -404,7 +463,7 @@ Strict owner/account checks before existence-sensitive reads; aggregate context 
 - **Tests:** Reconstruction, partial history, ownership, replay, and migration tests.
 - **Acceptance:** Same inputs produce the same snapshot; incomplete history is never presented as complete.
 
-### II-C-02 — Implement allocation and exposure analytics
+### INV-03-02 — Implement allocation and exposure analytics
 
 - **Objective:** Calculate deterministic allocation and concentration metrics.
 - **Inputs:** Frozen portfolio snapshot and classifications.
@@ -413,7 +472,7 @@ Strict owner/account checks before existence-sensitive reads; aggregate context 
 - **Tests:** Allocation/concentration/sector/geography fixtures and unknown classification cases.
 - **Acceptance:** Every result identifies scope, as-of, formula/version, and omissions.
 
-### II-C-03 — Implement performance and risk analytics
+### INV-03-03 — Implement performance and risk analytics
 
 - **Objective:** Calculate performance and risk metrics without duplicating existing financial engines.
 - **Inputs:** Snapshot history, transaction/cash-flow events, market observations.
@@ -422,7 +481,7 @@ Strict owner/account checks before existence-sensitive reads; aggregate context 
 - **Tests:** Golden numeric fixtures and edge cases.
 - **Acceptance:** Calculation authority is documented and no competing formula silently exists.
 
-### II-C-04 — Implement deterministic portfolio impact
+### INV-03-04 — Implement deterministic portfolio impact
 
 - **Objective:** Compare current and bounded hypothetical exposure for an investment candidate.
 - **Inputs:** Frozen snapshot, candidate security/observation, proposed exposure scenario, goals/policy.
@@ -433,7 +492,7 @@ Strict owner/account checks before existence-sensitive reads; aggregate context 
 
 ---
 
-# 8. Phase II-D — Fundamental research
+# 8. Phase INV-04 — Fundamental research
 
 ## Objective
 
@@ -449,7 +508,7 @@ Create validated company/fundamental evidence and deterministic metrics that an 
 
 ## Dependencies
 
-II-A/B and II-C portfolio context. Existing SEC/earnings/Market Intelligence contracts. Open-source EdgarTools may be evaluated in an isolated compatibility/license spike before adoption; it is not assumed to be a dependency.
+INV-01/B and INV-03 portfolio context. Existing SEC/earnings/Market Intelligence contracts. Open-source EdgarTools may be evaluated in an isolated compatibility/license spike before adoption; it is not assumed to be a dependency.
 
 ## Exact repository paths
 
@@ -508,16 +567,16 @@ Sanitize filings/news before model exposure; preserve public-source provenance; 
 
 ## Agent tasks
 
-### II-D-01 — Normalize filing and fact evidence
+### INV-04-01 — Normalize filing and fact evidence
 
 - **Objective:** Build immutable primary-source evidence contracts and adapter mappings.
-- **Inputs:** Existing SEC contracts/adapters, provider research, II-B Security identity.
+- **Inputs:** Existing SEC contracts/adapters, provider research, INV-02 Security identity.
 - **Files:** Fundamental/filing/fact services, migrations, tests/fixtures.
 - **Implementation requirements:** Preserve accession/form/CIK, units, periods, currencies, vintage, source hash, extraction status, and omissions.
 - **Tests:** Synthetic SEC filings/XBRL fixtures, restatement and malformed-input tests.
 - **Acceptance:** A fact is traceable to a validated source and cannot be silently overwritten.
 
-### II-D-02 — Implement deterministic fundamental metrics
+### INV-04-02 — Implement deterministic fundamental metrics
 
 - **Objective:** Calculate ratios and quality/growth/profitability metrics from validated facts.
 - **Inputs:** Immutable facts/statements and market observations.
@@ -526,7 +585,7 @@ Sanitize filings/news before model exposure; preserve public-source provenance; 
 - **Tests:** Golden fixtures and fail-closed cases.
 - **Acceptance:** AI receives metric references, not responsibility for arithmetic.
 
-### II-D-03 — Implement valuation range service
+### INV-04-03 — Implement valuation range service
 
 - **Objective:** Produce explicit method/version/assumption-bound valuation ranges.
 - **Inputs:** Validated facts, price, shares/market data where supported, scenario assumptions.
@@ -535,7 +594,7 @@ Sanitize filings/news before model exposure; preserve public-source provenance; 
 - **Tests:** DCF/multiple/scenario fixtures, invalid-input and assumption-sensitivity tests.
 - **Acceptance:** Valuation cannot be presented as a guaranteed target or hidden model output.
 
-### II-D-04 — Evaluate EdgarTools compatibility
+### INV-04-04 — Evaluate EdgarTools compatibility
 
 - **Objective:** Decide whether EdgarTools reduces custom SEC parsing without compromising licensing/data contracts.
 - **Inputs:** Open-source stack research and Atlas SEC requirements.
@@ -546,7 +605,7 @@ Sanitize filings/news before model exposure; preserve public-source provenance; 
 
 ---
 
-# 9. Phase II-E — Technical research
+# 9. Phase INV-05 — Technical research
 
 ## Objective
 
@@ -558,7 +617,7 @@ Trend, momentum, volatility, volume, relative strength, support/resistance refer
 
 ## Dependencies
 
-II-B market observations and II-C portfolio snapshots. No technical AI should run before deterministic metrics exist.
+INV-02 market observations and INV-03 portfolio snapshots. No technical AI should run before deterministic metrics exist.
 
 ## Exact repository paths
 
@@ -602,7 +661,7 @@ Overfitting, look-ahead bias, indicator misuse, stale prices, and excessive pers
 
 ## Agent tasks
 
-### II-E-01 — Implement technical signal calculators
+### INV-05-01 — Implement technical signal calculators
 
 - **Objective:** Calculate versioned technical metrics from immutable market observations.
 - **Inputs:** Point-in-time price/volume windows and benchmark observations.
@@ -611,10 +670,10 @@ Overfitting, look-ahead bias, indicator misuse, stale prices, and excessive pers
 - **Tests:** Golden numeric and leakage/freshness tests.
 - **Acceptance:** Reproducible signals with no network or model dependency.
 
-### II-E-02 — Expose technical evidence packet
+### INV-05-02 — Expose technical evidence packet
 
 - **Objective:** Make signals available as bounded evidence to later analysts.
-- **Inputs:** II-A evidence contracts and II-E outputs.
+- **Inputs:** INV-01 evidence contracts and INV-05 outputs.
 - **Files:** Market Intelligence composition/contracts, tests.
 - **Implementation requirements:** References/hashes, source/calculation version, omissions, no direct recommendation action.
 - **Tests:** Schema/citation/privacy tests.
@@ -622,7 +681,7 @@ Overfitting, look-ahead bias, indicator misuse, stale prices, and excessive pers
 
 ---
 
-# 10. Phase II-F — Macro intelligence
+# 10. Phase INV-06 — Macro intelligence
 
 ## Objective
 
@@ -634,7 +693,7 @@ Rates, inflation, employment, GDP, liquidity, yield curve, monetary policy, mark
 
 ## Dependencies
 
-II-A evidence; II-B market observations. Portfolio integration from II-C is required for portfolio-impact claims.
+INV-01 evidence; INV-02 market observations. Portfolio integration from INV-03 is required for portfolio-impact claims.
 
 ## Exact repository paths
 
@@ -679,7 +738,7 @@ Revisions mistaken for historical knowledge, causal overclaiming, provider data 
 
 ## Agent tasks
 
-### II-F-01 — Normalize macro observations
+### INV-06-01 — Normalize macro observations
 
 - **Objective:** Add provider-neutral macro evidence using approved sources.
 - **Inputs:** Existing Market Intelligence adapter patterns and license/data review.
@@ -688,7 +747,7 @@ Revisions mistaken for historical knowledge, causal overclaiming, provider data 
 - **Tests:** Synthetic vintage/revision/failure suite.
 - **Acceptance:** Historical analyses use the correct as-known-at value.
 
-### II-F-02 — Calculate regime/context summaries
+### INV-06-02 — Calculate regime/context summaries
 
 - **Objective:** Produce deterministic summaries for analyst interpretation.
 - **Inputs:** Immutable macro and market observations.
@@ -699,7 +758,7 @@ Revisions mistaken for historical knowledge, causal overclaiming, provider data 
 
 ---
 
-# 11. Phase II-G — Quant research
+# 11. Phase INV-07 — Quant research
 
 ## Objective
 
@@ -716,7 +775,7 @@ Initial phase should prefer calculation adapters over adding a large framework. 
 
 ## Dependencies
 
-II-B, II-C, II-E, and appropriate II-D/F evidence. High-risk data and financial math review. No quant recommendation without portfolio-fit output.
+INV-02, INV-03, INV-05, and appropriate INV-04/INV-06 evidence. High-risk data and financial math review. No quant recommendation without portfolio-fit output.
 
 ## Exact repository paths
 
@@ -767,7 +826,7 @@ Data leakage, optimizer instability, false precision, unbounded compute, malicio
 
 ## Agent tasks
 
-### II-G-01 — Define dataset manifest and leakage contract
+### INV-07-01 — Define dataset manifest and leakage contract
 
 - **Objective:** Make point-in-time quantitative research reproducible and auditable.
 - **Inputs:** Market/fundamental observation contracts and ADR-004.
@@ -776,7 +835,7 @@ Data leakage, optimizer instability, false precision, unbounded compute, malicio
 - **Tests:** Deliberately leaky and valid fixtures.
 - **Acceptance:** Leaky inputs are rejected before calculation.
 
-### II-G-02 — Add factor/risk calculations
+### INV-07-02 — Add factor/risk calculations
 
 - **Objective:** Produce deterministic factor and risk signals without an AI dependency.
 - **Inputs:** Approved point-in-time data manifest.
@@ -785,7 +844,7 @@ Data leakage, optimizer instability, false precision, unbounded compute, malicio
 - **Tests:** Golden metrics, reproducibility, insufficient data.
 - **Acceptance:** Signal is evidence, not action.
 
-### II-G-03 — Evaluate portfolio optimization library
+### INV-07-03 — Evaluate portfolio optimization library
 
 - **Objective:** Select a mature optimizer only if it reduces custom code and passes technical/license tests.
 - **Inputs:** Open-source stack research, portfolio fixtures, constraints.
@@ -794,7 +853,7 @@ Data leakage, optimizer instability, false precision, unbounded compute, malicio
 - **Tests:** Synthetic portfolio optimization and infeasible-constraint cases.
 - **Acceptance:** Adopt/defer/reject decision documented; no dependency added by the research task.
 
-### II-G-04 — Add bounded backtest runner
+### INV-07-04 — Add bounded backtest runner
 
 - **Objective:** Run research-only backtests with explicit leakage/cost controls.
 - **Inputs:** Validated dataset manifest and factor strategy contract.
@@ -805,7 +864,7 @@ Data leakage, optimizer instability, false precision, unbounded compute, malicio
 
 ---
 
-# 12. Phase II-H — AI Investment Committee
+# 12. Phase INV-08 — AI Investment Committee
 
 ## Objective
 
@@ -822,7 +881,7 @@ Add evidence-grounded specialist analysis and Bull/Bear challenge synthesis thro
 
 ## Dependencies
 
-II-A through II-C, with II-D and selected II-E–G evidence. Existing `assistant_orchestrator.py`, `llm_client.py`, agent prompts/personas, recommendation engine, decision journal, ownership and safety controls.
+INV-01 through INV-03, with INV-04 and selected INV-05–INV-07 evidence. Existing `assistant_orchestrator.py`, `llm_client.py`, agent prompts/personas, recommendation engine, decision journal, ownership and safety controls.
 
 ## Exact repository paths
 
@@ -859,7 +918,7 @@ II-A through II-C, with II-D and selected II-E–G evidence. Existing `assistant
 - `docs/04-ai-agents/INVESTMENT_AGENT.md`
 - `docs/04-ai-agents/RISK_AGENT.md`
 
-**Schema changes:** Additive run/finding/thesis/challenge records only after contract tests. Recommendation drafts must not be persisted as accepted recommendations until II-I.
+**Schema changes:** Additive run/finding/thesis/challenge records only after contract tests. Recommendation drafts must not be persisted as accepted recommendations until INV-09.
 
 ## APIs
 
@@ -892,7 +951,7 @@ Hallucination, prompt injection, cross-user leakage, model overconfidence, unbou
 
 ## Agent tasks
 
-### II-H-01 — Define typed analyst contracts
+### INV-08-01 — Define typed analyst contracts
 
 - **Objective:** Define strict finding, thesis, risk, draft, abstention, and dissent structures.
 - **Inputs:** Committee design and domain evidence model.
@@ -901,7 +960,7 @@ Hallucination, prompt injection, cross-user leakage, model overconfidence, unbou
 - **Tests:** Extra-field, missing-citation, unsupported-action, privacy, and serialization tests.
 - **Acceptance:** A draft with unsupported material claims cannot validate.
 
-### II-H-02 — Implement evidence validator
+### INV-08-02 — Implement evidence validator
 
 - **Objective:** Verify claims cite the frozen packet and deterministic outputs.
 - **Inputs:** Evidence packet and typed findings.
@@ -910,7 +969,7 @@ Hallucination, prompt injection, cross-user leakage, model overconfidence, unbou
 - **Tests:** Valid, stale, conflicting, unauthorized, and missing-evidence cases.
 - **Acceptance:** Validation failure yields a safe rejection/abstention, not a repaired claim.
 
-### II-H-03 — Add bounded specialist orchestration
+### INV-08-03 — Add bounded specialist orchestration
 
 - **Objective:** Invoke existing agents in tiered profiles through the existing orchestrator.
 - **Inputs:** Validated context/evidence/calculations and local LLM boundary.
@@ -919,7 +978,7 @@ Hallucination, prompt injection, cross-user leakage, model overconfidence, unbou
 - **Tests:** Normal, partial, offline, malformed, timeout, and replay cases.
 - **Acceptance:** Committee returns typed findings/draft or abstention and never mutates canonical facts.
 
-### II-H-04 — Implement Bull/Bear challenge pass
+### INV-08-04 — Implement Bull/Bear challenge pass
 
 - **Objective:** Add adversarial review linked to an immutable original run.
 - **Inputs:** Original recommendation/draft, frozen original context, current validated evidence.
@@ -930,7 +989,11 @@ Hallucination, prompt injection, cross-user leakage, model overconfidence, unbou
 
 ---
 
-# 13. Phase II-I — Investment recommendations
+## Deterministic conviction authority
+
+The LLM never chooses, edits, or reports an authoritative conviction score. It provides grounded findings, evidence references, assumptions, and uncertainty. Atlas computes conviction reproducibly from versioned structured inputs: evidence quality, freshness, completeness, signal agreement, fundamental strength, valuation, technical and macro context, quantitative signals, portfolio fit, risk, and uncertainty.
+
+The implementation owner is the Rules Service calculator proposed at `services/rules-service/app/investments/conviction.py`; its typed result belongs in `app/investments/recommendation_contracts.py` or the existing recommendation schema extension. It records components, weights, caps, blockers, drivers, uncertainty, formula version, and input hashes. Missing evidence, invalid identity/currency, stale required inputs, partial portfolio coverage, or blocking risk/policy results cap or block conviction and are never neutral evidence. The model may explain the server-computed result only. Tests belong in `services/rules-service/tests/test_investment_conviction.py` and recommendation-gate suites. Exact weights and thresholds require the implementation ADR before `INV-09` becomes actionable.
 
 ## Objective
 
@@ -947,7 +1010,7 @@ Extend Atlas’s existing recommendation engine/lifecycle to support BUY, ADD, H
 
 ## Dependencies
 
-II-C portfolio analytics, II-D evidence, II-H committee draft, existing recommendation/decision/outcome models/routes, auth/ownership, goal context.
+INV-03 portfolio analytics, INV-04 evidence, INV-08 committee draft, existing recommendation/decision/outcome models/routes, auth/ownership, goal context.
 
 ## Exact repository paths
 
@@ -1009,7 +1072,7 @@ Financial harm from overconfident recommendations, stale data, incomplete portfo
 
 ## Agent tasks
 
-### II-I-01 — Define investment recommendation extension
+### INV-09-01 — Define investment recommendation extension
 
 - **Objective:** Map investment payload fields onto existing recommendation lifecycle.
 - **Inputs:** Domain semantics, existing models/schemas/routes.
@@ -1018,7 +1081,7 @@ Financial harm from overconfident recommendations, stale data, incomplete portfo
 - **Tests:** Schema, immutability, idempotency, and backward-compatibility tests.
 - **Acceptance:** Existing recommendation consumers continue working; investment payload is additive and typed.
 
-### II-I-02 — Implement deterministic recommendation gates and scoring
+### INV-09-02 — Implement deterministic recommendation gates and scoring
 
 - **Objective:** Validate committee drafts and compute score/confidence outside the model.
 - **Inputs:** Portfolio impact, evidence coverage, risk assessment, goals, policy, thesis draft.
@@ -1027,7 +1090,7 @@ Financial harm from overconfident recommendations, stale data, incomplete portfo
 - **Tests:** Each action and each blocker; replay and boundary tests.
 - **Acceptance:** No unsupported draft becomes actionable; WATCH/abstention explains why.
 
-### II-I-03 — Persist through existing lifecycle
+### INV-09-03 — Persist through existing lifecycle
 
 - **Objective:** Create immutable investment recommendations and reuse decision/outcome services.
 - **Inputs:** Validated draft and gate result.
@@ -1036,7 +1099,7 @@ Financial harm from overconfident recommendations, stale data, incomplete portfo
 - **Tests:** Migration, ownership, race/idempotency, lifecycle, and outcome linkage.
 - **Acceptance:** Recommendation → user decision is complete and no execution path exists.
 
-### II-I-04 — Add recommendation evidence/challenge UI
+### INV-09-04 — Add recommendation evidence/challenge UI
 
 - **Objective:** Present thesis, evidence, risks, uncertainty, dissent, and challenge affordance.
 - **Inputs:** Typed API contract and existing recommendations UI/design system.
@@ -1047,7 +1110,7 @@ Financial harm from overconfident recommendations, stale data, incomplete portfo
 
 ---
 
-# 14. Phase II-J — Daily/weekly/monthly CIO reports
+# 14. Phase INV-10 — Daily/weekly/monthly CIO reports
 
 ## Objective
 
@@ -1062,7 +1125,7 @@ Generate evidence-backed periodic portfolio/intelligence reports using immutable
 
 ## Dependencies
 
-II-I recommendations, II-C portfolio snapshots, II-D–G evidence as available, existing Market Brief models/routes/UI/delivery flags.
+INV-09 recommendations, INV-03 portfolio snapshots, INV-04–INV-07 evidence as available, existing Market Brief models/routes/UI/delivery flags.
 
 ## Exact repository paths
 
@@ -1112,7 +1175,7 @@ Periodic stale data, report leakage, accidental external delivery, and confusing
 
 ## Agent task
 
-### II-J-01 — Extend Market Brief into CIO report profiles
+### INV-10-01 — Extend Market Brief into CIO report profiles
 
 - **Objective:** Reuse existing briefing archive and delivery boundaries for investment reports.
 - **Inputs:** Recommendation/evidence/portfolio contracts and Market Brief infrastructure.
@@ -1123,7 +1186,7 @@ Periodic stale data, report leakage, accidental external delivery, and confusing
 
 ---
 
-# 15. Phase II-K — Recommendation tracking
+# 15. Phase INV-11 — Recommendation tracking
 
 ## Objective
 
@@ -1139,7 +1202,7 @@ Track recommendation lifecycle, user decisions, review triggers, supersession, a
 
 ## Dependencies
 
-II-I and existing recommendation/decision-history/outcome services from phases 2–4.
+INV-09 and existing recommendation/decision-history/outcome services from phases 2–4.
 
 ## Exact repository paths
 
@@ -1188,10 +1251,10 @@ Outcome leakage across owners, hindsight bias, immutable-history violations, and
 
 ## Agent task
 
-### II-K-01 — Extend existing decision/outcome timeline for investments
+### INV-11-01 — Extend existing decision/outcome timeline for investments
 
 - **Objective:** Link investment recommendation, challenge, decision, and outcome records.
-- **Inputs:** Existing decision-history/outcome contracts and II-I recommendation identity.
+- **Inputs:** Existing decision-history/outcome contracts and INV-09 recommendation identity.
 - **Files:** Existing services/routes/models/tests plus tracking projection/UI.
 - **Implementation requirements:** Append-only, owner-scoped, hash-linked, stated horizon, pending outcomes, no execution status.
 - **Tests:** Lifecycle and privacy/authorization suite.
@@ -1199,7 +1262,7 @@ Outcome leakage across owners, hindsight bias, immutable-history violations, and
 
 ---
 
-# 16. Phase II-L — Backtesting/evaluation
+# 16. Phase INV-12 — Backtesting/evaluation
 
 ## Objective
 
@@ -1215,7 +1278,7 @@ Measure deterministic analytics, agent grounding, committee quality, confidence 
 
 ## Dependencies
 
-II-C through II-K; approved datasets and evaluation labels; no production execution.
+INV-03 through INV-11; approved datasets and evaluation labels; no production execution.
 
 ## Exact repository paths
 
@@ -1266,7 +1329,7 @@ Data leakage, evaluation contamination, sensitive portfolio exposure, misleading
 
 ## Agent tasks
 
-### II-L-01 — Establish deterministic replay suite
+### INV-12-01 — Establish deterministic replay suite
 
 - **Objective:** Prove canonical calculations and recommendation gates are reproducible.
 - **Inputs:** Immutable snapshots/evidence/recommendations and fixture protocol.
@@ -1275,7 +1338,7 @@ Data leakage, evaluation contamination, sensitive portfolio exposure, misleading
 - **Tests:** Replay and mutation/supersession tests.
 - **Acceptance:** Same inputs reproduce same result; changed inputs create a new result.
 
-### II-L-02 — Establish committee grounding evaluation
+### INV-12-02 — Establish committee grounding evaluation
 
 - **Objective:** Measure analyst/chair behavior against golden evidence packets.
 - **Inputs:** Committee contracts and model/provider test harness.
@@ -1284,7 +1347,7 @@ Data leakage, evaluation contamination, sensitive portfolio exposure, misleading
 - **Tests:** Golden, adversarial, malformed, and privacy cases.
 - **Acceptance:** No committee rollout without passing evidence-grounding thresholds.
 
-### II-L-03 — Establish outcome/calibration reporting
+### INV-12-03 — Establish outcome/calibration reporting
 
 - **Objective:** Compare stated expectations with later measured outcomes without rewriting history.
 - **Inputs:** Existing outcomes and recommendation horizons.
@@ -1339,7 +1402,7 @@ Every dependency task must document GitHub/source URL, license, version, mainten
 
 ## 19. Roadmap/status handling
 
-This plan does not update `docs/10-roadmap/PROJECT_STATUS.json` or generated `PROJECT_STATUS.md` because the current canonical status explicitly says phase-6 is complete, active work is empty, and the next bounded task is local release-candidate operations—not Phase 7. Beginning Investment Intelligence would be a material phase change requiring explicit authorization and a status update at start time.
+This plan does not update `docs/10-roadmap/PROJECT_STATUS.json` or generated `PROJECT_STATUS.md` because the current canonical status explicitly says phase-6 is complete, active work is empty, and the next bounded task is local release-candidate operations—not Phase 7. Beginning Investment Intelligence requires explicit program authorization and a status update at start time; this plan does not itself authorize the program.
 
 When authorized later, status should be updated once for the material start, each approved phase milestone, blockers/significant risks, and completion. Do not record this planning document as implementation completion, and do not create tracker evidence for unstarted phases.
 
@@ -1364,17 +1427,17 @@ This plan does **not** authorize:
 
 ## 21. Final implementation recommendation
 
-**Proceed After X:** proceed only after explicit authorization of a new Investment Intelligence phase, a canonical investment authority ADR, and completion of the II-A foundation gate. Then implement II-B and II-C before any AI committee or actionable recommendation work.
+**Proceed After X:** proceed only after explicit authorization of the Investment Intelligence program, a canonical investment authority ADR, and completion of the INV-01 foundation gate. Then implement INV-02 and INV-03 before any AI committee or actionable recommendation work.
 
 The minimum safe vertical slice is:
 
 ```text
-II-A contracts/authority
-  → II-B security + market observations
-  → II-C immutable portfolio snapshot + deterministic impact
-  → limited II-D evidence
-  → II-H Portfolio/Risk + Fundamental + Bear/Bull typed analysis
-  → II-I existing recommendation lifecycle
+INV-01 contracts/authority
+  → INV-02 security + market observations
+  → INV-03 immutable portfolio snapshot + deterministic impact
+  → limited INV-04 evidence
+  → INV-08 Portfolio/Risk + Fundamental + Bear/Bull typed analysis
+  → INV-09 existing recommendation lifecycle
   → user decision
 ```
 
