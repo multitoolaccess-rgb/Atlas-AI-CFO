@@ -98,6 +98,13 @@ class Settings(BaseSettings):
     # No client request may enable or override it.
     atlas_scenario_lab_enabled: bool = False
 
+    # INV-01 Investment Intelligence gates. All are server-owned and
+    # default-off; none activates a provider or scheduler by itself.
+    atlas_investment_read_enabled: bool = False
+    atlas_investment_analysis_enabled: bool = False
+    atlas_investment_external_provider_enabled: bool = False
+    atlas_investment_scheduler_enabled: bool = False
+
     model_config = ConfigDict(
         extra="ignore",
         env_file=RULES_SERVICE_ENV_FILE,
