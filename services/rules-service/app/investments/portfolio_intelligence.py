@@ -92,7 +92,7 @@ def _identity(holding) -> SecurityIdentity:
         instrument_type=instrument,
         symbol=symbol,
         exchange=None,
-        currency="USD" if symbol else None,
+        currency=None,
         as_of=datetime(1970, 1, 1, tzinfo=UTC),
     )
 
@@ -111,9 +111,9 @@ def build_portfolio_snapshot(*, owner_id: int, accounts: Iterable, holdings: Ite
         value = _money(holding.current_value)
         cost = _money(holding.cost_basis_total)
         quantity = _money(holding.quantity)
-        value_state = DataState.OBSERVED if value is not None else DataState.UNKNOWN
+        value_state = DataState.OBSERVED if value is not None and holding.last_price is not None else DataState.UNKNOWN
         cost_state = CostBasisState.KNOWN if cost is not None else CostBasisState.UNKNOWN
-        if value is None or not holding.symbol or quantity is None:
+        if value is None or not holding.symbol or quantity is None or holding.last_price is None:
             incomplete = True
         else:
             values.append(Decimal(value))

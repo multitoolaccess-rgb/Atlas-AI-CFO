@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
+from app.investments.contracts import DataState
 from app.investments.portfolio_intelligence import Completeness, CostBasisState, build_portfolio_snapshot
 
 
@@ -11,8 +12,8 @@ def account(id, user_id=1):
     return SimpleNamespace(id=id, user_id=user_id)
 
 
-def holding(id, account_id, symbol="AAPL", value=100.0, quantity=1.0, cost=80.0, type="Stock"):
-    return SimpleNamespace(id=id, account_id=account_id, symbol=symbol, current_value=value, quantity=quantity, cost_basis_total=cost, type=type)
+def holding(id, account_id, symbol="AAPL", value=100.0, quantity=1.0, cost=80.0, type="Stock", price=100.0):
+    return SimpleNamespace(id=id, account_id=account_id, symbol=symbol, current_value=value, last_price=price, quantity=quantity, cost_basis_total=cost, type=type)
 
 
 def test_snapshot_is_owner_scoped_and_reproducible():
@@ -58,6 +59,11 @@ def test_currency_is_not_assumed_by_portfolio_projection():
     result = build_portfolio_snapshot(owner_id=1, accounts=[account(1)], holdings=[holding(1, 1, "AAPL", 50)], as_of=AS_OF)
     assert result.positions[0].currency is None
 
+
+def test_missing_price_does_not_produce_observed_market_value():
+    result = build_portfolio_snapshot(owner_id=1, accounts=[account(1)], holdings=[holding(1, 1, "AAPL", 50, price=None)], as_of=AS_OF)
+    assert result.positions[0].market_value_state is not DataState.OBSERVED
+    assert result.completeness is Completeness.PARTIAL
 
 
 def test_as_of_requires_timezone():
