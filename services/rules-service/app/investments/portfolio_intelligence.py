@@ -87,7 +87,7 @@ def _identity(holding) -> SecurityIdentity:
     instrument = mapping.get(raw_type, InstrumentType.UNKNOWN)
     state = SecurityState.RESOLVED if symbol and instrument is not InstrumentType.UNKNOWN else SecurityState.UNSUPPORTED if symbol else SecurityState.UNRESOLVED
     return SecurityIdentity(
-        security_id=security_id_for(namespace="atlas-holding", value=f"{holding.id}:{symbol or 'unknown'}"),
+        security_id=security_id_for(namespace="atlas-security", value=f"{instrument.value}:{symbol}" ) if symbol and instrument is not InstrumentType.UNKNOWN else security_id_for(namespace="atlas-unresolved", value=f"{instrument.value}:{symbol or 'unknown'}"),
         state=state,
         instrument_type=instrument,
         symbol=symbol,

@@ -50,7 +50,7 @@ def test_sharpe_requires_explicit_risk_free_rate():
 def test_benchmark_must_be_explicitly_aligned():
     asset = points(SECURITY, [100, 102, 101, 105])
     benchmark = points(BENCHMARK, [100, 101, 100, 102])
-    result = calculate_quant_research(SECURITY, asset, as_of=NOW, lookback=3, benchmark=benchmark)
+    result = calculate_quant_research(SECURITY, asset, as_of=NOW, lookback=3, benchmark=benchmark, benchmark_security_id=BENCHMARK.security_id)
     beta = next(metric for metric in result.metrics if metric.name == "beta")
     assert beta.state is QuantState.AVAILABLE
     mismatched = calculate_quant_research(SECURITY, asset, as_of=NOW, lookback=3, benchmark=points(BENCHMARK, [1, 2]))

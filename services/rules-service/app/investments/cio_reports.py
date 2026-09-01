@@ -219,7 +219,13 @@ def generate_cio_report(
     # upstream items are still filtered by the explicit as_of boundary below.
     recommendations = tuple(sorted(recommendations, key=lambda item: item.recommendation_id))
     committees = tuple(sorted(committee_findings, key=lambda item: item.finding_id))
-    evidence_map = {item.evidence_id: item for item in additional_evidence}
+    evidence_map: dict[str, ReportEvidence] = {}
+    for item in additional_evidence:
+        if item.as_of > as_of:
+            raise ValueError("future additional evidence cannot enter report")
+        if item.evidence_id in evidence_map and evidence_map[item.evidence_id] != item:
+            raise ValueError("conflicting additional evidence identity")
+        evidence_map[item.evidence_id] = item
     for recommendation in recommendations:
         if recommendation.owner_id != owner_id:
             raise ValueError("recommendation owner mismatch")
@@ -246,24 +252,28 @@ def generate_cio_report(
         contradicting_evidence_ids=tuple(e.evidence_id for e in item.contradicting_evidence), review_after=item.review_after,
     ) for item in recommendations)
     conflicts = [f"{summary.security_id}: committee view {summary.view.value} with supporting and contradicting evidence." for summary in committee_summaries if summary.supporting_evidence_ids and summary.contradicting_evidence_ids]
+    recommendation_ids = tuple(evidence_id for item in rec_summaries for evidence_id in (*item.supporting_evidence_ids, *item.contradicting_evidence_ids))
+    committee_ids = tuple(evidence_id for item in committee_summaries for evidence_id in (*item.supporting_evidence_ids, *item.contradicting_evidence_ids))
+    source_evidence = tuple(sorted(evidence_map.values(), key=lambda item: item.evidence_id))
+    category_ids = lambda category: tuple(item.evidence_id for item in source_evidence if item.category == category)
     sections_data = (
-        (ReportSectionKind.EXECUTIVE, "Executive summary", ("This is an evidence-backed review-only CIO report.",)),
-        (ReportSectionKind.PORTFOLIO, "Portfolio", tuple(portfolio_items)),
-        (ReportSectionKind.MARKET, "Market context", tuple(market_items)),
-        (ReportSectionKind.FUNDAMENTAL, "Fundamental developments", tuple(fundamental_items)),
-        (ReportSectionKind.TECHNICAL, "Technical and quant signals", tuple((*technical_items, *quant_items))),
-        (ReportSectionKind.MACRO, "Macro context", tuple(macro_items)),
-        (ReportSectionKind.COMMITTEE, "Committee conclusions", tuple(summary.thesis for summary in committee_summaries)),
-        (ReportSectionKind.RECOMMENDATIONS, "Active recommendations", tuple(f"{item.recommendation_type}: {item.security_id}" for item in rec_summaries)),
-        (ReportSectionKind.CONFLICTS, "Key conflicts", tuple(conflicts)),
-        (ReportSectionKind.RISKS, "Risks", tuple(risk_items)),
-        (ReportSectionKind.REVIEW, "Items requiring human review", tuple(review_items)),
+        (ReportSectionKind.EXECUTIVE, "Executive summary", ("This is an evidence-backed review-only CIO report.",), ()),
+        (ReportSectionKind.PORTFOLIO, "Portfolio", tuple(portfolio_items), category_ids("portfolio")),
+        (ReportSectionKind.MARKET, "Market context", tuple(market_items), category_ids("market")),
+        (ReportSectionKind.FUNDAMENTAL, "Fundamental developments", tuple(fundamental_items), category_ids("fundamental")),
+        (ReportSectionKind.TECHNICAL, "Technical signals", tuple(technical_items), category_ids("technical")),
+        (ReportSectionKind.QUANT, "Quantitative signals", tuple(quant_items), category_ids("quant")),
+        (ReportSectionKind.MACRO, "Macro context", tuple(macro_items), category_ids("macro")),
+        (ReportSectionKind.COMMITTEE, "Committee conclusions", tuple(summary.thesis for summary in committee_summaries), committee_ids),
+        (ReportSectionKind.RECOMMENDATIONS, "Active recommendations", tuple(f"{item.recommendation_type}: {item.security_id}" for item in rec_summaries), recommendation_ids),
+        (ReportSectionKind.CONFLICTS, "Key conflicts", tuple(conflicts), committee_ids),
+        (ReportSectionKind.RISKS, "Risks", tuple(risk_items), recommendation_ids),
+        (ReportSectionKind.REVIEW, "Items requiring human review", tuple(review_items), ()),
     )
-    sections = tuple(ReportSection(kind=kind, title=title, items=items) for kind, title, items in sections_data)
+    sections = tuple(ReportSection(kind=kind, title=title, items=items, evidence_ids=tuple(dict.fromkeys(evidence_ids))) for kind, title, items, evidence_ids in sections_data)
     quality = ReportQuality.CONFLICTING if conflicts else ReportQuality.COMPLETE
     if risk_items or review_items:
         quality = ReportQuality.PARTIAL if quality is ReportQuality.COMPLETE else quality
-    source_evidence = tuple(sorted(evidence_map.values(), key=lambda item: item.evidence_id))
     report = CIOReport.with_hash(
         owner_id=owner_id, report_type=report_type, period_start=start, period_end=end, as_of=as_of,
         generated_at=generated, status=ReportStatus.GENERATED, portfolio_snapshot_hash=portfolio_snapshot_hash,

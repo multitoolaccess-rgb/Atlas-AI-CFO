@@ -192,10 +192,32 @@ def _ratio(name: str, numerator: FundamentalFact, denominator: FundamentalFact, 
     return FundamentalMetric(metric_id=f"{name}:{numerator.fact_id}:{denominator.fact_id}", name=name, value=value, unit="ratio", state=DataState.OBSERVED if value is not None else DataState.UNKNOWN, formula_version=formula_version, period_basis=numerator.period_basis, as_of=as_of, source_fact_ids=(numerator.fact_id, denominator.fact_id))
 
 
+def _select_fact(candidates: Iterable[FundamentalFact], *, as_of: datetime, period_basis: PeriodBasis, period_end: datetime | None = None) -> FundamentalFact | None:
+    """Select one fact only when the canonical period/vintage is unambiguous."""
+    eligible = [fact for fact in candidates if fact.as_known_at <= as_of and fact.period_basis is period_basis and (period_end is None or fact.period_end == period_end)]
+    if not eligible:
+        return None
+    # Restatements are newer versions of the same fact. Select the latest known
+    # revision deterministically, but reject ties rather than using input order.
+    eligible.sort(key=lambda fact: (fact.as_known_at, fact.retrieved_at, fact.fact_id))
+    latest_known = eligible[-1]
+    ties = [fact for fact in eligible if (fact.as_known_at, fact.retrieved_at) == (latest_known.as_known_at, latest_known.retrieved_at)]
+    if len(ties) > 1:
+        return None
+    return latest_known
+
+
 def derive_metrics(facts: Iterable[FundamentalFact], *, as_of: datetime) -> tuple[FundamentalMetric, ...]:
-    """Calculate a minimal deterministic margin set from matching facts."""
+    """Calculate margins from matching, point-in-time-compatible facts."""
     facts = tuple(facts)
-    by_kind = {fact.kind: fact for fact in facts if fact.status is not FactStatus.ESTIMATED}
+    if as_of.tzinfo is None or as_of.utcoffset() is None:
+        raise ValueError("as_of must be timezone-aware UTC")
+    by_kind: dict[FactKind, FundamentalFact | None] = {}
+    for kind in FactKind:
+        candidates = [fact for fact in facts if fact.kind is kind and fact.status is not FactStatus.ESTIMATED]
+        bases = {fact.period_basis for fact in candidates if fact.as_known_at <= as_of}
+        selected_basis = PeriodBasis.ANNUAL if PeriodBasis.ANNUAL in bases else next(iter(bases)) if len(bases) == 1 else None
+        by_kind[kind] = _select_fact(candidates, as_of=as_of, period_basis=selected_basis) if selected_basis else None
     metrics: list[FundamentalMetric] = []
     revenue = by_kind.get(FactKind.REVENUE)
     if revenue:

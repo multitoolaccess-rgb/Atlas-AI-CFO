@@ -149,14 +149,19 @@ def calculate_technical_research(security: SecurityIdentity, points: tuple[Price
     else:
         rsi = None
     signals.append(_signal("rsi", rsi, state=TechnicalState.AVAILABLE if rsi is not None else TechnicalState.INSUFFICIENT_HISTORY, as_of=points[-1].timestamp, lookback=rsi_period, basis=basis, hashes=hashes[-(rsi_period + 1):], unit="percent"))
-    if len(closes) >= sma_period + 1:
+    if len(closes) >= sma_period + 1 and all(closes[index - 1] != 0 for index in range(len(closes) - sma_period + 1, len(closes))):
         returns = [(closes[index] / closes[index - 1]) - Decimal(1) for index in range(len(closes) - sma_period + 1, len(closes))]
         mean = sum(returns, Decimal(0)) / Decimal(len(returns))
         variance = sum((item - mean) ** 2 for item in returns) / Decimal(len(returns))
         volatility = variance.sqrt()
     else:
         volatility = None
-    signals.append(_signal("rolling_volatility", volatility, state=TechnicalState.AVAILABLE if volatility is not None else TechnicalState.INSUFFICIENT_HISTORY, as_of=points[-1].timestamp, lookback=sma_period, basis=basis, hashes=hashes[-(sma_period + 1):], unit="ratio"))
+    if any(closes[index - 1] == 0 for index in range(1, len(closes))):
+        volatility = None
+        volatility_state = TechnicalState.UNAVAILABLE
+    else:
+        volatility_state = TechnicalState.AVAILABLE if volatility is not None else TechnicalState.INSUFFICIENT_HISTORY
+    signals.append(_signal("rolling_volatility", volatility, state=volatility_state, as_of=points[-1].timestamp, lookback=sma_period, basis=basis, hashes=hashes[-(sma_period + 1):], unit="ratio"))
     payload = {"security": security.model_dump(mode="json"), "as_of": as_of.astimezone(UTC).isoformat(), "signals": [signal.model_dump(mode="json") for signal in signals], "source_observation_hashes": hashes, "methodology_version": "technical-research/v1"}
     digest = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     return TechnicalResearch(security=security, as_of=as_of.astimezone(UTC), signals=tuple(signals), source_observation_hashes=hashes, research_hash=digest)
