@@ -18,6 +18,7 @@ describe('production Sidebar Money migration', () => {
     expect(screen.getByRole('link', { name: 'Help' })).toHaveAttribute('href', '/help')
     expect(screen.queryByRole('link', { name: /^Universe$/i })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Decisions' })).toHaveAttribute('href', '/decisions')
+    expect(screen.getByRole('link', { name: 'Investments' })).toHaveAttribute('href', '/investments')
     expect(screen.getByRole('link', { name: 'Market Intelligence' })).toHaveAttribute('href', '/market-intelligence')
     expect(screen.getByRole('link', { name: 'Scenario Lab' })).toHaveAttribute('href', '/scenario-lab')
     expect(screen.queryByRole('link', { name: /Recommendations/i })).not.toBeInTheDocument()

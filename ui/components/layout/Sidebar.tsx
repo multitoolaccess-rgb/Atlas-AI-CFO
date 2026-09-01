@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Newspaper,
   Orbit,
+  LineChart,
   ArrowDownUp,
   CalendarDays,
 } from 'lucide-react';
@@ -67,6 +68,7 @@ const navGroups: NavGroup[] = [
     label: 'Intelligence',
     items: [
       { name: 'Decisions', href: '/decisions', icon: BrainCircuit },
+      { name: 'Investments', href: '/investments', icon: LineChart },
       { name: 'Market Intelligence', href: '/market-intelligence', icon: Newspaper },
       { name: 'Scenario Lab', href: '/scenario-lab', icon: Orbit },
     ],
