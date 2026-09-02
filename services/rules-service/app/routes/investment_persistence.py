@@ -22,7 +22,7 @@ from app.investment_schemas import (
 from app.investments.outcome_tracking import HumanDecision, HumanDecisionRecord
 from app.investments.persistence_repository import InvestmentRepository, InvestmentRepositoryError
 from app.investments.persistence_service import InvestmentPersistenceError, InvestmentPersistenceService
-from app.models import User
+from app.models import InvestmentDecisionRecord, InvestmentRecommendationRecord, User
 
 router = APIRouter(prefix="/api/v1/investments", tags=["investments"])
 
@@ -43,7 +43,7 @@ def _projection(db: Session, owner: int, recommendation_id: str):
     try:
         projection = InvestmentRepository(db).get_recommendation(owner_id=owner, recommendation_id=recommendation_id)
     except InvestmentRepositoryError as exc:
-        raise HTTPException(500, str(exc), headers={"X-Error-Code": "investment_snapshot_invalid"}) from exc
+        raise HTTPException(409, "Investment recommendation integrity check failed", headers={"X-Error-Code": "investment_snapshot_invalid"}) from exc
     if projection is None:
         raise HTTPException(404, "Investment recommendation not found", headers={"X-Error-Code": "investment_recommendation_not_found"})
     return projection
@@ -89,7 +89,7 @@ def get_finding(user_sub: Annotated[str, Depends(require_user)], db: Session = D
         row = InvestmentRepository(db).get_committee_finding(owner_id=owner, finding_id=finding_id)
         finding = InvestmentRepository(db).get_committee_finding_domain(owner_id=owner, finding_id=finding_id)
     except InvestmentRepositoryError as exc:
-        raise HTTPException(500, str(exc), headers={"X-Error-Code": "investment_snapshot_invalid"}) from exc
+        raise HTTPException(409, "Investment recommendation integrity check failed", headers={"X-Error-Code": "investment_snapshot_invalid"}) from exc
     if row is None or finding is None:
         raise HTTPException(404, "Investment committee finding not found", headers={"X-Error-Code": "investment_finding_not_found"})
     return InvestmentCommitteeFindingResponse(schema_version="atlas-investment-committee-finding/v1", finding=finding.model_dump(mode="json"), finding_hash=row.finding_hash, as_of=row.analysis_as_of)
@@ -134,7 +134,12 @@ def create_decision(command: InvestmentDecisionRequest, user_sub: Annotated[str,
         row = InvestmentPersistenceService(db).record_decision(decision, recommendation=recommendation, idempotency_key_hash=key_hash)
         db.commit()
     except InvestmentPersistenceError as exc:
-        db.rollback(); raise HTTPException(409, str(exc), headers={"X-Error-Code": "investment_decision_conflict"}) from exc
+        db.rollback()
+        code = "investment_decision_conflict"
+        message = str(exc)
+        if "not eligible" in message:
+            code = "investment_recommendation_not_eligible"
+        raise HTTPException(409, message, headers={"X-Error-Code": code}) from exc
     return InvestmentDecisionEnvelope(schema_version="atlas-investment-decision/v1", decision=_decision(row), replayed=existing is not None)
 
 
