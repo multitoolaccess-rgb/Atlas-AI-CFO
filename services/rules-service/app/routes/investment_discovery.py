@@ -45,7 +45,7 @@ def _owner_id(owner_sub: str, db: Session) -> int:
 
 
 def _candidate_response(candidate: DiscoveryCandidate) -> DiscoveryCandidateResponse:
-    return DiscoveryCandidateResponse(candidate_id=candidate.stable_id(), universe=DiscoveryUniverse.SP500 if ":sp500:" in candidate.security.security_id else DiscoveryUniverse.PORTFOLIO, security=candidate.security.model_dump(mode="json"), status=candidate.status, reason=candidate.reason, source=candidate.source, as_of=candidate.as_of, freshness=candidate.freshness.value, methodology_version=candidate.methodology_version, metrics=candidate.metrics, metric_states={key: value.value for key, value in candidate.metric_states.items()}, recommendation_id=candidate.recommendation_id)
+    return DiscoveryCandidateResponse(candidate_id=candidate.stable_id(), universe=DiscoveryUniverse.SP500 if ":sp500:" in candidate.security.security_id else DiscoveryUniverse.PORTFOLIO, security=candidate.security.model_dump(mode="json"), status=candidate.status, reason=candidate.reason, source=candidate.source, as_of=candidate.as_of, freshness=candidate.freshness.value, methodology_version=candidate.methodology_version, metrics=candidate.metrics, metric_states={key: value.value for key, value in candidate.metric_states.items()}, recommendation_id=candidate.recommendation_id, detail_available=True)
 
 
 def _enabled() -> None:
@@ -60,7 +60,7 @@ def list_discovery(user_sub: Annotated[str, Depends(require_user)], query: str |
         projection = build_discovery_projection(_source_candidates(user_sub, universe, db), DiscoveryQuery(universe=universe, query=query, status=status, limit=limit, as_of=as_of), now=lambda: _DISCOVERY_NOW)
     except ValueError as exc:
         raise HTTPException(422, str(exc), headers={"X-Error-Code": "invalid_discovery_query"}) from exc
-    return DiscoveryListResponse(schema_version=projection.schema_version, as_of=projection.as_of, methodology_version=projection.methodology_version, candidates=[_candidate_response(item) for item in projection.candidates], omitted_count=projection.omitted_count, universe=universe)
+    return DiscoveryListResponse(schema_version=projection.schema_version, as_of=projection.as_of, methodology_version=projection.methodology_version, candidates=[_candidate_response(item) for item in projection.candidates], omitted_count=projection.omitted_count, universe=universe, source_scope="server-owned-current-only")
 
 
 @router.get("/discovery/{candidate_id}", response_model=DiscoveryCandidateResponse)
@@ -83,4 +83,4 @@ def compare_discovery(command: DiscoveryComparisonRequest, user_sub: Annotated[s
         result = build_comparison([item for item in selected if item is not None], command.metric_names)
     except ValueError as exc:
         raise HTTPException(422, str(exc), headers={"X-Error-Code": "invalid_discovery_comparison"}) from exc
-    return DiscoveryComparisonResponse(schema_version=result.schema_version, candidate_ids=list(result.candidate_ids), metrics=[metric.model_dump(mode="json") for metric in result.metrics], comparable=result.comparable, limitations=list(result.limitations))
+    return DiscoveryComparisonResponse(schema_version=result.schema_version, candidate_ids=list(result.candidate_ids), metrics=[metric.model_dump(mode="json") for metric in result.metrics], comparable=result.comparable, limitations=list(result.limitations), metric_compatibility={metric.name: metric.comparable for metric in result.metrics})

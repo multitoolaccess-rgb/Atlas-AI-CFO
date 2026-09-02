@@ -17,6 +17,7 @@ export interface DiscoveryCandidate {
   metrics: Record<string, string | null>
   metric_states: Record<string, DiscoveryDataState>
   recommendation_id: string | null
+  detail_available: boolean
 }
 
 export interface DiscoveryListResponse {
@@ -26,6 +27,7 @@ export interface DiscoveryListResponse {
   methodology_version: string
   candidates: DiscoveryCandidate[]
   omitted_count: number
+  source_scope: string
 }
 
 export interface DiscoveryComparisonResponse {
@@ -34,6 +36,7 @@ export interface DiscoveryComparisonResponse {
   metrics: Array<{ name: string; values: Record<string, string | null>; states: Record<string, DiscoveryDataState>; as_of: string; methodology_version: string }>
   comparable: boolean
   limitations: string[]
+  metric_compatibility: Record<string, boolean>
 }
 
 const client = axios.create({ baseURL: process.env.NEXT_PUBLIC_RULES_SERVICE_URL ?? 'http://localhost:8000', withCredentials: true })

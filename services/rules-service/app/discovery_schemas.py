@@ -18,6 +18,7 @@ class DiscoveryCandidateResponse(BaseModel):
     metrics: dict[str, str | None]
     metric_states: dict[str, str]
     recommendation_id: str | None = None
+    detail_available: bool = True
 
 class DiscoveryListResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -27,6 +28,7 @@ class DiscoveryListResponse(BaseModel):
     candidates: list[DiscoveryCandidateResponse]
     omitted_count: int = Field(ge=0)
     universe: DiscoveryUniverse = DiscoveryUniverse.PORTFOLIO
+    source_scope: str = "server-owned-current-only"
 
 class DiscoveryComparisonRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -41,3 +43,4 @@ class DiscoveryComparisonResponse(BaseModel):
     metrics: list[dict[str, Any]]
     comparable: bool
     limitations: list[str]
+    metric_compatibility: dict[str, bool] = {}

@@ -92,6 +92,7 @@ from app.routes import (
     scenarios_router,
     readiness_router,
     investment_persistence_router,
+    investment_discovery_router,
 )
 
 LOG = logging.getLogger("uvicorn.error")
@@ -481,6 +482,7 @@ app.include_router(scenarios_router)
 # Wave 1A — authenticated, sanitized local readiness; read-only and server-owned.
 app.include_router(readiness_router)
 app.include_router(investment_persistence_router)
+app.include_router(investment_discovery_router)
 
 
 @app.on_event("startup")

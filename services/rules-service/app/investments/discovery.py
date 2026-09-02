@@ -82,6 +82,8 @@ class ComparisonMetric(InvestmentStrictModel):
     states: dict[str, DataState]
     as_of: datetime
     methodology_version: str
+    comparable: bool = True
+    incompatibility_reasons: tuple[str, ...] = ()
 
 
 class DiscoveryComparison(InvestmentStrictModel):
@@ -93,20 +95,29 @@ class DiscoveryComparison(InvestmentStrictModel):
 
 
 def build_comparison(candidates: Sequence[DiscoveryCandidate], metric_names: Sequence[str]) -> DiscoveryComparison:
-    """Build descriptive comparison rows; incompatible states stay explicit."""
+    """Build descriptive comparison rows and fail closed on incompatibility."""
     if len(candidates) < 2 or len(candidates) > 10:
         raise ValueError("comparison requires between 2 and 10 candidates")
+    if not metric_names:
+        raise ValueError("comparison requires at least one metric")
     metrics: list[ComparisonMetric] = []
     limitations: list[str] = []
     for name in metric_names:
         values = {candidate.stable_id(): candidate.metrics.get(name) for candidate in candidates}
         states = {candidate.stable_id(): candidate.metric_states.get(name, DataState.MISSING) for candidate in candidates}
+        reasons: list[str] = []
         if any(state != DataState.OBSERVED for state in states.values()):
-            limitations.append(f"{name} is not fully comparable because one or more values are unavailable")
+            reasons.append("one or more values are unavailable")
         as_ofs = {candidate.as_of for candidate in candidates}
         if len(as_ofs) != 1:
-            limitations.append(f"{name} uses incompatible as-of timestamps")
-        metrics.append(ComparisonMetric(name=name, values=values, states=states, as_of=max(as_ofs), methodology_version="explicit-candidate/v1"))
+            reasons.append("as-of timestamps differ")
+        methods = {candidate.methodology_version for candidate in candidates}
+        if len(methods) != 1:
+            reasons.append("methodology versions differ")
+        comparable = not reasons
+        if reasons:
+            limitations.append(f"{name} is not comparable: {', '.join(reasons)}")
+        metrics.append(ComparisonMetric(name=name, values=values, states=states, as_of=max(as_ofs), methodology_version=next(iter(methods)) if len(methods) == 1 else "mixed", comparable=comparable, incompatibility_reasons=tuple(reasons)))
     return DiscoveryComparison(candidate_ids=tuple(candidate.stable_id() for candidate in candidates), metrics=tuple(metrics), comparable=not limitations, limitations=tuple(dict.fromkeys(limitations)))
 
 

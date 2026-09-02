@@ -48,6 +48,16 @@ def test_approved_universe_projection_is_separate_and_score_free():
     assert portfolio.stable_id() != sp500.stable_id()
 
 
+def test_comparison_rejects_empty_metrics_and_mixed_methodologies():
+    with pytest.raises(ValueError):
+        build_comparison([candidate("AAA"), candidate("BBB")], [])
+    mixed = candidate("BBB").model_copy(update={"methodology_version": "other/v2"})
+    result = build_comparison([candidate("AAA"), mixed], ["price"])
+    assert result.comparable is False
+    assert result.metrics[0].comparable is False
+    assert "methodology versions differ" in result.metrics[0].incompatibility_reasons
+
+
 def test_comparison_requires_bounded_candidate_count():
     with pytest.raises(ValueError):
         build_comparison([candidate("AAA")], ["price"])
