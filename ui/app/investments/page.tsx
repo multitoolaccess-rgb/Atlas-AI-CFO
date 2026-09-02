@@ -12,7 +12,7 @@ const surfaces = [
     description: 'A structured, point-in-time review of portfolio, market, committee, and recommendation context.',
     href: '/investments/brief',
     icon: BookOpen,
-    status: 'Planned next',
+    status: 'Available',
   },
   {
     title: 'Portfolio intelligence',
@@ -26,6 +26,13 @@ const surfaces = [
     description: 'Review normalized market intelligence while deeper security research surfaces are assembled.',
     href: '/market-intelligence',
     icon: Search,
+    status: 'Available',
+  },
+  {
+    title: 'Recommendation review',
+    description: 'Review canonical recommendations, bounded evidence, and record a human decision without execution.',
+    href: '/investments/recommendations',
+    icon: ShieldCheck,
     status: 'Available',
   },
 ]
