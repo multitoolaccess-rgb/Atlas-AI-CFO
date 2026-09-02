@@ -1,6 +1,37 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "",
+      "id": "work-ui-09-discovery-foundation",
+      "issue": "",
+      "objective": "Implement the approved bounded current-only discovery source, typed API, comparison compatibility, and HTTP tests; do not build UI until backend gates pass.",
+      "paths": [
+        "services/rules-service/app/investments/discovery.py",
+        "services/rules-service/app/discovery_schemas.py",
+        "services/rules-service/app/routes/investment_discovery.py",
+        "services/rules-service/tests/test_investment_discovery.py",
+        "docs/architecture/ATLAS-INVESTMENT-UI-09-READINESS-AND-EXECUTION-PLAN.md"
+      ],
+      "phase_id": "ui-09",
+      "reason": "The repository has no approved authoritative discovery universe/security master; the fail-closed adapter returns no candidates until the bounded source contract is approved.",
+      "risk_tier": "high",
+      "status": "blocked",
+      "tests": [
+        "focused discovery contract/API tests",
+        "Python compilation",
+        "migration graph validation"
+      ],
+      "title": "UI-09 server-owned discovery foundation"
+    }
+  ],
   "blockers": [
+    {
+      "description": "UI-09 discovery is blocked pending an approved server-owned universe/input contract and canonical security-identity adapter; do not fabricate candidates or use Market Brief/recommendations as the universe.",
+      "id": "ui-09-authoritative-universe-prerequisite",
+      "owner": "investment-product",
+      "related": "ATLAS-INVESTMENT-UI-09-READINESS-AND-EXECUTION-PLAN.md",
+      "status": "open"
+    },
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
       "id": "external-multi-user-retention-deletion-blocker",
@@ -1403,15 +1434,15 @@
       }
     }
   ],
-  "current_objective": "Wave 6 final personal-use acceptance and release-candidate certification is complete for the authorized bounded single-user local scope. Preserve server-owned financial authority, provider safety, and all open rollout risks; do not begin Phase 7.",
-  "current_phase_id": "phase-6",
+  "current_objective": "UI-09 readiness audited; resolve the single authoritative discovery-universe prerequisite before implementing discovery APIs or UI.",
+  "current_phase_id": "ui-09",
   "last_updated": "2026-08-15T23:22:49Z",
   "next_bounded_task": {
-    "description": "Maintain the bounded single-user local release candidate or authorize a separate provider-safety/retention review; do not begin Phase 7.",
-    "id": "work-post-certification-local-release-candidate-operations",
-    "phase_id": "phase-6"
+    "description": "Approve one bounded discovery universe and its server-owned canonical identity/provenance contract; then resume the UI-09 foundation.",
+    "id": "work-ui-09-authoritative-universe-decision",
+    "phase_id": "ui-09"
   },
-  "overall_status": "complete",
+  "overall_status": "in_progress",
   "phases": [
     {
       "exit_criteria": [
@@ -1536,6 +1567,328 @@
       "id": "phase-6",
       "name": "Scenario Lab",
       "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Provider-neutral canonical security identity foundation is preserved.",
+          "id": "ec-inv-01-foundation"
+        }
+      ],
+      "id": "inv-01",
+      "name": "Security identity",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Point-in-time market/security observation contracts are preserved.",
+          "id": "ec-inv-02-foundation"
+        }
+      ],
+      "id": "inv-02",
+      "name": "Market and security observations",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Portfolio intelligence uses existing holdings/accounts without a second ledger.",
+          "id": "ec-inv-03-foundation"
+        }
+      ],
+      "id": "inv-03",
+      "name": "Portfolio intelligence",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Provenance-aware fundamental research contracts are preserved.",
+          "id": "ec-inv-04-foundation"
+        }
+      ],
+      "id": "inv-04",
+      "name": "Fundamental research",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Adjustment-basis-safe technical research contracts are preserved.",
+          "id": "ec-inv-05-foundation"
+        }
+      ],
+      "id": "inv-05",
+      "name": "Technical research",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Vintaged macro intelligence contracts are preserved.",
+          "id": "ec-inv-06-foundation"
+        }
+      ],
+      "id": "inv-06",
+      "name": "Macro intelligence",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Benchmark-aware quant contracts and zero-price safeguards are preserved.",
+          "id": "ec-inv-07-foundation"
+        }
+      ],
+      "id": "inv-07",
+      "name": "Quant research",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Typed deterministic committee findings and bounded evidence are established.",
+          "id": "ec-inv-08-foundation"
+        }
+      ],
+      "id": "inv-08",
+      "name": "AI Investment Committee",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Canonical recommendation actions, lifecycle, provenance, and hashes are established.",
+          "id": "ec-inv-09-foundation"
+        }
+      ],
+      "id": "inv-09",
+      "name": "Investment recommendations",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Bounded in-memory CIO projection is complete; archival extensions remain future scope.",
+          "id": "ec-inv-10-bounded"
+        }
+      ],
+      "id": "inv-10",
+      "name": "CIO reporting",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Human decision and optional outcome linkage persistence boundary is complete.",
+          "id": "ec-inv-11-boundary"
+        }
+      ],
+      "id": "inv-11",
+      "name": "Decision and outcome tracking",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Temporal, provenance, ownership, hash, benchmark, and fail-closed safeguards are preserved.",
+          "id": "ec-inv-harden-01-boundary"
+        }
+      ],
+      "id": "inv-harden-01",
+      "name": "Investment hardening",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Trusted repository, explicit relationships, typed APIs, immutable records, and idempotent human decisions are committed and validated.",
+          "id": "ec-inv-persist-03-boundary"
+        }
+      ],
+      "id": "inv-persist-03",
+      "name": "Trusted investment persistence boundary",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Atlas-native, evidence-first, server-owned UI architecture is documented.",
+          "id": "ec-ui-01-architecture"
+        }
+      ],
+      "id": "ui-01",
+      "name": "Investment UI architecture",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Investment navigation is implemented.",
+          "id": "ec-ui-02-navigation"
+        }
+      ],
+      "id": "ui-02",
+      "name": "Investment navigation",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Daily Brief uses bounded Market Brief infrastructure.",
+          "id": "ec-ui-03-brief"
+        }
+      ],
+      "id": "ui-03",
+      "name": "Daily Brief",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Portfolio intelligence UI preserves partial and unknown states.",
+          "id": "ec-ui-04-portfolio"
+        }
+      ],
+      "id": "ui-04",
+      "name": "Portfolio intelligence UI",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Security research UI uses server-mediated projections and explicit unavailable states.",
+          "id": "ec-ui-05-research"
+        }
+      ],
+      "id": "ui-05",
+      "name": "Security research UI",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Normalized server-owned chart payload adapter is complete.",
+          "id": "ec-ui-06-viz"
+        }
+      ],
+      "id": "ui-06",
+      "name": "Financial visualization adapter",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Reusable evidence drawer consumes bounded evidence packets.",
+          "id": "ec-ui-07-evidence"
+        }
+      ],
+      "id": "ui-07",
+      "name": "Evidence drawer",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": true,
+          "description": "Recommendation review, committee context, evidence, decisions, outcomes, and HTTP boundary certification are complete.",
+          "id": "ec-ui-08-certified"
+        }
+      ],
+      "id": "ui-08",
+      "name": "Recommendation review",
+      "status": "complete"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": false,
+          "description": "Approved server-owned discovery universe and canonical identity adapter implemented.",
+          "id": "ec-ui-09-source"
+        },
+        {
+          "complete": false,
+          "description": "Typed authenticated discovery/detail/comparison APIs with provenance, temporal, ownership, and comparison safeguards pass.",
+          "id": "ec-ui-09-api"
+        },
+        {
+          "complete": false,
+          "description": "Discovery, detail, and comparison UI with explicit unavailable/error states passes validation.",
+          "id": "ec-ui-09-ui"
+        }
+      ],
+      "id": "ui-09",
+      "name": "Opportunity discovery and comparison",
+      "status": "in_progress"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": false,
+          "description": "Typed read-only investment context assistant with citations and prompt-injection defenses.",
+          "id": "ec-ui-10-boundary"
+        }
+      ],
+      "id": "ui-10",
+      "name": "Contextual investment assistant",
+      "status": "not_started"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": false,
+          "description": "Server-owned hypothetical investment risk/scenario presentation.",
+          "id": "ec-ui-11-boundary"
+        }
+      ],
+      "id": "ui-11",
+      "name": "Risk and scenario presentation",
+      "status": "not_started"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": false,
+          "description": "Cross-route trust, privacy, accessibility, performance, evidence, and execution-boundary certification.",
+          "id": "ec-ui-12-certification"
+        }
+      ],
+      "id": "ui-12",
+      "name": "Cross-route trust certification",
+      "status": "not_started"
+    },
+    {
+      "exit_criteria": [
+        {
+          "complete": false,
+          "description": "Evaluation/calibration/replay and retention boundary is implemented and certified.",
+          "id": "ec-inv-12-boundary"
+        }
+      ],
+      "id": "inv-12",
+      "name": "Evaluation, calibration, replay, and retention",
+      "status": "not_started"
     }
   ],
   "risks": [

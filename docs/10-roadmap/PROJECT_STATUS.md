@@ -2,15 +2,16 @@
 
 > Generated from `PROJECT_STATUS.json`; regenerate with `python3 scripts/atlas_project_status.py render`.
 
-- Current phase: **phase-6 — Scenario Lab** (complete)
-- Overall status: **complete**
-- Current objective: Wave 6 final personal-use acceptance and release-candidate certification is complete for the authorized bounded single-user local scope. Preserve server-owned financial authority, provider safety, and all open rollout risks; do not begin Phase 7.
+- Current phase: **ui-09 — Opportunity discovery and comparison** (in_progress)
+- Overall status: **in_progress**
+- Current objective: UI-09 readiness audited; resolve the single authoritative discovery-universe prerequisite before implementing discovery APIs or UI.
 - Last updated: 2026-08-15T23:22:49Z
 
 ## Active work
-- None
+- work-ui-09-discovery-foundation: UI-09 server-owned discovery foundation (blocked, high)
 
 ## Blockers
+- {'description': 'UI-09 discovery is blocked pending an approved server-owned universe/input contract and canonical security-identity adapter; do not fabricate candidates or use Market Brief/recommendations as the universe.', 'id': 'ui-09-authoritative-universe-prerequisite', 'owner': 'investment-product', 'related': 'ATLAS-INVESTMENT-UI-09-READINESS-AND-EXECUTION-PLAN.md', 'status': 'open'}
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
 
 ## Phase progress
@@ -21,6 +22,32 @@
 - phase-4 — Decision journal: complete (1/1 exit criteria)
 - phase-5 — Market Intelligence Brief: complete (1/1 exit criteria)
 - phase-6 — Scenario Lab: complete (2/2 exit criteria)
+- inv-01 — Security identity: complete (1/1 exit criteria)
+- inv-02 — Market and security observations: complete (1/1 exit criteria)
+- inv-03 — Portfolio intelligence: complete (1/1 exit criteria)
+- inv-04 — Fundamental research: complete (1/1 exit criteria)
+- inv-05 — Technical research: complete (1/1 exit criteria)
+- inv-06 — Macro intelligence: complete (1/1 exit criteria)
+- inv-07 — Quant research: complete (1/1 exit criteria)
+- inv-08 — AI Investment Committee: complete (1/1 exit criteria)
+- inv-09 — Investment recommendations: complete (1/1 exit criteria)
+- inv-10 — CIO reporting: complete (1/1 exit criteria)
+- inv-11 — Decision and outcome tracking: complete (1/1 exit criteria)
+- inv-harden-01 — Investment hardening: complete (1/1 exit criteria)
+- inv-persist-03 — Trusted investment persistence boundary: complete (1/1 exit criteria)
+- ui-01 — Investment UI architecture: complete (1/1 exit criteria)
+- ui-02 — Investment navigation: complete (1/1 exit criteria)
+- ui-03 — Daily Brief: complete (1/1 exit criteria)
+- ui-04 — Portfolio intelligence UI: complete (1/1 exit criteria)
+- ui-05 — Security research UI: complete (1/1 exit criteria)
+- ui-06 — Financial visualization adapter: complete (1/1 exit criteria)
+- ui-07 — Evidence drawer: complete (1/1 exit criteria)
+- ui-08 — Recommendation review: complete (1/1 exit criteria)
+- ui-09 — Opportunity discovery and comparison: in_progress (0/3 exit criteria)
+- ui-10 — Contextual investment assistant: not_started (0/1 exit criteria)
+- ui-11 — Risk and scenario presentation: not_started (0/1 exit criteria)
+- ui-12 — Cross-route trust certification: not_started (0/1 exit criteria)
+- inv-12 — Evaluation, calibration, replay, and retention: not_started (0/1 exit criteria)
 
 ## Current risks
 - risk-frontend-lint-debt [medium/high, open]: Repository-wide frontend lint debt remains outside Phase 0 scope.
@@ -84,6 +111,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-post-certification-local-release-candidate-operations: Maintain the bounded single-user local release candidate or authorize a separate provider-safety/retention review; do not begin Phase 7.
+- work-ui-09-authoritative-universe-decision: Approve one bounded discovery universe and its server-owned canonical identity/provenance contract; then resume the UI-09 foundation.
 
 Do not begin the next phase or task automatically.
