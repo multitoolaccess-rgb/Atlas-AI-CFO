@@ -11,7 +11,7 @@ import hashlib
 import json
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Iterable, Sequence
+from typing import Callable, Iterable, Sequence
 
 from pydantic import Field, model_validator
 
@@ -138,7 +138,7 @@ def candidate_from_symbol(symbol: str, *, universe: DiscoveryUniverse, as_of: da
     )
 
 
-def build_discovery_projection(candidates: Iterable[DiscoveryCandidate], query: DiscoveryQuery) -> DiscoveryProjection:
+def build_discovery_projection(candidates: Iterable[DiscoveryCandidate], query: DiscoveryQuery, *, now: Callable[[], datetime] | None = None) -> DiscoveryProjection:
     """Filter and order candidates deterministically without scoring them."""
     selected = list(candidates)
     if query.security_ids:
@@ -156,7 +156,7 @@ def build_discovery_projection(candidates: Iterable[DiscoveryCandidate], query: 
     selected.sort(key=lambda item: (item.security.symbol or "", item.security.security_id, item.stable_id()))
     omitted = max(0, len(selected) - query.limit)
     selected = selected[: query.limit]
-    as_of = query.as_of or (max((item.as_of for item in selected), default=datetime.now(UTC)))
+    as_of = query.as_of or (max((item.as_of for item in selected), default=(now or (lambda: datetime.now(UTC)))()))
     methods = {item.methodology_version for item in selected}
     methodology = next(iter(methods)) if len(methods) == 1 else "mixed/explicit-per-candidate"
     return DiscoveryProjection(as_of=as_of, methodology_version=methodology, candidates=tuple(selected), omitted_count=omitted)

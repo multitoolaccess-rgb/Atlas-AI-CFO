@@ -1,29 +1,5 @@
 {
-  "active_work": [
-    {
-      "branch": "",
-      "id": "work-ui-09-discovery-foundation",
-      "issue": "",
-      "objective": "Implement the approved bounded current-only discovery source, typed API, comparison compatibility, and HTTP tests; do not build UI until backend gates pass.",
-      "paths": [
-        "services/rules-service/app/investments/discovery.py",
-        "services/rules-service/app/discovery_schemas.py",
-        "services/rules-service/app/routes/investment_discovery.py",
-        "services/rules-service/tests/test_investment_discovery.py",
-        "docs/architecture/ATLAS-INVESTMENT-UI-09-READINESS-AND-EXECUTION-PLAN.md"
-      ],
-      "phase_id": "ui-09",
-      "reason": "The repository has no approved authoritative discovery universe/security master; the fail-closed adapter returns no candidates until the bounded source contract is approved.",
-      "risk_tier": "high",
-      "status": "blocked",
-      "tests": [
-        "focused discovery contract/API tests",
-        "Python compilation",
-        "migration graph validation"
-      ],
-      "title": "UI-09 server-owned discovery foundation"
-    }
-  ],
+  "active_work": [],
   "blockers": [
     {
       "description": "UI-09 discovery is blocked pending an approved server-owned universe/input contract and canonical security-identity adapter; do not fabricate candidates or use Market Brief/recommendations as the universe.",
@@ -1432,14 +1408,49 @@
         "result": "passed; 1 policy-defined Playwright skip; no unexpected failures",
         "timestamp": "2026-08-15T23:06:37Z"
       }
+    },
+    {
+      "branch": "",
+      "commit": "09c2cfd",
+      "id": "work-ui-09-discovery-foundation",
+      "issue": "",
+      "objective": "Implement the approved bounded current-only discovery source, typed API, comparison compatibility, and HTTP tests; do not build UI until backend gates pass.",
+      "paths": [
+        "services/rules-service/app/investments/discovery.py",
+        "services/rules-service/app/discovery_schemas.py",
+        "services/rules-service/app/routes/investment_discovery.py",
+        "services/rules-service/tests/test_investment_discovery.py",
+        "docs/architecture/ATLAS-INVESTMENT-UI-09-READINESS-AND-EXECUTION-PLAN.md"
+      ],
+      "phase_id": "ui-09",
+      "reason": "The repository has no approved authoritative discovery universe/security master; the fail-closed adapter returns no candidates until the bounded source contract is approved.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "11 backend discovery/API tests passed",
+        "1 UI discovery test passed",
+        "TypeScript typecheck passed",
+        "Next production build passed",
+        "Python compilation passed",
+        "git diff --check passed"
+      ],
+      "title": "UI-09 server-owned discovery foundation",
+      "validation_evidence": {
+        "command": "services/rules-service/.venv/bin/python -m pytest -q tests/test_investment_discovery.py tests/test_investment_discovery_http.py; services/rules-service/.venv/bin/python -m compileall -q app; cd ui && npm test -- --run app/investments/discovery && npm run typecheck && npm run build",
+        "commit": "09c2cfd",
+        "environment": "Python 3.12 isolated Rules Service environment; local Node UI environment",
+        "kind": "local",
+        "result": "11 backend tests passed; Python compilation passed; 1 UI test passed; TypeScript and production build passed",
+        "timestamp": "2026-09-02T00:00:00Z"
+      }
     }
   ],
-  "current_objective": "UI-09 readiness audited; resolve the single authoritative discovery-universe prerequisite before implementing discovery APIs or UI.",
+  "current_objective": "Complete UI-09 typed HTTP/API certification and then implement the discovery, detail, and comparison UI over the approved current-only universe modes.",
   "current_phase_id": "ui-09",
   "last_updated": "2026-08-15T23:22:49Z",
   "next_bounded_task": {
-    "description": "Approve one bounded discovery universe and its server-owned canonical identity/provenance contract; then resume the UI-09 foundation.",
-    "id": "work-ui-09-authoritative-universe-decision",
+    "description": "Add real HTTP/API coverage and implement the UI-09 discovery, detail, and comparison surfaces without recommendation contamination.",
+    "id": "work-ui-09-http-and-ui-certification",
     "phase_id": "ui-09"
   },
   "overall_status": "in_progress",
@@ -1823,13 +1834,13 @@
     {
       "exit_criteria": [
         {
-          "complete": false,
-          "description": "Approved server-owned discovery universe and canonical identity adapter implemented.",
+          "complete": true,
+          "description": "Approved separate current-only portfolio and bounded S&P 500 universe modes are implemented as server-owned deterministic identity projections; no discovery score or recommendation contamination. Evidence: 09c2cfd.",
           "id": "ec-ui-09-source"
         },
         {
           "complete": false,
-          "description": "Typed authenticated discovery/detail/comparison APIs with provenance, temporal, ownership, and comparison safeguards pass.",
+          "description": "Typed discovery/detail/comparison API foundation and focused contract validation are implemented; full HTTP/API certification and UI surfaces remain pending.",
           "id": "ec-ui-09-api"
         },
         {

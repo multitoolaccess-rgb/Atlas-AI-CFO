@@ -12,6 +12,8 @@ from app.discovery_schemas import DiscoveryComparisonRequest, DiscoveryCompariso
 from app.investments.discovery import DiscoveryCandidate, DiscoveryQuery, DiscoveryUniverse, build_comparison, build_discovery_projection, candidate_from_symbol
 from datetime import UTC, datetime
 
+_DISCOVERY_NOW = datetime(2026, 1, 1, tzinfo=UTC)
+
 router = APIRouter(prefix="/api/v1/investments", tags=["investment-discovery"])
 
 
@@ -25,7 +27,7 @@ def _source_candidates(owner_sub: str, universe: DiscoveryUniverse, db: Session)
     S&P 500 membership is the existing bounded factual symbol file. Neither
     source supplies a score or recommendation semantics.
     """
-    now = datetime.now(UTC)
+    now = _DISCOVERY_NOW
     if universe == DiscoveryUniverse.SP500:
         symbols = json.loads(_SP500_PATH.read_text(encoding="utf-8"))
         return [candidate_from_symbol(str(symbol), universe=universe, as_of=now) for symbol in sorted(set(symbols))]
@@ -38,7 +40,7 @@ def _source_candidates(owner_sub: str, universe: DiscoveryUniverse, db: Session)
 
 def _owner_id(owner_sub: str, db: Session) -> int:
     """Resolve the authenticated subject through the server user table."""
-    user = db.query(User).filter(User.username == owner_sub).first()
+    user = db.query(User).filter(User.local_user_sub == owner_sub).first()
     return user.id if user is not None else -1
 
 
@@ -47,7 +49,7 @@ def _candidate_response(candidate: DiscoveryCandidate) -> DiscoveryCandidateResp
 
 
 def _enabled() -> None:
-    if not settings.atlas_investment_persistence_enabled:
+    if not (settings.atlas_investment_persistence_enabled or settings.atlas_investment_read_enabled):
         raise HTTPException(503, "Investment discovery is currently unavailable.", headers={"X-Error-Code": "investment_discovery_unavailable"})
 
 
@@ -55,7 +57,7 @@ def _enabled() -> None:
 def list_discovery(user_sub: Annotated[str, Depends(require_user)], query: str | None = Query(None, max_length=80), status: str | None = Query(None, max_length=20), universe: DiscoveryUniverse = Query(DiscoveryUniverse.PORTFOLIO), limit: int = Query(50, ge=1, le=100), as_of: datetime | None = Query(None), db: Session = Depends(get_db)) -> DiscoveryListResponse:
     _enabled()
     try:
-        projection = build_discovery_projection(_source_candidates(user_sub, universe, db), DiscoveryQuery(universe=universe, query=query, status=status, limit=limit, as_of=as_of))
+        projection = build_discovery_projection(_source_candidates(user_sub, universe, db), DiscoveryQuery(universe=universe, query=query, status=status, limit=limit, as_of=as_of), now=lambda: _DISCOVERY_NOW)
     except ValueError as exc:
         raise HTTPException(422, str(exc), headers={"X-Error-Code": "invalid_discovery_query"}) from exc
     return DiscoveryListResponse(schema_version=projection.schema_version, as_of=projection.as_of, methodology_version=projection.methodology_version, candidates=[_candidate_response(item) for item in projection.candidates], omitted_count=projection.omitted_count, universe=universe)

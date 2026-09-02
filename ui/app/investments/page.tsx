@@ -35,6 +35,13 @@ const surfaces = [
     icon: ShieldCheck,
     status: 'Available',
   },
+  {
+    title: 'Opportunity discovery',
+    description: 'Explore separate portfolio and bounded S&P 500 universes with explicit freshness and provenance.',
+    href: '/investments/discovery',
+    icon: Search,
+    status: 'Available',
+  },
 ]
 
 export default function InvestmentsPage() {
