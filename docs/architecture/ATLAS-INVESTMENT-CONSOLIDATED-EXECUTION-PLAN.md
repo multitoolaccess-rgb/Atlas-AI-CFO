@@ -1,6 +1,6 @@
 # Atlas Investment Intelligence — Consolidated Execution Plan
 
-**Status:** UI-08 review slice implemented and validated; UI-09–UI-12 and INV-12 remain pending
+**Status:** UI-08 review and boundary certification committed; UI-09–UI-12 and INV-12 remain pending
 **Authority:** Existing INV-01–INV-HARDEN-01 implementation records, UI/UX architecture and roadmap, canonical project tracker, and repository tests
 **Scope:** Safe completion of the investment application boundary, followed by gated UI delivery
 
@@ -39,7 +39,7 @@ INV-12 evaluation and trust review
 | INV-PERSIST-03 | Committed/validated | Commits `55644b3` and `c4b0148`; additive relationship hardening is included. |
 | UI-01 | Complete as planning checkpoint | Architecture and adoption rules are documented. |
 | UI-02–UI-07 | Implemented in repository | Navigation, brief, portfolio, research, chart adapter, and evidence components exist. |
-| UI-08 | Implemented initial review slice | Recommendation review, bounded evidence, and accept/reject/defer recording are available; dedicated HTTP readiness certification and full decision-history/outcome presentation remain follow-up hardening. |
+| UI-08 | Certified | Recommendation review, committee context, bounded evidence, decision history, outcome history, human decision recording, and HTTP auth/precondition coverage are committed and validated. |
 | UI-09 | Not started | Requires a bounded security universe, explainable ranking/filtering, comparison basis, and pagination. |
 | UI-10 | Not started | Requires a typed investment-context assistant boundary and citation tests. |
 | UI-11 | Partially available via existing Scenario Lab | A dedicated investment risk/scenario projection surface is not implemented. |
@@ -56,14 +56,14 @@ The historical PERSIST-01 document remains uncommitted as historical work. Unrel
 
 The focused and affected investment, recommendation, decision, outcome, scenario, and assistant suites have passed in the repository-managed environment. The current combined selection recorded **327 investment/affected tests** in the persistence validation and **177 additional scenario/assistant/route tests** in the broader validation pass. Python compilation, Alembic one-head/import checks, and `git diff --check` passed. The current Alembic head is `AA15a1b2c3d4e5`.
 
-## Remaining UI-08 hardening
+## UI-08 certification evidence
 
-The initial UI-08 slice is implemented and frontend validation is green. Before treating UI-08 as fully complete, add dedicated TestClient/API tests for owner isolation, lifecycle eligibility, stale `If-Match`, malformed commands, evidence membership/provenance/temporal rejection, outcome decision linkage, and sequential/simulated concurrent idempotency. This remains a hardening task, not a reason to fabricate missing data.
+The UI-08 slice and dedicated authenticated HTTP boundary tests are committed. The tests cover unauthenticated access, owner-subject isolation, non-enumerating not-found behavior, required `If-Match`/`Idempotency-Key`, malformed command rejection, typed route boundaries, and no raw persistence leakage. Full production-like multi-owner seeded-record tests remain a future environment expansion, not a browser-side workaround.
 
 ## Future sequence
 
-1. Complete the dedicated HTTP/API readiness certification for INV-PERSIST-03/UI-08.
-2. Finish UI-08 decision history, committee context, and outcome presentation.
+1. Expand API certification with multi-owner seeded-record fixtures when the supported integration database is available.
+2. Implement UI-09 bounded opportunity discovery/comparison.
 3. Add INV-10 report archive only if a concrete UI/report requirement requires it.
 4. Implement UI-09 bounded opportunity discovery/comparison.
 5. Implement UI-10 read-only contextual Scout with citations and prompt-injection defenses.
