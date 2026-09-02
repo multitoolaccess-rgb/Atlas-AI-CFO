@@ -153,6 +153,7 @@ class RecommendationOutcome(InvestmentStrictModel):
     recommendation_id: str
     recommendation_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     owner_id: int = Field(gt=0)
+    decision_id: str | None = Field(default=None, pattern=r"^investment-decision:[a-f0-9]{64}$")
     security_id: str
     evaluation_as_of: datetime
     horizon: str = Field(pattern=r"^(1D|1W|1M|3M|6M|1Y)$")

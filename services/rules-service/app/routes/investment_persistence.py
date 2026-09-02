@@ -22,10 +22,7 @@ from app.investment_schemas import (
 from app.investments.outcome_tracking import HumanDecision, HumanDecisionRecord
 from app.investments.persistence_repository import InvestmentRepository, InvestmentRepositoryError
 from app.investments.persistence_service import InvestmentPersistenceError, InvestmentPersistenceService
-from app.models import (
-    InvestmentCommitteeFinding, InvestmentDecisionRecord, InvestmentEvidencePacket,
-    InvestmentOutcomeRecord, InvestmentRecommendationRecord, User,
-)
+from app.models import User
 
 router = APIRouter(prefix="/api/v1/investments", tags=["investments"])
 
@@ -88,9 +85,14 @@ def get_recommendation(user_sub: Annotated[str, Depends(require_user)], db: Sess
 @router.get("/committee/findings/{finding_id}", response_model=InvestmentCommitteeFindingResponse)
 def get_finding(user_sub: Annotated[str, Depends(require_user)], db: Session = Depends(get_db), finding_id: str = Path(min_length=1, max_length=160)) -> InvestmentCommitteeFindingResponse:
     _guard(); owner = _owner_id(db, user_sub)
-    row = db.scalar(select(InvestmentCommitteeFinding).where(InvestmentCommitteeFinding.owner_id == owner, InvestmentCommitteeFinding.finding_id == finding_id))
-    if row is None: raise HTTPException(404, "Investment committee finding not found", headers={"X-Error-Code": "investment_finding_not_found"})
-    return InvestmentCommitteeFindingResponse(schema_version="atlas-investment-committee-finding/v1", finding=json.loads(row.payload_json), finding_hash=row.finding_hash, as_of=row.analysis_as_of)
+    try:
+        row = InvestmentRepository(db).get_committee_finding(owner_id=owner, finding_id=finding_id)
+        finding = InvestmentRepository(db).get_committee_finding_domain(owner_id=owner, finding_id=finding_id)
+    except InvestmentRepositoryError as exc:
+        raise HTTPException(500, str(exc), headers={"X-Error-Code": "investment_snapshot_invalid"}) from exc
+    if row is None or finding is None:
+        raise HTTPException(404, "Investment committee finding not found", headers={"X-Error-Code": "investment_finding_not_found"})
+    return InvestmentCommitteeFindingResponse(schema_version="atlas-investment-committee-finding/v1", finding=finding.model_dump(mode="json"), finding_hash=row.finding_hash, as_of=row.analysis_as_of)
 
 
 @router.get("/recommendations/{recommendation_id}/evidence", response_model=InvestmentEvidenceResponse)
@@ -98,15 +100,7 @@ def get_evidence(user_sub: Annotated[str, Depends(require_user)], db: Session = 
     _guard(); owner = _owner_id(db, user_sub)
     projection = _projection(db, owner, recommendation_id)
     recommendation = projection.row
-    query = select(InvestmentEvidencePacket).join(
-        __import__("app.models", fromlist=["InvestmentRecommendationEvidenceLink"]).InvestmentRecommendationEvidenceLink,
-        __import__("app.models", fromlist=["InvestmentRecommendationEvidenceLink"]).InvestmentRecommendationEvidenceLink.evidence_packet_id == InvestmentEvidencePacket.id,
-    ).where(
-        __import__("app.models", fromlist=["InvestmentRecommendationEvidenceLink"]).InvestmentRecommendationEvidenceLink.recommendation_record_id == recommendation.id,
-        __import__("app.models", fromlist=["InvestmentRecommendationEvidenceLink"]).InvestmentRecommendationEvidenceLink.owner_id == owner,
-        InvestmentEvidencePacket.owner_id == owner,
-    )
-    packet = db.scalar(query)
+    packet = InvestmentRepository(db).get_evidence_packet(owner_id=owner, recommendation_record_id=recommendation.id)
     if packet is None: raise HTTPException(404, "Investment evidence not found", headers={"X-Error-Code": "investment_evidence_not_found"})
     data = json.loads(packet.payload_json)
     try:
@@ -120,7 +114,7 @@ def get_evidence(user_sub: Annotated[str, Depends(require_user)], db: Session = 
 def list_decisions(user_sub: Annotated[str, Depends(require_user)], db: Session = Depends(get_db), recommendation_id: str = Path(min_length=1, max_length=160)) -> InvestmentDecisionListResponse:
     _guard(); owner = _owner_id(db, user_sub)
     recommendation = _projection(db, owner, recommendation_id).row
-    rows = list(db.scalars(select(InvestmentDecisionRecord).where(InvestmentDecisionRecord.owner_id == owner, InvestmentDecisionRecord.recommendation_record_id == recommendation.id).order_by(InvestmentDecisionRecord.decision_timestamp.asc(), InvestmentDecisionRecord.id.asc())))
+    rows = InvestmentRepository(db).get_decisions(owner_id=owner, recommendation_record_id=recommendation.id)
     return InvestmentDecisionListResponse(schema_version="atlas-investment-decision-list/v1", items=[_decision(row) for row in rows])
 
 
@@ -148,5 +142,5 @@ def create_decision(command: InvestmentDecisionRequest, user_sub: Annotated[str,
 def list_outcomes(user_sub: Annotated[str, Depends(require_user)], db: Session = Depends(get_db), recommendation_id: str = Path(min_length=1, max_length=160)) -> InvestmentOutcomeListResponse:
     _guard(); owner = _owner_id(db, user_sub)
     recommendation = _projection(db, owner, recommendation_id).row
-    rows = list(db.scalars(select(InvestmentOutcomeRecord).where(InvestmentOutcomeRecord.owner_id == owner, InvestmentOutcomeRecord.recommendation_record_id == recommendation.id).order_by(InvestmentOutcomeRecord.evaluation_as_of.asc(), InvestmentOutcomeRecord.id.asc())))
+    rows = InvestmentRepository(db).get_outcomes(owner_id=owner, recommendation_record_id=recommendation.id)
     return InvestmentOutcomeListResponse(schema_version="atlas-investment-outcome-list/v1", items=[InvestmentOutcomeResponse.model_validate({**json.loads(row.payload_json), "outcome_id": row.outcome_id, "outcome_hash": row.outcome_hash, "decision_id": row.decision_id}) for row in rows])
