@@ -1,6 +1,6 @@
 # Atlas Investment Intelligence — Consolidated Execution Plan
 
-**Status:** Active execution plan — documentation and INV-PERSIST-03 repair underway
+**Status:** INV-PERSIST-03 committed and validated; UI-08 readiness gate pending
 **Authority:** Existing INV-01–INV-HARDEN-01 implementation records, UI/UX architecture and roadmap, canonical project tracker, and repository tests
 **Scope:** Safe completion of the investment application boundary, followed by gated UI delivery
 
@@ -33,8 +33,8 @@ INV-12 evaluation and trust review
 - Main branch remains the repository integration branch.
 - The project tracker reports the bounded personal-use Phase 6 product roadmap complete.
 - The worktree contains unrelated dirty backend, dashboard, settings, cash-flow, and UI changes. These are immutable for this work and must not be staged or modified.
-- INV-PERSIST-03 partial files are staged or locally modified and require repair before commit.
-- UI-08 is not started.
+- INV-PERSIST-03 trusted persistence boundary is committed in `55644b3` and follow-up relationship hardening is committed in `c4b0148`.
+- UI-08 is not started and remains gated on an explicit readiness review.
 
 ## Phase assessment
 
@@ -80,7 +80,7 @@ Complete bounded in-memory projection. Report persistence, archive, delivery, an
 
 ### INV-11 — Decision and outcome tracking
 
-Complete bounded domain layer, incomplete durable application boundary. Human decisions use `accept`, `reject`, `defer`, `modify`, and `no_action`. Outcomes may evaluate a recommendation without a decision or explicitly reference a human decision. Decision linkage must be explicit, optional, owner-scoped, and immutable.
+Complete bounded domain and durable application boundary through INV-PERSIST-03; evaluation/calibration extensions remain future work. Human decisions use `accept`, `reject`, `defer`, `modify`, and `no_action`. Outcomes may evaluate a recommendation without a decision or explicitly reference a human decision. Decision linkage must be explicit, optional, owner-scoped, and immutable.
 
 ### INV-HARDEN-01
 
@@ -139,6 +139,10 @@ Not started. It is a cross-route trust, privacy, accessibility, performance, evi
 ## Immediate workstream: INV-PERSIST-03 finalization
 
 ### 1. Worktree and ownership control
+
+**Completed for the persistence work:** unrelated dirty backend/UI files were left untouched; only investment-owned files were committed. The historical PERSIST-01 document remains uncommitted as historical work.
+
+
 
 - Preserve all unrelated dirty files.
 - Remove the historical PERSIST-01 implementation document from final staging unless repository history explicitly requires it as a clearly marked blocked record.
@@ -263,6 +267,9 @@ Maintain the existing merge migration if it is the valid graph repair. Add one l
 - staged ownership review.
 
 ## Completion gate for INV-PERSIST-03
+
+**Current evidence:** repository projection, explicit evidence links, optional decision-to-outcome linkage, typed routes, owner-scoped queries, and additive migration hardening are committed. Focused and affected investment suites pass. A separate HTTP readiness certification remains the final prerequisite before UI-08 implementation.
+
 
 INV-PERSIST-03 is complete only when UI-08 can consume:
 
