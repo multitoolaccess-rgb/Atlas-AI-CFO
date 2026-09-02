@@ -104,6 +104,7 @@ class Settings(BaseSettings):
     atlas_investment_analysis_enabled: bool = False
     atlas_investment_external_provider_enabled: bool = False
     atlas_investment_scheduler_enabled: bool = False
+    atlas_investment_persistence_enabled: bool = False
 
     model_config = ConfigDict(
         extra="ignore",

@@ -178,6 +178,14 @@ _LIFTED_TABLES = (
     "outcome_evaluations",
     "recommendations",
     "decision_journal_entries",
+    "investment_decision_records",
+    "investment_recommendation_evidence_links",
+    "investment_committee_evidence_links",
+    "investment_recommendation_records",
+    "investment_committee_findings",
+    "investment_evidence_packets",
+    "investment_committee_runs",
+    "investment_outcome_records",
 )
 
 

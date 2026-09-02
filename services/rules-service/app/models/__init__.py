@@ -64,6 +64,16 @@ from app.models.market_brief import MarketBrief
 from app.models.market_brief_delivery import MarketBriefDeliveryAttempt, MarketBriefDeliveryPreference
 # Phase 6 Slice 1 — owner-scoped immutable Scenario Lab identity/version history.
 from app.models.scenario import Scenario, ScenarioVersion
+from app.models.investment_persistence import (
+    InvestmentCommitteeRun,
+    InvestmentCommitteeFinding,
+    InvestmentEvidencePacket,
+    InvestmentRecommendationEvidenceLink,
+    InvestmentCommitteeEvidenceLink,
+    InvestmentRecommendationRecord,
+    InvestmentDecisionRecord,
+    InvestmentOutcomeRecord,
+)
 
 __all__ = [
     "Budget",
@@ -96,4 +106,12 @@ __all__ = [
     "MarketBriefDeliveryPreference",
     "Scenario",
     "ScenarioVersion",
+    "InvestmentCommitteeRun",
+    "InvestmentCommitteeFinding",
+    "InvestmentEvidencePacket",
+    "InvestmentRecommendationEvidenceLink",
+    "InvestmentCommitteeEvidenceLink",
+    "InvestmentRecommendationRecord",
+    "InvestmentDecisionRecord",
+    "InvestmentOutcomeRecord",
 ]

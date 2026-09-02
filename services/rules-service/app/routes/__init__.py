@@ -112,6 +112,7 @@ from app.routes.market_briefs import router as market_briefs_router
 # Phase 6 Slice 1 — authoritative Scenario Lab backend APIs.
 from app.routes.scenarios import router as scenarios_router
 from app.routes.readiness import router as readiness_router
+from app.routes.investment_persistence import router as investment_persistence_router
 
 __all__ = [
     "accounts_router",
@@ -137,4 +138,5 @@ __all__ = [
     "market_briefs_router",
     "scenarios_router",
     "readiness_router",
+    "investment_persistence_router",
 ]
