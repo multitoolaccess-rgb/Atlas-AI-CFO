@@ -42,6 +42,13 @@ const surfaces = [
     icon: Search,
     status: 'Available',
   },
+  {
+    title: 'Risk and scenario views',
+    description: 'Review current-only portfolio coverage and bounded hypothetical value changes without mutation.',
+    href: '/investments/risk',
+    icon: ShieldCheck,
+    status: 'Available',
+  },
 ]
 
 export default function InvestmentsPage() {

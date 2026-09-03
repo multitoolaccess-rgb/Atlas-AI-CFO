@@ -1,6 +1,6 @@
 # Atlas Investment Intelligence — Consolidated Execution Plan
 
-**Status:** UI-09 and bounded UI-10 complete/certified; UI-11/INV-12 prerequisites pending
+**Status:** UI-09, UI-10, and the bounded current-only UI-11 slice complete/certified; UI-12 and INV-12 remain gated
 **Authority:** Existing INV-01–INV-HARDEN-01 implementation records, UI/UX architecture and roadmap, canonical project tracker, and repository tests
 **Scope:** Safe completion of the investment application boundary, followed by gated UI delivery
 
@@ -42,7 +42,7 @@ INV-12 evaluation and trust review
 | UI-08 | Certified | Recommendation review, committee context, bounded evidence, decision history, outcome history, human decision recording, and HTTP auth/precondition coverage are committed and validated. |
 | UI-09 | Complete for approved bounded scope | Separate current-only portfolio and bounded S&P 500 modes, deterministic filtering/stable ordering, typed APIs, comparison/detail UI, accessibility/browser validation. Commit `db69bf3`. |
 | UI-10 | Complete/certified for bounded read-only Scout scope | Typed context/tool/query boundary, model response citation validation, prompt fencing, refusal/offline behavior, HTTP tests, and responsive/accessibility browser validation are complete. |
-| UI-11 | Not started — methodology prerequisite required | Existing Scenario Lab is goal-scoped only; dedicated portfolio risk/scenario semantics and supported metrics are undefined. |
+| UI-11 | Complete for bounded current-only slice | Server-owned current-only baseline, descriptive value/data-quality metrics, on-demand hypothetical value preview, typed API, and browser safeguards are certified. Historical/advanced risk remains deferred. |
 | UI-12 | Not started — final certification | Requires stable UI-10/UI-11 decisions and contracts, INV-12 boundary decision, route inventory, privacy matrix, and full certification evidence. |
 | INV-12 | Not started — prerequisite required | Requires evaluation artifact/replay definitions, calibration methodology, and approved retention/deletion policy; existing outcome tracking is an input, not full INV-12. |
 
@@ -68,7 +68,7 @@ The authoritative plan is documented in `docs/architecture/ATLAS-INVESTMENT-UI-0
 
 ## Remaining-phase audit and execution plan
 
-The comprehensive audit is documented in `ATLAS-INVESTMENT-REMAINING-PHASES-AUDIT-AND-EXECUTION-PLAN.md`. It records the current capabilities, exact missing contracts, security/temporal/provenance gates, dependency graph, required decisions, test matrices, and bounded execution tasks for INV-10 extensions, INV-12, UI-10, UI-11, and UI-12.
+The comprehensive audit is documented in `ATLAS-INVESTMENT-REMAINING-PHASES-AUDIT-AND-EXECUTION-PLAN.md`; the UI-11 decision is recorded in `ADR-UI-11-CURRENT-PORTFOLIO-RISK-BOUNDARY.md`. These documents record the current capabilities, missing advanced contracts, security/temporal/provenance gates, dependency graph, and bounded execution tasks for INV-10 extensions, INV-12, UI-10, UI-11, and UI-12.
 
 ## UI-10 certification status
 
@@ -76,14 +76,14 @@ UI-10 is complete/certified for the bounded read-only contextual Scout scope. Th
 
 ## Future sequence
 
-1. Define and approve the UI-11 risk/scenario methodology and trusted portfolio baseline contract.
-2. Implement UI-11 server-owned hypothetical risk/scenario projections and presentation.
+1. Preserve the certified bounded UI-11 current-only baseline and descriptive hypothetical preview.
+2. Define and approve any future historical or advanced portfolio-risk methodology separately before expanding UI-11.
 3. Define the INV-12 evaluation/replay artifact and retention boundary.
 4. Implement INV-12 evaluation, calibration, replay, and retention policy only after its prerequisite decisions are approved.
 5. Add INV-10 report archive only if a concrete UI/report requirement requires it.
 6. Implement UI-12 cross-route trust certification after the final approved surfaces and policies are stable.
 7. Preserve explicit personal-use/default-off boundaries during all later work.
-8. Do not start UI-10, UI-11, UI-12, or INV-12 concurrently; each requires its own contract and validation gate.
+8. Do not start UI-12 or INV-12 concurrently; each requires its own contract and validation gate.
 
 ## Safety and non-goals
 

@@ -1,7 +1,7 @@
 # Atlas Investment Intelligence
 ## Remaining Phases Readiness Audit and Execution Plan
 
-**Status:** UI-10 certified for the bounded read-only contextual Scout scope; UI-11, UI-12, and INV-12 remain gated by documented prerequisites
+**Status:** UI-10 and the bounded UI-11 current-only risk/scenario slice are certified; UI-12 and INV-12 remain gated by documented prerequisites
 **Audit date:** 2026-09-02
 **Scope:** INV-10 extensions, INV-12, UI-10, UI-11, UI-12, and cross-phase prerequisites
 **Authority:** Canonical investment contracts, current roadmap/status tracker, ADRs, existing tests, and the repository implementation
@@ -11,7 +11,7 @@
 The repository is ready for a **gated sequence of bounded prerequisite and implementation slices**, but it is not ready to execute every remaining phase as one uninterrupted implementation. UI-10 has now passed its bounded certification gate. The safe remaining order is:
 
 1. preserve the certified UI-09 and UI-10 boundaries;
-2. define and implement a dedicated hypothetical risk/scenario projection contract for UI-11, reusing existing Scenario Lab authority without treating goal scenarios as portfolio risk;
+2. preserve the certified UI-11 current-only baseline and descriptive hypothetical preview; defer historical and advanced portfolio-risk methodology to a separately approved slice;
 3. define the INV-12 evaluation/replay artifact and retention boundary;
 4. implement INV-12 evaluation, calibration, replay, and retention only after its prerequisite decisions are approved;
 5. certify UI-12 across the completed surfaces and approved contracts;
@@ -35,7 +35,7 @@ This document is the authoritative audit and execution plan. UI-10 implementatio
 | UI-01–UI-08 | Complete/certified | Do not reopen without a concrete regression |
 | UI-09 | Complete for approved bounded scope | Separate current-only portfolio and bounded S&P 500 discovery modes are committed and validated. |
 | UI-10 | Complete/certified for bounded read-only Scout scope | Typed context/tool/query boundary, model response citation validation, prompt-injection fencing, refusal/offline handling, HTTP tests, and responsive/accessibility browser evidence are complete. |
-| UI-11 | Partially available through Scenario Lab | Existing Scenario Lab is goal-scoped; it is not yet an investment portfolio risk projection |
+| UI-11 | Complete for bounded current-only slice | Server-owned baseline, descriptive metrics, on-demand hypothetical preview, typed API, and browser safeguards are validated; advanced/historical risk remains deferred |
 | UI-12 | Not started | Depends on stable UI/API surfaces plus evaluation/retention decisions |
 | INV-12 | Not started | Requires an evaluation artifact contract, observation policy, and retention decision |
 | INV-10 archive | Not implemented | Keep deferred unless a concrete report/archive consumer requires it |
@@ -273,11 +273,11 @@ The boundary intentionally resolves persisted recommendation/committee selectors
 
 ### Current capability
 
-Existing Scenario Lab is authoritative for goal-scoped contribution/outflow scenarios. Existing portfolio intelligence is primarily current observed holdings and presentation-level aggregation. No dedicated investment risk/scenario contract is present.
+UI-11 now has a separate server-owned current-only portfolio baseline and on-demand descriptive hypothetical position-value preview. Existing Scenario Lab remains authoritative only for goal-scoped contribution/outflow scenarios and is not reused as portfolio-risk identity.
 
-### Required prerequisite contract
+### Implemented first-slice contract
 
-Create a separate `InvestmentRiskScenario/v1` contract (exact name to be approved) containing:
+The accepted `InvestmentRiskScenario/v1` contract is separate from recommendations and goal scenarios. It contains:
 
 - scenario ID/version and owner;
 - baseline portfolio snapshot ID/hash and `as_of`;
@@ -291,9 +291,9 @@ Create a separate `InvestmentRiskScenario/v1` contract (exact name to be approve
 - explicit hypothetical/non-predictive labels;
 - no execution instructions or target allocations.
 
-### Methodology gate
+### Methodology boundary
 
-Before implementation, define which metrics are supported. Potential metrics are not automatically approved. Each needs canonical meaning, units, period, currency, adjustment basis, observation availability, and compatibility rules. A risk score, probability, VaR, optimizer, or “recommended allocation” must not be invented.
+The certified first slice supports only current-only position count, observed value, compatible single-currency total/exposure data, data-quality states, and bounded position-value deltas. Any future metric needs canonical meaning, units, period, currency, adjustment basis, observation availability, and compatibility rules. A risk score, probability, VaR, optimizer, or “recommended allocation” remains deferred.
 
 ### Safe reuse
 
@@ -301,16 +301,16 @@ Reuse existing Scenario Lab calculation/persistence conventions where applicable
 
 ### UI-11 implementation slices
 
-1. Risk/scenario methodology and contract ADR.
-2. Trusted baseline portfolio snapshot adapter.
-3. Pure deterministic server-side projection and fail-closed metric states.
-4. Immutable saved/read projection only if persistence is required.
-5. Typed API and owner/temporal/concurrency tests.
-6. UI risk/scenario views with explicit hypothetical labels and tables/fallbacks.
+1. Risk/scenario methodology and contract ADR: complete for the approved first slice.
+2. Trusted current-only baseline portfolio projection: complete.
+3. Pure deterministic server-side projection and fail-closed metric states: complete.
+4. Immutable saved/read projection: deferred because previews are on-demand and non-persistent.
+5. Typed API and owner/temporal/no-mutation tests: complete for the bounded scope.
+6. UI risk/scenario view with explicit hypothetical labels and table fallback: complete for the bounded scope.
 
-### UI-11 blockers
+### UI-11 limitations
 
-Approved risk/scenario methodology, supported metric set, and a trusted portfolio baseline projection are missing.
+The certified first slice supports only current-only owner-scoped value/data-quality metrics and bounded position-value deltas. Historical portfolio reconstruction, advanced aggregate risk metrics, FX normalization, classifications, liquidity, and persisted scenarios remain unavailable until separately specified and sourced.
 
 ---
 

@@ -28,7 +28,7 @@
 | UI-08 | Recommendation review and user decision | INV-08/09 typed lifecycle | Planned |
 | UI-09 | Opportunity discovery and comparison | Approved current-only portfolio and bounded S&P 500 read models | Complete for approved bounded scope |
 | UI-10 | AI investment workspace | Typed investment context, read-only tools, citations, prompt-injection defenses | Complete/certified for bounded read-only contextual Scout |
-| UI-11 | Risk and scenario views | Approved risk methodology and trusted portfolio baseline | Not started — methodology prerequisite required |
+| UI-11 | Risk and scenario views | Approved current-only baseline and bounded descriptive preview | Complete for bounded first slice; historical and advanced risk deferred |
 | UI-12 | Integration hardening and trust review | Stable implemented surfaces plus evaluation/retention boundary | Not started — final certification |
 
 ## UI-02 — Investment navigation and route contracts
@@ -199,17 +199,17 @@
 
 **Objective:** Make portfolio risk, hypothetical impact, and scenario uncertainty understandable.
 
-**Dependencies:** INV-03 risk projections and later scenario/impact contracts.
+**Dependencies:** owner-scoped holdings plus an approved current-only baseline and bounded scenario contract.
 
-**Surfaces:** risk radar, drawdown, concentration, liquidity, scenario comparison, assumptions and limits.
+**Surfaces:** current-only baseline, descriptive value/data-quality metrics, bounded hypothetical value preview, assumptions and limits. Historical risk radar, drawdown, concentration, liquidity, and scenario comparison remain deferred until their semantics are approved.
 
-**Backend:** baseline snapshot/hash, hypothetical result, constraints, data quality, no persistence unless explicitly authorized.
+**Backend:** server-owned baseline hash, on-demand hypothetical result, constraints, data quality, no persistence, no mutation.
 
 **Open-source dependencies:** existing charts; no optimizer UI before backend methodology is stable.
 
 **Tests:** deterministic preview, no mutation, stale/missing inputs, scenario labeling, accessibility, owner isolation.
 
-**Acceptance:** Hypothetical results are clearly hypothetical and cannot be mistaken for execution or a guaranteed outcome.
+**Acceptance:** The bounded first slice is certified when current-only data, unavailable states, provenance, deterministic preview behavior, and non-execution boundaries are visible and tested. Hypothetical results cannot be mistaken for execution or a guaranteed outcome.
 
 **Rollback:** remove scenario panels and keep existing Scenario Lab.
 
