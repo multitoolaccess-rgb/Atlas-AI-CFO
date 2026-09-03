@@ -2,16 +2,15 @@
 
 > Generated from `PROJECT_STATUS.json`; regenerate with `python3 scripts/atlas_project_status.py render`.
 
-- Current phase: **ui-09 — Opportunity discovery and comparison** (in_progress)
+- Current phase: **ui-10 — Contextual investment assistant** (complete)
 - Overall status: **in_progress**
-- Current objective: Complete UI-09 typed HTTP/API certification and then implement the discovery, detail, and comparison UI over the approved current-only universe modes.
-- Last updated: 2026-08-15T23:22:49Z
+- Current objective: Preserve certified UI-09/UI-10 boundaries and design the UI-11 risk/scenario methodology and trusted portfolio baseline contract.
+- Last updated: 2026-09-03T20:20:00Z
 
 ## Active work
 - None
 
 ## Blockers
-- {'description': 'UI-09 discovery is blocked pending an approved server-owned universe/input contract and canonical security-identity adapter; do not fabricate candidates or use Market Brief/recommendations as the universe.', 'id': 'ui-09-authoritative-universe-prerequisite', 'owner': 'investment-product', 'related': 'ATLAS-INVESTMENT-UI-09-READINESS-AND-EXECUTION-PLAN.md', 'status': 'open'}
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
 
 ## Phase progress
@@ -43,8 +42,8 @@
 - ui-06 — Financial visualization adapter: complete (1/1 exit criteria)
 - ui-07 — Evidence drawer: complete (1/1 exit criteria)
 - ui-08 — Recommendation review: complete (1/1 exit criteria)
-- ui-09 — Opportunity discovery and comparison: in_progress (1/3 exit criteria)
-- ui-10 — Contextual investment assistant: not_started (0/1 exit criteria)
+- ui-09 — Opportunity discovery and comparison: complete (3/3 exit criteria)
+- ui-10 — Contextual investment assistant: complete (1/1 exit criteria)
 - ui-11 — Risk and scenario presentation: not_started (0/1 exit criteria)
 - ui-12 — Cross-route trust certification: not_started (0/1 exit criteria)
 - inv-12 — Evaluation, calibration, replay, and retention: not_started (0/1 exit criteria)
@@ -70,10 +69,10 @@
 - risk-p1-personal-account-scope-mismatch [high/high, resolved]: The prior four-versus-six active-account scope mismatch was resolved by explicit authorization covering all six active accounts; six-account evidence, projection, baseline, restart, and readiness checks passed.
 
 ## Recently completed work
-- work-wave-2c-authoritative-balance-amount: Establish exact-cent legacy balance authority — commit 50d7d198de5b28d0d37e9aa596c8e2d90b27452f, PR 58
 - work-wave-2c-six-account-activation: Complete six-account personal activation and restart acceptance — commit 9fbe20d, PR 60
 - work-waves-3-5-product-stabilization: Combined Waves 3–5 product stabilization — commit e70c764fa5d1ad0c1f1955ce62050a05a398e8a3, PR 61
 - work-wave-6-final-personal-use-certification: Final personal-use acceptance and release-candidate certification — commit 8efcdaeeebeea3742cd5376ed06e730342960a49, PR None
+- work-ui-10-contextual-assistant: UI-10 contextual investment assistant — commit f5a1cc8, PR n/a
 - work-ui-09-discovery-foundation: UI-09 server-owned discovery foundation — commit 09c2cfd, PR n/a
 
 ## Evidence
@@ -111,6 +110,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-ui-09-http-and-ui-certification: Add real HTTP/API coverage and implement the UI-09 discovery, detail, and comparison surfaces without recommendation contamination.
+- work-ui-11-risk-scenario-contract-gate: Design the UI-11 risk/scenario methodology and trusted portfolio baseline contract before implementation; do not label goal scenarios as portfolio risk.
 
 Do not begin the next phase or task automatically.

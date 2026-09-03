@@ -2,13 +2,6 @@
   "active_work": [],
   "blockers": [
     {
-      "description": "UI-09 discovery is blocked pending an approved server-owned universe/input contract and canonical security-identity adapter; do not fabricate candidates or use Market Brief/recommendations as the universe.",
-      "id": "ui-09-authoritative-universe-prerequisite",
-      "owner": "investment-product",
-      "related": "ATLAS-INVESTMENT-UI-09-READINESS-AND-EXECUTION-PLAN.md",
-      "status": "open"
-    },
-    {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
       "id": "external-multi-user-retention-deletion-blocker",
       "owner": "product-security",
@@ -1411,6 +1404,50 @@
     },
     {
       "branch": "",
+      "commit": "f5a1cc8",
+      "id": "work-ui-10-contextual-assistant",
+      "issue": "",
+      "objective": "Complete the isolated UI-10 server-owned contextual investment assistant with typed context/query/tool contracts, cited model responses, prompt-injection fencing, sanitized refusals/offline behavior, and certified browser/API safeguards.",
+      "paths": [
+        "services/rules-service/app/investments/assistant_context.py",
+        "services/rules-service/app/investments/assistant_response.py",
+        "services/rules-service/app/investments/assistant_tools.py",
+        "services/rules-service/app/routes/investment_assistant.py",
+        "services/rules-service/app/main.py",
+        "services/rules-service/app/routes/__init__.py",
+        "services/rules-service/tests/test_investment_assistant_context.py",
+        "services/rules-service/tests/test_investment_assistant_http.py",
+        "services/rules-service/tests/test_investment_assistant_query_http.py",
+        "services/rules-service/tests/test_investment_assistant_response.py",
+        "ui/app/investments/assistant/page.tsx",
+        "ui/app/investments/assistant/__tests__/page.test.tsx",
+        "ui/lib/investmentAssistant.ts",
+        "ui/__tests__/e2e/investment-assistant.spec.ts"
+      ],
+      "phase_id": "ui-10",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "37 focused backend assistant/legacy-assistant tests passed",
+        "Python compilation passed",
+        "1 focused UI test passed",
+        "TypeScript typecheck passed",
+        "Next production build passed",
+        "1 Playwright accessibility/responsive/privacy/no-execution test passed",
+        "git diff --check passed"
+      ],
+      "title": "UI-10 contextual investment assistant",
+      "validation_evidence": {
+        "command": "pytest investment-assistant tests; compileall; vitest UI-10 test; typecheck; production build; Playwright UI-10 test",
+        "commit": "f5a1cc8",
+        "environment": "Python 3.12 isolated Rules Service environment; local Node/Next/Playwright environment; fresh local UI dev server",
+        "kind": "local",
+        "result": "37 backend tests passed; Python compilation, focused UI test, TypeScript, production build, and 1 Playwright browser test passed",
+        "timestamp": "2026-09-03T20:15:00Z"
+      }
+    },
+    {
+      "branch": "",
       "commit": "09c2cfd",
       "id": "work-ui-09-discovery-foundation",
       "issue": "",
@@ -1445,13 +1482,13 @@
       }
     }
   ],
-  "current_objective": "Complete UI-09 typed HTTP/API certification and then implement the discovery, detail, and comparison UI over the approved current-only universe modes.",
-  "current_phase_id": "ui-09",
-  "last_updated": "2026-08-15T23:22:49Z",
+  "current_objective": "Preserve certified UI-09/UI-10 boundaries and design the UI-11 risk/scenario methodology and trusted portfolio baseline contract.",
+  "current_phase_id": "ui-10",
+  "last_updated": "2026-09-03T20:20:00Z",
   "next_bounded_task": {
-    "description": "Add real HTTP/API coverage and implement the UI-09 discovery, detail, and comparison surfaces without recommendation contamination.",
-    "id": "work-ui-09-http-and-ui-certification",
-    "phase_id": "ui-09"
+    "description": "Design the UI-11 risk/scenario methodology and trusted portfolio baseline contract before implementation; do not label goal scenarios as portfolio risk.",
+    "id": "work-ui-11-risk-scenario-contract-gate",
+    "phase_id": "ui-11"
   },
   "overall_status": "in_progress",
   "phases": [
@@ -1835,35 +1872,35 @@
       "exit_criteria": [
         {
           "complete": true,
-          "description": "Approved separate current-only portfolio and bounded S&P 500 universe modes are implemented as server-owned deterministic identity projections; no discovery score or recommendation contamination. Evidence: 09c2cfd.",
+          "description": "Approved separate current-only portfolio and bounded S&P 500 universe modes are implemented as server-owned deterministic identity projections; no discovery score or recommendation contamination. Evidence: 09c2cfd and db69bf3.",
           "id": "ec-ui-09-source"
         },
         {
-          "complete": false,
-          "description": "Typed discovery/detail/comparison API foundation and focused contract validation are implemented; full HTTP/API certification and UI surfaces remain pending.",
+          "complete": true,
+          "description": "Typed discovery/detail/comparison APIs, deterministic compatibility behavior, HTTP validation, and bounded server-owned projections are validated. Evidence: db69bf3.",
           "id": "ec-ui-09-api"
         },
         {
-          "complete": false,
-          "description": "Discovery, detail, and comparison UI with explicit unavailable/error states passes validation.",
+          "complete": true,
+          "description": "Discovery, detail, and comparison UI with explicit unavailable/error states, responsive behavior, and scoped accessibility/browser validation passes. Evidence: db69bf3.",
           "id": "ec-ui-09-ui"
         }
       ],
       "id": "ui-09",
       "name": "Opportunity discovery and comparison",
-      "status": "in_progress"
+      "status": "complete"
     },
     {
       "exit_criteria": [
         {
-          "complete": false,
-          "description": "Typed read-only investment context assistant with citations and prompt-injection defenses.",
+          "complete": true,
+          "description": "Typed read-only investment context, allowlisted tool, model-backed cited response, prompt-injection fencing, sanitized refusal/offline behavior, HTTP tests, and responsive/accessibility/no-execution browser validation are complete. Evidence: f5a1cc8.",
           "id": "ec-ui-10-boundary"
         }
       ],
       "id": "ui-10",
       "name": "Contextual investment assistant",
-      "status": "not_started"
+      "status": "complete"
     },
     {
       "exit_criteria": [

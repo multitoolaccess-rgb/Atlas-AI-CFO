@@ -4,12 +4,12 @@
 
 ## Current objective
 
-- Phase: phase-6 — Scenario Lab
+- Phase: ui-10 — Contextual investment assistant
 - Phase status: complete
-- Overall status: complete
-- Objective: Wave 6 final personal-use acceptance and release-candidate certification is complete for the authorized bounded single-user local scope. Preserve server-owned financial authority, provider safety, and all open rollout risks; do not begin Phase 7.
-- Phase exit criteria: 2/2 complete
-- Tracker updated: 2026-08-15T23:22:49Z
+- Overall status: in_progress
+- Objective: Preserve certified UI-09/UI-10 boundaries and design the UI-11 risk/scenario methodology and trusted portfolio baseline contract.
+- Phase exit criteria: 1/1 complete
+- Tracker updated: 2026-09-03T20:20:00Z
 
 ## Active work
 
@@ -36,14 +36,14 @@
 
 ## Recently completed
 
-- work-wave-2c-personal-activation-acceptance: Execute backup-first personal activation and restart acceptance — commit e877247, PR not recorded
-- work-wave-2c-authoritative-balance-amount: Establish exact-cent legacy balance authority — commit 50d7d198de5b28d0d37e9aa596c8e2d90b27452f, PR 58
 - work-wave-2c-six-account-activation: Complete six-account personal activation and restart acceptance — commit 9fbe20d, PR 60
 - work-waves-3-5-product-stabilization: Combined Waves 3–5 product stabilization — commit e70c764fa5d1ad0c1f1955ce62050a05a398e8a3, PR 61
 - work-wave-6-final-personal-use-certification: Final personal-use acceptance and release-candidate certification — commit 8efcdaeeebeea3742cd5376ed06e730342960a49, PR not recorded
+- work-ui-10-contextual-assistant: UI-10 contextual investment assistant — commit f5a1cc8, PR not recorded
+- work-ui-09-discovery-foundation: UI-09 server-owned discovery foundation — commit 09c2cfd, PR not recorded
 
 ## Next bounded task
 
-- work-post-certification-local-release-candidate-operations: Maintain the bounded single-user local release candidate or authorize a separate provider-safety/retention review; do not begin Phase 7.
+- work-ui-11-risk-scenario-contract-gate: Design the UI-11 risk/scenario methodology and trusted portfolio baseline contract before implementation; do not label goal scenarios as portfolio risk.
 
 Do not begin the next task automatically.
