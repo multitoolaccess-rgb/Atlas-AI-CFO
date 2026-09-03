@@ -5,7 +5,7 @@
 - Current phase: **ui-11 — Risk and scenario presentation** (complete)
 - Overall status: **in_progress**
 - Current objective: Preserve certified UI-09/UI-10/UI-11 boundaries; define and execute the bounded UI-12 trust certification gate.
-- Last updated: 2026-09-03T21:00:00Z
+- Last updated: 2026-09-03T21:44:00Z
 
 ## Active work
 - None
@@ -73,7 +73,7 @@
 - work-wave-6-final-personal-use-certification: Final personal-use acceptance and release-candidate certification — commit 8efcdaeeebeea3742cd5376ed06e730342960a49, PR None
 - work-ui-10-contextual-assistant: UI-10 contextual investment assistant — commit f5a1cc8, PR n/a
 - work-ui-09-discovery-foundation: UI-09 server-owned discovery foundation — commit 09c2cfd, PR n/a
-- work-ui-11-risk-scenario-boundary: UI-11 bounded current-only risk/scenario presentation — commit fb549b4, PR n/a
+- work-ui-11-risk-scenario-boundary: UI-11 bounded current-only risk/scenario presentation — commit b9ecce0, PR n/a
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation

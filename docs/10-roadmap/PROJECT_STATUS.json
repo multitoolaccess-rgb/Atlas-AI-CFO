@@ -1483,7 +1483,7 @@
     },
     {
       "branch": "",
-      "commit": "fb549b4",
+      "commit": "b9ecce0",
       "id": "work-ui-11-risk-scenario-boundary",
       "issue": "",
       "objective": "Implement and certify the approved current-only owner-scoped portfolio baseline, descriptive value/data-quality metrics, and bounded on-demand hypothetical position-value preview without persistence or portfolio mutation.",
@@ -1509,7 +1509,8 @@
       "risk_tier": "high",
       "status": "complete",
       "tests": [
-        "UI-11 backend/domain/HTTP suite: 17 passed",
+        "UI-11 backend/domain/HTTP suite: 20 passed",
+        "UI-11 correction coverage: server-computed per-position exposure, deterministic hash-change regression, nonpositive-price rejection, and zero-total preview fail-closed behavior",
         "Scenario Lab and holdings regression suite: 60 passed",
         "Python compileall passed",
         "UI-11 focused Vitest: 3 passed",
@@ -1521,17 +1522,17 @@
       "title": "UI-11 bounded current-only risk/scenario presentation",
       "validation_evidence": {
         "command": "pytest UI-11, portfolio, harden, Scenario Lab, and holdings suites; compileall; UI-11 Vitest; typecheck; build; Playwright; tracker validation",
-        "commit": "fb549b4",
+        "commit": "b9ecce0",
         "environment": "Python 3.12 isolated Rules Service environment; local Node/Next/Playwright environment; disposable SQLite test database; no migration or provider access",
         "kind": "local",
-        "result": "passed; current-only baseline and on-demand descriptive preview certified; advanced and historical risk explicitly unavailable",
-        "timestamp": "2026-09-03T21:00:00Z"
+        "result": "passed; current-only baseline, server-computed exposure, and fail-closed invalid/zero handling verified; advanced/historical risk unavailable",
+        "timestamp": "2026-09-03T21:44:00Z"
       }
     }
   ],
   "current_objective": "Preserve certified UI-09/UI-10/UI-11 boundaries; define and execute the bounded UI-12 trust certification gate.",
   "current_phase_id": "ui-11",
-  "last_updated": "2026-09-03T21:00:00Z",
+  "last_updated": "2026-09-03T21:44:00Z",
   "next_bounded_task": {
     "description": "Run the UI-12 cross-route trust, privacy, accessibility, performance, evidence, and execution-boundary certification audit before implementation.",
     "id": "work-ui-12-cross-route-trust-certification",

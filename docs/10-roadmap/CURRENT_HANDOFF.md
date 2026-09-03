@@ -9,7 +9,7 @@
 - Overall status: in_progress
 - Objective: Preserve certified UI-09/UI-10/UI-11 boundaries; define and execute the bounded UI-12 trust certification gate.
 - Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-09-03T21:00:00Z
+- Tracker updated: 2026-09-03T21:44:00Z
 
 ## Active work
 
@@ -40,7 +40,7 @@
 - work-wave-6-final-personal-use-certification: Final personal-use acceptance and release-candidate certification — commit 8efcdaeeebeea3742cd5376ed06e730342960a49, PR not recorded
 - work-ui-10-contextual-assistant: UI-10 contextual investment assistant — commit f5a1cc8, PR not recorded
 - work-ui-09-discovery-foundation: UI-09 server-owned discovery foundation — commit 09c2cfd, PR not recorded
-- work-ui-11-risk-scenario-boundary: UI-11 bounded current-only risk/scenario presentation — commit fb549b4, PR not recorded
+- work-ui-11-risk-scenario-boundary: UI-11 bounded current-only risk/scenario presentation — commit b9ecce0, PR not recorded
 
 ## Next bounded task
 
