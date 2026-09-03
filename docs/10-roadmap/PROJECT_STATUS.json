@@ -1480,15 +1480,62 @@
         "result": "11 backend tests passed; Python compilation passed; 1 UI test passed; TypeScript and production build passed",
         "timestamp": "2026-09-02T00:00:00Z"
       }
+    },
+    {
+      "branch": "",
+      "commit": "fb549b4",
+      "id": "work-ui-11-risk-scenario-boundary",
+      "issue": "",
+      "objective": "Implement and certify the approved current-only owner-scoped portfolio baseline, descriptive value/data-quality metrics, and bounded on-demand hypothetical position-value preview without persistence or portfolio mutation.",
+      "paths": [
+        "services/rules-service/app/investments/risk_scenarios.py",
+        "services/rules-service/app/routes/investment_risk.py",
+        "services/rules-service/app/main.py",
+        "services/rules-service/app/routes/__init__.py",
+        "services/rules-service/tests/test_ui11_risk_scenarios.py",
+        "services/rules-service/tests/test_ui11_risk_scenarios_http.py",
+        "ui/lib/investmentRisk.ts",
+        "ui/app/investments/risk/page.tsx",
+        "ui/app/investments/risk/__tests__/page.test.tsx",
+        "ui/app/investments/page.tsx",
+        "ui/__tests__/e2e/investment-risk.spec.ts",
+        "docs/adr/ADR-UI-11-CURRENT-PORTFOLIO-RISK-BOUNDARY.md",
+        "docs/architecture/ATLAS-INVESTMENT-UI-11-READINESS-AND-CONTRACT-GATE.md",
+        "docs/architecture/ATLAS-INVESTMENT-REMAINING-PHASES-AUDIT-AND-EXECUTION-PLAN.md",
+        "docs/architecture/ATLAS-INVESTMENT-CONSOLIDATED-EXECUTION-PLAN.md",
+        "docs/architecture/ATLAS-INVESTMENT-UI-UX-IMPLEMENTATION-ROADMAP.md"
+      ],
+      "phase_id": "ui-11",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "UI-11 backend/domain/HTTP suite: 17 passed",
+        "Scenario Lab and holdings regression suite: 60 passed",
+        "Python compileall passed",
+        "UI-11 focused Vitest: 3 passed",
+        "TypeScript typecheck passed",
+        "Next production build passed",
+        "UI-11 Playwright: 3 passed, including repository axe-core serious/critical scan, across 390/768/1024/1440/1728 widths with no overflow, privacy leak, or execution request",
+        "Tracker validation and git diff --check passed"
+      ],
+      "title": "UI-11 bounded current-only risk/scenario presentation",
+      "validation_evidence": {
+        "command": "pytest UI-11, portfolio, harden, Scenario Lab, and holdings suites; compileall; UI-11 Vitest; typecheck; build; Playwright; tracker validation",
+        "commit": "fb549b4",
+        "environment": "Python 3.12 isolated Rules Service environment; local Node/Next/Playwright environment; disposable SQLite test database; no migration or provider access",
+        "kind": "local",
+        "result": "passed; current-only baseline and on-demand descriptive preview certified; advanced and historical risk explicitly unavailable",
+        "timestamp": "2026-09-03T21:00:00Z"
+      }
     }
   ],
-  "current_objective": "Preserve certified UI-09/UI-10 boundaries and design the UI-11 risk/scenario methodology and trusted portfolio baseline contract.",
-  "current_phase_id": "ui-10",
-  "last_updated": "2026-09-03T20:20:00Z",
+  "current_objective": "Preserve certified UI-09/UI-10/UI-11 boundaries; define and execute the bounded UI-12 trust certification gate.",
+  "current_phase_id": "ui-11",
+  "last_updated": "2026-09-03T21:00:00Z",
   "next_bounded_task": {
-    "description": "Design the UI-11 risk/scenario methodology and trusted portfolio baseline contract before implementation; do not label goal scenarios as portfolio risk.",
-    "id": "work-ui-11-risk-scenario-contract-gate",
-    "phase_id": "ui-11"
+    "description": "Run the UI-12 cross-route trust, privacy, accessibility, performance, evidence, and execution-boundary certification audit before implementation.",
+    "id": "work-ui-12-cross-route-trust-certification",
+    "phase_id": "ui-12"
   },
   "overall_status": "in_progress",
   "phases": [
@@ -1905,14 +1952,14 @@
     {
       "exit_criteria": [
         {
-          "complete": false,
-          "description": "Server-owned hypothetical investment risk/scenario presentation.",
-          "id": "ec-ui-11-boundary"
+      "complete": true,
+      "description": "Bounded server-owned current-only portfolio baseline, descriptive value/data-quality metrics, on-demand hypothetical position-value preview, typed owner-scoped API, temporal/identity fail-closed behavior, and browser safeguards are certified. Historical and advanced portfolio-risk semantics remain deferred. Evidence: fb549b4.",
+      "id": "ec-ui-11-boundary"
         }
       ],
       "id": "ui-11",
       "name": "Risk and scenario presentation",
-      "status": "not_started"
+      "status": "complete"
     },
     {
       "exit_criteria": [

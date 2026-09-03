@@ -2,10 +2,10 @@
 
 > Generated from `PROJECT_STATUS.json`; regenerate with `python3 scripts/atlas_project_status.py render`.
 
-- Current phase: **ui-10 — Contextual investment assistant** (complete)
+- Current phase: **ui-11 — Risk and scenario presentation** (complete)
 - Overall status: **in_progress**
-- Current objective: Preserve certified UI-09/UI-10 boundaries and design the UI-11 risk/scenario methodology and trusted portfolio baseline contract.
-- Last updated: 2026-09-03T20:20:00Z
+- Current objective: Preserve certified UI-09/UI-10/UI-11 boundaries; define and execute the bounded UI-12 trust certification gate.
+- Last updated: 2026-09-03T21:00:00Z
 
 ## Active work
 - None
@@ -44,7 +44,7 @@
 - ui-08 — Recommendation review: complete (1/1 exit criteria)
 - ui-09 — Opportunity discovery and comparison: complete (3/3 exit criteria)
 - ui-10 — Contextual investment assistant: complete (1/1 exit criteria)
-- ui-11 — Risk and scenario presentation: not_started (0/1 exit criteria)
+- ui-11 — Risk and scenario presentation: complete (1/1 exit criteria)
 - ui-12 — Cross-route trust certification: not_started (0/1 exit criteria)
 - inv-12 — Evaluation, calibration, replay, and retention: not_started (0/1 exit criteria)
 
@@ -69,11 +69,11 @@
 - risk-p1-personal-account-scope-mismatch [high/high, resolved]: The prior four-versus-six active-account scope mismatch was resolved by explicit authorization covering all six active accounts; six-account evidence, projection, baseline, restart, and readiness checks passed.
 
 ## Recently completed work
-- work-wave-2c-six-account-activation: Complete six-account personal activation and restart acceptance — commit 9fbe20d, PR 60
 - work-waves-3-5-product-stabilization: Combined Waves 3–5 product stabilization — commit e70c764fa5d1ad0c1f1955ce62050a05a398e8a3, PR 61
 - work-wave-6-final-personal-use-certification: Final personal-use acceptance and release-candidate certification — commit 8efcdaeeebeea3742cd5376ed06e730342960a49, PR None
 - work-ui-10-contextual-assistant: UI-10 contextual investment assistant — commit f5a1cc8, PR n/a
 - work-ui-09-discovery-foundation: UI-09 server-owned discovery foundation — commit 09c2cfd, PR n/a
+- work-ui-11-risk-scenario-boundary: UI-11 bounded current-only risk/scenario presentation — commit fb549b4, PR n/a
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -110,6 +110,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-ui-11-risk-scenario-contract-gate: Design the UI-11 risk/scenario methodology and trusted portfolio baseline contract before implementation; do not label goal scenarios as portfolio risk.
+- work-ui-12-cross-route-trust-certification: Run the UI-12 cross-route trust, privacy, accessibility, performance, evidence, and execution-boundary certification audit before implementation.
 
 Do not begin the next phase or task automatically.

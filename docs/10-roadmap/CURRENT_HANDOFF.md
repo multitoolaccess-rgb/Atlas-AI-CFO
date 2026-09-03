@@ -4,12 +4,12 @@
 
 ## Current objective
 
-- Phase: ui-10 — Contextual investment assistant
+- Phase: ui-11 — Risk and scenario presentation
 - Phase status: complete
 - Overall status: in_progress
-- Objective: Preserve certified UI-09/UI-10 boundaries and design the UI-11 risk/scenario methodology and trusted portfolio baseline contract.
+- Objective: Preserve certified UI-09/UI-10/UI-11 boundaries; define and execute the bounded UI-12 trust certification gate.
 - Phase exit criteria: 1/1 complete
-- Tracker updated: 2026-09-03T20:20:00Z
+- Tracker updated: 2026-09-03T21:00:00Z
 
 ## Active work
 
@@ -36,14 +36,14 @@
 
 ## Recently completed
 
-- work-wave-2c-six-account-activation: Complete six-account personal activation and restart acceptance — commit 9fbe20d, PR 60
 - work-waves-3-5-product-stabilization: Combined Waves 3–5 product stabilization — commit e70c764fa5d1ad0c1f1955ce62050a05a398e8a3, PR 61
 - work-wave-6-final-personal-use-certification: Final personal-use acceptance and release-candidate certification — commit 8efcdaeeebeea3742cd5376ed06e730342960a49, PR not recorded
 - work-ui-10-contextual-assistant: UI-10 contextual investment assistant — commit f5a1cc8, PR not recorded
 - work-ui-09-discovery-foundation: UI-09 server-owned discovery foundation — commit 09c2cfd, PR not recorded
+- work-ui-11-risk-scenario-boundary: UI-11 bounded current-only risk/scenario presentation — commit fb549b4, PR not recorded
 
 ## Next bounded task
 
-- work-ui-11-risk-scenario-contract-gate: Design the UI-11 risk/scenario methodology and trusted portfolio baseline contract before implementation; do not label goal scenarios as portfolio risk.
+- work-ui-12-cross-route-trust-certification: Run the UI-12 cross-route trust, privacy, accessibility, performance, evidence, and execution-boundary certification audit before implementation.
 
 Do not begin the next task automatically.
