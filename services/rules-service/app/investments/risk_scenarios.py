@@ -69,6 +69,8 @@ class RiskPosition(InvestmentStrictModel):
     market_value: str | None = Field(default=None, max_length=48)
     currency: str | None = Field(default=None, pattern=r"^[A-Z]{3}$")
     market_value_state: RiskDataState
+    exposure_percentage: str | None = Field(default=None, max_length=48)
+    exposure_state: RiskDataState = RiskDataState.UNAVAILABLE
     cost_basis: str | None = Field(default=None, max_length=48)
     cost_basis_state: RiskDataState
     as_of: datetime
@@ -203,6 +205,15 @@ class InvestmentRiskScenario(InvestmentStrictModel):
     result_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     limitations: tuple[str, ...] = Field(default=(), max_length=50)
     warnings: tuple[str, ...] = Field(default=(), max_length=50)
+
+    @field_validator("as_of", "as_known_at", "evaluated_at")
+    @classmethod
+    def utc_scenario_timestamp(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("scenario timestamps must be timezone-aware UTC")
+        return value.astimezone(UTC)
 
     @model_validator(mode="after")
     def non_predictive_preview(self) -> "InvestmentRiskScenario":
@@ -349,7 +360,12 @@ class InvestmentRiskService:
         currencies = {account.currency_code for account in accounts if account.currency_code}
         now = datetime.now(UTC)
         for account in accounts:
-            for timestamp in (_utc(account.last_sync), _utc(account.updated_at)):
+            for timestamp in (
+                _utc(getattr(account, "last_sync", None)),
+                _utc(getattr(account, "updated_at", None)),
+                _utc(getattr(account, "created_at", None)),
+                _utc(getattr(account, "currency_observed_at", None)),
+            ):
                 if timestamp is not None:
                     if timestamp > now:
                         raise RiskBoundaryError("future portfolio source timestamp is unavailable")
@@ -372,10 +388,12 @@ class InvestmentRiskService:
             source_ids.append(source_id)
             source_hashes.append(source_hash)
             identity = _identity(holding, observed_at or _EPOCH)
-            value_state = RiskDataState.AVAILABLE if value is not None and holding.last_price is not None and currency else RiskDataState.UNKNOWN
+            price = _decimal(holding.last_price)
+            valid_price = price is not None and Decimal(price) > 0
+            value_state = RiskDataState.AVAILABLE if value is not None and valid_price and currency else RiskDataState.UNKNOWN
             if not currency:
                 omissions.append(f"holding:{holding.id}:currency_unavailable")
-            if value is None or holding.last_price is None:
+            if value is None or not valid_price:
                 omissions.append(f"holding:{holding.id}:market_value_unavailable")
             if identity.state is not SecurityState.RESOLVED:
                 omissions.append(f"holding:{holding.id}:security_identity_{identity.state.value}")
@@ -408,6 +426,22 @@ class InvestmentRiskService:
         else:
             completeness = BaselineCompleteness.PARTIAL
             freshness = RiskDataState.UNKNOWN
+        if total is not None and Decimal(total) != 0 and compatible_currency:
+            positions = [
+                position.model_copy(update={
+                    "exposure_percentage": format((Decimal(position.market_value or "0") / Decimal(total) * 100).normalize(), "f"),
+                    "exposure_state": RiskDataState.AVAILABLE,
+                }) if position.market_value_state is RiskDataState.AVAILABLE and position.currency == compatible_currency else position
+                for position in positions
+            ]
+        else:
+            positions = [
+                position.model_copy(update={
+                    "exposure_state": RiskDataState.UNAVAILABLE,
+                }) for position in positions
+            ]
+            if positions:
+                omissions.append("position_exposure_unavailable_without_nonzero_compatible_total")
         valid_values = [item for item in positions if item.market_value_state is RiskDataState.AVAILABLE]
         metrics: list[RiskMetric] = [
             _metric("position_count", str(len(positions)), "count", None, RiskDataState.AVAILABLE),
@@ -444,8 +478,8 @@ class InvestmentRiskService:
         if resulting_value < 0:
             raise RiskBoundaryError("hypothetical value cannot be negative")
         resulting_total = Decimal(baseline.total_value) + delta
-        if resulting_total < 0:
-            raise RiskBoundaryError("hypothetical total cannot be negative")
+        if resulting_total <= 0:
+            raise RiskBoundaryError("hypothetical total must remain positive")
         metrics = (
             _metric("baseline_total_value", baseline.total_value, "currency", baseline.currency, RiskDataState.AVAILABLE),
             _metric("hypothetical_total_value", format(resulting_total.normalize(), "f"), "currency", baseline.currency, RiskDataState.AVAILABLE),

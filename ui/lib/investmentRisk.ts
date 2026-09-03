@@ -26,6 +26,8 @@ export interface RiskPosition {
   market_value: string | null
   currency: string | null
   market_value_state: RiskDataState
+  exposure_percentage: string | null
+  exposure_state: RiskDataState
   cost_basis: string | null
   cost_basis_state: RiskDataState
   as_of: string

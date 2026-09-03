@@ -61,6 +61,8 @@ def test_baseline_is_typed_current_only_and_does_not_leak_account_details(client
     assert body["total_value"] == "100"
     assert body["currency"] == "USD"
     assert body["positions"][0]["position_id"] == holding_id
+    assert body["positions"][0]["exposure_percentage"] == "100"
+    assert body["positions"][0]["exposure_state"] == "available"
     assert "owner_id" not in body
     assert "account_id" not in body["positions"][0]
     assert "account_name" not in body["positions"][0]

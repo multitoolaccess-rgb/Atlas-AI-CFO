@@ -24,6 +24,7 @@ class _Session:
     def __init__(self, accounts, holdings):
         self.accounts = accounts
         self.holdings = holdings
+        self.selected_account_ids = {account.id for account in accounts}
 
     def scalars(self, statement):
         class Result:
@@ -40,8 +41,9 @@ class _Session:
         if "FROM accounts" in text:
             owner_id = statement.compile().params.get("user_id")
             accounts = self.accounts if owner_id is None else [account for account in self.accounts if account.user_id == owner_id]
+            self.selected_account_ids = {account.id for account in accounts}
             return Result(accounts)
-        return Result([h for h in self.holdings if h.account_id in {a.id for a in self.accounts}])
+        return Result([h for h in self.holdings if h.account_id in self.selected_account_ids])
 
 
 def _account(account_id=1, owner_id=7, currency="USD"):
@@ -79,12 +81,26 @@ def test_baseline_is_owner_scoped_current_only_and_hash_bound():
     assert baseline.capability is BaselineCapability.CURRENT_ONLY
     assert baseline.completeness is BaselineCompleteness.COMPLETE
     assert baseline.total_value == "100"
+    assert baseline.positions[0].exposure_percentage == "100"
+    assert baseline.positions[0].exposure_state is RiskDataState.AVAILABLE
     assert [position.security.symbol for position in baseline.positions] == ["AAPL"]
     assert baseline.positions[0].security.state is SecurityState.UNRESOLVED
     assert baseline.baseline_id.startswith("portfolio-baseline:")
     assert len(baseline.baseline_hash) == 64
     assert baseline.baseline_hash == service.get_portfolio_baseline(owner_id=7).baseline_hash
     assert all(position.as_of <= baseline.as_of for position in baseline.positions)
+
+
+def test_authoritative_holding_change_changes_baseline_hash():
+    account = _account()
+    holding = _holding()
+    session = _Session([account], [holding])
+    service = InvestmentRiskService(session)
+    first = service.get_portfolio_baseline(owner_id=7)
+    holding.current_value = 125
+    second = service.get_portfolio_baseline(owner_id=7)
+    assert first.baseline_hash != second.baseline_hash
+    assert second.total_value == "125"
 
 
 def test_unknown_currency_and_identity_remain_explicit_not_zero():
@@ -96,9 +112,20 @@ def test_unknown_currency_and_identity_remain_explicit_not_zero():
     assert baseline.total_value is None
     assert baseline.completeness is BaselineCompleteness.PARTIAL
     assert baseline.positions[0].market_value_state is RiskDataState.UNKNOWN
+    assert baseline.positions[0].exposure_percentage is None
+    assert baseline.positions[0].exposure_state is RiskDataState.UNAVAILABLE
     assert baseline.positions[0].security.state is SecurityState.UNRESOLVED
     assert "currency_unavailable" in " ".join(baseline.omissions)
     assert any(metric.name == "portfolio_volatility" and metric.state is RiskDataState.UNAVAILABLE for metric in baseline.metrics)
+
+
+def test_nonpositive_price_remains_unavailable():
+    service = InvestmentRiskService(_Session([_account()], [_holding(price=0, value=100)]))
+    baseline = service.get_portfolio_baseline(owner_id=7)
+    assert baseline.positions[0].market_value_state is RiskDataState.UNKNOWN
+    assert baseline.positions[0].market_value is not None
+    assert baseline.total_value is None
+    assert "market_value_unavailable" in " ".join(baseline.omissions)
 
 
 def test_unsupported_instrument_is_preserved():
@@ -139,6 +166,19 @@ def test_future_portfolio_source_timestamp_fails_closed():
     account.updated_at = future
     with pytest.raises(ValueError, match="future portfolio source timestamp"):
         InvestmentRiskService(_Session([account], [_holding()])).get_portfolio_baseline(owner_id=7)
+
+
+def test_zero_total_baseline_is_not_divided_and_preview_fails_closed():
+    service = InvestmentRiskService(_Session([_account()], [_holding(value=0, price=1)]))
+    baseline = service.get_portfolio_baseline(owner_id=7)
+    assert baseline.total_value == "0"
+    assert baseline.positions[0].exposure_percentage is None
+    assert baseline.positions[0].exposure_state is RiskDataState.UNAVAILABLE
+    with pytest.raises(ValueError, match="positive"):
+        service.preview_investment_risk_scenario(
+            owner_id=7,
+            request=RiskScenarioRequest(baseline_id=baseline.baseline_id, position_id=11, market_value_delta="0"),
+        )
 
 
 def test_preview_rejects_stale_baseline_and_negative_result():

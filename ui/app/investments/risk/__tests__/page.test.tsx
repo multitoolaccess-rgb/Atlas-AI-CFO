@@ -16,7 +16,7 @@ const baseline = {
   as_of: '2026-09-01T00:00:00Z',
   as_known_at: '2026-09-01T00:00:00Z',
   capability: 'current_only' as const,
-  positions: [{ position_id: 11, security: { security_id: 'sec:aapl', instrument_type: 'equity', symbol: 'AAPL', currency: null, state: 'resolved' }, quantity: '1', market_value: '100', currency: 'USD', market_value_state: 'available' as const, cost_basis: '80', cost_basis_state: 'available' as const, as_of: '2026-09-01T00:00:00Z', source_id: 'holding:11', source_hash: 'a'.repeat(64) }],
+  positions: [{ position_id: 11, security: { security_id: 'sec:aapl', instrument_type: 'equity', symbol: 'AAPL', currency: null, state: 'resolved' }, quantity: '1', market_value: '100', currency: 'USD', market_value_state: 'available' as const, exposure_percentage: '100', exposure_state: 'available' as const, cost_basis: '80', cost_basis_state: 'available' as const, as_of: '2026-09-01T00:00:00Z', source_id: 'holding:11', source_hash: 'a'.repeat(64) }],
   total_value: '100',
   currency: 'USD',
   metrics: [
@@ -68,6 +68,7 @@ describe('UI-11 risk and scenario view', () => {
     expect(screen.getByText('current only')).toBeInTheDocument()
     expect(screen.getByText('portfolio volatility methodology is not approved for UI-11')).toBeInTheDocument()
     expect(screen.getByText('AAPL')).toBeInTheDocument()
+    expect(screen.getByText('100%')).toBeInTheDocument()
     expect(screen.queryByText('Brokerage')).not.toBeInTheDocument()
     expect(screen.queryByText('account:1')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /buy|sell|execute|order|rebalance/i })).not.toBeInTheDocument()

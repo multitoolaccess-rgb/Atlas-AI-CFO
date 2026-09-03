@@ -19,7 +19,7 @@ owned accounts and holdings
 The first slice is explicitly:
 
 - current-only owner-scoped portfolio baseline;
-- descriptive position count, observed value, total value, and data-quality metrics;
+- descriptive position count, observed value, total value, per-position exposure percentage, and data-quality metrics;
 - single-currency aggregation only when all contributing values are complete and compatible;
 - bounded, on-demand hypothetical position-value delta preview;
 - deterministic canonical hashes and stable position ordering;
@@ -39,7 +39,7 @@ No scenario result persistence or migration is required for this slice because t
 
 Accounts and holdings are current source rows. Every baseline is marked `current_only`. Source timestamps are preserved in the typed projection; future-dated account or holding timestamps fail closed. The service does not assign a historical meaning to a caller-supplied `as_of`.
 
-Only USD account values are currently aggregateable. Unknown or mixed currencies leave total value and exposure-derived aggregation unavailable. Unresolved or unsupported holding identities remain visible with explicit state and omission reasons.
+Only USD account values are currently aggregateable. Unknown or mixed currencies leave total value and exposure-derived aggregation unavailable. A zero total leaves per-position exposure unavailable rather than dividing by zero. Unresolved or unsupported holding identities remain visible with explicit state and omission reasons.
 
 ## Security and recovery
 

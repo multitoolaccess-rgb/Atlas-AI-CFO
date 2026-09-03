@@ -10,7 +10,7 @@ const baseline = {
   positions: [{
     position_id: 11,
     security: { security_id: 'sec:aapl', instrument_type: 'equity', symbol: 'AAPL', currency: null, state: 'resolved' },
-    quantity: '1', market_value: '100', currency: 'USD', market_value_state: 'available',
+    quantity: '1', market_value: '100', currency: 'USD', market_value_state: 'available', exposure_percentage: '100', exposure_state: 'available',
     cost_basis: '80', cost_basis_state: 'available', as_of: '2026-09-01T00:00:00Z',
     source_id: 'holding:11', source_hash: 'a'.repeat(64),
   }],

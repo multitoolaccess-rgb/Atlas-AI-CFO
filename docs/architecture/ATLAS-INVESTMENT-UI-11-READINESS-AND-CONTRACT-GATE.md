@@ -20,11 +20,7 @@ The repository contains useful adjacent capabilities:
 
 Those capabilities do not establish authority for historical portfolio risk or advanced metrics. The accepted first slice therefore defines a separate current-only baseline and bounded descriptive preview in `docs/adr/ADR-UI-11-CURRENT-PORTFOLIO-RISK-BOUNDARY.md`. Existing Scenario Lab results remain goal projections and are not relabeled as portfolio risk.
 
-The smallest safe next step is one bounded prerequisite package:
-
-> **Approve and implement a trusted portfolio baseline plus a separate `InvestmentRiskScenario` contract and methodology.**
-
-This prerequisite must be completed before UI-11 API or UI implementation. It must not modify `InvestmentRecommendation`, `CommitteeFinding`, `HumanDecisionRecord`, `RecommendationOutcome`, or the goal Scenario Lab semantics.
+This document originally served as the UI-11 readiness gate. The approved first slice is now implemented; the remaining sections distinguish delivered guarantees from deferred historical and advanced-risk expansion. The delivered boundary does not modify `InvestmentRecommendation`, `CommitteeFinding`, `HumanDecisionRecord`, `RecommendationOutcome`, or the goal Scenario Lab semantics.
 
 ## 1. Current Phase and Scope Status
 
@@ -311,7 +307,7 @@ The server must resolve owner scope from authentication before lookup and before
 
 ### Current security posture
 
-Accounts and holdings routes apply owner filters through the local authenticated user. `build_portfolio_snapshot` filters accounts by `user_id` and holdings by those account IDs. This is a useful baseline but does not yet prove UI-11 API behavior because no UI-11 route exists. New endpoints require real HTTP owner-isolation tests for baseline, scenario, comparison, and detail reads.
+Accounts and holdings routes apply owner filters through the local authenticated user. `build_portfolio_snapshot` filters accounts by `user_id` and holdings by those account IDs. The current implementation exposes real HTTP owner-isolation tests for the baseline and on-demand scenario preview; persisted comparison/detail resources are intentionally out of scope.
 
 ## 10. Minimum Required Architecture
 
@@ -337,7 +333,7 @@ Canonical security identity + owner holdings
 
 ### 10.1 Trusted baseline contract
 
-The prerequisite should define a server-owned `InvestmentPortfolioBaseline/v1` (name subject to ADR approval) containing at least:
+The delivered first slice defines `InvestmentPortfolioBaseline/v1` with the following minimum fields and guarantees:
 
 - stable baseline ID and schema version;
 - authenticated owner scope;
@@ -358,7 +354,7 @@ A database snapshot table is not automatically required. First determine whether
 
 ### 10.2 Risk/scenario contract
 
-The prerequisite should define a separate `InvestmentRiskScenario/v1` (name subject to ADR approval) containing:
+The delivered first slice defines a separate `InvestmentRiskScenario/v1` (name subject to ADR approval) containing:
 
 - scenario identity and schema version;
 - owner scope and baseline ID/hash;
@@ -374,7 +370,7 @@ The prerequisite should define a separate `InvestmentRiskScenario/v1` (name subj
 - deterministic result hash;
 - no recommendation action, target allocation, order, trade, transfer, or mutation fields.
 
-The initial slice should default to an on-demand preview. Persistence of scenario results is a separate decision; if added, it must be immutable/versioned and must not be confused with the existing goal Scenario Lab tables.
+The delivered first slice is on-demand. Persistence of scenario results remains a separate decision; if added, it must be immutable/versioned and must not be confused with the existing goal Scenario Lab tables.
 
 ### 10.3 Application interfaces
 
@@ -421,7 +417,7 @@ The UI-11 surface should present:
 - no buy/sell/order/execute/rebalance controls;
 - no browser-side financial calculations.
 
-UI-11 must not begin from a page mock that invents missing metrics. The backend contract must be stable first.
+Future UI-11 expansion must not begin from a page mock that invents missing metrics. Any historical or advanced risk contract must be stable first.
 
 ## 12. Required Test Plan
 
@@ -481,20 +477,21 @@ UI-11 must not begin from a page mock that invents missing metrics. The backend 
 
 ### YELLOW — Existing capability requiring a bounded adapter
 
-- Convert owner holdings/accounts into a server-owned baseline projection.
-- Reconcile portfolio position identity with the canonical INV-01 identity boundary.
-- Connect market observation series to positions through trusted server adapters.
+- Convert owner holdings/accounts into a server-owned baseline projection — **delivered for the current-only slice**.
+- Reconcile portfolio position identity with the canonical INV-01 identity boundary — **identity remains explicitly unresolved when no security-master reference exists**.
+- Connect market observation series to positions through trusted server adapters for any future historical/advanced metrics.
 - Reuse Scenario Lab immutability/hash/freshness conventions without its goal semantics.
-- Add typed portfolio-risk routes over approved baseline/methodology outputs.
+- The delivered typed portfolio-risk routes cover the approved current-only scope; future routes require their own contract review.
 
-### ORANGE — Missing canonical contract or data source
+### ORANGE — Deferred expansion gaps
 
-- Approved portfolio risk methodology and metric definitions.
-- Versioned `InvestmentPortfolioBaseline/v1` capability with proven current-only semantics.
-- Portfolio historical valuation/observation source if historical risk is required.
-- Portfolio covariance/correlation/drawdown/stress semantics if those UI surfaces are required.
-- Sector/geography/issuer classification and authoritative FX/liquidity sources if those views are required.
-- Decision on on-demand versus persisted risk scenarios.
+The following capabilities remain intentionally outside the delivered first slice:
+
+- Approved advanced portfolio-risk methodology;
+- historical valuation/replay source;
+- covariance/correlation/drawdown/stress semantics;
+- classification, FX, and liquidity sources; and
+- any decision to persist scenarios.
 
 ### RED — Architectural conflicts
 
@@ -508,10 +505,10 @@ UI-11 must not begin from a page mock that invents missing metrics. The backend 
 
 ## 14. First-Slice Delivery and Deferred Expansion
 
-The approved prerequisite package is complete for the bounded first slice. Its delivered decisions and artifacts are:
+The approved first-slice package is complete. Its delivered decisions and artifacts are:
 
 1. Approved methodology: descriptive current-only portfolio baseline plus bounded hypothetical preview.
-2. Approved metrics: position count, observed/total value where compatible, and explicit data-quality states; advanced risk metrics remain unavailable.
+2. Approved metrics: position count, observed/total value where compatible, per-position exposure where a nonzero compatible total exists, and explicit data-quality states; advanced risk metrics remain unavailable.
 3. `InvestmentPortfolioBaseline/v1` is owner-scoped, hash-bound, provenance-bearing, and explicitly current-only.
 4. `InvestmentRiskScenario/v1` accepts bounded intent, preserves baseline/source hashes, and marks results hypothetical and non-predictive.
 5. Historical portfolio observation/replay is not provided; current holdings are never relabeled as historical.
@@ -542,18 +539,17 @@ UI-09 discovery output may be an optional selector source, but UI-11 must remain
 
 UI-10 may later consume a trusted UI-11 baseline/scenario context only through a separately versioned read-only selector. No UI-10 change is required by this audit.
 
-## 16. Recommended Execution Sequence
+## 16. Future Expansion Sequence
 
-1. Freeze the audited scope and preserve UI-08/UI-09/UI-10 behavior.
-2. Write and approve an ADR for the first UI-11 methodology and supported metric set.
-3. Reconcile portfolio position identity with the existing canonical security contract through a server-side adapter.
-4. Implement `InvestmentPortfolioBaseline/v1` as an owner-scoped, hash-bound, explicitly current-only projection; add persistence only if deterministic reconstruction cannot prove the requested baseline.
-5. Implement a pure server-side preview over the approved bounded hypothetical inputs; inherit Scenario Lab's Decimal/hash/freshness patterns without reusing goal semantics.
-6. Add typed owner-scoped API routes and sanitized errors.
-7. Add domain, repository, HTTP security, temporal, provenance, and no-mutation tests.
-8. Run migration validation only if additive persistence is authorized; otherwise prove no schema change is needed.
-9. Implement the UI-11 read-only risk/scenario surface with explicit limitations, table fallback, and hypothetical/non-predictive labels.
-10. Run browser accessibility/responsive/privacy/no-execution validation and certify only the implemented scope.
+The delivered current-only slice is complete. Any future UI-11 expansion must proceed as a separately approved contract sequence:
+
+1. Define and approve the additional metric methodology and supported source set.
+2. Add or connect historical portfolio observations only where holdings, valuations, identity, currency, and known-at semantics are reconstructable.
+3. Add typed server projections and focused temporal, provenance, compatibility, ownership, and no-mutation tests.
+4. Add UI only after the expanded backend contract is stable and unsupported states remain explicit.
+5. Re-run browser accessibility, privacy, responsiveness, and no-execution certification.
+
+Do not infer historical or advanced risk semantics from the current-only implementation.
 
 ## 17. Final Design Verdict
 
