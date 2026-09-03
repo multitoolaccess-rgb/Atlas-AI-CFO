@@ -1,6 +1,6 @@
 # Atlas Investment Intelligence UI/UX Implementation Roadmap
 
-**Status:** Planning only — UI/UX-01 checkpoint
+**Status:** UI-09 complete for approved bounded scope; UI-10 certified for bounded read-only contextual Scout; remaining-phase readiness audit in `ATLAS-INVESTMENT-REMAINING-PHASES-AUDIT-AND-EXECUTION-PLAN.md`
 **Authority:** `docs/architecture/ATLAS-INVESTMENT-UI-UX-ARCHITECTURE.md`
 **Scope:** Future read-only investment UI delivery; no phases below are started by this document.
 
@@ -26,10 +26,10 @@
 | UI-06 | Financial visualization adapter | Stable chart payloads and accessibility requirements | Planned |
 | UI-07 | Evidence and provenance experience | INV-01 evidence packets; domain provenance | Planned |
 | UI-08 | Recommendation review and user decision | INV-08/09 typed lifecycle | Planned |
-| UI-09 | Opportunity discovery and comparison | Future screening/comparison read models | Planned |
-| UI-10 | AI investment workspace | INV-08 typed assistant/context boundary | Planned |
-| UI-11 | Risk and scenario views | INV-03 risk, later scenario contracts | Planned |
-| UI-12 | Integration hardening and trust review | INV-10–12 reports, tracking, evaluation | Planned |
+| UI-09 | Opportunity discovery and comparison | Approved current-only portfolio and bounded S&P 500 read models | Complete for approved bounded scope |
+| UI-10 | AI investment workspace | Typed investment context, read-only tools, citations, prompt-injection defenses | Complete/certified for bounded read-only contextual Scout |
+| UI-11 | Risk and scenario views | Approved risk methodology and trusted portfolio baseline | Not started — methodology prerequisite required |
+| UI-12 | Integration hardening and trust review | Stable implemented surfaces plus evaluation/retention boundary | Not started — final certification |
 
 ## UI-02 — Investment navigation and route contracts
 
@@ -176,6 +176,8 @@
 **Rollback:** hide discovery route; preserve manually opened security research.
 
 ## UI-10 — AI investment workspace
+
+**Current implementation note:** UI-10 is certified for the bounded read-only contextual Scout scope through `InvestmentAssistantContext/v1`, `InvestmentAssistantQueryRequest/v1`, `/api/v1/investments/assistant/{context,tool,query}`, server-side citation validation, untrusted-data prompt fencing, execution-intent refusal, sanitized offline handling, focused HTTP coverage, and responsive/accessibility browser validation. Discovery, security, and portfolio selectors remain explicit limited states until dedicated server-owned adapters exist.
 
 **Objective:** Let Scout answer contextual investment questions from structured Atlas evidence.
 
