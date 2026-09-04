@@ -4,11 +4,10 @@
 
 - Current phase: **ui-12 — Cross-route trust certification** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Complete the approved bounded UI-10 provider-backed Scout expansion review while preserving the certified UI-09/UI-11 boundaries and the partial UI-12 trust-certification record.
+- Current objective: Preserve the now-committed UI-10 provider-backed Scout expansion and the certified UI-09/UI-11 boundaries, and remediate the UI-12 /portfolio responsive and certification blockers before the final trust-certification rerun.
 - Last updated: 2026-09-04T04:00:00Z
 
 ## Active work
-- work-ui-10-provider-backed-scout-expansion: Review bounded provider-backed UI-10 Scout expansion (in_progress, high)
 - work-ui-12-portfolio-remediation-and-certification: Remediate UI-12 responsive and certification blockers (in_progress, medium)
 
 ## Blockers
@@ -44,7 +43,7 @@
 - ui-07 — Evidence drawer: complete (1/1 exit criteria)
 - ui-08 — Recommendation review: complete (1/1 exit criteria)
 - ui-09 — Opportunity discovery and comparison: complete (3/3 exit criteria)
-- ui-10 — Contextual investment assistant: in_progress (0/1 exit criteria)
+- ui-10 — Contextual investment assistant: complete (1/1 exit criteria)
 - ui-11 — Risk and scenario presentation: complete (1/1 exit criteria)
 - ui-12 — Cross-route trust certification: in_progress (1/2 exit criteria)
 - inv-12 — Evaluation, calibration, replay, and retention: not_started (0/1 exit criteria)
@@ -71,11 +70,11 @@
 - risk-ui11-current-only-scope [medium/high, open]: UI-11 is intentionally limited to a current-only portfolio baseline, descriptive compatible value/exposure metrics, and an on-demand hypothetical value preview; historical reconstruction and advanced aggregate risk methods are unavailable.
 
 ## Recently completed work
-- work-ui-10-contextual-assistant: UI-10 contextual investment assistant — commit f5a1cc8, PR n/a
 - work-ui-09-discovery-foundation: UI-09 server-owned discovery foundation — commit 09c2cfd, PR n/a
 - work-ui-11-risk-scenario-boundary: UI-11 bounded current-only risk/scenario presentation — commit b9ecce0, PR n/a
 - work-ui-12-cross-route-trust-certification: Audit UI-12 cross-route trust and certification readiness — commit null, PR None
 - work-ui-12-coordinated-certification-evidence: Run coordinated UI-12 trust certification evidence — commit ad6bfb8, PR None
+- work-ui-10-provider-backed-scout-expansion: Implement and commit bounded provider-backed UI-10 Scout expansion — commit 84259ee, PR None
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation

@@ -7,16 +7,12 @@
 - Phase: ui-12 — Cross-route trust certification
 - Phase status: in_progress
 - Overall status: in_progress
-- Objective: Complete the approved bounded UI-10 provider-backed Scout expansion review while preserving the certified UI-09/UI-11 boundaries and the partial UI-12 trust-certification record.
+- Objective: Preserve the now-committed UI-10 provider-backed Scout expansion and the certified UI-09/UI-11 boundaries, and remediate the UI-12 /portfolio responsive and certification blockers before the final trust-certification rerun.
 - Phase exit criteria: 1/2 complete
 - Tracker updated: 2026-09-04T04:00:00Z
 
 ## Active work
 
-- work-ui-10-provider-backed-scout-expansion: Review bounded provider-backed UI-10 Scout expansion [in_progress/high]
-  - Objective: Review and commit the approved bounded provider-backed UI-10 Scout expansion after focused contract, persistence, API, UI, and browser validation.
-  - Branch: None
-  - Paths: services/rules-service/app/investments/scout.py,services/rules-service/app/models/investment_scout.py,services/rules-service/app/routes/investment_scout.py,services/rules-service/alembic/versions/AB16a1b2c3d4e5_add_investment_scout_runs.py,services/rules-service/tests/test_investment_scout.py,services/rules-service/tests/test_investment_scout_http.py,services/rules-service/tests/test_investment_scout_migration.py,ui/lib/investmentScout.ts,ui/app/investments/scout/page.tsx,ui/app/investments/scout/__tests__/page.test.tsx, docs/architecture/ATLAS-INVESTMENT-REMAINING-PHASES-AUDIT-AND-EXECUTION-PLAN.md,docs/architecture/ATLAS-INVESTMENT-CONSOLIDATED-EXECUTION-PLAN.md,docs/architecture/ATLAS-INVESTMENT-UI-UX-IMPLEMENTATION-ROADMAP.md,docs/architecture/ATLAS-INVESTMENT-UI-12-READINESS-AND-TRUST-CERTIFICATION-AUDIT.md
 - work-ui-12-portfolio-remediation-and-certification: Remediate UI-12 responsive and certification blockers [in_progress/medium]
   - Objective: Close repository-scoped responsive defects revealed by the expanded UI-12 matrix without changing investment semantics, then rerun the consolidated certification evidence.
   - Branch: None
@@ -44,11 +40,11 @@
 
 ## Recently completed
 
-- work-ui-10-contextual-assistant: UI-10 contextual investment assistant — commit f5a1cc8, PR not recorded
 - work-ui-09-discovery-foundation: UI-09 server-owned discovery foundation — commit 09c2cfd, PR not recorded
 - work-ui-11-risk-scenario-boundary: UI-11 bounded current-only risk/scenario presentation — commit b9ecce0, PR not recorded
 - work-ui-12-cross-route-trust-certification: Audit UI-12 cross-route trust and certification readiness — commit null, PR not recorded
 - work-ui-12-coordinated-certification-evidence: Run coordinated UI-12 trust certification evidence — commit ad6bfb8, PR not recorded
+- work-ui-10-provider-backed-scout-expansion: Implement and commit bounded provider-backed UI-10 Scout expansion — commit 84259ee, PR not recorded
 
 ## Next bounded task
 

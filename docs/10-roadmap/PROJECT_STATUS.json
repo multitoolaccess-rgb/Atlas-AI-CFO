@@ -2,28 +2,6 @@
   "active_work": [
     {
       "branch": "",
-      "id": "work-ui-10-provider-backed-scout-expansion",
-      "issue": "",
-      "objective": "Review and commit the approved bounded provider-backed UI-10 Scout expansion after focused contract, persistence, API, UI, and browser validation.",
-      "paths": [
-        "services/rules-service/app/investments/scout.py,services/rules-service/app/models/investment_scout.py,services/rules-service/app/routes/investment_scout.py,services/rules-service/alembic/versions/AB16a1b2c3d4e5_add_investment_scout_runs.py,services/rules-service/tests/test_investment_scout.py,services/rules-service/tests/test_investment_scout_http.py,services/rules-service/tests/test_investment_scout_migration.py,ui/lib/investmentScout.ts,ui/app/investments/scout/page.tsx,ui/app/investments/scout/__tests__/page.test.tsx",
-        "docs/architecture/ATLAS-INVESTMENT-REMAINING-PHASES-AUDIT-AND-EXECUTION-PLAN.md,docs/architecture/ATLAS-INVESTMENT-CONSOLIDATED-EXECUTION-PLAN.md,docs/architecture/ATLAS-INVESTMENT-UI-UX-IMPLEMENTATION-ROADMAP.md,docs/architecture/ATLAS-INVESTMENT-UI-12-READINESS-AND-TRUST-CERTIFICATION-AUDIT.md"
-      ],
-      "phase_id": "ui-10",
-      "risk_tier": "high",
-      "status": "in_progress",
-      "tests": [
-        "21 focused backend Scout/domain/API/migration/model tests passed",
-        "1 focused provider-backed Scout UI test passed",
-        "TypeScript typecheck passed",
-        "Frontend lint passed",
-        "Python compileall passed",
-        "2-test UI-12 Playwright matrix passed with /investments/scout included"
-      ],
-      "title": "Review bounded provider-backed UI-10 Scout expansion"
-    },
-    {
-      "branch": "",
       "id": "work-ui-12-portfolio-remediation-and-certification",
       "issue": "",
       "objective": "Close repository-scoped responsive defects revealed by the expanded UI-12 matrix without changing investment semantics, then rerun the consolidated certification evidence.",
@@ -1609,9 +1587,43 @@
         "691 frontend Vitest tests passed; TypeScript typecheck and production build passed"
       ],
       "title": "Run coordinated UI-12 trust certification evidence"
+    },
+    {
+      "branch": "",
+      "commit": "84259ee",
+      "id": "work-ui-10-provider-backed-scout-expansion",
+      "issue": "",
+      "objective": "Implement and commit the approved bounded provider-backed UI-10 Scout expansion: typed source/claim contracts, owner-scoped immutable runs, prompt-injection-safe source handling, and bounded current-context provider research via existing server-side adapters.",
+      "paths": [
+        "services/rules-service/app/investments/scout.py,services/rules-service/app/models/investment_scout.py,services/rules-service/app/routes/investment_scout.py,services/rules-service/alembic/versions/AB16a1b2c3d4e5_add_investment_scout_runs.py,services/rules-service/tests/test_investment_scout.py,services/rules-service/tests/test_investment_scout_http.py,services/rules-service/tests/test_investment_scout_migration.py,ui/lib/investmentScout.ts,ui/app/investments/scout/page.tsx,ui/app/investments/scout/__tests__/page.test.tsx,ui/__tests__/e2e/ui12-trust-certification.spec.ts",
+        "docs/architecture/ATLAS-INVESTMENT-REMAINING-PHASES-AUDIT-AND-EXECUTION-PLAN.md,docs/architecture/ATLAS-INVESTMENT-CONSOLIDATED-EXECUTION-PLAN.md,docs/architecture/ATLAS-INVESTMENT-UI-UX-IMPLEMENTATION-ROADMAP.md,docs/architecture/ATLAS-INVESTMENT-UI-12-READINESS-AND-TRUST-CERTIFICATION-AUDIT.md,docs/architecture/ATLAS-INVESTMENT-COMPLETENESS-GAP-REPORT.md,docs/10-roadmap/PROJECT_STATUS.json,docs/10-roadmap/PROJECT_STATUS.md,docs/10-roadmap/CURRENT_HANDOFF.md"
+      ],
+      "phase_id": "ui-10",
+      "pr": null,
+      "review_evidence": "User approved the expansion for scope and explicitly authorized committing and pushing the complete worktree; staged review covered 82 files with git diff --cached --check clean.",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "26 focused backend Scout/domain/API/migration/model tests passed",
+        "1 focused provider-backed Scout UI test passed",
+        "TypeScript typecheck passed",
+        "Frontend lint passed",
+        "Python compileall passed",
+        "2-test UI-12 Playwright matrix passed with /investments/scout included",
+        "git diff --check passed"
+      ],
+      "title": "Implement and commit bounded provider-backed UI-10 Scout expansion",
+      "validation_evidence": {
+        "command": "pytest tests/test_investment_scout*.py tests/test_ui11_risk_scenarios.py; compileall; vitest Scout UI; npm typecheck + lint; Playwright ui12-trust-certification; atlas project status check; git diff --check",
+        "commit": "84259ee",
+        "environment": "Python 3.12 isolated Rules Service environment; local Node/Next/Playwright environment; disposable SQLite test database; no provider call or migration access",
+        "kind": "local",
+        "result": "26 backend tests passed; Scout UI test, typecheck, lint, compile, tracker validation, and the 2-test UI-12 matrix passed",
+        "timestamp": "2026-09-04T05:30:00Z"
+      }
     }
   ],
-  "current_objective": "Complete the approved bounded UI-10 provider-backed Scout expansion review while preserving the certified UI-09/UI-11 boundaries and the partial UI-12 trust-certification record.",
+  "current_objective": "Preserve the now-committed UI-10 provider-backed Scout expansion and the certified UI-09/UI-11 boundaries, and remediate the UI-12 /portfolio responsive and certification blockers before the final trust-certification rerun.",
   "current_phase_id": "ui-12",
   "last_updated": "2026-09-04T04:00:00Z",
   "next_bounded_task": {
@@ -2022,14 +2034,14 @@
     {
       "exit_criteria": [
         {
-          "complete": false,
-          "description": "The original contextual Scout remains certified under f5a1cc8. The approved provider-backed expansion is implemented and focused-validated but remains in progress until its owned changes are reviewed and committed; it adds strict source/claim provenance, owner-scoped immutable runs, prompt-injection-safe source handling, and bounded current-context provider research.",
+          "complete": true,
+          "description": "The original contextual Scout remains certified under f5a1cc8. The approved provider-backed expansion is implemented, focused-validated, and committed under 84259ee: strict source/claim provenance, owner-scoped immutable runs, prompt-injection-safe source handling, and bounded current-context provider research.",
           "id": "ec-ui-10-boundary"
         }
       ],
       "id": "ui-10",
       "name": "Contextual investment assistant",
-      "status": "in_progress"
+      "status": "complete"
     },
     {
       "exit_criteria": [
