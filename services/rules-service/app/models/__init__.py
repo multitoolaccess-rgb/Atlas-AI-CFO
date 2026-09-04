@@ -75,6 +75,14 @@ from app.models.investment_persistence import (
     InvestmentOutcomeRecord,
 )
 from app.models.investment_scout import InvestmentScoutRun
+# INV-12 design gate — immutable durable stores (observations, portfolio
+# snapshots, evaluation artifacts). Registered so ``Base.metadata.create_all``
+# (test conftest) and alembic autogenerate see the three tables.
+from app.models.investment_evaluation import (
+    InvestmentEvaluationRecord,
+    InvestmentMarketObservation,
+    InvestmentPortfolioSnapshot,
+)
 
 __all__ = [
     "Budget",
@@ -116,4 +124,7 @@ __all__ = [
     "InvestmentDecisionRecord",
     "InvestmentOutcomeRecord",
     "InvestmentScoutRun",
+    "InvestmentEvaluationRecord",
+    "InvestmentMarketObservation",
+    "InvestmentPortfolioSnapshot",
 ]

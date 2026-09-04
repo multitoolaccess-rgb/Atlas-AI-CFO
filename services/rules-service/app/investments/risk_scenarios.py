@@ -20,7 +20,8 @@ from sqlalchemy.orm import Session
 
 from app.models import Account, Holding
 from .contracts import InvestmentStrictModel
-from .securities import InstrumentType, SecurityIdentity, SecurityState, security_id_for
+from .holding_identity import HoldingIdentityPolicy, identity_for_holding
+from .securities import SecurityIdentity, SecurityState
 
 _MAX_DELTA = Decimal("1000000000000")
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
@@ -281,33 +282,13 @@ def _decimal(value: Any) -> str | None:
 
 
 def _identity(holding: Holding, as_of: datetime) -> SecurityIdentity:
-    symbol = (holding.symbol or "").strip().upper() or None
-    raw_type = (holding.type or "").strip().lower()
-    mapping = {
-        "stock": "equity", "equity": "equity", "etf": "etf",
-        "mutual fund": "mutual_fund", "fund": "mutual_fund", "index": "index",
-    }
-    instrument = mapping.get(raw_type, "unknown")
-    if symbol and instrument != "unknown":
-        # Holdings do not carry a verified security-master reference in
-        # the current source path. Preserve the stable display alias,
-        # but do not promote ticker/type inference to canonical identity.
-        security_id = security_id_for(namespace="atlas-unresolved", value=f"{instrument}:{symbol}")
-        state = SecurityState.UNRESOLVED
-    elif symbol:
-        security_id = security_id_for(namespace="atlas-unsupported", value=f"{raw_type}:{symbol}")
-        instrument = InstrumentType.UNKNOWN
-        state = SecurityState.UNSUPPORTED
-    else:
-        security_id = security_id_for(namespace="atlas-unresolved", value=f"holding:{holding.id}")
-        instrument = InstrumentType.UNKNOWN
-        state = SecurityState.UNRESOLVED
-    return SecurityIdentity(
-        security_id=security_id,
-        instrument_type=InstrumentType(instrument),
-        symbol=symbol,
-        currency=None,
-        state=state,
+    # GAP-09: shared resolver under the ADR-UI-11 MASTER_VERIFIED_ONLY policy.
+    # Outputs are identical to the former local derivation: holdings never
+    # promote ticker/type inference to canonical identity because the
+    # holdings source path carries no verified security master.
+    return identity_for_holding(
+        holding,
+        policy=HoldingIdentityPolicy.MASTER_VERIFIED_ONLY,
         as_of=as_of,
     )
 

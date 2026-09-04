@@ -15,8 +15,12 @@ from app.database import register_sqlite_compat
 
 
 ROOT = Path(__file__).resolve().parent.parent
+# The scout-run migration (AB16) is no longer the head: the INV-12 durable
+# stores chain AC17 → AD18 → AE19 follow it. This suite therefore asserts
+# the scout table's presence/absence against the current single head.
 SCOUT_REVISION = "AB16a1b2c3d4e5"
 PARENT_REVISION = "AA15a1b2c3d4e5"
+CURRENT_HEAD = "AE19a1b2c3d4e5"
 
 
 def _config(url: str) -> Config:
@@ -62,14 +66,14 @@ def test_scout_migration_round_trip_is_additive(monkeypatch: pytest.MonkeyPatch)
         engine = create_engine(url)
         register_sqlite_compat(engine)
         assert "investment_scout_runs" in inspect(engine).get_table_names()
-        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == SCOUT_REVISION
+        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == CURRENT_HEAD
 
         command.downgrade(_config(url), PARENT_REVISION)
         assert "investment_scout_runs" not in inspect(engine).get_table_names()
 
         _upgrade(monkeypatch, url, "head")
         assert "investment_scout_runs" in inspect(engine).get_table_names()
-        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == SCOUT_REVISION
+        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == CURRENT_HEAD
         engine.dispose()
 
 

@@ -13,7 +13,8 @@ from enum import StrEnum
 from typing import Iterable
 
 from .contracts import DataState, InvestmentStrictModel
-from .securities import InstrumentType, SecurityIdentity, SecurityState, security_id_for
+from .holding_identity import HoldingIdentityPolicy, identity_for_holding
+from .securities import SecurityIdentity
 
 
 class Completeness(StrEnum):
@@ -81,20 +82,10 @@ class PortfolioSnapshot(InvestmentStrictModel):
 
 
 def _identity(holding) -> SecurityIdentity:
-    symbol = (holding.symbol or "").strip().upper() or None
-    raw_type = (holding.type or "").strip().lower()
-    mapping = {"stock": InstrumentType.EQUITY, "equity": InstrumentType.EQUITY, "etf": InstrumentType.ETF, "mutual fund": InstrumentType.MUTUAL_FUND, "crypto": InstrumentType.UNKNOWN}
-    instrument = mapping.get(raw_type, InstrumentType.UNKNOWN)
-    state = SecurityState.RESOLVED if symbol and instrument is not InstrumentType.UNKNOWN else SecurityState.UNSUPPORTED if symbol else SecurityState.UNRESOLVED
-    return SecurityIdentity(
-        security_id=security_id_for(namespace="atlas-security", value=f"{instrument.value}:{symbol}" ) if symbol and instrument is not InstrumentType.UNKNOWN else security_id_for(namespace="atlas-unresolved", value=f"{instrument.value}:{symbol or 'unknown'}"),
-        state=state,
-        instrument_type=instrument,
-        symbol=symbol,
-        exchange=None,
-        currency=None,
-        as_of=datetime(1970, 1, 1, tzinfo=UTC),
-    )
+    # GAP-09: shared resolver under the frozen INV-12 D-2 rule (INV-03
+    # portfolio projection policy). Outputs are identical to the former
+    # local derivation; risk surfaces use MASTER_VERIFIED_ONLY instead.
+    return identity_for_holding(holding, policy=HoldingIdentityPolicy.CANONICAL)
 
 
 def build_portfolio_snapshot(*, owner_id: int, accounts: Iterable, holdings: Iterable, as_of: datetime) -> PortfolioSnapshot:
