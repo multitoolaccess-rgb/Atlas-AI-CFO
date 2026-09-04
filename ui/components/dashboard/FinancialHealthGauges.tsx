@@ -5,7 +5,7 @@ import { Activity, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import GaugeRing from '@/components/charts/GaugeRing'
 import type { DashboardSummary, DashboardBreakdownResponse, TrendDataPoint } from '@/lib/api'
 import ExpandableCard from '@/components/dashboard/ExpandableCard'
-import { formatNumber } from '@/lib/format'
+import { formatCurrency } from '@/lib/format'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -14,6 +14,11 @@ import { formatNumber } from '@/lib/format'
 interface FinancialHealthGaugesProps {
   summary: DashboardSummary | null
   breakdown: DashboardBreakdownResponse | null
+  /** Optional range-scoped totals; summary remains the fallback for legacy callers. */
+  income?: number
+  expenses?: number
+  /** Label for the shared Cash Flow range. */
+  rangeLabel?: string
   /** Trend data for prior-period delta computation. */
   trends?: TrendDataPoint[] | null
   loading?: boolean
@@ -63,6 +68,9 @@ function getStatusBg(status: MetricDetail['status']): string {
 export default function FinancialHealthGauges({
   summary,
   breakdown,
+  income: rangeIncome,
+  expenses: rangeExpenses,
+  rangeLabel,
   trends,
   loading,
   className = '',
@@ -71,8 +79,8 @@ export default function FinancialHealthGauges({
   const [hoveredGauge, setHoveredGauge] = useState<string | null>(null)
 
   const metrics = useMemo(() => {
-    const income = summary?.total_income_month ?? 0
-    const expenses = summary?.total_expenses_month ?? 0
+    const income = rangeIncome ?? summary?.total_income_month ?? 0
+    const expenses = rangeExpenses ?? summary?.total_expenses_month ?? 0
     const netWorth = summary?.total_balance ?? 0
     const monthlyNet = income - expenses
 
@@ -101,8 +109,8 @@ export default function FinancialHealthGauges({
         label: 'Savings Rate',
         value: savingsRate,
         formula: '(Income − Expenses) / Income × 100',
-        numerator: `${formatNumber(monthlyNet)} net`,
-        denominator: `${formatNumber(income)} income`,
+        numerator: `${formatCurrency(monthlyNet)} net`,
+        denominator: `${formatCurrency(income)} income`,
         status: savingsRate >= 20 ? 'healthy' : savingsRate >= 10 ? 'warning' : 'watch',
         statusLabel: savingsRate >= 20 ? 'Healthy' : savingsRate >= 10 ? 'Fair' : 'Needs attention',
         color: 'auto',
@@ -114,8 +122,8 @@ export default function FinancialHealthGauges({
         label: 'Debt Load',
         value: Math.max(0, 100 - debtRatio),
         formula: 'Debt Payments / Income × 100',
-        numerator: `${formatNumber(debtAmount)} debt`,
-        denominator: `${formatNumber(income)} income`,
+        numerator: `${formatCurrency(debtAmount)} debt`,
+        denominator: `${formatCurrency(income)} income`,
         status: debtRatio <= 15 ? 'healthy' : debtRatio <= 30 ? 'warning' : 'watch',
         statusLabel: debtRatio <= 15 ? 'Healthy' : debtRatio <= 30 ? 'Elevated' : 'Critical',
         color: debtRatio > 30 ? 'var(--danger-500)' : debtRatio > 15 ? 'var(--warning-500)' : 'var(--success-500)',
@@ -126,8 +134,8 @@ export default function FinancialHealthGauges({
         label: 'Investment Rate',
         value: investmentRate,
         formula: 'Savings/Investment / Income × 100',
-        numerator: `${formatNumber(savingsAmount)} saved`,
-        denominator: `${formatNumber(income)} income`,
+        numerator: `${formatCurrency(savingsAmount)} saved`,
+        denominator: `${formatCurrency(income)} income`,
         status: investmentRate >= 15 ? 'healthy' : investmentRate >= 5 ? 'warning' : 'watch',
         statusLabel: investmentRate >= 15 ? 'Healthy' : investmentRate >= 5 ? 'Fair' : 'Needs attention',
         color: 'var(--info-500)',
@@ -138,8 +146,8 @@ export default function FinancialHealthGauges({
         label: 'Cash Buffer',
         value: cashBuffer,
         formula: 'Net Worth / (Monthly Expenses × 12) × 100',
-        numerator: `${formatNumber(netWorth)} net worth`,
-        denominator: `${formatNumber(expenses * 12)} annual`,
+        numerator: `${formatCurrency(netWorth)} net worth`,
+        denominator: `${formatCurrency(expenses * 12)} annual`,
         status: cashBuffer >= 66 ? 'healthy' : cashBuffer >= 33 ? 'warning' : 'watch',
         statusLabel: cashBuffer >= 66 ? '12mo+ runway' : cashBuffer >= 33 ? '6mo runway' : 'Building',
         color: 'auto',
@@ -148,7 +156,7 @@ export default function FinancialHealthGauges({
     ]
 
     return { savingsRate, debtRatio, investmentRate, cashBuffer, details }
-  }, [summary, breakdown, trends])
+  }, [summary, breakdown, rangeIncome, rangeExpenses, trends])
 
   const expandedContent = (
     <div className="space-y-3">
@@ -218,7 +226,7 @@ export default function FinancialHealthGauges({
   return (
     <ExpandableCard
       title="Financial Health"
-      subtitle="Key ratios based on this month's activity"
+      subtitle={rangeLabel ? `Key ratios · ${rangeLabel}` : "Key ratios based on this month's activity"}
       icon={<Activity className="w-4 h-4 text-[var(--primary-600)]" />}
       expandedContent={expandedContent}
       className={className}

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useCallback, type ReactNode } from 'react'
-import { Maximize2, Minimize2 } from 'lucide-react'
+import { useState, useCallback, useEffect, type ReactNode } from 'react'
+import { ChevronDown, ChevronUp, Maximize2, Minimize2 } from 'lucide-react'
 
 interface ExpandableCardProps {
   title: string
@@ -18,6 +18,76 @@ interface ExpandableCardProps {
   onExpand?: (expanded: boolean) => void
 }
 
+/** Shared focus-mode state for dashboard visualizations outside ExpandableCard. */
+export function useDashboardFocus() {
+  const [focused, setFocused] = useState(false)
+
+  useEffect(() => {
+    if (!focused) return
+    const previousOverflow = document.body.style.overflow
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFocused(false)
+    }
+    document.body.style.overflow = 'hidden'
+    document.documentElement.classList.add('dashboard-focus-active')
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.documentElement.classList.remove('dashboard-focus-active')
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [focused])
+
+  return { focused, setFocused }
+}
+
+export function DashboardFocusToggle({ focused, onToggle }: { focused: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--slate-100)] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--primary-500)]"
+      aria-label={focused ? 'Exit focus mode' : 'Open focus mode'}
+      aria-pressed={focused}
+      title={focused ? 'Exit focus mode (Esc)' : 'Open focus mode'}
+      data-testid="dashboard-focus-toggle"
+    >
+      {focused ? <Minimize2 className="w-4 h-4" aria-hidden="true" /> : <Maximize2 className="w-4 h-4" aria-hidden="true" />}
+    </button>
+  )
+}
+
+/**
+ * Full-screen presentation layer shared by all analytical cards.
+ * The floating range bar sits above this layer (z-60), so the selected
+ * range remains available while a chart is in focus mode.
+ */
+export function DashboardFocusLayer({
+  focused,
+  title,
+  children,
+}: {
+  focused: boolean
+  title: string
+  children: ReactNode
+}) {
+  if (!focused) return <>{children}</>
+
+  return (
+    <div
+      className="fixed inset-0 z-50 touch-pan-y overflow-y-auto overscroll-contain bg-[var(--bg-primary)]/95 p-3 pt-28 backdrop-blur-sm sm:p-6 sm:pt-28"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${title} focus mode`}
+      data-testid="dashboard-focus-layer"
+    >
+      <div className="mx-auto min-h-full w-full max-w-[1400px]">
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export default function ExpandableCard({
   title,
   subtitle,
@@ -30,6 +100,7 @@ export default function ExpandableCard({
   onExpand,
 }: ExpandableCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded)
+  const { focused, setFocused } = useDashboardFocus()
 
   const toggle = useCallback(() => {
     setExpanded((prev) => {
@@ -39,11 +110,11 @@ export default function ExpandableCard({
     })
   }, [onExpand])
 
-  return (
+  const card = (
     <div
       className={`card overflow-hidden transition-all duration-200 ${
         expanded ? 'ring-1 ring-[var(--primary-200)]' : ''
-      } ${className}`}
+      } ${focused ? 'min-h-[calc(100vh-3rem)]' : ''} ${className}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between p-5 pb-0">
@@ -69,10 +140,12 @@ export default function ExpandableCard({
               className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--slate-100)] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--primary-500)]"
               aria-label={expanded ? 'Collapse' : 'Expand'}
               aria-expanded={expanded}
+              title={expanded ? 'Collapse details' : 'Expand details'}
             >
-              {expanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
           )}
+          <DashboardFocusToggle focused={focused} onToggle={() => setFocused((value) => !value)} />
         </div>
       </div>
 
@@ -92,4 +165,6 @@ export default function ExpandableCard({
       )}
     </div>
   )
+
+  return <DashboardFocusLayer focused={focused} title={title}>{card}</DashboardFocusLayer>
 }

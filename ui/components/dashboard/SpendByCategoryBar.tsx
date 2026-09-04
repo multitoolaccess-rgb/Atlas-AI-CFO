@@ -3,12 +3,12 @@
 import { useMemo, useState, useCallback, useEffect } from 'react'
 import { Receipt, ArrowUpDown, ChevronRight } from 'lucide-react'
 import type { Transaction, Category } from '@/lib/api'
-import { CATEGORY_GROUP_ORDER, CATEGORY_GROUP_COLORS, CATEGORY_GROUP_LABELS, rulesService } from '@/lib/api'
+import { CATEGORY_GROUP_ORDER, CATEGORY_GROUP_COLORS, CATEGORY_GROUP_LABELS, isSpendingCashflowTransaction, rulesService } from '@/lib/api'
 import ExpandableCard from '@/components/dashboard/ExpandableCard'
 import TreemapChart from '@/components/charts/TreemapChart'
 import type { TreemapDatum } from '@/components/charts/TreemapChart'
 import TiltCard from '@/components/ui/TiltCard'
-import { formatNumber } from '@/lib/format'
+import { formatCurrency } from '@/lib/format'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -24,6 +24,8 @@ interface SpendByCategoryBarProps {
   onCategoryClick?: (categoryName: string) => void
   /** Phase D — pre-loaded categories list for group lookups. */
   categories?: Category[]
+  /** Label for the shared Cash Flow range. */
+  rangeLabel?: string
 }
 
 type SortMode = 'highest' | 'alpha' | 'count'
@@ -45,6 +47,7 @@ export default function SpendByCategoryBar({
   className = '',
   onCategoryClick,
   categories: externalCategories,
+  rangeLabel,
 }: SpendByCategoryBarProps) {
   const colorByName = useMemo(
     () => externalColorMap ?? new Map<string, string>(),
@@ -74,10 +77,10 @@ export default function SpendByCategoryBar({
   }, [categories])
 
   const allCategories = useMemo(() => {
-    // Count all negative-amount transactions grouped by user-assigned
-    // category.  This is a CATEGORY visualization ("where is my money
-    // going") — not a cashflow classification.
-    const expenses = transactions.filter((t) => t.amount < 0)
+    // Use the same effect contract as the Sankey and Breakdown. This is
+    // still a category visualization, but it must not count transfers or
+    // review-only rows that the other money-flow modules exclude.
+    const expenses = transactions.filter(isSpendingCashflowTransaction)
     const map = new Map<string, { total: number; count: number }>()
     for (const txn of expenses) {
       const name = txn.category_name || 'Uncategorized'
@@ -192,7 +195,7 @@ export default function SpendByCategoryBar({
                     <div key={cat.name} className="flex items-center gap-2 text-xs pl-3">
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
                       <span className="text-[var(--text-secondary)] flex-1 truncate">{cat.name}</span>
-                      <span className="font-semibold text-on-surface">{formatNumber(cat.value)}</span>
+                      <span className="font-semibold text-on-surface tabular-nums whitespace-nowrap">{formatCurrency(cat.value)}</span>
                       <span className="text-[var(--text-tertiary)] w-12 text-right">
                         {totalSpending > 0 ? Math.round((cat.value / totalSpending) * 100) : 0}%
                       </span>
@@ -224,7 +227,7 @@ export default function SpendByCategoryBar({
   return (
     <ExpandableCard
       title="Spending by Category"
-      subtitle={`${allCategories.length} categories · ${formatNumber(totalSpending)} total`}
+      subtitle={`${allCategories.length} categories · ${formatCurrency(totalSpending)} total${rangeLabel ? ` · ${rangeLabel}` : ''}`}
       icon={<Receipt className="w-4 h-4 text-[var(--primary-600)]" />}
       headerRight={headerRight}
       expandedContent={expandedContent}
@@ -250,7 +253,7 @@ export default function SpendByCategoryBar({
                     >
                       <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
                       <span className="flex-1 truncate text-[var(--text-secondary)]">{cat.name}</span>
-                      <span className="font-semibold text-on-surface tabular-nums">{formatNumber(cat.value)}</span>
+                      <span className="font-semibold text-on-surface tabular-nums whitespace-nowrap">{formatCurrency(cat.value)}</span>
                     </button>
                   </li>
                 ))}
@@ -260,7 +263,7 @@ export default function SpendByCategoryBar({
         </TiltCard>
       ) : (
         <div className="flex items-center justify-center h-[200px] text-[var(--text-tertiary)]">
-          <p className="text-sm">No categorized expenses yet.</p>
+          <p className="text-sm">No spending in this range.</p>
         </div>
       )}
     </ExpandableCard>

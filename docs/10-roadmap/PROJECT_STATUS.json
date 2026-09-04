@@ -1,5 +1,44 @@
 {
-  "active_work": [],
+  "active_work": [
+    {
+      "branch": "",
+      "id": "work-ui-10-provider-backed-scout-expansion",
+      "issue": "",
+      "objective": "Review and commit the approved bounded provider-backed UI-10 Scout expansion after focused contract, persistence, API, UI, and browser validation.",
+      "paths": [
+        "services/rules-service/app/investments/scout.py,services/rules-service/app/models/investment_scout.py,services/rules-service/app/routes/investment_scout.py,services/rules-service/alembic/versions/AB16a1b2c3d4e5_add_investment_scout_runs.py,services/rules-service/tests/test_investment_scout.py,services/rules-service/tests/test_investment_scout_http.py,services/rules-service/tests/test_investment_scout_migration.py,ui/lib/investmentScout.ts,ui/app/investments/scout/page.tsx,ui/app/investments/scout/__tests__/page.test.tsx",
+        "docs/architecture/ATLAS-INVESTMENT-REMAINING-PHASES-AUDIT-AND-EXECUTION-PLAN.md,docs/architecture/ATLAS-INVESTMENT-CONSOLIDATED-EXECUTION-PLAN.md,docs/architecture/ATLAS-INVESTMENT-UI-UX-IMPLEMENTATION-ROADMAP.md,docs/architecture/ATLAS-INVESTMENT-UI-12-READINESS-AND-TRUST-CERTIFICATION-AUDIT.md"
+      ],
+      "phase_id": "ui-10",
+      "risk_tier": "high",
+      "status": "in_progress",
+      "tests": [
+        "21 focused backend Scout/domain/API/migration/model tests passed",
+        "1 focused provider-backed Scout UI test passed",
+        "TypeScript typecheck passed",
+        "Frontend lint passed",
+        "Python compileall passed",
+        "2-test UI-12 Playwright matrix passed with /investments/scout included"
+      ],
+      "title": "Review bounded provider-backed UI-10 Scout expansion"
+    },
+    {
+      "branch": "",
+      "id": "work-ui-12-portfolio-remediation-and-certification",
+      "issue": "",
+      "objective": "Close repository-scoped responsive defects revealed by the expanded UI-12 matrix without changing investment semantics, then rerun the consolidated certification evidence.",
+      "paths": [
+        "ui/components/market-briefs/MarketIntelligenceCenter.tsx,ui/__tests__/e2e/ui12-trust-certification.spec.ts,docs/architecture/ATLAS-INVESTMENT-UI-12-READINESS-AND-TRUST-CERTIFICATION-AUDIT.md"
+      ],
+      "phase_id": "ui-12",
+      "risk_tier": "medium",
+      "status": "in_progress",
+      "tests": [
+        "UI-12 coordinated browser matrix, frontend typecheck, focused investment regressions"
+      ],
+      "title": "Remediate UI-12 responsive and certification blockers"
+    }
+  ],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -1509,14 +1548,15 @@
       "risk_tier": "high",
       "status": "complete",
       "tests": [
-        "UI-11 backend/domain/HTTP suite: 20 passed",
+        "UI-11 backend/domain/HTTP suite: 21 passed",
         "UI-11 correction coverage: server-computed per-position exposure, deterministic hash-change regression, nonpositive-price rejection, and zero-total preview fail-closed behavior",
         "Scenario Lab and holdings regression suite: 60 passed",
         "Python compileall passed",
-        "UI-11 focused Vitest: 3 passed",
+        "UI-11 focused Vitest: 4 passed",
         "TypeScript typecheck passed",
         "Next production build passed",
         "UI-11 Playwright: 3 passed, including repository axe-core serious/critical scan, across 390/768/1024/1440/1728 widths with no overflow, privacy leak, or execution request",
+        "UI-12 audit browser pass: 10 investment-surface Playwright tests passed",
         "Tracker validation and git diff --check passed"
       ],
       "title": "UI-11 bounded current-only risk/scenario presentation",
@@ -1528,14 +1568,55 @@
         "result": "passed; current-only baseline, server-computed exposure, and fail-closed invalid/zero handling verified; advanced/historical risk unavailable",
         "timestamp": "2026-09-03T21:44:00Z"
       }
+    },
+    {
+      "branch": "",
+      "commit": "null",
+      "id": "work-ui-12-cross-route-trust-certification",
+      "issue": "",
+      "objective": "Audit the implemented investment surfaces for cross-route trust, privacy, accessibility, performance, provenance, recovery, and execution-boundary certification without implementing UI-12.",
+      "paths": [
+        "docs/architecture/ATLAS-INVESTMENT-UI-12-READINESS-AND-TRUST-CERTIFICATION-AUDIT.md"
+      ],
+      "phase_id": "ui-12",
+      "pr": null,
+      "review_evidence": null,
+      "risk_tier": "low",
+      "status": "complete",
+      "tests": [
+        "ui-12 audit work is documentation-only; no implementation; pass is preserved where already proven; failed command retries were transient hooks not project failures"
+      ],
+      "title": "Audit UI-12 cross-route trust and certification readiness"
+    },
+    {
+      "branch": "",
+      "commit": "ad6bfb8",
+      "id": "work-ui-12-coordinated-certification-evidence",
+      "issue": "",
+      "objective": "Run a coordinated read-only UI-12 browser matrix and record measured trust, privacy, accessibility, responsiveness, recovery, performance, and no-execution evidence without changing product semantics.",
+      "paths": [
+        "ui/__tests__/e2e/ui12-trust-certification.spec.ts",
+        "docs/architecture/ATLAS-INVESTMENT-UI-12-READINESS-AND-TRUST-CERTIFICATION-AUDIT.md"
+      ],
+      "phase_id": "ui-12",
+      "pr": null,
+      "review_evidence": "Scoped staged review confirmed exactly two UI-12-owned files; git diff --cached --check passed; certification remains PARTIAL by documented gate failures",
+      "risk_tier": "medium",
+      "status": "complete",
+      "tests": [
+        "2 coordinated Playwright tests passed in route-mocked degraded mode and hermetic live-stack mode",
+        "138 focused Rules Service investment contract/route tests passed",
+        "691 frontend Vitest tests passed; TypeScript typecheck and production build passed"
+      ],
+      "title": "Run coordinated UI-12 trust certification evidence"
     }
   ],
-  "current_objective": "Preserve certified UI-09/UI-10/UI-11 boundaries; define and execute the bounded UI-12 trust certification gate.",
-  "current_phase_id": "ui-11",
-  "last_updated": "2026-09-03T21:44:00Z",
+  "current_objective": "Complete the approved bounded UI-10 provider-backed Scout expansion review while preserving the certified UI-09/UI-11 boundaries and the partial UI-12 trust-certification record.",
+  "current_phase_id": "ui-12",
+  "last_updated": "2026-09-04T04:00:00Z",
   "next_bounded_task": {
-    "description": "Run the UI-12 cross-route trust, privacy, accessibility, performance, evidence, and execution-boundary certification audit before implementation.",
-    "id": "work-ui-12-cross-route-trust-certification",
+    "description": "Remediate the /portfolio 390px overflow and separate its mutation controls from the UI-12 read-only certification boundary; then rerun the consolidated UI-12 matrix. Current UI-12 evidence remains PARTIAL: ten-route read-only matrix passes, while populated owner-data proof, CPU interaction measurement, INV-12 policy, optional CIO archive decision, and multi-user retention/deletion policy remain open.",
+    "id": "work-ui-12-portfolio-remediation-and-certification",
     "phase_id": "ui-12"
   },
   "overall_status": "in_progress",
@@ -1941,21 +2022,21 @@
     {
       "exit_criteria": [
         {
-          "complete": true,
-          "description": "Typed read-only investment context, allowlisted tool, model-backed cited response, prompt-injection fencing, sanitized refusal/offline behavior, HTTP tests, and responsive/accessibility/no-execution browser validation are complete. Evidence: f5a1cc8.",
+          "complete": false,
+          "description": "The original contextual Scout remains certified under f5a1cc8. The approved provider-backed expansion is implemented and focused-validated but remains in progress until its owned changes are reviewed and committed; it adds strict source/claim provenance, owner-scoped immutable runs, prompt-injection-safe source handling, and bounded current-context provider research.",
           "id": "ec-ui-10-boundary"
         }
       ],
       "id": "ui-10",
       "name": "Contextual investment assistant",
-      "status": "complete"
+      "status": "in_progress"
     },
     {
       "exit_criteria": [
         {
-      "complete": true,
-      "description": "Bounded server-owned current-only portfolio baseline, descriptive value/data-quality metrics, on-demand hypothetical position-value preview, typed owner-scoped API, temporal/identity fail-closed behavior, and browser safeguards are certified. Historical and advanced portfolio-risk semantics remain deferred. Evidence: fb549b4.",
-      "id": "ec-ui-11-boundary"
+          "complete": true,
+          "description": "Bounded server-owned current-only portfolio baseline, descriptive value/data-quality metrics, on-demand hypothetical position-value preview, typed owner-scoped API, temporal/identity fail-closed behavior, and browser safeguards are certified. Historical and advanced portfolio-risk semantics remain deferred. Evidence: fb549b4.",
+          "id": "ec-ui-11-boundary"
         }
       ],
       "id": "ui-11",
@@ -1968,11 +2049,16 @@
           "complete": false,
           "description": "Cross-route trust, privacy, accessibility, performance, evidence, and execution-boundary certification.",
           "id": "ec-ui-12-certification"
+        },
+        {
+          "complete": true,
+          "description": "Document the exact implemented surface inventory, the audited blocking gaps, and the verified pass criteria for the implemented investment surfaces.",
+          "id": "ec-ui-12-audit-deliverables"
         }
       ],
       "id": "ui-12",
       "name": "Cross-route trust certification",
-      "status": "not_started"
+      "status": "in_progress"
     },
     {
       "exit_criteria": [
@@ -2167,6 +2253,16 @@
       "related": "Wave 2C personal activation; PR #58; ADR-010; Explicit authorization expanded scope to all six active accounts; six-account currency/balance evidence, projection configuration, baseline, restart, and readiness checks passed.",
       "severity": "high",
       "status": "resolved"
+    },
+    {
+      "description": "UI-11 is intentionally limited to a current-only portfolio baseline, descriptive compatible value/exposure metrics, and an on-demand hypothetical value preview; historical reconstruction and advanced aggregate risk methods are unavailable.",
+      "id": "risk-ui11-current-only-scope",
+      "likelihood": "high",
+      "mitigation": "Keep current-only and unavailable states visible in every consuming route; require a separately versioned methodology, source, temporal, currency, and provenance contract before expansion.",
+      "owner": "product-architecture",
+      "related": "ADR-UI-11-CURRENT-PORTFOLIO-RISK-BOUNDARY; UI-12 trust audit",
+      "severity": "medium",
+      "status": "open"
     }
   ],
   "schema_version": "1.0.0",

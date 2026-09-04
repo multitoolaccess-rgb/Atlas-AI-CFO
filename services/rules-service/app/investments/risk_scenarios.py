@@ -12,7 +12,7 @@ import json
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field, field_validator, model_validator
 from sqlalchemy import select
@@ -99,7 +99,7 @@ class RiskMetric(InvestmentStrictModel):
 class InvestmentPortfolioBaseline(InvestmentStrictModel):
     """Immutable-in-memory, owner-scoped current portfolio projection."""
 
-    schema_version: str = "InvestmentPortfolioBaseline/v1"
+    schema_version: Literal["InvestmentPortfolioBaseline/v1"] = "InvestmentPortfolioBaseline/v1"
     baseline_id: str = Field(pattern=r"^portfolio-baseline:[a-f0-9]{32}$")
     owner_id: int = Field(gt=0)
     as_of: datetime
@@ -144,7 +144,7 @@ class InvestmentPortfolioBaseline(InvestmentStrictModel):
 class PortfolioBaselineResponse(InvestmentStrictModel):
     """Public typed baseline response without the internal owner identifier."""
 
-    schema_version: str = "InvestmentPortfolioBaseline/v1"
+    schema_version: Literal["InvestmentPortfolioBaseline/v1"] = "InvestmentPortfolioBaseline/v1"
     baseline_id: str
     as_of: datetime
     as_known_at: datetime | None
@@ -166,7 +166,7 @@ class PortfolioBaselineResponse(InvestmentStrictModel):
 class RiskScenarioRequest(InvestmentStrictModel):
     """Bounded hypothetical intent; all financial authority is server-derived."""
 
-    schema_version: str = "InvestmentRiskScenarioRequest/v1"
+    schema_version: Literal["InvestmentRiskScenarioRequest/v1"] = "InvestmentRiskScenarioRequest/v1"
     baseline_id: str | None = Field(default=None, pattern=r"^portfolio-baseline:[a-f0-9]{32}$")
     position_id: int = Field(gt=0)
     market_value_delta: str = Field(min_length=1, max_length=48)
@@ -186,7 +186,7 @@ class RiskScenarioRequest(InvestmentStrictModel):
 class InvestmentRiskScenario(InvestmentStrictModel):
     """Non-persistent, deterministic, explicitly hypothetical preview."""
 
-    schema_version: str = "InvestmentRiskScenario/v1"
+    schema_version: Literal["InvestmentRiskScenario/v1"] = "InvestmentRiskScenario/v1"
     scenario_id: str = Field(pattern=r"^investment-risk-scenario:[a-f0-9]{32}$")
     owner_id: int = Field(gt=0)
     baseline_id: str
@@ -236,7 +236,7 @@ class InvestmentRiskScenario(InvestmentStrictModel):
 class RiskScenarioResponse(InvestmentStrictModel):
     """Public typed scenario response without the internal owner identifier."""
 
-    schema_version: str = "InvestmentRiskScenario/v1"
+    schema_version: Literal["InvestmentRiskScenario/v1"] = "InvestmentRiskScenario/v1"
     scenario_id: str
     baseline_id: str
     baseline_hash: str

@@ -78,6 +78,21 @@ describe('ExpandableCard', () => {
     expect(onExpand).toHaveBeenCalledWith(false)
   })
 
+  it('opens a reusable focus mode even without expanded details', () => {
+    render(
+      <ExpandableCard title="Focus Card">
+        <p>Chart content</p>
+      </ExpandableCard>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open focus mode' }))
+    expect(screen.getByTestId('dashboard-focus-layer')).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Focus Card focus mode' })).toBeInTheDocument()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByTestId('dashboard-focus-layer')).not.toBeInTheDocument()
+  })
+
   it('starts expanded when defaultExpanded is true', () => {
     render(
       <ExpandableCard title="Test Card" expandedContent={<p>Expanded!</p>} defaultExpanded>

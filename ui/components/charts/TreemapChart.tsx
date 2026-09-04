@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { formatNumber } from '@/lib/format'
+import { formatCurrency } from '@/lib/format'
 
 export interface TreemapDatum {
   id: string
@@ -76,7 +76,7 @@ export default function TreemapChart({ data, onSelect, height = 320, className =
               onBlur={() => setHovered(null)}
               tabIndex={0}
               role="button"
-              aria-label={`${d.name}: ${formatNumber(d.value)} (${pct}%)`}
+              aria-label={`${d.name}: ${formatCurrency(d.value)} (${pct}%)`}
             >
               {/* Category label */}
               <div
@@ -85,7 +85,7 @@ export default function TreemapChart({ data, onSelect, height = 320, className =
               >
                 <div className="truncate">{d.name}</div>
                 <div className="text-[10px] text-[var(--text-tertiary)] tabular-nums">
-                  {formatNumber(d.value)} · {pct}%
+                  {formatCurrency(d.value)} · {pct}%
                 </div>
               </div>
 
@@ -105,7 +105,7 @@ export default function TreemapChart({ data, onSelect, height = 320, className =
               {/* Hover detail pill */}
               {isHovered && (
                 <div className="shrink-0 px-2 py-1 rounded-md bg-[var(--bg-secondary)] border border-[var(--border-color)] text-xs font-semibold tabular-nums text-[var(--text-primary)] animate-fadeIn">
-                  {formatNumber(d.value)}
+                  {formatCurrency(d.value)}
                 </div>
               )}
             </div>

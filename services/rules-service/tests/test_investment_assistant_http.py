@@ -23,6 +23,7 @@ def test_investment_tool_returns_bounded_unavailable_context(client):
     body = response.json()
     assert body["tool"] == "get_investment_context"
     assert body["context"]["state"] == "unavailable"
+    assert "owner_id" not in body["context"]
 
 
 def test_investment_context_rejects_empty_selector(client):
@@ -54,3 +55,4 @@ def test_investment_context_does_not_leak_unknown_security(client):
     assert body["state"] == "unavailable"
     assert body["recommendation"] is None
     assert body["committee"] is None
+    assert "owner_id" not in body

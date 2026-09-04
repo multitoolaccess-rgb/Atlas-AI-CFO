@@ -78,7 +78,9 @@ export default function FloatingTimeRangeBar({
 
   return (
     <div
-      className={`sticky top-4 z-30 flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-xl border backdrop-blur-md bg-[var(--bg-primary)]/80 border-[var(--border-color)] shadow-sm mb-4 ${className}`}
+      className={`atlas-floating-time-range-bar sticky top-16 z-[60] flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-xl border backdrop-blur-md bg-[var(--bg-primary)]/95 border-[var(--border-color)] shadow-sm mb-4 scroll-mt-16 ${className}`}
+      data-testid="floating-time-range-bar"
+      aria-label="Global time range"
     >
       <div className="flex items-center gap-3 min-w-0 flex-wrap">
         <Calendar className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0" />

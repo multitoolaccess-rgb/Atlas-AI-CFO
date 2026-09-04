@@ -258,6 +258,59 @@ def test_budget_status_returns_budget_vs_actual(client, db_session, make_account
     assert body["totals"]["actual"] == 75.0
 
 
+def test_budget_status_rolls_child_category_spend_into_parent_budget(client, db_session, make_account, make_transaction):
+    """A parent budget includes actuals tagged to a child category."""
+    from datetime import datetime
+    from app.models import Category
+
+    parent = _create_category(client, "Food & Dining", "flexible")
+    child = client.post(
+        "/api/categories/",
+        json={"name": "Coffee Shops", "budget_group": "flexible", "parent_id": parent["id"]},
+    )
+    assert child.status_code == 201, child.text
+    _create_basic_budget(client, amount=300.0, period="2026-07", category_id=parent["id"])
+
+    acc = make_account(account_type="checking")
+    db_session.add(acc)
+    db_session.commit()
+    txn = make_transaction(
+        account_id=acc.id, description="Coffee", amount=-25.0,
+        transaction_date=datetime(2026, 7, 15), category_id=child.json()["id"],
+    )
+    db_session.add(txn)
+    db_session.commit()
+
+    body = client.get("/api/budgets/status", params={"period": "2026-07"}).json()
+    assert body["categories"][0]["actual"] == 25.0
+    assert body["categories"][0]["percent_used"] == round(25 / 300 * 100, 2)
+
+
+def test_budget_status_defaults_missing_account_type_to_checking(client, db_session, make_account, make_transaction):
+    """Legacy rows with an empty account type still use signed-debit semantics."""
+    from datetime import datetime
+    from app.models import Account
+
+    cat = _create_category(client, "Food", "flexible")
+    _create_basic_budget(client, amount=100.0, period="2026-07", category_id=cat["id"])
+    acc = make_account(account_type="checking")
+    db_session.add(acc)
+    db_session.commit()
+    # Simulate a legacy/null value at the database boundary without violating
+    # the current NOT NULL schema used for newly-created accounts.
+    db_session.query(Account).filter(Account.id == acc.id).update({Account.account_type: ""})
+    db_session.commit()
+    txn = make_transaction(
+        account_id=acc.id, description="Lunch", amount=-20.0,
+        transaction_date=datetime(2026, 7, 15), category_id=cat["id"],
+    )
+    db_session.add(txn)
+    db_session.commit()
+
+    body = client.get("/api/budgets/status", params={"period": "2026-07"}).json()
+    assert body["categories"][0]["actual"] == 20.0
+
+
 def test_budget_status_overspend_shows_negative_remaining(client, db_session, make_account, make_transaction):
     """When actual > planned, remaining is negative and percent_used > 100."""
     from datetime import datetime

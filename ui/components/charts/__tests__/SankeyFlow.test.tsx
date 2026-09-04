@@ -96,6 +96,23 @@ describe('SankeyFlow', () => {
     expect(linkPathOpacity(container, 2)).toBe('1')
   })
 
+  it('renders a visible endpoint marker for every category link', () => {
+    const nodes = [
+      { name: 'Income', node_type: 'income' as const, level: 1 },
+      { name: 'Debt', node_type: 'expense' as const, level: 2 },
+      { name: 'Credit Card Payments', node_type: 'expense' as const, level: 3 },
+    ]
+    const links = [
+      { source: 0, target: 1, value: 48_718 },
+      { source: 1, target: 2, value: 48_718 },
+    ]
+    const { container } = render(<SankeyFlow nodes={nodes} links={links} />)
+
+    const endpoint = container.querySelector('#sankey-category-endpoints line')
+    expect(endpoint).toBeInTheDocument()
+    expect(Number(endpoint?.getAttribute('stroke-width'))).toBeGreaterThan(0)
+  })
+
   it('never lets the traveling particle or the visible path capture hover', () => {
     const { container } = render(<SankeyFlow nodes={chainNodes} links={chainLinks} />)
 

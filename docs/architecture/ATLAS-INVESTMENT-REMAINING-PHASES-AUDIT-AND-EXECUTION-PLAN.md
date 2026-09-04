@@ -1,7 +1,6 @@
 # Atlas Investment Intelligence
-## Remaining Phases Readiness Audit and Execution Plan
-
-**Status:** UI-10 and the bounded UI-11 current-only risk/scenario slice are certified; UI-12 and INV-12 remain gated by documented prerequisites
+## Remaining Phases Readiness Audit and Execution Plan**Status:** UI-10 is certified for its original contextual slice plus the approved bounded provider-backed Scout expansion; the bounded UI-11 current-only risk/scenario slice is certified; UI-12 and INV-12 remain gated
+ by documented prerequisites
 **Audit date:** 2026-09-02
 **Scope:** INV-10 extensions, INV-12, UI-10, UI-11, UI-12, and cross-phase prerequisites
 **Authority:** Canonical investment contracts, current roadmap/status tracker, ADRs, existing tests, and the repository implementation
@@ -19,7 +18,7 @@ The repository is ready for a **gated sequence of bounded prerequisite and imple
 
 **Do not begin UI-11, UI-12, or INV-12 without completing the phase-specific contract gates below.** The current code contains useful adjacent capabilities, but several required boundaries do not yet exist.
 
-This document is the authoritative audit and execution plan. UI-10 implementation evidence is recorded below; no provider, broker, execution, or financial-data behavior was added outside the bounded server-owned assistant path.
+This document is the authoritative audit and execution plan. UI-10 implementation evidence is recorded below; provider-backed research is limited to the separately bounded server-owned Scout path and existing Finnhub/SEC adapters. No broker, execution, or financial-data behavior was added outside those explicit read-only boundaries.
 
 ---
 
@@ -219,18 +218,20 @@ The general authenticated Scout remains unchanged. The isolated UI-10 investment
 **Context input (server-resolved):**
 
 - owner scope from authentication;
-- optional recommendation, committee finding, discovery candidate, decision, outcome, report, or security ID selectors;
+- exactly one persisted recommendation or committee-finding selector per request in the certified first slice;
+- discovery, security, portfolio, decision, outcome, and report selectors are schema-compatible but intentionally resolve to an explicit unavailable state until dedicated server-owned adapters exist;
 - server-resolved canonical projections only;
 - bounded context size and evidence limits;
-- context as-of and source snapshot hashes;
-- explicit unavailable/partial states.
+- context as-of and server-resolved source snapshot hashes;
+- explicit unavailable/partial states;
+- internal owner scope excluded from the public response projection.
 
 **Response:**
 
 - response ID and schema version;
 - answer sections separated into facts, calculations, interpretations, assumptions, limitations, and refusals;
-- citation IDs that resolve to supplied evidence/context records;
-- source/as-of/known-at metadata;
+- citation IDs that resolve to supplied server-owned evidence/context hashes;
+- optional source type and `as_of` metadata on response citations;
 - no new authoritative recommendation/decision/outcome fields;
 - sanitized error/offline state.
 
@@ -261,11 +262,13 @@ Prompt injection in evidence/provider/model text; citation mismatch; invented-nu
 
 UI-10 is certified for the bounded read-only contextual Scout scope without changing general Scout. `InvestmentAssistantContext/v1`, `InvestmentAssistantQueryRequest/v1`, an allowlisted `get_investment_context` tool, typed `InvestmentAssistantResponse/v1`, server-side citation validation, explicit untrusted-data prompt fencing, execution-intent refusal, sanitized offline handling, and `/api/v1/investments/assistant/{context,tool,query}` are implemented. The contextual Scout page is available at `/investments/assistant`.
 
-Certification evidence includes a real persisted-recommendation model fixture with a valid citation, fail-closed unknown-citation handling, unavailable-context refusal before model invocation, execution-intent refusal, 37 focused backend assistant/legacy-assistant tests, TypeScript validation, one focused UI test, and a Playwright browser test covering accessibility, responsive no-overflow behavior, privacy/no-enumeration surface, and absence of broker/order/trade/transfer/rebalance requests. The browser test uses the repository's Axe dependency and the fresh UI dev server.
+The approved expansion adds a separate provider-backed research boundary: `InvestmentScoutResearchRequest/v1`, `InvestmentScoutSource/v1`, `InvestmentScoutClaim/v1`, `InvestmentScoutResearchResult/v1`, and `InvestmentScoutRunSummary/v1`; authenticated routes at `/api/v1/investments/scout/research`, `/api/v1/investments/scout/runs`, and `/api/v1/investments/scout/runs/{run_id}`; an additive immutable `investment_scout_runs` repository model; and the `/investments/scout` UI. The expansion reuses the server-only Finnhub and SEC normalized adapters, resolves security identity only from an authenticated owner's held canonical security (including when a recommendation or committee selector points to it), strips credential-bearing source query parameters, preserves source URL/title/publisher/publication/retrieval metadata when available, links deterministic claims to source IDs, rejects future timestamps, persists owner-scoped results, and leaves the existing assistant route unchanged. Recommendation/committee selectors do not bypass the held-security requirement.
+
+Certification evidence includes a real persisted-recommendation model fixture with a valid citation, fail-closed unknown-citation handling, unavailable-context refusal before model invocation, execution-intent refusal, server-derived response identity, internal owner-scope exclusion, strict one-selector validation, typed evidence packet projection, 25 focused UI-10 backend tests, TypeScript validation, one focused UI test, and a Playwright browser test covering accessibility, responsive no-overflow behavior, privacy/no-enumeration surface, and absence of broker/order/trade/transfer/rebalance requests. The browser test uses the repository's Axe dependency and the fresh UI dev server. The provider-backed Scout expansion also has a dedicated focused page test and migration/API/domain evidence; it is included in the UI-12 route inventory as a read-only route.
 
 ### UI-10 limitations
 
-The boundary intentionally resolves persisted recommendation/committee selectors. Discovery, security, and portfolio selectors remain explicit unavailable/limited states until dedicated server-owned adapters exist. Model output is accepted only when it matches the typed response contract and citations resolve to hashes in the server-resolved context. UI-10 does not create recommendations, decisions, outcomes, portfolio state, or execution actions.
+The original contextual assistant boundary intentionally accepts exactly one selector and resolves persisted recommendation/committee context. The provider-backed expansion accepts one recommendation, committee-finding, or owner-authorized held-security selector; discovery-candidate research is rejected until a dedicated server-owned adapter exists. There is no unrestricted web search, arbitrary URL retrieval, general crawler, private portfolio-fact prompt context, numeric source-quality score, or third-party provider beyond the bounded existing Finnhub/SEC adapters. Recommendation and committee selectors still require the resolved security to be present in the authenticated owner's holdings; they are not independent security-master lookups. Historical source reconstruction remains unavailable; results are current-context only. Provider records that fail normalized timestamp, URL, or schema validation are omitted or cause an explicit unavailable/partial result. The citation projection preserves source URL/title/publisher/publication/retrieval metadata only when supplied by a validated provider record; it does not claim that missing metadata exists. Model output is accepted only when it matches the typed response contract and citations resolve to hashes in the server-resolved context; internal owner scope is excluded from public projections. UI-10 does not create recommendations, decisions, outcomes, portfolio state, or execution actions.
 
 ---
 

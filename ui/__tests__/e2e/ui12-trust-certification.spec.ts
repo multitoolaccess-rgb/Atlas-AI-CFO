@@ -7,6 +7,7 @@ const ROUTES = [
   { path: '/investments/brief', heading: 'Daily Investment Brief', certifiable: true },
   { path: '/investments/recommendations', heading: 'Recommendation review', certifiable: true },
   { path: '/investments/assistant', heading: 'Investment Scout', certifiable: true },
+  { path: '/investments/scout', heading: 'Investment Context Scout', certifiable: true },
   { path: '/investments/risk', heading: 'Risk and scenario views', certifiable: true },
   { path: '/scenario-lab', heading: 'Scenario Lab', certifiable: true },
   { path: '/decisions', heading: 'Decisions', certifiable: true },
@@ -108,15 +109,32 @@ test.describe('UI-12 coordinated cross-route trust certification', () => {
     expect(oversizedResponses).toEqual([])
   })
 
-  test('keeps the frozen surface inventory overflow-free at every supported width', async ({ page }) => {
+  test('keeps the included read-only inventory overflow-free at every supported width', async ({ page }) => {
     for (const width of SUPPORTED_WIDTHS) {
       await page.setViewportSize({ width, height: 900 })
-      await openRoute(page, '/investments')
-      const layout = await page.evaluate(() => ({
-        scrollWidth: document.documentElement.scrollWidth,
-        clientWidth: document.documentElement.clientWidth,
-      }))
-      expect(layout.scrollWidth, `${width}px command-center overflow`).toBeLessThanOrEqual(layout.clientWidth)
+      for (const route of ROUTES) {
+        if (!route.certifiable) continue
+        await openRoute(page, route.path)
+        const layout = await page.evaluate(() => {
+          const clientWidth = document.documentElement.clientWidth
+          const overflowing = Array.from(document.querySelectorAll<HTMLElement>('#main-content *'))
+            .map((element) => ({
+              tag: element.tagName,
+              className: element.className,
+              right: Math.round(element.getBoundingClientRect().right),
+              width: Math.round(element.getBoundingClientRect().width),
+            }))
+            .filter((item) => item.right > clientWidth)
+            .sort((left, right) => right.right - left.right)
+            .slice(0, 5)
+          return {
+            scrollWidth: document.documentElement.scrollWidth,
+            clientWidth,
+            overflowing,
+          }
+        })
+        expect(layout.scrollWidth, `${route.path} at ${width}px horizontal overflow: ${JSON.stringify(layout.overflowing)}`).toBeLessThanOrEqual(layout.clientWidth)
+      }
     }
   })
 })

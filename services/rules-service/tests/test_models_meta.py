@@ -67,6 +67,15 @@ EXPECTED_TABLES = {
     "account_currency_evidence",
     "account_balance_observations",
     "account_balance_evidence",
+    "investment_committee_runs",
+    "investment_committee_findings",
+    "investment_evidence_packets",
+    "investment_recommendation_evidence_links",
+    "investment_committee_evidence_links",
+    "investment_recommendation_records",
+    "investment_decision_records",
+    "investment_outcome_records",
+    "investment_scout_runs",
 }
 
 

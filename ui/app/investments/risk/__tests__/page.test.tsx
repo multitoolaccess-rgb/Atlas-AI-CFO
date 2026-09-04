@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import InvestmentRiskPage from '@/app/investments/risk/page'
 import { getInvestmentPortfolioBaseline, previewInvestmentRiskScenario } from '@/lib/investmentRisk'
@@ -67,11 +67,30 @@ describe('UI-11 risk and scenario view', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Current portfolio context' })).toBeInTheDocument())
     expect(screen.getByText('current only')).toBeInTheDocument()
     expect(screen.getByText('portfolio volatility methodology is not approved for UI-11')).toBeInTheDocument()
+    expect(screen.getByText('ui11-current-portfolio/v1')).toBeInTheDocument()
     expect(screen.getByText('AAPL')).toBeInTheDocument()
     expect(screen.getByText('100%')).toBeInTheDocument()
     expect(screen.queryByText('Brokerage')).not.toBeInTheDocument()
     expect(screen.queryByText('account:1')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /buy|sell|execute|order|rebalance/i })).not.toBeInTheDocument()
+  })
+
+  it('does not render a server-unknown value as an authoritative number', async () => {
+    const partialBaseline = {
+      ...baseline,
+      total_value: null,
+      currency: null,
+      completeness: 'partial' as const,
+      positions: [{ ...baseline.positions[0], market_value_state: 'unknown' as const }],
+      metrics: [{ name: 'total_value', value: null, unit: 'currency', currency: null, state: 'unavailable' as const, limitation: 'currency and complete observed values are required' }],
+    }
+    vi.mocked(getInvestmentPortfolioBaseline).mockResolvedValue(partialBaseline)
+    render(<InvestmentRiskPage />)
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Current portfolio context' })).toBeInTheDocument())
+    expect(screen.getAllByText('Unavailable').length).toBeGreaterThan(0)
+    const positionsRegion = screen.getByRole('region', { name: 'Position coverage' })
+    expect(within(positionsRegion).getAllByRole('cell', { name: 'Unavailable' }).length).toBeGreaterThan(0)
+    expect(screen.queryByText('USD 100')).not.toBeInTheDocument()
   })
 
   it('submits a server-backed hypothetical preview with explicit safety labels', async () => {
@@ -82,6 +101,9 @@ describe('UI-11 risk and scenario view', () => {
     await waitFor(() => expect(screen.getByText('Hypothetical analysis only · not a prediction')).toBeInTheDocument())
     expect(previewInvestmentRiskScenario).toHaveBeenCalledWith({ baseline_id: baseline.baseline_id, position_id: 11, market_value_delta: '25' })
     expect(screen.getByText('USD 125')).toBeInTheDocument()
+    expect(screen.getByText('ui11-exposure-preview/v1')).toBeInTheDocument()
+    expect(screen.getByText('Current-only baseline')).toBeInTheDocument()
+    expect(screen.getByText('Hypothetical analysis only · not a prediction')).toBeInTheDocument()
   })
 
   it('renders a recoverable unavailable state', async () => {

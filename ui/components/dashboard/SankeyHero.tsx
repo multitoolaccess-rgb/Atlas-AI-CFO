@@ -6,6 +6,7 @@ import SankeyFlow from '@/components/charts/SankeyFlow'
 import CountUp from '@/components/ui/CountUp'
 import type { DashboardFlowsResponse, CashflowRole } from '@/lib/api'
 import { ROLE_COLORS, ROLE_LABELS } from '@/lib/api'
+import { DashboardFocusLayer, DashboardFocusToggle, useDashboardFocus } from '@/components/dashboard/ExpandableCard'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -13,6 +14,8 @@ import { ROLE_COLORS, ROLE_LABELS } from '@/lib/api'
 
 interface SankeyHeroProps {
   flows: DashboardFlowsResponse | null
+  /** Label for the shared Cash Flow range. */
+  rangeLabel?: string
   loading?: boolean
   className?: string
 }
@@ -21,8 +24,9 @@ interface SankeyHeroProps {
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function SankeyHero({ flows, loading, className }: SankeyHeroProps) {
+export default function SankeyHero({ flows, rangeLabel, loading, className }: SankeyHeroProps) {
   const [activeNode, setActiveNode] = useState<string | null>(null)
+  const { focused, setFocused } = useDashboardFocus()
 
   const handleNodeClick = (nodeName: string) => {
     setActiveNode(prev => (prev === nodeName ? null : nodeName))
@@ -81,68 +85,60 @@ export default function SankeyHero({ flows, loading, className }: SankeyHeroProp
   }
 
   return (
-    <div
-      className={`card p-6 ${className}`}
-      data-testid="sankey-hero"
-    >
-      {/* Header row — Phase 3: more prominent title, CountUp summary chips */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-3">
-          {/* Icon container — same token-driven treatment as every other
-              dashboard card (primary-50 tile + primary-200 border). The CSS
-              vars flip in dark mode, so the tile stays a dark tint instead
-              of the near-white primary-900 inverted token. */}
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--primary-50)] border border-[var(--primary-200)]">
+    <DashboardFocusLayer focused={focused} title="Money Flow Engine">
+      <div
+        className={`card p-6 ${focused ? 'min-h-[calc(100vh-3rem)]' : ''} ${className}`}
+        data-testid="sankey-hero"
+      >
+      {/* Header row — title, range, summary chips, and focus mode */}
+      <div className="flex items-center justify-between gap-4 mb-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--primary-50)] border border-[var(--primary-200)] flex-shrink-0">
             <GitBranch className="w-4 h-4 text-[var(--primary-600)]" aria-hidden="true" />
           </div>
-          <div>
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">
-              Money Flow Engine
-            </h2>
-            <p className="text-xs text-[var(--text-tertiary)]">
-              {flows ? `${periodLabel}` : 'No data yet'}
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">Money Flow Engine</h2>
+            <p className="text-xs text-[var(--text-tertiary)] truncate">
+              {flows ? (rangeLabel ?? periodLabel) : 'No data yet'}
               {flows && flows.nodes.length > 0 && ' · click a node to drill down'}
             </p>
           </div>
         </div>
-
-        {/* Summary chips — Phase 3: CountUp for premium number animation */}
-        {flows && flows.nodes.length > 0 && (
-          <div className="hidden md:flex items-center gap-4" data-testid="sankey-summary-chips">
-            <div className="text-right">
-              <p className="text-[11px] text-[var(--text-tertiary)] font-medium">Total Income</p>
-              <p
-                className="font-mono font-bold text-sm tabular-nums text-[var(--success-500)]"
-                data-testid="sankey-total-income"
-              >
-                <CountUp end={Math.round(totalIncome)} duration={1000} />
-              </p>
+        <div className="flex items-center gap-4 flex-shrink-0">
+          {/* Summary chips — earned income stays separate from balancing overspend. */}
+          {flows && flows.nodes.length > 0 && (
+            <div className="hidden md:flex items-center gap-4" data-testid="sankey-summary-chips">
+              <div className="text-right">
+                <p className="text-[11px] text-[var(--text-tertiary)] font-medium">Total Income</p>
+                <p className="font-mono font-bold text-sm tabular-nums text-[var(--success-500)]" data-testid="sankey-total-income">
+                  <span aria-hidden="true">$</span><CountUp end={Math.round(totalIncome)} duration={1000} />
+                </p>
+              </div>
+              {retainedValue > 0 && (
+                <div className="text-right">
+                  <p className="text-[11px] text-[var(--text-tertiary)] font-medium">Retained</p>
+                  <p className="font-mono font-bold text-sm tabular-nums text-[var(--info-500)]" data-testid="sankey-retained">
+                    <span aria-hidden="true">$</span><CountUp end={Math.round(retainedValue)} duration={1000} />
+                  </p>
+                </div>
+              )}
+              {overspendValue > 0 && (
+                <div className="text-right" title="Balancing flow for spending above earned income; not additional income">
+                  <p className="text-[11px] text-[var(--text-tertiary)] font-medium">Overspend</p>
+                  <p className="font-mono font-bold text-sm tabular-nums text-[var(--warning-500)]" data-testid="sankey-overspend">
+                    <span aria-hidden="true">$</span><CountUp end={Math.round(overspendValue)} duration={1000} />
+                  </p>
+                </div>
+              )}
             </div>
-            {retainedValue > 0 && (
-              <div className="text-right">
-                <p className="text-[11px] text-[var(--text-tertiary)] font-medium">Retained</p>
-                <p
-                  className="font-mono font-bold text-sm tabular-nums text-[var(--info-500)]"
-                  data-testid="sankey-retained"
-                >
-                  <CountUp end={Math.round(retainedValue)} duration={1000} />
-                </p>
-              </div>
-            )}
-            {overspendValue > 0 && (
-              <div className="text-right">
-                <p className="text-[11px] text-[var(--text-tertiary)] font-medium">Overspend</p>
-                <p
-                  className="font-mono font-bold text-sm tabular-nums text-[var(--warning-500)]"
-                  data-testid="sankey-overspend"
-                >
-                  <CountUp end={Math.round(overspendValue)} duration={1000} />
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+          )}
+          <DashboardFocusToggle focused={focused} onToggle={() => setFocused((value) => !value)} />
+        </div>
+      </div>      {overspendValue > 0 && (
+        <p className="mb-3 text-xs text-[var(--text-tertiary)]" data-testid="sankey-overspend-note">
+          Overspend is a balancing flow for spending above earned income; it is not counted as earned income.
+        </p>
+      )}
 
       {/* Column section labels — Phase C: 4-stage hierarchical layout */}
       {flows && flows.nodes.length > 0 && (
@@ -164,6 +160,7 @@ export default function SankeyHero({ flows, loading, className }: SankeyHeroProp
         <SankeyFlow
           nodes={flows.nodes}
           links={flows.links}
+          displayValues={{ 'Total Income': totalIncome, Overspend: overspendValue }}
           height={420}
           onNodeClick={handleNodeClick}
           activeNode={activeNode}
@@ -204,6 +201,7 @@ export default function SankeyHero({ flows, loading, className }: SankeyHeroProp
           </span>
         </div>
       )}
-    </div>
+      </div>
+    </DashboardFocusLayer>
   )
 }

@@ -15,11 +15,11 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.auth import require_user
 from app.database import get_db
-from app.models import Budget, Category, Transaction
+from app.models import Account, Budget, Category, Transaction
 from app.routes.shared import get_or_create_local_user
 from app.schemas import BudgetCreate, BudgetResponse, BudgetUpdate
 
@@ -204,9 +204,6 @@ async def get_budget_status(
 
     user = get_or_create_local_user(db, _current_user)
 
-    from sqlalchemy.orm import joinedload
-    from app.models import Account
-
     year, month = _parse_budget_period(period)
 
     # Get budgets for this period with category eagerly loaded (avoids N+1)
@@ -225,8 +222,9 @@ async def get_budget_status(
     # Get actual spending per category for this period.
     # Join Account to get account_type for classify_cashflow.
     txns = (
-        db.query(Transaction, Account.account_type)
-        .join(Account, Transaction.account_id == Account.id, isouter=True)
+        db.query(Transaction)
+        .options(joinedload(Transaction.account), joinedload(Transaction.category))
+        .join(Account, Transaction.account_id == Account.id)
         .filter(
             Account.user_id == user.id,
             Transaction.transaction_date >= period_start,
@@ -235,17 +233,39 @@ async def get_budget_status(
         .all()
     )
 
+    def category_ancestors(category: Category | None) -> list[int | None]:
+        """Return a category and all parents for hierarchy-aware budgets."""
+        if category is None:
+            return [None]
+        ids: list[int] = []
+        cursor: Category | None = category
+        seen: set[int] = set()
+        while cursor is not None and cursor.id not in seen:
+            ids.append(cursor.id)
+            seen.add(cursor.id)
+            cursor = cursor.parent
+        return ids
+
     actual_by_cat: dict[int | None, float] = {}
-    for txn, acct_type in txns:
+    for txn in txns:
+        account_type = txn.account.account_type if txn.account is not None else "checking"
         cr = classify_cashflow(
-            txn.amount, acct_type or "", txn.description or ""
+            txn.amount, account_type or "checking", txn.description or ""
         )
         if cr.expense_effect > 0:
-            cid = txn.category_id
-            actual_by_cat[cid] = actual_by_cat.get(cid, 0.0) + cr.expense_effect
+            for cid in category_ancestors(txn.category):
+                actual_by_cat[cid] = actual_by_cat.get(cid, 0.0) + cr.expense_effect
 
-    # Total actual spending across all categories (used by Global budgets).
-    total_expense_actual = sum(actual_by_cat.values())
+    # Total actual spending across all transactions (used by Global budgets).
+    # ``actual_by_cat`` includes ancestor rollups for hierarchy-aware
+    # category budgets, so summing it would double-count child spend.
+    total_expense_actual = 0.0
+    for txn in txns:
+        account_type = txn.account.account_type if txn.account is not None else "checking"
+        cr = classify_cashflow(
+            txn.amount, account_type or "checking", txn.description or ""
+        )
+        total_expense_actual += max(0.0, cr.expense_effect)
 
     categories = []
     total_planned = 0.0

@@ -1191,7 +1191,7 @@ export default function MarketIntelligenceCenter() {
   return (
     <main aria-labelledby="market-intelligence-title" className="min-h-[calc(100vh-6rem)] print:mx-0">
       <div className="mx-auto max-w-[1440px]">
-        <header className="flex flex-col gap-6 border-b border-[var(--border-subtle)] pb-7 lg:flex-row lg:items-end lg:justify-between">
+        <header className="flex flex-col gap-6 border-b border-[var(--border-subtle)] pb-7 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
             <p className="label-sm text-[var(--primary-700)]">Evidence-first market intelligence</p>
             <h1 id="market-intelligence-title" className="display-md mt-2 text-balance text-[var(--text-primary)]">Market Intelligence</h1>

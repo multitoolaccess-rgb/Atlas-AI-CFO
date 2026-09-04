@@ -1,6 +1,6 @@
 # Atlas Investment Intelligence UI/UX Implementation Roadmap
 
-**Status:** UI-09 complete for approved bounded scope; UI-10 certified for bounded read-only contextual Scout; remaining-phase readiness audit in `ATLAS-INVESTMENT-REMAINING-PHASES-AUDIT-AND-EXECUTION-PLAN.md`
+**Status:** UI-09 complete for approved bounded scope; UI-10 certified for bounded read-only contextual and provider-backed Scout surfaces; remaining-phase readiness audit in `ATLAS-INVESTMENT-REMAINING-PHASES-AUDIT-AND-EXECUTION-PLAN.md`
 **Authority:** `docs/architecture/ATLAS-INVESTMENT-UI-UX-ARCHITECTURE.md`
 **Scope:** Future read-only investment UI delivery; no phases below are started by this document.
 
@@ -27,7 +27,7 @@
 | UI-07 | Evidence and provenance experience | INV-01 evidence packets; domain provenance | Planned |
 | UI-08 | Recommendation review and user decision | INV-08/09 typed lifecycle | Planned |
 | UI-09 | Opportunity discovery and comparison | Approved current-only portfolio and bounded S&P 500 read models | Complete for approved bounded scope |
-| UI-10 | AI investment workspace | Typed investment context, read-only tools, citations, prompt-injection defenses | Complete/certified for bounded read-only contextual Scout |
+| UI-10 | AI investment workspace | Typed investment context, bounded provider-backed research, read-only tools, citations, prompt-injection defenses | Complete/certified for bounded read-only contextual and provider-backed Scout |
 | UI-11 | Risk and scenario views | Approved current-only baseline and bounded descriptive preview | Complete for bounded first slice; historical and advanced risk deferred |
 | UI-12 | Integration hardening and trust review | Stable implemented surfaces plus evaluation/retention boundary | Not started — final certification |
 
@@ -177,13 +177,15 @@
 
 ## UI-10 — AI investment workspace
 
-**Current implementation note:** UI-10 is certified for the bounded read-only contextual Scout scope through `InvestmentAssistantContext/v1`, `InvestmentAssistantQueryRequest/v1`, `/api/v1/investments/assistant/{context,tool,query}`, server-side citation validation, untrusted-data prompt fencing, execution-intent refusal, sanitized offline handling, focused HTTP coverage, and responsive/accessibility browser validation. Discovery, security, and portfolio selectors remain explicit limited states until dedicated server-owned adapters exist.
+**Current implementation note:** UI-10 is certified for two bounded read-only Scout surfaces. The contextual assistant uses `InvestmentAssistantContext/v1`, `InvestmentAssistantQueryRequest/v1`, `/api/v1/investments/assistant/{context,tool,query}`, server-side citation validation, untrusted-data prompt fencing, execution-intent refusal, sanitized offline handling, focused HTTP coverage, and responsive/accessibility browser validation. Its first slice accepts exactly one bounded context selector and resolves persisted recommendation/committee context only; discovery, security, portfolio, decision, outcome, and report selectors remain explicit limited states. Internal owner scope is not exposed in the public context response, evidence is exposed through a strict packet-id/hash/trust projection, and the UI renders a minimal typed context projection rather than raw canonical JSON.
+
+The separate provider-backed surface uses `InvestmentScoutResearchRequest/v1`, `InvestmentScoutSource/v1`, `InvestmentScoutClaim/v1`, `InvestmentScoutResearchResult/v1`, and `InvestmentScoutRunSummary/v1`; authenticated routes at `/api/v1/investments/scout/research`, `/api/v1/investments/scout/runs`, and `/api/v1/investments/scout/runs/{run_id}`; and `/investments/scout`. It reuses only the existing server-side Finnhub and SEC adapters, accepts exactly one selector, and requires the selected canonical security to be resolved in the authenticated owner's holdings even for recommendation/committee selectors. It strips credential-bearing URL query parameters, validates source/claim closure and timestamps, persists immutable owner-scoped runs, and exposes provider metadata only when present in a validated record. Arbitrary URLs, unrestricted search/crawling, private portfolio-fact prompts, numeric source-quality scoring, independent security-master lookup, and live-model/provider certification remain outside this bounded slice.
 
 **Objective:** Let Scout answer contextual investment questions from structured Atlas evidence.
 
 **Dependencies:** INV-08 typed committee/context contracts; read-only assistant boundary; UI-07 evidence drawer.
 
-**Surfaces:** global, page-context, and evidence-context prompts; cited response; fact/calculation/assumption separation; follow-up questions.
+**Surfaces:** bounded persisted-context prompt; cited response; fact/calculation/assumption separation; follow-up questions. Global/page-context/external-source retrieval remains future work unless separately contracted.
 
 **Backend:** server-owned context reference, bounded tool calls, typed response, evidence citations, sanitized failures.
 
@@ -197,7 +199,7 @@
 
 ## UI-11 — Risk and scenario views
 
-**Objective:** Make portfolio risk, hypothetical impact, and scenario uncertainty understandable.
+**Objective:** Make current-only portfolio coverage, descriptive value/data-quality metrics, and bounded hypothetical position-value changes understandable; do not extend into historical portfolio reconstruction or advanced aggregate risk without separate methodology.
 
 **Dependencies:** owner-scoped holdings plus an approved current-only baseline and bounded scenario contract.
 

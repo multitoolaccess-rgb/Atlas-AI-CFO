@@ -520,7 +520,9 @@ def test_forecast_generation_forwards_validated_session_cookie(
         _CookieAdapter,
     )
     client.cookies.set("fc_session", issue_token())
-    response = _post(client, goal_id=1, headers={"Idempotency-Key": "atlas-cookie-forward"})
+    monkeypatch.setattr(settings, "atlas_forecast_persistence_enabled", True)
+    monkeypatch.setattr(settings, "atlas_forecast_read_api_enabled", True)
+    response = _post(client, goal_id=1, headers={"Idempotency-Key": "atlas-cookie-forward", "Authorization": f"Bearer {issue_token()}"})
     assert response.status_code == 201
     assert captured["authorization"].startswith("Bearer ")
     assert captured["authorization"] != settings.jwt_secret

@@ -2,13 +2,14 @@
 
 > Generated from `PROJECT_STATUS.json`; regenerate with `python3 scripts/atlas_project_status.py render`.
 
-- Current phase: **ui-11 — Risk and scenario presentation** (complete)
+- Current phase: **ui-12 — Cross-route trust certification** (in_progress)
 - Overall status: **in_progress**
-- Current objective: Preserve certified UI-09/UI-10/UI-11 boundaries; define and execute the bounded UI-12 trust certification gate.
-- Last updated: 2026-09-03T21:44:00Z
+- Current objective: Complete the approved bounded UI-10 provider-backed Scout expansion review while preserving the certified UI-09/UI-11 boundaries and the partial UI-12 trust-certification record.
+- Last updated: 2026-09-04T04:00:00Z
 
 ## Active work
-- None
+- work-ui-10-provider-backed-scout-expansion: Review bounded provider-backed UI-10 Scout expansion (in_progress, high)
+- work-ui-12-portfolio-remediation-and-certification: Remediate UI-12 responsive and certification blockers (in_progress, medium)
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
@@ -43,9 +44,9 @@
 - ui-07 — Evidence drawer: complete (1/1 exit criteria)
 - ui-08 — Recommendation review: complete (1/1 exit criteria)
 - ui-09 — Opportunity discovery and comparison: complete (3/3 exit criteria)
-- ui-10 — Contextual investment assistant: complete (1/1 exit criteria)
+- ui-10 — Contextual investment assistant: in_progress (0/1 exit criteria)
 - ui-11 — Risk and scenario presentation: complete (1/1 exit criteria)
-- ui-12 — Cross-route trust certification: not_started (0/1 exit criteria)
+- ui-12 — Cross-route trust certification: in_progress (1/2 exit criteria)
 - inv-12 — Evaluation, calibration, replay, and retention: not_started (0/1 exit criteria)
 
 ## Current risks
@@ -67,13 +68,14 @@
 - risk-p1-legacy-float-projection-gate [high/high, resolved]: The legacy-float projection gate was resolved by the additive exact-cent evidence contract; six-account clone and authorized personal baseline gates passed without weakening fail-closed behavior.
 - risk-p1-legacy-balance-cent-representation [high/high, resolved]: The prior disposable-clone non-cent legacy balance blocker was resolved through explicitly authorized ROUND_HALF_EVEN USD-cent evidence; no historical Float precision was claimed restored.
 - risk-p1-personal-account-scope-mismatch [high/high, resolved]: The prior four-versus-six active-account scope mismatch was resolved by explicit authorization covering all six active accounts; six-account evidence, projection, baseline, restart, and readiness checks passed.
+- risk-ui11-current-only-scope [medium/high, open]: UI-11 is intentionally limited to a current-only portfolio baseline, descriptive compatible value/exposure metrics, and an on-demand hypothetical value preview; historical reconstruction and advanced aggregate risk methods are unavailable.
 
 ## Recently completed work
-- work-waves-3-5-product-stabilization: Combined Waves 3–5 product stabilization — commit e70c764fa5d1ad0c1f1955ce62050a05a398e8a3, PR 61
-- work-wave-6-final-personal-use-certification: Final personal-use acceptance and release-candidate certification — commit 8efcdaeeebeea3742cd5376ed06e730342960a49, PR None
 - work-ui-10-contextual-assistant: UI-10 contextual investment assistant — commit f5a1cc8, PR n/a
 - work-ui-09-discovery-foundation: UI-09 server-owned discovery foundation — commit 09c2cfd, PR n/a
 - work-ui-11-risk-scenario-boundary: UI-11 bounded current-only risk/scenario presentation — commit b9ecce0, PR n/a
+- work-ui-12-cross-route-trust-certification: Audit UI-12 cross-route trust and certification readiness — commit null, PR None
+- work-ui-12-coordinated-certification-evidence: Run coordinated UI-12 trust certification evidence — commit ad6bfb8, PR None
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -110,6 +112,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-ui-12-cross-route-trust-certification: Run the UI-12 cross-route trust, privacy, accessibility, performance, evidence, and execution-boundary certification audit before implementation.
+- work-ui-12-portfolio-remediation-and-certification: Remediate the /portfolio 390px overflow and separate its mutation controls from the UI-12 read-only certification boundary; then rerun the consolidated UI-12 matrix. Current UI-12 evidence remains PARTIAL: ten-route read-only matrix passes, while populated owner-data proof, CPU interaction measurement, INV-12 policy, optional CIO archive decision, and multi-user retention/deletion policy remain open.
 
 Do not begin the next phase or task automatically.

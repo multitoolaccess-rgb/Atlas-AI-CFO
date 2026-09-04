@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { formatNumber, formatMonthLabel } from '@/lib/format'
+import { formatCurrency, formatNumber, formatMonthLabel } from '@/lib/format'
 
 export interface VerticalBarDatum {
   id: string
@@ -18,6 +18,8 @@ interface VerticalBarChartProps {
   barWidth?: number
   onSelect?: (datum: VerticalBarDatum) => void
   className?: string
+  /** Format values as currency in tooltips and accessible labels. */
+  currency?: boolean
   /** Defaults to positive theme color. */
   defaultColor?: string
 }
@@ -29,6 +31,7 @@ export default function VerticalBarChart({
   barWidth = 36,
   onSelect,
   className = '',
+  currency = false,
   defaultColor = 'var(--primary-500)',
 }: VerticalBarChartProps) {
   const reduced = useReducedMotion()
@@ -69,7 +72,7 @@ export default function VerticalBarChart({
                 className="mb-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold text-[var(--text-primary)] tabular-nums pointer-events-none absolute -top-6"
                 aria-hidden="true"
               >
-                {formatNumber(d.value)}
+                {currency ? formatCurrency(d.value) : formatNumber(d.value)}
               </div>
 
               <motion.button
@@ -87,7 +90,7 @@ export default function VerticalBarChart({
                 animate={{ scaleY: d.heightPct }}
                 transition={reduced ? { duration: 0 } : { duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                 whileHover={reduced || !isActive ? undefined : { opacity: 0.85 }}
-                aria-label={`${d.label}: ${formatNumber(d.value)}`}
+                aria-label={`${d.label}: ${currency ? formatCurrency(d.value) : formatNumber(d.value)}`}
               />
 
               <span className="mt-2 text-xs font-medium text-[var(--text-tertiary)] text-center">

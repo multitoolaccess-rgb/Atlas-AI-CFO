@@ -17,7 +17,7 @@ PARENT = "Q5h1i2j3k4l5"
 # exact-cent authority head used by these round-trip assertions. Phase
 # 30g (transfer pairing) and 30h (category hierarchy) add newer heads
 # on top of it.
-REVISION = "U3e4f5a6b7c8"
+REVISION = "Z14a1b2c3d4e5"
 ACCOUNT_CURRENCY_PARENT = "R6f1g2h3i4j5"
 
 
@@ -42,13 +42,13 @@ def test_forecast_migration_upgrade_downgrade_reupgrade_preserves_existing_data(
         command.upgrade(cfg, "head")
         assert {"forecasts", "forecast_versions"} <= set(inspect(engine).get_table_names())
         assert engine.connect().execute(text("SELECT count(*) FROM categories WHERE name = 'Migration Existing' ")).scalar_one() == 1
-        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == REVISION
+        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "Z14a1b2c3d4e5"
 
         command.downgrade(cfg, PARENT)
         assert "forecasts" not in inspect(engine).get_table_names()
         assert engine.connect().execute(text("SELECT count(*) FROM categories WHERE name = 'Migration Existing' ")).scalar_one() == 1
         command.upgrade(cfg, "head")
-        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == REVISION
+        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "Z14a1b2c3d4e5"
 
 
 def test_forecast_version_guards_and_downgrade_refusal(monkeypatch):
@@ -246,7 +246,7 @@ def test_account_currency_migration_clean_downgrade_and_reupgrade(monkeypatch):
         command.downgrade(cfg, ACCOUNT_CURRENCY_PARENT)
         assert "goal_projection_configs" not in inspect(engine).get_table_names()
         command.upgrade(cfg, "head")
-        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == REVISION
+        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "Z14a1b2c3d4e5"
 
 
 def test_postgresql_currency_constraint_explicitly_rejects_partial_null_provenance():

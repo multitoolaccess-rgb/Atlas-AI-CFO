@@ -18,13 +18,15 @@
  * Use for: KPI cards, tooltips, table cells, center donut labels.
  */
 export function formatCurrency(value: number): string {
-  if (Math.abs(value) >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(1)}M`
+  const sign = value < 0 ? '-' : ''
+  const absolute = Math.abs(value)
+  if (absolute >= 1_000_000) {
+    return `${sign}$${(absolute / 1_000_000).toFixed(1)}M`
   }
-  if (Math.abs(value) >= 1_000) {
-    return `$${Math.round(value).toLocaleString('en-US')}`
+  if (absolute >= 1_000) {
+    return `${sign}$${Math.round(absolute).toLocaleString('en-US')}`
   }
-  return `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+  return `${sign}$${absolute.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
 }
 
 /**

@@ -74,6 +74,7 @@ from app.models.investment_persistence import (
     InvestmentDecisionRecord,
     InvestmentOutcomeRecord,
 )
+from app.models.investment_scout import InvestmentScoutRun
 
 __all__ = [
     "Budget",
@@ -114,4 +115,5 @@ __all__ = [
     "InvestmentRecommendationRecord",
     "InvestmentDecisionRecord",
     "InvestmentOutcomeRecord",
+    "InvestmentScoutRun",
 ]

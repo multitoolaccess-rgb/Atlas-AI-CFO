@@ -1104,12 +1104,27 @@ class BreakdownBucket(BaseModel):
     percentage: float  # 0-100; share of total spending
 
 
+class CategoryBreakdownBucket(BaseModel):
+    """A canonical transaction-category spending bucket.
+
+    This additive view keeps the legacy role buckets available for health
+    ratios while giving every Cash Flow visualization the same category
+    vocabulary and totals.
+    """
+
+    label: str
+    amount: float
+    color: str
+    percentage: float
+
+
 class DashboardBreakdownResponse(BaseModel):
-    """Current-month spending broken into the four canonical buckets."""
+    """Range-scoped spending broken into role and category buckets."""
 
     buckets: List[BreakdownBucket]
+    categories: List[CategoryBreakdownBucket] = Field(default_factory=list)
     total_spend: float
-    period: str  # "2026-07"
+    period: str  # "2026-07" or "2026-07-01 to 2026-08-19"
 
 
 # ----------------------------------------------------------------------

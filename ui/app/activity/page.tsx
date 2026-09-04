@@ -711,6 +711,32 @@ function ActivityContent({ embedded = false }: { embedded?: boolean }) {
         const cats = await rulesService.listCategories()
         setCategories(cats)
       } else {
+        // Also create a visible merchant rule (source='llm') so the
+        // accepted categorization shows up in Settings → Merchant
+        // Rules — the plain tag path only writes an invisible
+        // merchant_alias (Pass 1 exact match). Mirror the
+        // Promote-to-Rule keyword logic: merchant_name first, else
+        // description, uppercased. A 409 UNIQUE(category_id, keyword)
+        // collision means the rule already exists — that's fine, keep
+        // tagging. No keyword (no merchant text at all) → skip the
+        // rule, just tag.
+        const txn = transactions.find((t) => t.id === s.txn_id)
+        const kw = (txn?.merchant_name || txn?.description || '')
+          .trim()
+          .toUpperCase()
+        if (kw) {
+          try {
+            await rulesService.createMerchantRule({
+              category_id: cat!.id,
+              keyword: kw,
+              source: 'llm',
+            })
+          } catch (ruleErr: any) {
+            const status =
+              ruleErr?.response?.status ?? ruleErr?.status
+            if (status !== 409) throw ruleErr
+          }
+        }
         await handleInlineCategoryChange(s.txn_id, cat!.id)
       }
       setLlmSuggestions((prev) => prev.filter((x) => x.txn_id !== s.txn_id))

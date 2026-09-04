@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback, useId } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { formatNumber } from '@/lib/format'
+import { formatCurrency } from '@/lib/format'
 
 export interface DonutDatum {
   id: string
@@ -159,7 +159,7 @@ export default function SimpleDonutChart({
               onMouseLeave={() => setHoveredId((prev) => (prev === datum.id ? null : prev))}
               onClick={() => handleClick(datum)}
               role="button"
-              aria-label={`${datum.name}: ${formatNumber(datum.value)}`}
+              aria-label={`${datum.name}: ${formatCurrency(datum.value)}`}
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {

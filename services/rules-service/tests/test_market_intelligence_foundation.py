@@ -79,7 +79,7 @@ def test_cache_is_bounded_and_usage_never_records_sensitive_values() -> None:
     assert cache.get("one") is None
     assert cache.get("two") == "other"
 
-    ledger = UsageLedger()
+    ledger = UsageLedger(now=lambda: NOW)
     ledger.record("finnhub", EndpointClass.QUOTE, cache_hit=False)
     assert ledger.records[0].model_dump() == {
         "provider": "finnhub", "endpoint_class": "quote", "cache_hit": False,

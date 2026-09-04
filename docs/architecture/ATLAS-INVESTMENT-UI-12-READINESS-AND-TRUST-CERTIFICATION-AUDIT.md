@@ -15,7 +15,7 @@ This audit answers a single question: can UI-12 be certified as an integration-h
 
 The answer is **partial, not certified**. The repository now has a frozen surface inventory, explicit performance/payload budgets, a coordinated browser matrix, and successful hermetic live-stack execution for the bounded read-only set. It still does not have a certifiable `/portfolio` surface, resolved INV-12 evaluation/replay/retention semantics, a CIO archive decision, or an approved multi-user retention/deletion policy.
 
-This document is a readiness audit and execution-plan gate, not an implementation task.
+This document is primarily a readiness audit and execution-plan gate. The current bounded execution also includes one localized responsive correction and its certification evidence; it does not redesign the investment architecture or add a new financial capability.
 
 ---
 
@@ -51,7 +51,7 @@ The repository currently owns these investment-relevant surfaces and access path
 | Investment Brief | `/investments/brief` | UI implemented; required backend read must be available for real certification | Server-owned brief envelope, coverage, freshness, warnings |
 | Recommendation Review | `/investments/recommendations` | Implemented | Recommendation lifecycle, committee/evidence/decision/outcome reads, decision precondition |
 | Investment Scout | `/investments/assistant` | Implemented; certified for bounded read-only contextual Scout | InvestmentAssistantContext/v1, InvestmentAssistantQueryRequest/v1, InvestmentAssistantResponse/v1 |
-| Risk and Scenario Views | `/investments/risk` | Implemented; certified for bounded current-only slice | InvestmentPortfolioBaseline/v1, InvestmentRiskScenario/v1 |
+| Provider-backed Investment Scout | `/investments/scout` | Implemented; bounded provider-backed current-context research | InvestmentScoutResearchRequest/v1, InvestmentScoutSource/v1, InvestmentScoutClaim/v1, InvestmentScoutResearchResult/v1 |
 | Scenario Lab | `/scenario-lab` | Implemented; certified for goal-scoped projection | goal-scoped scenario projections; not portfolio risk |
 | Decisions | `/decisions` | Implemented; recommendation review and decision journal | Decision journal, outcomes, recommendation linkage |
 | Market Intelligence | `/market-intelligence` | Implemented | Market brief/pulse/archive patterns |
@@ -88,7 +88,7 @@ The repository now has a coordinated UI-12 browser evidence pass for the bounded
 
 ### Already covered at surface level
 
-- Investment Scout: reachable, visible read-only boundary text, no execution vocabulary request, Axe scan in the reviewer's script, responsive check at 390px
+- Investment Scout: reachable, visible read-only boundary text, no execution vocabulary request, harness Axe scan, and responsive check at 390px
 - Investment Risk: width suite at 390/768/1024/1440/1728, Axe scan for serious/critical, keyboard interaction, privacy/negative assertion for account:1 and brokerage, no-execution request scan
 - Investment Discovery: width suite at 390/768/1440, Axe scan, accessible controls, no horizontal-overflow assertion beyond a generous tolerance
 - Scenario Lab: generated/reloaded/compared/archived journey, disabled/missing-baseline/unexpected failure recovery, keyboard and responsive checks, no local calculation claim
@@ -96,6 +96,7 @@ The repository now has a coordinated UI-12 browser evidence pass for the bounded
 ### Existing evidence outside the coordinated UI-12 set
 
 - `EvidenceDrawer`: contains an explicit no-execution button assertion in its current test
+- Market Intelligence header responsiveness: the expanded UI-12 matrix found a 1024px overflow caused by the desktop action cluster; the layout breakpoint was moved to `xl` without changing data or interaction semantics
 - Existing per-surface tests for Command Center, Recommendation Review, Brief, Decisions, Market Intelligence, and Portfolio remain useful supporting evidence, but are not substitutes for the coordinated UI-12 matrix
 
 ### What UI-12 should treat as open evidence after implementation
@@ -107,12 +108,14 @@ The repository now has a coordinated UI-12 browser evidence pass for the bounded
 
 ### Coordinated UI-12 matrix evidence
 
-The UI-12-owned test `ui/__tests__/e2e/ui12-trust-certification.spec.ts` covers the following bounded certifiable set at `/investments`, `/investments/discovery`, `/investments/brief`, `/investments/recommendations`, `/investments/assistant`, `/investments/risk`, `/scenario-lab`, `/decisions`, and `/market-intelligence`:
+The UI-12-owned test `ui/__tests__/e2e/ui12-trust-certification.spec.ts` covers the following bounded certifiable set at `/investments`, `/investments/discovery`, `/investments/brief`, `/investments/recommendations`, `/investments/assistant`, `/investments/scout`, `/investments/risk`, `/scenario-lab`, `/decisions`, and `/market-intelligence`:
 
 - 2 Playwright tests passed in the route-mocked degraded-mode run.
 - The same 2 tests passed in the hermetic live-stack run with isolated SQLite, Finlynq, Rules Service, and Next.js startup.
+- The provider-backed `/investments/scout` route is included in both ten-route loops; the harness does not call external providers.
+- The provider-backed `/investments/scout` page is included in both coordinated route loops; provider calls remain mocked/unavailable in the certification harness.
 - The matrix verifies 390px recovery rendering, keyboard reachability, reduced-motion preference, serious/critical Axe violations equal to zero, sensitive-text redaction checks, absence of execution controls and request URLs, no horizontal overflow, route-load time under 10 seconds, and API responses under 512 KiB.
-- The supported width sweep verifies `/investments` at 390, 768, 1024, 1440, and 1728 pixels.
+- The supported width sweep now verifies all ten included read-only routes at 390, 768, 1024, 1440, and 1728 pixels; `/portfolio` remains an explicit excluded blocker.
 
 The `/portfolio` route was intentionally not included in the certifiable loop after the same inspection measured `scrollWidth=407` against a `390px` viewport. It remains an inventory item and a concrete UI-12 blocker, not a silent test exclusion.
 
@@ -130,7 +133,7 @@ The `/portfolio` route was intentionally not included in the certifiable loop af
 ### 6.2 Partially verified, not yet sufficient for UI-12 certification
 
 - Market Intelligence and Brief have both isolated route tests and coordinated degraded/live-stack route evidence; populated owner-data proof remains a separate open item
-- The coordinated matrix now covers privacy text, execution controls/requests, keyboard reachability, reduced motion, overflow, and serious/critical accessibility findings for the nine-route read-only set
+- The coordinated matrix now covers privacy text, execution controls/requests, keyboard reachability, reduced motion, overflow, and serious/critical accessibility findings for the ten-route read-only set
 - CPU interaction budgets remain unmeasured; route-load and response-payload budgets are now explicit and covered
 
 ### 6.3 Still pending dependency boundaries
@@ -161,9 +164,11 @@ The `/portfolio` route was intentionally not included in the certifiable loop af
 ### Blocks that prevent UI-12 certification today
 
 1. INV-12 evaluation/replay/retention decisions are not complete
-2. Final unified browser pass across the implemented investment surfaces is not complete
-3. Final privacy/pass criteria across all implemented surfaces is not proven as a single coordinated set
-4. Optional durable CIO report archive decision is unresolved
+2. The legacy `/portfolio` route fails the current 390px overflow gate and includes mutation controls outside the read-only certification boundary
+3. Populated owner-data proof is not complete for every backend-dependent route in the hermetic live run; the isolated database safely exercised empty/unavailable states
+4. CPU interaction budgets are not measured; only route-load and response-payload budgets are currently evidenced
+5. Optional durable CIO report archive decision is unresolved
+6. External multi-user retention/deletion policy remains open and cannot be claimed resolved by a personal-use UI pass
 
 ### What must not be faked
 
@@ -277,7 +282,104 @@ Record:
 
 ---
 
-## 9. Certification gate
+## 9. Alternate brief reconciliation: readiness classification matrix
+
+The alternate UI-12 brief requires a four-state audit classification. The following matrix reconciles that requirement with the measured repository evidence. `Certified` means certified only within the bounded scope stated in this document; it does not mean the entire investment domain is complete.
+
+| Area | Expected boundary | Exists | Tested | Certified | Classification | Blocking issue or evidence |
+|---|---|---:|---:|---:|---|---|
+| Security identity | One canonical identity across investment surfaces | Yes | Partial | Partial | PARTIAL | UI-09/INV contracts are present; unresolved identities remain explicit and no complete cross-surface populated identity journey is proven |
+| Market observations | Point-in-time source identity, timestamps, freshness, and hashes | Yes | Yes | Partial | PARTIAL | Contract and focused evidence exist; not every UI route has populated live observation evidence |
+| Fundamentals | Typed descriptive research only | Yes | Partial | Partial | PARTIAL | Adjacent contracts/tests exist; no consolidated populated browser journey |
+| Technical | Typed descriptive research only | Yes | Partial | Partial | PARTIAL | Adjacent contracts/tests exist; no aggregate-risk reinterpretation allowed |
+| Macro | Typed contextual evidence only | Yes | Partial | Partial | PARTIAL | Committee/context evidence exists; no complete cross-route populated proof |
+| Quant | Bounded descriptive calculations with compatible inputs | Yes | Yes | Partial | PARTIAL | Single-security/contract evidence exists; portfolio aggregate risk remains unavailable |
+| Committee | Evidence-linked analysis, separate from recommendation and decision | Yes | Yes | Yes, bounded | COMPLETE | Existing persistence/HTTP/domain evidence; no semantic mutation in UI-12 |
+| Recommendation | Canonical immutable recommendation projection | Yes | Yes | Yes, bounded | COMPLETE | Owner-scoped typed reads and recommendation derivation tests pass |
+| Decisions | Explicit human action, preconditions, idempotency, append-only history | Yes | Yes | Yes, bounded | COMPLETE | Focused HTTP/service tests cover `If-Match`, idempotency, conflict, owner scope, and malformed commands |
+| Outcomes | Historical/evaluative, deterministic, non-predictive | Yes | Yes | Yes, bounded | COMPLETE | Outcome service/migration/route tests cover linkage, timing, insufficiency, and owner scope |
+| Discovery | Explicit current-only universe/filter, not recommendation authority | Yes | Yes | Yes, bounded | COMPLETE | UI-09 current-only/S&P 500 and separation tests pass; no discovery score |
+| Scout | Contextual and bounded provider-backed read-only research with validated citations, provenance, and refusal/offline states | Yes | Yes | Yes, bounded | COMPLETE | Assistant query tests plus Scout domain/HTTP/migration tests cover typed source/claim closure, credential stripping, future timestamps, persistence immutability, owner isolation, and untrusted-data fencing |
+| Risk/scenario | Current-only baseline and bounded hypothetical preview, not prediction/execution | Yes | Yes | Yes, bounded | COMPLETE | UI-11 focused domain/HTTP/browser evidence passes; advanced metrics remain unavailable |
+| Authentication | Required authentication before investment disclosure | Yes | Yes | Yes, bounded | COMPLETE | Focused unauthenticated HTTP tests return 401 for investment routes |
+| Authorization | Owner scope enforced at every private resource boundary | Yes | Yes | Partial | PARTIAL | Focused owner-isolation tests pass for persistence/discovery/risk; consolidated populated proof across every route remains open |
+| Provenance | Source IDs/hashes, evidence linkage, retrieval/analysis metadata where applicable | Yes | Yes | Partial | PARTIAL | Contract and focused provenance evidence pass; full populated cross-route display closure is not proven |
+| Temporal integrity | No future-data leakage; as-of/known-at/retrieval semantics preserved | Yes | Yes | Partial | PARTIAL | Domain guards and focused future/stale tests exist; complete populated cross-route historical journey is not available |
+| Accessibility | Keyboard, focus, semantic structure, serious/critical Axe zero | Yes | Yes | Yes, bounded | COMPLETE | Coordinated matrix passes for ten read-only routes in degraded and hermetic live-stack modes |
+| Performance | Measured route/payload/interaction budgets | Partial | Partial | Partial | PARTIAL | Route-load <10s and API payload <512 KiB are measured; CPU interaction budget is not measured |
+| Execution boundary | No broker/order/trade/transfer/rebalance/money movement/autonomous mutation | Yes | Yes | Yes, bounded | COMPLETE | Route/request/control scans and focused no-execution tests pass; no execution layer is introduced |
+| Database/migrations | One head, additive/validated migration behavior, immutable history preserved | Yes | Yes | Partial | PARTIAL | `alembic heads` reports one current head (`AB16a1b2c3d4e5`); the new Scout migration suite passes upgrade/downgrade/re-upgrade, SQLite immutability, non-empty downgrade refusal, and PostgreSQL structural branch checks. Historical forecast migration assertions still contain stale expected-head text and remain outside this UI-10 correction |
+| INV-12 evaluation/replay/retention | Separate evaluation and retention authority | No | No | No | BLOCKED | INV-12 is not started; UI-12 excludes evaluation-linked claims |
+| CIO report archive | Durable report archive only if a concrete consumer exists | Partial | Partial | No | BLOCKED | Optional archive decision is unresolved and the surface is excluded |
+| Multi-user retention/deletion | Approved production retention and user deletion policy | No | No | No | BLOCKED | Open product-security blocker; personal-use evidence cannot establish multi-user readiness |
+| Earlier-phase regression | UI-08 through UI-11 remain within their certified contracts | Yes | Yes | Yes, bounded | COMPLETE | Existing focused regressions and the coordinated route matrix pass; no earlier-phase product files changed |
+
+Classification rule: a row marked `PARTIAL` or `BLOCKED` is not upgraded by documentation, route existence, or mocked data. A `REGRESSION` classification would require measured breakage of an earlier certified contract; none was found in this review. `/portfolio` is a UI-12 blocker, not a regression of UI-11’s separate contract.
+
+## 10. Alternate brief reconciliation: end-to-end journey and data-flow evidence
+
+The conceptual journey is represented as follows. The browser is a projection layer throughout; the route-mocked and empty-database evidence is explicitly not treated as populated owner-data proof.
+
+| Journey stage | Canonical source/application boundary | UI route(s) | Evidence status | UI-12 disposition |
+|---|---|---|---|---|
+| Discover | UI-09 server-owned universe/filter projection | `/investments/discovery` | Focused HTTP/domain tests and coordinated browser matrix | COMPLETE within current-only bounded discovery; candidate is not recommendation |
+| Research | Market/technical/quant/context contracts and server adapters | `/investments`, `/investments/brief`, `/market-intelligence` | Route/browser coverage exists; populated provider/source journey remains limited | PARTIAL; unavailable/stale states remain authoritative |
+| Analyze | Committee/evidence/recommendation projections | `/investments/recommendations`, `/investments/brief` | Persistence, committee, recommendation, and HTTP suites pass | COMPLETE within existing read-only contracts |
+| Committee | Evidence-linked `CommitteeRun`/`CommitteeFinding` read boundary | `/investments/recommendations` | Domain and persistence tests pass | COMPLETE; not a risk engine or decision |
+| Recommendation | Canonical recommendation projection with hash/lifecycle | `/investments/recommendations` | Recommendation schema/route/owner/isolation tests pass | COMPLETE within bounded lifecycle |
+| Review | Recommendation risks, thesis, invalidation, evidence, and provenance | `/investments/recommendations`, EvidenceDrawer | Focused UI/HTTP evidence exists; full populated cross-route browser proof remains open | PARTIAL |
+| Decide | Explicit human decision with `If-Match`, idempotency, and append-only journal | `/decisions` and recommendation review | Decision service/route tests pass | COMPLETE within bounded human-controlled actions |
+| Scenario / Risk | UI-11 baseline and on-demand hypothetical preview; goal Scenario Lab remains separate | `/investments/risk`, `/scenario-lab` | UI-11 and Scenario Lab suites plus coordinated browser matrix pass | COMPLETE within separate declared semantics |
+| Outcome | Historical deterministic evaluation linked to recommendation/decision where available | `/decisions` with outcomes view | Outcome domain/migration/service/route evidence exists | COMPLETE within existing evaluative contract; INV-12 remains separate |
+
+### Canonical data-flow certification
+
+The accepted chain is:
+
+`canonical domain -> application service -> trusted repository/projection -> typed API -> UI`
+
+The review found no UI-12-owned browser calculation of authoritative recommendations, risk, outcomes, ownership, temporal filtering, or provenance. The following limitations remain explicit:
+
+- UI-09 discovery data is not recommendation data.
+- UI-10 Scout content is untrusted contextual data, not canonical financial fact.
+- UI-11 risk/scenario data is current-only descriptive/hypothetical output, not historical portfolio risk or prediction.
+- Goal Scenario Lab output is not portfolio risk.
+- Recommendations, decisions, and outcomes retain distinct lifecycle and authority.
+- The browser does not receive client authority to submit owner IDs, canonical values, source hashes, result snapshots, or execution commands.
+
+## 11. Alternate brief reconciliation: trust, safety, and privacy gates
+
+### Identity consistency
+
+The repository preserves canonical security identifiers where contracts provide them. Ticker, company name, holding ID, account ID, and provider identifiers remain aliases or source references rather than replacements for canonical identity. UI-09 unresolved/unsupported states and UI-11 identity limitations are surfaced rather than silently reconciled. A fully populated cross-route identity replay is not claimed because the current live-stack evidence uses an isolated environment without production-like owner data.
+
+### Owner isolation and privacy
+
+Focused HTTP evidence proves authentication, owner filtering, non-enumerating recommendation/evidence reads, discovery portfolio scoping, UI-11 private holding exclusion, decision/outcome ownership, and strict client-authority rejection. The coordinated browser matrix additionally checks that account identifiers, account numbers, password/hash markers, and API-key markers are absent from the rendered included routes. It does not prove that every possible populated private field is absent in every provider response; that remains a limitation.
+
+### Temporal and provenance integrity
+
+Existing domain tests preserve source hashes, as-of/known-at constraints, freshness, adjustment/currency state, decision/recommendation timestamps, outcome evaluation timing, and scenario methodology versions. Future/stale/incompatible inputs fail closed where the underlying contract defines those rules. UI-12 does not claim historical portfolio reconstruction where holdings/valuations cannot establish it.
+
+### Scout prompt-injection boundary
+
+The actual application-path UI-10 query tests prove that untrusted context is wrapped as data, commands in it are ignored by the model instruction, citations outside resolved hashes result in a refusal, unavailable context avoids model invocation, and execution-intent questions are refused. The contextual projection excludes internal owner scope and raw recommendation/committee metadata. The provider-backed Scout separately validates provider source URLs, metadata, source hashes, claim closure, credential stripping, and future timestamps using hermetic provider fixtures; live third-party retrieval and live-model behavior remain outside repository-managed certification evidence.
+
+### Decision and outcome safety
+
+Decision routes preserve recommendation-versus-user-decision separation, `If-Match`, idempotency, lifecycle preconditions, owner scope, append-only behavior, and sanitized errors. Outcome routes preserve historical/evaluative semantics, deterministic calculations, insufficient-history handling, linkage, and no execution. No UI-12 change modifies those boundaries.
+
+### Error-state coverage
+
+Existing route tests and focused browser journeys cover authentication failure, unavailable context, invalid/stale/incompatible scenario inputs, missing baselines, malformed server responses, server-unavailable states, and safe retry/recovery behavior where implemented. Complete populated coverage of every route’s stale/partial/archived/error variant is not proven and remains a certification limitation.
+
+## 12. Alternate brief reconciliation: regression and migration evidence
+
+The relevant investment regression suites include assistant context/query, discovery, persistence, recommendation, decision, outcome, risk/scenario, Scenario Lab, and hardening tests. The historical consolidated run recorded 158 focused backend tests and 691 frontend tests, together with TypeScript, frontend lint, production build, and the expanded UI-12 matrix in degraded and hermetic live-stack modes. This reconciliation reran 43 focused backend tests, 5 focused UI tests, TypeScript, frontend lint, and the two-test UI-12 Playwright matrix. The approved UI-10 expansion additionally passed 21 focused Scout/domain/API/migration/model tests, one focused Scout UI test, TypeScript, lint, and the same UI-12 matrix with `/investments/scout` included. The focused historical migration command still has stale assertions expecting `Z14a1b2c3d4e5` rather than the current `AB16a1b2c3d4e5`; the new Scout migration evidence is independently green. The UI-10 expansion added the additive Scout migration and route/backend files; UI-12 itself added no backend migration.
+
+No regression classification was found in this review. The Market Intelligence overflow found by the expanded matrix was corrected and the full included-route matrix now passes. The `/portfolio` overflow and mutation-scope issue remains a concrete blocker for including that legacy surface in the read-only UI-12 set, not evidence that the separate UI-11 risk/scenario contract regressed.
+
+## 13. Certification gate
 
 UI-12 may be marked complete only if all of the following are true for the certified surfaces:
 
@@ -298,7 +400,7 @@ If any required item fails, UI-12 remains **not certified** and must be recorded
 
 ---
 
-## 10. UI-11 residual limitation (explicit handoff constraint)
+## Appendix A — UI-11 residual limitation (explicit handoff constraint)
 
 UI-12 must inherit the current UI-11 boundary honestly:
 
@@ -312,17 +414,17 @@ UI-12 must not relabel current UI-11 coverage as complete portfolio risk, and it
 
 ---
 
-## 11. Final audit verdict
+## Appendix B — Final audit verdict
 
 **UI-12 remains PARTIAL and is not certified.**
 
-The repository has a frozen surface inventory, typed owner-scoped contracts, a coordinated browser matrix, explicit route/payload budgets, and a successful hermetic live-stack run for the bounded read-only set. Certification is still blocked by the measured `/portfolio` mobile overflow and mutation scope, lack of populated owner-data proof for every backend-dependent surface in the isolated live run, unresolved INV-12 evaluation/replay/retention semantics, the undecided optional CIO archive, and the open multi-user retention/deletion policy.
+The repository has a frozen surface inventory, typed owner-scoped contracts, a coordinated browser matrix, explicit route/payload budgets, and a successful hermetic live-stack run for the bounded read-only candidate set. Certification is still blocked by the measured `/portfolio` mobile overflow and mutation scope, lack of populated owner-data proof for every backend-dependent surface in the isolated live run, unresolved INV-12 evaluation/replay/retention semantics, the undecided optional CIO archive, the unmeasured CPU interaction budget, and the open multi-user retention/deletion policy.
 
 The next implementation task is the separately bounded remediation of those concrete blockers. UI-12 must not be marked complete until the certified surface set and dependency policy are closed.
 
 ---
 
-## 12. Implemented investment surface inventory
+## Appendix C — Implemented investment surface inventory
 
 This inventory is the current canonical starting point for UI-12. Activation is from `ui/lib/informationArchitecture.ts` and the implemented route files in the repository.
 
@@ -343,7 +445,7 @@ This inventory is the current canonical starting point for UI-12. Activation is 
 
 ### Current certifiable set and exclusions
 
-The current UI-12 certifiable set is the nine read-only routes covered by `ui12-trust-certification.spec.ts`: `/investments`, `/investments/discovery`, `/investments/brief`, `/investments/recommendations`, `/investments/assistant`, `/investments/risk`, `/scenario-lab`, `/decisions`, and `/market-intelligence`. The `/portfolio` route remains in the inventory but is excluded because its measured mobile overflow and mutation controls fail the current read-only gate.
+The current UI-12 certifiable set is the ten read-only routes covered by `ui12-trust-certification.spec.ts`: `/investments`, `/investments/discovery`, `/investments/brief`, `/investments/recommendations`, `/investments/assistant`, `/investments/scout`, `/investments/risk`, `/scenario-lab`, `/decisions`, and `/market-intelligence`. The `/portfolio` route remains in the inventory but is excluded because its measured mobile overflow and mutation controls fail the current read-only gate.
 
 ### Surfaces that remain deferred or blocked
 
@@ -354,7 +456,7 @@ The current UI-12 certifiable set is the nine read-only routes covered by `ui12-
 
 ---
 
-## 13. Documented blocking gaps
+## Appendix D — Documented blocking gaps
 
 These are the gaps that still prevent a real UI-12 certification. Each one is phrased as a concrete missing item, not a vague feeling.
 
@@ -367,7 +469,7 @@ These are the gaps that still prevent a real UI-12 certification. Each one is ph
 
 ---
 
-## 14. Verified pass criteria for the implemented surfaces
+## Appendix E — Verified pass criteria for the implemented surfaces
 
 For the surfaces that are implemented and included in the audit scope, UI-12 certification requires the following documented pass criteria.
 
@@ -411,14 +513,14 @@ For the surfaces that are implemented and included in the audit scope, UI-12 cer
 - Route-load budget: under 10 seconds from navigation to the route's main heading in the certification harness
 - API response payload budget: under 512 KiB for responses observed by the UI-12 harness
 - Collection limits: discovery requests remain server-bounded at 100 items; assistant context remains bounded by its `max_evidence` contract; Scenario Lab comparisons remain bounded by the existing route contract
-- Response-time and payload budgets are stated and met for the 9-route certifiable set
+- Response-time and payload budgets are stated and met for the 10-route certifiable set
 - Large collections use bounded pagination or selection
 - Offline/default-off behavior is explicit where applicable
 - Operational failures are observable without sensitive payload leakage
 
 ---
 
-## 15. Final execution verdict and remaining certification gaps
+## Appendix F — Final execution verdict and remaining certification gaps
 
 The remaining UI-12 work is now explicitly separated into two different things:
 
@@ -434,8 +536,10 @@ Audit completion work done:
 - Added the UI-12-owned coordinated browser certification matrix
 - Ran the matrix once in degraded route-mocked mode and once through the hermetic live stack
 - Ran the implemented investment browser specs in one coordinated run and recorded the results
-- Ran 138 focused backend contract/route tests covering assistant, discovery, persistence, UI-11 risk, Scenario Lab, accounts, holdings, and decision history
-- Ran 691 frontend Vitest tests, TypeScript typecheck, and the production build
+- Historical consolidated evidence recorded 138 focused backend contract/route tests covering assistant, discovery, persistence, UI-11 risk, Scenario Lab, accounts, holdings, and decision history
+- Historical consolidated evidence recorded 691 frontend Vitest tests, TypeScript typecheck, and the production build
+- UI-10 expansion evidence passed 21 focused backend Scout/domain/API/migration/model tests, one focused Scout UI test, TypeScript, frontend lint, and the two-test UI-12 Playwright matrix including `/investments/scout`
+- Reconciliation rerun passed 43 focused backend tests, 5 focused UI tests, TypeScript, frontend lint, and the two-test UI-12 Playwright matrix
 - Ran tracker validation, render check, and `git diff --check`
 - Preserved the unrelated dirty worktree
 
@@ -449,7 +553,7 @@ Remaining items that still block UI-12 certification:
 
 ---
 
-## 16. Remaining work before UI-12 certification
+## Appendix G — Remaining work before UI-12 certification
 
 - Remediate `/portfolio` overflow and explicitly separate or gate its mutation workflow before adding it to the certified set
 - Seed deterministic synthetic owner data in the hermetic live-stack harness, or document each backend-dependent route as unavailable, then rerun populated live-backend proof
@@ -460,16 +564,19 @@ Remaining items that still block UI-12 certification:
 
 ---
 
-## 17. Files and artifacts
+## Appendix H — Files and artifacts
 
 Created or updated for this audit:
 
 - `docs/architecture/ATLAS-INVESTMENT-UI-12-READINESS-AND-TRUST-CERTIFICATION-AUDIT.md`
 - `ui/__tests__/e2e/ui12-trust-certification.spec.ts`
+- `ui/components/market-briefs/MarketIntelligenceCenter.tsx`
 
-The UI-12 change in this execution is limited to the certification harness and documentation/status evidence. No product page, backend contract, route, migration, or dependency behavior was modified.
+The UI-12-specific change in the prior certification execution was limited to the certification harness, documentation/status evidence, and a localized responsive layout correction in Market Intelligence. The separately approved UI-10 expansion in the current worktree adds the provider-backed Scout contracts, route, immutable migration/model, client/UI surface, and focused tests; it does not modify UI-08 through UI-11 semantics or add execution capability.
 
-The coordinated matrix is evidence for a bounded 9-route read-only set. It is not a certification of `/portfolio`, INV-12 evaluation/replay/retention, the optional CIO archive, or external multi-user production readiness.
+The alternate UI-12 final-certification brief was reconciled against this audit on 2026-09-04. Its broader journey and trust requirements are represented below as evidence gates; they do not upgrade mocked or empty-database evidence into certification.
+
+The coordinated matrix is evidence for a bounded 10-route read-only set, including `/investments/scout`; provider-backed external calls are not exercised by the harness. It is not a certification of `/portfolio`, INV-12 evaluation/replay/retention, the optional CIO archive, or external multi-user production readiness.
 
 References:
 

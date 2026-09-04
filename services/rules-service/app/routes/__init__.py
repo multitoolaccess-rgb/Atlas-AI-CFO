@@ -116,6 +116,7 @@ from app.routes.investment_persistence import router as investment_persistence_r
 from app.routes.investment_discovery import router as investment_discovery_router
 from app.routes.investment_assistant import router as investment_assistant_router
 from app.routes.investment_risk import router as investment_risk_router
+from app.routes.investment_scout import router as investment_scout_router
 
 __all__ = [
     "accounts_router",
@@ -145,4 +146,5 @@ __all__ = [
     "investment_discovery_router",
     "investment_assistant_router",
     "investment_risk_router",
+    "investment_scout_router",
 ]

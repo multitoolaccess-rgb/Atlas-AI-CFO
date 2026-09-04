@@ -6,7 +6,7 @@ import AreaTrend, { type AreaSeries } from '@/components/charts/AreaTrend'
 import type { TrendDataPoint } from '@/lib/api'
 import { useThemeColors } from '@/lib/themeColors'
 import ExpandableCard from '@/components/dashboard/ExpandableCard'
-import { formatNumber, formatMonthLabel } from '@/lib/format'
+import { formatCurrency, formatMonthLabel } from '@/lib/format'
 
 // ---------------------------------------------------------------------------
 // Delta badge (extracted to avoid re-creation per render)
@@ -35,6 +35,8 @@ function DeltaBadge({ label, pct, color }: { label: string; pct: number | null; 
 
 interface TrendChartProps {
   trends: TrendDataPoint[]
+  /** Label for the shared Cash Flow range. */
+  rangeLabel?: string
   loading?: boolean
   className?: string
 }
@@ -43,7 +45,7 @@ interface TrendChartProps {
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function TrendChart({ trends, loading, className }: TrendChartProps) {
+export default function TrendChart({ trends, rangeLabel, loading, className }: TrendChartProps) {
   const tc = useThemeColors()
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set())
 
@@ -133,8 +135,8 @@ export default function TrendChart({ trends, loading, className }: TrendChartPro
                   <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: row.color }} />
                   {row.label}
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-[var(--text-primary)]">{formatNumber(row.total)}</td>
-                <td className="px-3 py-2 text-right font-mono text-[var(--text-tertiary)]">{formatNumber(row.avg)}</td>
+                <td className="px-3 py-2 text-right font-mono text-[var(--text-primary)]">{formatCurrency(row.total)}</td>
+                <td className="px-3 py-2 text-right font-mono text-[var(--text-tertiary)]">{formatCurrency(row.avg)}</td>
               </tr>
             ))}
           </tbody>
@@ -144,7 +146,7 @@ export default function TrendChart({ trends, loading, className }: TrendChartPro
       {/* Prior period delta */}
       {priorDelta && (
         <div className="p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)]">
-          <p className="text-xs font-semibold text-[var(--text-tertiary)] mb-2">vs Prior Month</p>
+          <p className="text-xs font-semibold text-[var(--text-tertiary)] mb-2">vs Previous Month</p>
           <div className="flex items-center gap-5">
             <DeltaBadge label="Income" pct={priorDelta.income} color={tc.income} />
             <DeltaBadge label="Spend" pct={priorDelta.spend} color={tc.spend_series} />
@@ -160,21 +162,21 @@ export default function TrendChart({ trends, loading, className }: TrendChartPro
           <strong className="font-mono" style={{ color: tc.income }}>
             {new Date(summary.maxIncomeMonth.month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
           </strong>{' '}
-          ({formatNumber(summary.maxIncomeMonth.income)})
+          ({formatCurrency(summary.maxIncomeMonth.income)})
         </span>
         <span>
           Peak spend:{' '}
           <strong className="font-mono" style={{ color: tc.spend_series }}>
             {new Date(summary.maxSpendMonth.month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
           </strong>{' '}
-          ({formatNumber(summary.maxSpendMonth.spend)})
+          ({formatCurrency(summary.maxSpendMonth.spend)})
         </span>
         <span>
           Lowest retained:{' '}
           <strong className="font-mono" style={{ color: tc.net_retained }}>
             {new Date(summary.minRetainedMonth.month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
           </strong>{' '}
-          ({formatNumber(summary.minRetainedMonth.retained)})
+          ({formatCurrency(summary.minRetainedMonth.retained)})
         </span>
       </div>
     </div>
@@ -183,7 +185,7 @@ export default function TrendChart({ trends, loading, className }: TrendChartPro
   return (
     <ExpandableCard
       title="Trend"
-      subtitle={trends.length > 0 ? `${trends.length}-month income vs spending` : 'No trend data yet'}
+      subtitle={trends.length > 0 ? `${trends.length}-month income vs spending${rangeLabel ? ` · ${rangeLabel}` : ''}` : 'No trend data yet'}
       icon={<TrendingUp className="w-4 h-4 text-[var(--primary-600)]" />}
       headerRight={
         <div className="flex items-center gap-2">
@@ -209,13 +211,13 @@ export default function TrendChart({ trends, loading, className }: TrendChartPro
               <div>
                 <p className="label-sm text-tertiary">Income</p>
                 <p className="text-sm font-semibold" style={{ color: tc.income }}>
-                  {formatNumber(latestMonth.income)}
+                  {formatCurrency(latestMonth.income)}
                 </p>
               </div>
               <div>
                 <p className="label-sm text-tertiary">Retained</p>
                 <p className="text-sm font-semibold" style={{ color: tc.net_retained }}>
-                  {formatNumber(latestMonth.retained)}
+                  {formatCurrency(latestMonth.retained)}
                 </p>
               </div>
             </div>

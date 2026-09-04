@@ -13,7 +13,7 @@ import {
   getTextColor,
   getTextSecondaryColor,
 } from '@/lib/themeColors'
-import { formatNumber } from '@/lib/format'
+import { formatCurrency } from '@/lib/format'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -22,6 +22,9 @@ import { formatNumber } from '@/lib/format'
 interface SankeyFlowProps {
   nodes: SankeyNodeType[]
   links: SankeyLinkType[]
+  /** Optional authoritative labels for nodes whose d3 layout value is
+   *  intentionally balanced by synthetic links (e.g. Overspend). */
+  displayValues?: Record<string, number>
   height?: number
   onNodeClick?: (nodeName: string) => void
   activeNode?: string | null
@@ -77,7 +80,7 @@ type HoverTarget = { kind: 'link'; index: number } | { kind: 'node'; name: strin
 // Helpers
 // ---------------------------------------------------------------------------
 
-/* formatNumber is imported from @/lib/format */
+/* formatCurrency is imported from @/lib/format */
 
 /** Resolve the canonical role key for a node (falls back to node_type). */
 function getRoleKey(node: { role?: string | null; node_type?: string }): string {
@@ -156,7 +159,7 @@ function getConnectedSet(
 
 const SANKEY_MARGIN = { top: 8, right: 180, bottom: 16, left: 24 }
 
-const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, onNodeClick, activeNode }: SankeyFlowProps) {
+const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues, height = 440, onNodeClick, activeNode }: SankeyFlowProps) {
   const reducedMotion = useReducedMotion()
   const isDark = useThemeMode()
   // Single hover target for the whole diagram. Keeping one state avoids the
@@ -310,8 +313,8 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
             const src = link.source as DatumNode
             const tgt = link.target as DatumNode
             const isHoverConnected = connectedSet.has(i)
-            const baseSrcOpacity = isHoverConnected ? 0.85 : 0.5
-            const baseTgtOpacity = isHoverConnected ? 0.8 : 0.45
+            const baseSrcOpacity = isHoverConnected ? 0.92 : 0.68
+            const baseTgtOpacity = isHoverConnected ? 0.88 : 0.62
             return (
               <linearGradient
                 key={`grad-${i}`}
@@ -375,7 +378,7 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
                   id={`sankey-link-path-${i}`}
                   d={path ?? ''}
                   stroke={`url(#sankey-grad-${i})`}
-                  strokeWidth={Math.max(2, link.width ?? 2)}
+                  strokeWidth={Math.max(3, link.width ?? 2)}
                   fill="none"
                   opacity={linkOpacity}
                   pathLength={100}
@@ -461,11 +464,11 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
               }
             }
 
-            const value = node.value ?? 0
+            const value = displayValues?.[node.name] ?? node.value ?? 0
             const textColor = getTextColor(fill)
             const textSecondary = getTextSecondaryColor(fill)
 
-            const nodeLabel = `${node.name}${value > 0 ? `, ${formatNumber(value)}` : ''}`
+            const nodeLabel = `${node.name}${value > 0 ? `, ${formatCurrency(value)}` : ''}`
 
             return (
               <g
@@ -575,10 +578,36 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, height = 440, 
                       fontVariantNumeric: 'tabular-nums',
                     }}
                   >
-                    {formatNumber(value)}
+                    {formatCurrency(value)}
                   </text>
                 )}
               </g>
+            )
+          })}
+        </g>
+
+        {/* Re-stroke category endpoints above the node bars. Large first
+            categories can otherwise visually swallow their inbound ribbon
+            at the target edge, especially when adjacent Debt/Expenses links
+            share the same vertical neighborhood. */}
+        <g id="sankey-category-endpoints" pointerEvents="none">
+          {computedLinks.map((link, i) => {
+            const target = link.target as DatumNode
+            if (target.level !== 3 || !target.x0 || target.y0 === undefined || target.y1 === undefined) return null
+            const color = getNodeFill(target, isDark)
+            const opacity = hovered === null || connectedSet.has(i) ? 0.95 : 0.12
+            return (
+              <line
+                key={`category-endpoint-${i}`}
+                x1={target.x0 - 2}
+                x2={target.x0 + 3}
+                y1={target.y0 + (target.y1 - target.y0) / 2}
+                y2={target.y0 + (target.y1 - target.y0) / 2}
+                stroke={color}
+                strokeWidth={Math.max(4, Math.min(10, link.width ?? 4))}
+                strokeLinecap="round"
+                opacity={opacity}
+              />
             )
           })}
         </g>

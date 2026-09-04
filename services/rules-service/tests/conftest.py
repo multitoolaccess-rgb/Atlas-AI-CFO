@@ -186,6 +186,7 @@ _LIFTED_TABLES = (
     "investment_evidence_packets",
     "investment_committee_runs",
     "investment_outcome_records",
+    "investment_scout_runs",
 )
 
 

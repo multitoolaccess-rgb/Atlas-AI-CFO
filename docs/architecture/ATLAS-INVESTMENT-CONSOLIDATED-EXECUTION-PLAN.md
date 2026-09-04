@@ -1,6 +1,6 @@
 # Atlas Investment Intelligence — Consolidated Execution Plan
 
-**Status:** UI-09, UI-10, and the bounded current-only UI-11 slice complete/certified; UI-12 and INV-12 remain gated
+**Status:** UI-09, UI-10 (including the approved bounded provider-backed Scout expansion), and the bounded current-only UI-11 slice complete/certified; UI-12 and INV-12 remain gated
 **Authority:** Existing INV-01–INV-HARDEN-01 implementation records, UI/UX architecture and roadmap, canonical project tracker, and repository tests
 **Scope:** Safe completion of the investment application boundary, followed by gated UI delivery
 
@@ -72,7 +72,11 @@ The comprehensive audit is documented in `ATLAS-INVESTMENT-REMAINING-PHASES-AUDI
 
 ## UI-10 certification status
 
-UI-10 is complete/certified for the bounded read-only contextual Scout scope. The isolated boundary defines `InvestmentAssistantContext/v1`, `InvestmentAssistantQueryRequest/v1`, an allowlisted read-only investment tool, typed citation/response contracts, prompt-injection fencing, sanitized refusal/offline behavior, and authenticated endpoints at `/api/v1/investments/assistant/{context,tool,query}`. It accepts selectors and questions only, resolves canonical records through `InvestmentRepository`, validates model citations against server-owned hashes, and leaves general `/api/assistant/*` behavior unchanged. The contextual Scout UI is available at `/investments/assistant`. Discovery/security/portfolio selectors remain explicit limited states until dedicated adapters are introduced.
+UI-10 is complete/certified for the bounded read-only Scout scope. The isolated contextual boundary defines `InvestmentAssistantContext/v1`, `InvestmentAssistantQueryRequest/v1`, an allowlisted read-only investment tool, typed citation/response contracts, prompt-injection fencing, sanitized refusal/offline behavior, and authenticated endpoints at `/api/v1/investments/assistant/{context,tool,query}`. The separate provider-backed research boundary defines `InvestmentScoutResearchRequest/v1`, `InvestmentScoutSource/v1`, `InvestmentScoutClaim/v1`, `InvestmentScoutResearchResult/v1`, and `InvestmentScoutRunSummary/v1`, with authenticated routes at `/api/v1/investments/scout/research`, `/api/v1/investments/scout/runs`, and `/api/v1/investments/scout/runs/{run_id}` plus the `/investments/scout` UI. It accepts exactly one bounded selector, resolves provider research only through an owner-held canonical security (including recommendation/committee selectors that reference that held security), validates and source-links provider records, strips credential-bearing source query parameters, persists immutable owner-scoped results, and leaves general `/api/assistant/*` behavior unchanged. There is no unrestricted web search, arbitrary URL retrieval, general crawler, private portfolio-fact prompt context, or provider beyond the bounded existing Finnhub/SEC adapters; current-context and metadata limitations remain explicit.
+
+## UI-10 provider-backed Scout expansion status
+
+The approved UI-10 expansion is implemented as a separate server-owned, current-context research boundary rather than a direct browser-to-web or browser-to-LLM path. It reuses the existing Finnhub and SEC adapters, exposes strict source and claim projections, rejects future publication/retrieval timestamps, excludes client-supplied sources and financial facts, persists immutable owner-scoped runs, and has focused domain/HTTP/migration/UI evidence. The new `/investments/scout` route is included in the UI-12 read-only route inventory. Recommendation and committee selectors do not independently resolve a security-master record; the referenced canonical security must also be present as a resolved held security for the authenticated owner.
 
 ## Future sequence
 

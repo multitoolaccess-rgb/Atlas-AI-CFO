@@ -49,6 +49,13 @@ const surfaces = [
     icon: ShieldCheck,
     status: 'Available',
   },
+  {
+    title: 'Investment Context Scout',
+    description: 'Retrieve bounded, source-linked current context for one owner-authorized canonical security.',
+    href: '/investments/scout',
+    icon: Search,
+    status: 'Available',
+  },
 ]
 
 export default function InvestmentsPage() {

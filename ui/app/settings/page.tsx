@@ -1365,11 +1365,16 @@ export default function SettingsPage() {
         throw new Error('That category no longer exists.')
       }
       const parsedPriority = Number(editRulePriority)
+      // No upper bound: the system seed assigns ``10 * position``
+      // across ~166 rules (the last ones land > 999), and user-added
+      // rules auto-increment ``MAX + 10``, so the backend accepts any
+      // positive integer. A 999 cap would make high-priority seed
+      // rules un-editable — keep only the whole-number + >= 1 guards.
       if (
         editRulePriority !== '' &&
-        (!Number.isInteger(parsedPriority) || parsedPriority < 1 || parsedPriority > 999)
+        (!Number.isInteger(parsedPriority) || parsedPriority < 1)
       ) {
-        throw new Error('Priority must be a whole number between 1 and 999.')
+        throw new Error('Priority must be a whole number of at least 1.')
       }
       const trimmedKeyword = editRuleKeyword.trim()
       if (!trimmedKeyword) {
@@ -2431,7 +2436,6 @@ export default function SettingsPage() {
             label="Priority"
             type="number"
             min={1}
-            max={999}
             step={1}
             value={editRulePriority}
             onChange={(e) => setEditRulePriority(e.target.value)}

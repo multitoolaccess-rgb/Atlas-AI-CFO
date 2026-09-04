@@ -58,6 +58,9 @@ def _response_id(context_id: str, sections: tuple[AssistantResponseSection, ...]
 def validate_investment_response(*, context: InvestmentAssistantContext, payload: dict[str, Any]) -> InvestmentAssistantResponse:
     if not isinstance(payload, dict):
         raise AssistantResponseValidationError("assistant response must be an object")
+    unknown_fields = set(payload) - {"sections", "status", "limitations"}
+    if unknown_fields:
+        raise AssistantResponseValidationError("assistant response contains unsupported fields")
     try:
         sections = tuple(AssistantResponseSection.model_validate(item) for item in payload.get("sections", ()))
     except (TypeError, ValueError) as exc:
@@ -75,7 +78,7 @@ def validate_investment_response(*, context: InvestmentAssistantContext, payload
     if status not in {"ok", "offline", "refused", "error"}:
         raise AssistantResponseValidationError("assistant response status is invalid")
     return InvestmentAssistantResponse(
-        response_id=payload.get("response_id") or _response_id(context.context_id, sections),
+        response_id=_response_id(context.context_id, sections),
         context_id=context.context_id,
         status=status,
         sections=sections,

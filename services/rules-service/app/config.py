@@ -105,6 +105,8 @@ class Settings(BaseSettings):
     atlas_investment_external_provider_enabled: bool = False
     atlas_investment_scheduler_enabled: bool = False
     atlas_investment_persistence_enabled: bool = False
+    # UI-10 provider-backed Scout expansion. Default-off; only the server may enable it.
+    atlas_investment_scout_external_provider_enabled: bool = False
 
     model_config = ConfigDict(
         extra="ignore",

@@ -759,6 +759,67 @@ export function classifyCashflow(txn: {
   return _result(absAmt, 'needs_review', 'transfer', true, `Unrecognized account type "${at}" — add classification rules for this type.`)
 }
 
+/** Effects included by the dashboard's canonical spending visualizations.
+ * Keep this set aligned with ``routes/dashboard.py::_SPEND_EFFECTS`` so the
+ * Sankey, Breakdown, and Spending by Category surfaces cannot disagree. */
+export const SPENDING_CASHFLOW_EFFECTS: ReadonlySet<FinancialEffect> = new Set([
+  'expense',
+  'fee',
+  'contribution',
+  'investment_buy',
+  'principal_payment',
+])
+
+export function isSpendingCashflowTransaction(txn: {
+  amount: number
+  account_type?: string | null
+  description?: string | null
+}): boolean {
+  return txn.amount < 0 && SPENDING_CASHFLOW_EFFECTS.has(
+    classifyCashflow(txn).effect,
+  )
+}
+
+const BREAKDOWN_BUCKET_KEYWORDS: Record<string, string[]> = {
+  Essential: [
+    'housing', 'rent', 'mortgage', 'utilities', 'electric', 'water', 'gas',
+    'groceries', 'insurance', 'healthcare', 'medical', 'phone', 'internet',
+    'childcare', 'education', 'tuition', 'transportation', 'fuel', 'tax',
+  ],
+  Flexible: [
+    'dining', 'restaurant', 'entertainment', 'shopping', 'travel',
+    'subscription', 'streaming', 'hobby', 'clothing', 'gift', 'charity',
+  ],
+  Debt: ['credit card', 'loan', 'debt', 'interest'],
+  Savings: ['savings', 'invest', 'brokerage', 'retirement', 'ira', '401k', 'deposit', 'contribution'],
+}
+
+/** Mirror the backend role-bucket classifier for local drilldown filtering. */
+export function classifyBreakdownBucket(categoryName?: string | null): string {
+  const lower = (categoryName ?? '').toLowerCase()
+  if (BREAKDOWN_BUCKET_KEYWORDS.Savings.some((keyword) => lower.includes(keyword))) return 'Savings'
+  if (BREAKDOWN_BUCKET_KEYWORDS.Debt.some((keyword) => lower.includes(keyword))) return 'Debt'
+  if (BREAKDOWN_BUCKET_KEYWORDS.Essential.some((keyword) => lower.includes(keyword))) return 'Essential'
+  if (BREAKDOWN_BUCKET_KEYWORDS.Flexible.some((keyword) => lower.includes(keyword))) return 'Flexible'
+  return 'Flexible'
+}
+
+/** Match the same category semantics used by the Cash Flow visuals. */
+export function matchesCashFlowCategory(
+  txn: { amount: number; account_type?: string | null; description?: string | null; category_name?: string | null },
+  label: string,
+): boolean {
+  const categoryName = txn.category_name || 'Uncategorized'
+  // A few legacy transaction payloads omit account_type. Keep drilldowns
+  // useful for those rows by applying the dashboard's safe signed-amount
+  // fallback, without weakening classifyCashflow() elsewhere.
+  const spending = isSpendingCashflowTransaction(txn) || (!txn.account_type && txn.amount < 0)
+  if (['Essential', 'Flexible', 'Debt', 'Savings'].includes(label)) {
+    return spending && classifyBreakdownBucket(categoryName) === label
+  }
+  return spending && categoryName.toLowerCase() === label.toLowerCase()
+}
+
 export type ReadinessState = 'ready' | 'unavailable' | 'blocked' | 'degraded' | 'disabled'
 export type OverallReadinessState = 'ready' | 'ready_with_blocked_optional_capabilities' | 'configuration_failure' | 'unsafe_state'
 
@@ -1087,8 +1148,18 @@ export interface BreakdownBucket {
   percentage: number
 }
 
+export interface CategoryBreakdownBucket {
+  label: string
+  amount: number
+  color: string
+  percentage: number
+}
+
 export interface DashboardBreakdownResponse {
+  /** Legacy role buckets retained for health-ratio calculations. */
   buckets: BreakdownBucket[]
+  /** Canonical transaction categories shared with the Sankey and category chart. */
+  categories?: CategoryBreakdownBucket[]
   total_spend: number
   period: string
 }
@@ -1575,35 +1646,37 @@ export const rulesService = {
     return response.data
   },
 
-  // Phase 35 — Dashboard Redesign: Money Flow
-  // Accepts either a single month (period) or a full date range.
-  getDashboardFlows: async (rangeOrPeriod?: string, toDate?: string): Promise<DashboardFlowsResponse> => {
+  // Phase 35 — Dashboard Redesign: Money Flow. All dashboard reads use
+  // the shared inclusive calendar-date range; budgeting remains month-keyed.
+  getDashboardFlows: async (fromDate?: string, toDate?: string): Promise<DashboardFlowsResponse> => {
     const params: Record<string, string> = {}
-    if (rangeOrPeriod && toDate) {
-      params.from_date = rangeOrPeriod
+    if (fromDate && toDate) {
+      params.from_date = fromDate
       params.to_date = toDate
-    } else if (rangeOrPeriod) {
-      params.period = rangeOrPeriod
     }
     const response = await api.get('/api/dashboard/flows', { params })
     return response.data
   },
 
-  getDashboardTrends: async (months?: number): Promise<DashboardTrendsResponse> => {
-    const params = months ? { months } : {}
+  getDashboardTrends: async (months?: number, fromDate?: string, toDate?: string): Promise<DashboardTrendsResponse> => {
+    const params: Record<string, string | number> = {}
+    if (fromDate && toDate) {
+      params.from_date = fromDate
+      params.to_date = toDate
+    } else if (months) {
+      params.months = months
+    }
     const response = await api.get('/api/dashboard/trends', { params })
     return response.data
   },
 
-  // Phase 35 (Phase 2) — Dashboard Breakdown
-  // Accepts either a single month (period) or a full date range.
-  getDashboardBreakdown: async (rangeOrPeriod?: string, toDate?: string): Promise<DashboardBreakdownResponse> => {
+  // Phase 35 (Phase 2) — Dashboard Breakdown. Uses the same shared
+  // inclusive calendar-date range as Money Flow and domain breakdowns.
+  getDashboardBreakdown: async (fromDate?: string, toDate?: string): Promise<DashboardBreakdownResponse> => {
     const params: Record<string, string> = {}
-    if (rangeOrPeriod && toDate) {
-      params.from_date = rangeOrPeriod
+    if (fromDate && toDate) {
+      params.from_date = fromDate
       params.to_date = toDate
-    } else if (rangeOrPeriod) {
-      params.period = rangeOrPeriod
     }
     const response = await api.get('/api/dashboard/breakdown', { params })
     return response.data
@@ -2477,6 +2550,40 @@ export const rulesService = {
       '/api/merchant-rules/duplicates/apply',
       { candidate_ids: candidateIds },
     )
+    return response.data
+  },
+
+  askInvestmentScout: async (
+    selector: {
+      recommendation_id?: string | null
+      committee_finding_id?: string | null
+      discovery_candidate_id?: string | null
+      security_id?: string | null
+    },
+    question: string,
+    maxEvidence = 12,
+  ): Promise<import('./investmentAssistant').InvestmentAssistantResponse> => {
+    const response = await api.post('/api/v1/investments/assistant/query', {
+      selector,
+      question,
+      max_evidence: maxEvidence,
+    })
+    return response.data
+  },
+
+  resolveInvestmentAssistantContext: async (
+    selector: {
+      recommendation_id?: string | null
+      committee_finding_id?: string | null
+      discovery_candidate_id?: string | null
+      security_id?: string | null
+    },
+    maxEvidence = 12,
+  ): Promise<import('./investmentAssistant').InvestmentAssistantContext> => {
+    const response = await api.post('/api/v1/investments/assistant/context', {
+      selector,
+      max_evidence: maxEvidence,
+    })
     return response.data
   },
 

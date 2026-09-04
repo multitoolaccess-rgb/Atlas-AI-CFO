@@ -2,17 +2,21 @@
 
 import { useMemo } from 'react'
 import { ArrowDownRight, ArrowUpRight, TrendingUp, TrendingDown, Minus } from 'lucide-react'
-import type { DashboardSummary } from '@/lib/api'
-
+import { formatCurrency } from '@/lib/format'
+import { DashboardFocusLayer, DashboardFocusToggle, useDashboardFocus } from '@/components/dashboard/ExpandableCard'
 interface CashFlowAnalysisProps {
-  summary: DashboardSummary | null
+  /** Range-scoped income from the Money Flow endpoint. */
+  income: number
+  /** Range-scoped spending from the Breakdown endpoint. */
+  expenses: number
+  /** Human-readable label for the active global range. */
+  rangeLabel: string
   loading?: boolean
   className?: string
 }
 
-export default function CashFlowAnalysis({ summary, loading, className = '' }: CashFlowAnalysisProps) {
-  const income = summary?.total_income_month ?? 0
-  const expenses = summary?.total_expenses_month ?? 0
+export default function CashFlowAnalysis({ income, expenses, rangeLabel, loading, className = '' }: CashFlowAnalysisProps) {
+  const { focused, setFocused } = useDashboardFocus()
   const net = income - expenses
   const isPositive = net > 0
   const isZero = net === 0
@@ -42,11 +46,15 @@ export default function CashFlowAnalysis({ summary, loading, className = '' }: C
   }
 
   return (
-    <div className={`card p-6 animate-fadeIn ${className}`} aria-label="Cash flow analysis">
-      <div className="flex-between mb-5">
-        <h3 className="headline-md text-primary">Cash Flow</h3>
-        <span className="label-sm text-tertiary">Last 60 days</span>
-      </div>
+    <DashboardFocusLayer focused={focused} title="Cash Flow analysis">
+      <div className={`card p-6 animate-fadeIn ${focused ? 'min-h-[calc(100vh-3rem)]' : ''} ${className}`} aria-label="Cash flow analysis">
+        <div className="flex items-center justify-between gap-3 mb-5">
+          <div>
+            <h3 className="headline-md text-primary">Cash Flow</h3>
+            <span className="label-sm text-tertiary">{rangeLabel}</span>
+          </div>
+          <DashboardFocusToggle focused={focused} onToggle={() => setFocused((value) => !value)} />
+        </div>
 
       {/* Net cash flow hero */}
       <div className="flex items-center gap-3 mb-6">
@@ -70,7 +78,7 @@ export default function CashFlowAnalysis({ summary, loading, className = '' }: C
         <div>
           <p className="label-md text-tertiary">Net Cash Flow</p>
           <p className={`numeric-lg ${isPositive ? 'text-positive' : isZero ? 'text-neutral' : 'text-negative'}`}>
-            {isPositive ? '+' : isZero ? '' : '−'}${Math.abs(net).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+            {isPositive ? '+' : isZero ? '' : '−'}{formatCurrency(Math.abs(net))}
           </p>
         </div>
       </div>
@@ -83,7 +91,7 @@ export default function CashFlowAnalysis({ summary, loading, className = '' }: C
             <span className="label-md text-on-surface">Income</span>
           </div>
           <span className="numeric-sm text-[var(--success-600)]">
-            +${income.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+            +{formatCurrency(income)}
           </span>
         </div>
         <div className="h-3 w-full bg-[var(--slate-100)] rounded-[var(--radius-full)] overflow-hidden">
@@ -94,7 +102,7 @@ export default function CashFlowAnalysis({ summary, loading, className = '' }: C
             aria-valuenow={Math.round(incomePct)}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label={`Income: $${income.toLocaleString()}`}
+            aria-label={`Income: ${formatCurrency(income)}`}
           />
         </div>
       </div>
@@ -107,7 +115,7 @@ export default function CashFlowAnalysis({ summary, loading, className = '' }: C
             <span className="label-md text-on-surface">Expenses</span>
           </div>
           <span className="numeric-sm text-[var(--danger-600)]">
-            −${expenses.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+            −{formatCurrency(expenses)}
           </span>
         </div>
         <div className="h-3 w-full bg-[var(--slate-100)] rounded-[var(--radius-full)] overflow-hidden">
@@ -118,7 +126,7 @@ export default function CashFlowAnalysis({ summary, loading, className = '' }: C
             aria-valuenow={Math.round(expensesPct)}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label={`Expenses: $${expenses.toLocaleString()}`}
+            aria-label={`Expenses: ${formatCurrency(expenses)}`}
           />
         </div>
       </div>
@@ -138,6 +146,7 @@ export default function CashFlowAnalysis({ summary, loading, className = '' }: C
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </DashboardFocusLayer>
   )
 }

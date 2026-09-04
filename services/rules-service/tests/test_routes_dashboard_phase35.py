@@ -328,11 +328,44 @@ def test_dashboard_trends_isolates_other_user_with_recent_txns_too(
 def test_dashboard_trends_clamps_months_query_param(
     client, db_session
 ) -> None:
-    """``months`` is clamped to ``[1, 36]`` per Pydantic ``ge/le``.
-    out-of-range values 422 so the route never asks for a 10-year
-    window by accident."""
+    """``months`` is bounded for legacy callers; explicit ranges are
+    preferred by the Cash Flow workspace."""
     assert client.get("/api/dashboard/trends?months=0").status_code == 422
     assert client.get("/api/dashboard/trends?months=9999").status_code == 422
+
+
+def test_dashboard_trends_honors_explicit_date_range(
+    client, db_session, make_account
+) -> None:
+    """The trend chart must aggregate only the selected date window.
+
+    This prevents a 7D/30D Cash Flow view from silently rendering the
+    last N full calendar months instead.
+    """
+    from datetime import datetime, timedelta
+
+    acct = make_account(account_name="Ranged Trend Checking")
+    db_session.add(acct)
+    db_session.commit()
+    now = datetime.utcnow()
+    _seed_transaction(
+        db_session, acct.id, amount=1000.0, category_name="Salary",
+        description="Inside range", days_ago=1,
+    )
+    _seed_transaction(
+        db_session, acct.id, amount=9000.0, category_name="Salary",
+        description="Outside range", days_ago=45,
+    )
+
+    start = (now - timedelta(days=7)).date().isoformat()
+    end = now.date().isoformat()
+    response = client.get(
+        f"/api/dashboard/trends?from_date={start}&to_date={end}"
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert len(body["trends"]) >= 1
+    assert sum(point["income"] for point in body["trends"]) == 1000.0
 
 
 # -----------------------------------------------------------------------
@@ -437,18 +470,18 @@ def test_dashboard_flows_rejects_malformed_period_query(
     client, db_session
 ) -> None:
     """Bad ?period= value yields 400 with a stable detail string."""
-    r = client.get("/api/dashboard/flows?period=not-a-date")
+    r = client.get("/api/dashboard/flows?from_date=2026-99-99&to_date=2026-99-99")
     assert r.status_code == 400
-    assert "period" in r.json()["detail"].lower()
+    assert "date" in r.json()["detail"].lower()
 
 
 def test_dashboard_breakdown_rejects_malformed_period_query(
     client, db_session
 ) -> None:
     """Bad ?period= value yields 400 with a stable detail string."""
-    r = client.get("/api/dashboard/breakdown?period=not-a-date")
+    r = client.get("/api/dashboard/breakdown?from_date=2026-99-99&to_date=2026-99-99")
     assert r.status_code == 400
-    assert "period" in r.json()["detail"].lower()
+    assert "date" in r.json()["detail"].lower()
 
 
 # -----------------------------------------------------------------------
@@ -575,6 +608,65 @@ def test_dashboard_flows_phase44_uncategorized_fallback_label(
         f"Phase 44 fallback regressed: 'Uncategorized' node missing "
         f"from Sankey; got {node_names}"
     )
+
+
+def test_dashboard_flows_and_breakdown_share_spending_total(
+    client, db_session, make_account
+) -> None:
+    """The Sankey and Breakdown must use one spending contract.
+
+    Investment buys are valid outflows in the Sankey's Investments group,
+    while savings-account review rows and internal transfers are excluded.
+    The Breakdown must include/exclude the same effects or its headline
+    total contradicts the Money Flow Engine.
+    """
+    checking = make_account(account_name="Shared Total Checking")
+    investment = make_account(
+        account_name="Shared Total Brokerage", account_type="investment"
+    )
+    savings = make_account(
+        account_name="Shared Total Savings", account_type="savings"
+    )
+    db_session.add_all([checking, investment, savings])
+    db_session.commit()
+
+    _seed_transaction(
+        db_session, checking.id, amount=2000.0, category_name="Salary",
+        description="Paycheck", days_ago=1, group="Income",
+    )
+    _seed_transaction(
+        db_session, checking.id, amount=-100.0, category_name="Groceries",
+        description="Whole Foods", days_ago=1,
+    )
+    _seed_transaction(
+        db_session, investment.id, amount=-200.0, category_name="Brokerage Buys",
+        description="BUY VTI", days_ago=1,
+    )
+    _seed_transaction(
+        db_session, savings.id, amount=-300.0, category_name="Savings",
+        description="ATM cash", days_ago=1,
+    )
+
+    flows = client.get("/api/dashboard/flows")
+    breakdown = client.get("/api/dashboard/breakdown")
+    assert flows.status_code == 200, flows.text
+    assert breakdown.status_code == 200, breakdown.text
+
+    flow_body = flows.json()
+    breakdown_body = breakdown.json()
+    node_by_index = {index: node for index, node in enumerate(flow_body["nodes"])}
+    sankey_spend = sum(
+        link["value"]
+        for link in flow_body["links"]
+        if node_by_index[link["source"]].get("level") == 2
+        and node_by_index[link["target"]].get("level") == 3
+    )
+
+    assert sankey_spend == 300.0
+    assert breakdown_body["total_spend"] == sankey_spend
+    assert [category["label"] for category in breakdown_body["categories"]] == [
+        "Brokerage Buys", "Groceries"
+    ]
 
 
 # -----------------------------------------------------------------------
@@ -823,3 +915,16 @@ def test_dashboard_flows_all_categories_shown_individually(
     assert len(subcat_colors) == 7, (
         f"Expected 7 distinct palette colors, got {len(subcat_colors)}"
     )
+
+    # Every visible category must have an inbound ribbon from its group.
+    # This catches a graph-construction regression where a category node
+    # renders but its group/category link is silently omitted.
+    node_by_index = {index: node for index, node in enumerate(body["nodes"])}
+    category_indices = {index for index, node in node_by_index.items() if node.get("level") == 3}
+    linked_category_indices = {
+        link["target"]
+        for link in body["links"]
+        if node_by_index[link["source"]].get("level") == 2
+        and link["target"] in category_indices
+    }
+    assert linked_category_indices == category_indices

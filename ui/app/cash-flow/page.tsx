@@ -17,9 +17,11 @@ import ExpensesPage from '@/app/expenses/page'
 import ActivityPage from '@/app/activity/page'
 import { EmbeddedMoneyView } from '@/components/money/EmbeddedMoneyView'
 import { useCachedFetch } from '@/lib/cache'
-import { formatNumber } from '@/lib/format'
+import { formatCurrency } from '@/lib/format'
 import {
-  classifyCashflow,
+  classifyBreakdownBucket,
+  isSpendingCashflowTransaction,
+  matchesCashFlowCategory,
   rulesService,
   type Category,
   type DashboardBreakdownResponse,
@@ -56,10 +58,7 @@ function CashFlowOverview() {
     'cash-flow-flows', () => rulesService.getDashboardFlows(from, to), [from, to], { group: 'cash-flow' },
   )
   const { data: trends, loading: trendsLoading } = useCachedFetch<DashboardTrendsResponse | null>(
-    'cash-flow-trends', () => {
-      const months = Math.min(36, Math.max(1, (new Date(to).getFullYear() - new Date(from).getFullYear()) * 12 + new Date(to).getMonth() - new Date(from).getMonth() + 1))
-      return rulesService.getDashboardTrends(months).catch(() => null)
-    }, [from, to], { group: 'cash-flow' },
+    'cash-flow-trends', () => rulesService.getDashboardTrends(undefined, from, to).catch(() => null), [from, to], { group: 'cash-flow' },
   )
   const { data: breakdown, loading: breakdownLoading } = useCachedFetch<DashboardBreakdownResponse | null>(
     'cash-flow-breakdown', () => rulesService.getDashboardBreakdown(from, to).catch(() => null), [from, to], { group: 'cash-flow' },
@@ -70,7 +69,10 @@ function CashFlowOverview() {
       sort_by: 'transaction_date',
       sort_dir: 'desc',
       from_date: from,
-      to_date: to,
+      // The transactions endpoint accepts a datetime upper bound. A
+      // date-only value means midnight and silently drops transactions
+      // later on the selected end date, making drilldowns appear empty.
+      to_date: `${to}T23:59:59.999999`,
     }), [from, to], { group: 'cash-flow' },
   )
   const { data: categoryData } = useCachedFetch<Category[]>(
@@ -79,31 +81,99 @@ function CashFlowOverview() {
   const transactions = useMemo(() => transactionData ?? [], [transactionData])
   const categories = useMemo(() => categoryData ?? [], [categoryData])
   const colorByName = useMemo(() => new Map(categories.map((category) => [category.name.toLowerCase(), category.color || 'var(--slate-400)'])), [categories])
+
+  // Older rules-service responses may contain only the legacy role buckets.
+  // Rebuild the canonical category view from the same range-scoped
+  // transactions so every Cash Flow card still speaks in category names.
+  const fallbackBreakdown = useMemo<DashboardBreakdownResponse>(() => {
+    const bucketColors: Record<string, string> = {
+      Essential: '#C81425',
+      Flexible: '#F59E0B',
+      Debt: '#7A081B',
+      Savings: '#059669',
+    }
+    const categoryTotals = new Map<string, number>()
+    const bucketTotals = new Map<string, number>(Object.keys(bucketColors).map((name) => [name, 0]))
+    for (const transaction of transactions) {
+      if (!isSpendingCashflowTransaction(transaction)) continue
+      const name = transaction.category_name || 'Uncategorized'
+      const amount = Math.abs(transaction.amount)
+      categoryTotals.set(name, (categoryTotals.get(name) ?? 0) + amount)
+      const bucket = classifyBreakdownBucket(name)
+      bucketTotals.set(bucket, (bucketTotals.get(bucket) ?? 0) + amount)
+    }
+    const total = Array.from(categoryTotals.values()).reduce((sum, amount) => sum + amount, 0)
+    const categories = Array.from(categoryTotals.entries())
+      .sort(([aName, aAmount], [bName, bAmount]) => bAmount - aAmount || aName.localeCompare(bName))
+      .map(([label, amount]) => ({
+        label,
+        amount: Math.round(amount * 100) / 100,
+        color: colorByName.get(label.toLowerCase()) || bucketColors[classifyBreakdownBucket(label)],
+        percentage: total > 0 ? Math.round((amount / total) * 1000) / 10 : 0,
+      }))
+    return {
+      buckets: Object.entries(bucketColors).map(([label, color]) => {
+        const amount = bucketTotals.get(label) ?? 0
+        return { label, amount, color, percentage: total > 0 ? Math.round((amount / total) * 1000) / 10 : 0 }
+      }),
+      categories,
+      total_spend: Math.round(total * 100) / 100,
+      period: `${from} to ${to}`,
+    }
+  }, [colorByName, from, to, transactions])
+
+  const effectiveBreakdown = useMemo(() => {
+    if (breakdown?.categories?.length) return breakdown
+    if (!fallbackBreakdown.categories?.length) return breakdown ?? fallbackBreakdown
+    return {
+      ...(breakdown ?? fallbackBreakdown),
+      categories: fallbackBreakdown.categories,
+      total_spend: breakdown && breakdown.total_spend > 0
+        ? breakdown.total_spend
+        : fallbackBreakdown.total_spend,
+    }
+  }, [breakdown, fallbackBreakdown])
+
+  const rangeLabel = {
+    '7D': 'Last 7 days',
+    '30D': 'Last 30 days',
+    '90D': 'Last 90 days',
+    MTD: 'Month to date',
+    QTD: 'Quarter to date',
+    YTD: 'Year to date',
+    '1Y': 'Last year',
+    ALL: 'All time',
+  }[timeRange]
   const openDrilldown = useCallback((title: string, subtitle: string, content: ReactNode) => {
     setDrawerTitle(title)
     setDrawerSubtitle(subtitle)
     setDrawerContent(content)
     setDrawerOpen(true)
   }, [])
-  const transactionRows = useCallback((items: Transaction[], amountClass: string) => <div className="space-y-2">{items.slice(0, 50).map((transaction) => <div key={transaction.id} className="flex items-center justify-between border-b border-[var(--border-color)] py-2"><div className="min-w-0"><p className="truncate text-sm text-on-surface">{transaction.description}</p><p className="text-xs text-tertiary">{transaction.transaction_date}{transaction.merchant_name ? ` · ${transaction.merchant_name}` : ''}</p></div><span className={`font-mono text-sm font-semibold ${amountClass}`}>{transaction.amount < 0 ? '-' : '+'}{Math.abs(transaction.amount).toFixed(2)}</span></div>)}{items.length === 0 && <p className="py-4 text-sm text-tertiary">No transactions found.</p>}</div>, [])
+  const transactionRows = useCallback((items: Transaction[], amountClass: string) => <div className="space-y-2">{items.slice(0, 50).map((transaction) => <div key={transaction.id} className="flex items-center justify-between border-b border-[var(--border-color)] py-2"><div className="min-w-0"><p className="truncate text-sm text-on-surface">{transaction.description}</p><p className="text-xs text-tertiary">{transaction.transaction_date}{transaction.merchant_name ? ` · ${transaction.merchant_name}` : ''}</p></div><span className={`font-mono text-sm font-semibold whitespace-nowrap ${amountClass}`}>{transaction.amount < 0 ? '−' : '+'}{formatCurrency(Math.abs(transaction.amount))}</span></div>)}{items.length === 0 && <p className="py-4 text-sm text-tertiary">No transactions found for this range.</p>}</div>, [])
   const handleSegmentClick = useCallback((label: string) => {
-    const matching = transactions.filter((transaction) => label === 'Uncategorized' ? !transaction.category_name : transaction.category_name?.toLowerCase() === label.toLowerCase())
-    openDrilldown(label, `${matching.length} transactions`, transactionRows(matching, 'text-on-surface'))
-  }, [openDrilldown, transactionRows, transactions])
+    const matching = transactions.filter((transaction) => matchesCashFlowCategory(transaction, label))
+    openDrilldown(label, `${matching.length} transactions · ${rangeLabel}`, transactionRows(matching, 'text-on-surface'))
+  }, [openDrilldown, rangeLabel, transactionRows, transactions])
   const handleCategoryClick = useCallback((categoryName: string) => {
-    const matching = transactions.filter((transaction) => (transaction.category_name || 'Uncategorized').toLowerCase() === categoryName.toLowerCase())
-    const total = matching.reduce((sum, transaction) => sum + Math.max(0, classifyCashflow({ amount: transaction.amount, account_type: transaction.account_type ?? null, description: transaction.description ?? null }).expenseEffect), 0)
-    openDrilldown(categoryName, `${matching.length} transactions · ${formatNumber(total)} total`, transactionRows(matching, 'text-negative'))
-  }, [openDrilldown, transactionRows, transactions])
+    const matching = transactions.filter((transaction) => matchesCashFlowCategory(transaction, categoryName))
+    const total = matching.reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0)
+    openDrilldown(categoryName, `${matching.length} transactions · ${formatCurrency(total)} total · ${rangeLabel}`, transactionRows(matching, 'text-negative'))
+  }, [openDrilldown, rangeLabel, transactionRows, transactions])
   const handleGaugeClick = useCallback((metric: string) => {
     const labels: Record<string, string> = { savings: 'Savings Rate', debt: 'Debt Load', investment: 'Investment Rate', cashBuffer: 'Cash Buffer' }
     openDrilldown(labels[metric] ?? metric, 'Financial health metric detail', <p className="text-sm text-[var(--text-secondary)]">Expand the Financial Health card for the formula breakdown, numerator, denominator, and status thresholds for this metric.</p>)
   }, [openDrilldown])
   const loading = summaryLoading || flowsLoading || trendsLoading || breakdownLoading || transactionsLoading
   return <><AnalyticalPageFrame header={null}
-    primaryVisualization={<SankeyHero flows={flows ?? null} loading={flowsLoading} />}
-    attentionRail={<CashFlowAnalysis summary={summary ?? null} loading={summaryLoading} />}
-    supportingModules={<div className="space-y-4"><div className="grid gap-4 lg:grid-cols-3"><TrendChart trends={trends?.trends ?? []} loading={loading} className="lg:col-span-2" /><BreakdownPanel breakdown={breakdown ?? null} trends={trends?.trends ?? null} loading={loading} onSegmentClick={handleSegmentClick} /></div><div className="grid gap-4 lg:grid-cols-2"><FinancialHealthGauges summary={summary ?? null} breakdown={breakdown ?? null} trends={trends?.trends ?? null} loading={loading} onGaugeClick={handleGaugeClick} /><SpendByCategoryBar transactions={transactions} colorByName={colorByName} categories={categories} loading={loading} onCategoryClick={handleCategoryClick} /></div><p className="text-sm text-[var(--text-secondary)]">Select Income, Spending, or Transactions for the authoritative detail behind this flow.</p></div>}
+    primaryVisualization={<SankeyHero flows={flows ?? null} rangeLabel={rangeLabel} loading={flowsLoading} />}
+    attentionRail={<CashFlowAnalysis
+      income={flows?.total_income ?? 0}
+      expenses={effectiveBreakdown?.total_spend ?? 0}
+      rangeLabel={rangeLabel}
+      loading={flowsLoading || breakdownLoading}
+    />}
+    supportingModules={<div className="space-y-4"><div className="grid gap-4 lg:grid-cols-3">      <TrendChart trends={trends?.trends ?? []} rangeLabel={rangeLabel} loading={loading} className="lg:col-span-2" /><BreakdownPanel breakdown={effectiveBreakdown} rangeLabel={rangeLabel} trends={trends?.trends ?? null} loading={loading} onSegmentClick={handleSegmentClick} /></div><div className="grid gap-4 lg:grid-cols-2"><FinancialHealthGauges summary={summary ?? null} breakdown={effectiveBreakdown} income={flows?.total_income ?? 0} expenses={effectiveBreakdown?.total_spend ?? 0} rangeLabel={rangeLabel} trends={trends?.trends ?? null} loading={loading} onGaugeClick={handleGaugeClick} /><SpendByCategoryBar transactions={transactions} colorByName={colorByName} categories={categories} rangeLabel={rangeLabel} loading={loading} onCategoryClick={handleCategoryClick} /></div><p className="text-sm text-[var(--text-secondary)]">Select Income, Spending, or Transactions for the authoritative detail behind this flow.</p></div>}
     drilldown={{ title: 'Cash Flow detail', preserveFilterContext: true }}
   /><DrilldownDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={drawerTitle} subtitle={drawerSubtitle} breadcrumbs={['Cash Flow', drawerTitle]}>{drawerContent}</DrilldownDrawer></>
 }

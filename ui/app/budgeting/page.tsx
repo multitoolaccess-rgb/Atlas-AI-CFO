@@ -159,7 +159,9 @@ function BudgetingContent({ embedded = false }: { embedded?: boolean }) {
           canonical date-window Range selector would be a no-op here. Only the
           authoritative month "Period" input is shown (same bar as the embedded
           Plan → Budget tab) — no dead range control. */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3">{budgetControls}</div>
+      <div className="sticky top-16 z-[60] flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)]/95 px-4 py-3 shadow-sm backdrop-blur-md scroll-mt-16" data-testid="floating-budget-period-bar" aria-label="Budget period">
+        {budgetControls}
+      </div>
 
       {/* Add Budget Form */}
       {showAddForm && (

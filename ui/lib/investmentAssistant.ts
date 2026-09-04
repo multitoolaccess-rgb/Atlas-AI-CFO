@@ -1,11 +1,10 @@
 import api from './api'
 
-export type InvestmentAssistantSelector = {
-  recommendation_id?: string | null
-  committee_finding_id?: string | null
-  discovery_candidate_id?: string | null
-  security_id?: string | null
-}
+export type InvestmentAssistantSelector =
+  | { recommendation_id: string; committee_finding_id?: never; discovery_candidate_id?: never; security_id?: never }
+  | { recommendation_id?: never; committee_finding_id: string; discovery_candidate_id?: never; security_id?: never }
+  | { recommendation_id?: never; committee_finding_id?: never; discovery_candidate_id: string; security_id?: never }
+  | { recommendation_id?: never; committee_finding_id?: never; discovery_candidate_id?: never; security_id: string }
 
 export type InvestmentAssistantResponse = {
   schema_version: 'InvestmentAssistantResponse/v1'
@@ -16,17 +15,22 @@ export type InvestmentAssistantResponse = {
   limitations: string[]
 }
 
+export type InvestmentAssistantEvidence = {
+  packet_id: string
+  packet_hash: string
+  trust: 'atlas_validated'
+}
+
 export type InvestmentAssistantContext = {
   schema_version: 'InvestmentAssistantContext/v1'
   context_id: string
-  owner_id: number
   state: 'ready' | 'partial' | 'unavailable'
   resolved_at: string
   context_as_of: string | null
   source_hashes: string[]
   recommendation: Record<string, unknown> | null
   committee: Record<string, unknown> | null
-  evidence: Array<Record<string, unknown>>
+  evidence: InvestmentAssistantEvidence[]
   limitations: string[]
 }
 

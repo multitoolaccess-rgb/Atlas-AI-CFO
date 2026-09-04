@@ -19,7 +19,7 @@ import VerticalBarChart from '@/components/charts/VerticalBarChart'
 
 import TiltCard from '@/components/ui/TiltCard'
 import AnimatedSection from '@/components/ui/AnimatedSection'
-import { formatNumber } from '@/lib/format'
+import { formatCurrency } from '@/lib/format'
 import {
   TrendingDown,
   DollarSign,
@@ -58,7 +58,7 @@ function ExpensesContent({ embedded = false }: { embedded?: boolean }) {
       const { from, to } = dateRangeFromPreset(timeRange)
       const [result, txns] = await Promise.all([
         rulesService.getExpenseBreakdown(from, to),
-        rulesService.listTransactions({ limit: 500, sort_by: 'transaction_date', sort_dir: 'desc', from_date: from, to_date: to }),
+        rulesService.listTransactions({ limit: 500, sort_by: 'transaction_date', sort_dir: 'desc', from_date: from, to_date: `${to}T23:59:59.999999` }),
       ])
       setData(result)
       setTransactions(txns)
@@ -71,7 +71,7 @@ function ExpensesContent({ embedded = false }: { embedded?: boolean }) {
 
   useEffect(() => { loadData() }, [loadData])
 
-  const formatDisplay = (n: number) => formatNumber(n)
+  const formatDisplay = (n: number) => formatCurrency(n)
 
   // Phase D — use the canonical category group color map.
   // The BE `by_group` response uses budget_group keys (fixed/flexible/etc)
@@ -204,6 +204,7 @@ function ExpensesContent({ embedded = false }: { embedded?: boolean }) {
                   color: 'var(--danger-500)',
                 }))}
                 defaultColor="var(--danger-500)"
+                currency
                 onSelect={(d) => {
                   const monthTxns = transactions.filter((t) => t.transaction_date?.startsWith(d.id))
                   openDrilldown(

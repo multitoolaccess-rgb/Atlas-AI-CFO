@@ -531,7 +531,7 @@ describe('Activity Page — LLM new-category proposals', () => {
     expect(listCategories).toHaveBeenCalled()
   })
 
-  it('regular (non-proposal) accept still routes through updateTransaction', async () => {
+  it('regular (non-proposal) accept routes through updateTransaction AND creates a visible merchant rule', async () => {
     const { categorizeWithLlm } = rulesServiceModule
     ;(categorizeWithLlm as ReturnType<typeof vi.fn>).mockResolvedValue({
       suggestions: [
@@ -545,6 +545,12 @@ describe('Activity Page — LLM new-category proposals', () => {
     listCategories.mockResolvedValue([
       { id: 3, name: 'Food & Dining', group: 'Expenses' },
     ])
+    ;(createMerchantRule as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 50,
+      category_id: 3,
+      keyword: 'PETSMART',
+      source: 'llm',
+    })
 
     render(<ActivityPage />)
     await waitFor(() => {
@@ -555,9 +561,55 @@ describe('Activity Page — LLM new-category proposals', () => {
     await screen.findByTestId('activity-llm-accept-1')
     fireEvent.click(screen.getByTestId('activity-llm-accept-1'))
 
+    // The accepted tag becomes a visible merchant rule (source='llm')
+    // so it shows up in Settings → Merchant Rules.
+    await waitFor(() => {
+      expect(createMerchantRule).toHaveBeenCalledWith({
+        category_id: 3,
+        keyword: 'PETSMART',
+        source: 'llm',
+      })
+    })
     await waitFor(() => {
       expect(updateTransaction).toHaveBeenCalled()
     })
     expect(acceptCategoryProposal).not.toHaveBeenCalled()
+  })
+
+  it('regular accept tolerates an already-existing rule (409) and still tags', async () => {
+    const { categorizeWithLlm } = rulesServiceModule
+    ;(categorizeWithLlm as ReturnType<typeof vi.fn>).mockResolvedValue({
+      suggestions: [
+        {
+          txn_id: 1,
+          suggested_category: 'Food & Dining',
+          confidence: 0.9,
+        },
+      ],
+    })
+    listCategories.mockResolvedValue([
+      { id: 3, name: 'Food & Dining', group: 'Expenses' },
+    ])
+    ;(createMerchantRule as ReturnType<typeof vi.fn>).mockRejectedValue({
+      response: { status: 409 },
+    })
+
+    render(<ActivityPage />)
+    await waitFor(() => {
+      expect(screen.getByTestId('activity-ai-categorize-button')).not.toBeDisabled()
+    })
+    fireEvent.click(screen.getByTestId('activity-ai-categorize-button'))
+
+    await screen.findByTestId('activity-llm-accept-1')
+    fireEvent.click(screen.getByTestId('activity-llm-accept-1'))
+
+    // 409 = the rule already exists — tagging still proceeds.
+    await waitFor(() => {
+      expect(updateTransaction).toHaveBeenCalled()
+    })
+    // The suggestion is dismissed without an error banner.
+    await waitFor(() => {
+      expect(screen.queryByTestId('activity-llm-accept-1')).not.toBeInTheDocument()
+    })
   })
 })

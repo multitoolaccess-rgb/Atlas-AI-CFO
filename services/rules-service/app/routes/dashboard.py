@@ -93,6 +93,7 @@ from app.schemas import (
     BreakdownBucket,
     BreakdownByCategory,
     BreakdownByGroup,
+    CategoryBreakdownBucket,
     BreakdownTrendPoint,
     DashboardBreakdownResponse,
     DashboardFlowsResponse,
@@ -357,7 +358,6 @@ def _group_sub_color(group: str, sorted_index: int) -> str:
 async def get_dashboard_flows(
     from_date: str | None = Query(default=None, description="ISO date start (YYYY-MM-DD)"),
     to_date: str | None = Query(default=None, description="ISO date end (YYYY-MM-DD)"),
-    period: str | None = Query(default=None, description="YYYY-MM; legacy — use from_date/to_date for range"),
     db: Session = Depends(get_db),
     _current_user: str = Depends(require_user),
 ) -> DashboardFlowsResponse:
@@ -371,25 +371,23 @@ async def get_dashboard_flows(
     Stage 2 (L2): Group nodes (Expenses, Debt, Investments) + Retained/Overspend
     Stage 3 (L3): Subcategory leaf nodes within each group
 
-    Accepts either ``from_date``/``to_date`` (full range) or legacy
-    ``period`` (single month YYYY-MM). When neither is provided,
-    defaults to the current calendar month.
+    Accepts the shared ``from_date``/``to_date`` range. When neither is
+    provided, defaults to the current calendar month.
     """
     local_user = get_or_create_local_user(db, _current_user)
 
-    # Derive period bounds
+    # Derive the shared date-range bounds. A missing side is invalid rather
+    # than silently falling back to a second, legacy time contract.
     if from_date and to_date:
+        try:
+            datetime.strptime(from_date[:10], "%Y-%m-%d")
+            datetime.strptime(to_date[:10], "%Y-%m-%d")
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="Invalid date range") from exc
         period_start = from_date[:10]
         period_end = to_date[:10]
-    elif period:
-        try:
-            year, month = int(period[:4]), int(period[5:7])
-        except (ValueError, IndexError):
-            raise HTTPException(status_code=400, detail="Period must be YYYY-MM")
-        import calendar
-        last_day = calendar.monthrange(year, month)[1]
-        period_start = f"{year:04d}-{month:02d}-01"
-        period_end = f"{year:04d}-{month:02d}-{last_day:02d}"
+    elif from_date or to_date:
+        raise HTTPException(status_code=400, detail="from_date and to_date must be provided together")
     else:
         from datetime import datetime as dt
         now = dt.utcnow()
@@ -540,20 +538,25 @@ async def get_dashboard_flows(
     # L3: Subcategory leaf nodes within each group
     # Sort subcategories by amount DESC within each group
     sorted_spend = sorted(spend_by_group_cat.items(), key=lambda x: (-x[1]))
-    l3_indices: dict[str, int] = {}  # cat_name -> node index
+    # Key by group + category. The same user-facing category name can
+    # legitimately exist under different groups; collapsing by name would
+    # silently omit that group's link and leave a category with no incoming
+    # ribbon in the Sankey.
+    l3_indices: dict[tuple[str, str], int] = {}
     group_sub_counters: dict[str, int] = {}  # group -> count for palette
 
     for (group, cat_name), amount in sorted_spend:
         if group not in l2_indices:
             continue  # skip groups with no L2 node
-        if cat_name in l3_indices:
-            continue  # already added (shouldn't happen with tuple keys)
+        category_key = (group, cat_name)
+        if category_key in l3_indices:
+            continue
 
         sub_idx = group_sub_counters.get(group, 0)
         group_sub_counters[group] = sub_idx + 1
 
         node_idx = len(nodes)
-        l3_indices[cat_name] = node_idx
+        l3_indices[category_key] = node_idx
         nodes.append(SankeyNode(
             name=cat_name,
             node_type="expense",
@@ -575,7 +578,9 @@ async def get_dashboard_flows(
 
 @router.get("/trends", response_model=DashboardTrendsResponse)
 async def get_dashboard_trends(
-    months: int = Query(default=12, ge=1, le=36, description="Number of months to return"),
+    months: int = Query(default=12, ge=1, le=240, description="Number of months to return when no explicit range is provided"),
+    from_date: str | None = Query(default=None, description="ISO date start (YYYY-MM-DD)"),
+    to_date: str | None = Query(default=None, description="ISO date end (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
     _current_user: str = Depends(require_user),
 ) -> DashboardTrendsResponse:
@@ -589,26 +594,47 @@ async def get_dashboard_trends(
 
     from datetime import datetime as dt
 
-    now = dt.utcnow()
-    # Build list of the last N months (YYYY-MM)
-    month_labels: list[str] = []
-    y, m = now.year, now.month
-    for _ in range(months):
-        month_labels.append(f"{y:04d}-{m:02d}")
-        m -= 1
-        if m == 0:
-            m = 12
-            y -= 1
-    month_labels.reverse()
+    if from_date or to_date:
+        if not from_date or not to_date:
+            raise HTTPException(status_code=400, detail="from_date and to_date must be provided together")
+        try:
+            range_start = date.fromisoformat(from_date[:10])
+            range_end = date.fromisoformat(to_date[:10])
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="from_date and to_date must be YYYY-MM-DD") from exc
+        if range_end < range_start:
+            raise HTTPException(status_code=400, detail="to_date must be on or after from_date")
+
+        period_start = range_start.isoformat()
+        period_end = range_end.isoformat()
+        cursor = range_start.replace(day=1)
+        end_month = range_end.replace(day=1)
+        month_labels: list[str] = []
+        while cursor <= end_month:
+            month_labels.append(cursor.strftime("%Y-%m"))
+            if cursor.month == 12:
+                cursor = date(cursor.year + 1, 1, 1)
+            else:
+                cursor = date(cursor.year, cursor.month + 1, 1)
+    else:
+        now = dt.utcnow()
+        # Build list of the last N months (YYYY-MM)
+        month_labels = []
+        y, m = now.year, now.month
+        for _ in range(months):
+            month_labels.append(f"{y:04d}-{m:02d}")
+            m -= 1
+            if m == 0:
+                m = 12
+                y -= 1
+        month_labels.reverse()
+        period_start = f"{month_labels[0]}-01"
+        year, month = int(month_labels[-1][:4]), int(month_labels[-1][5:7])
+        period_end = f"{month_labels[-1]}-{calendar.monthrange(year, month)[1]:02d}"
 
     # Fetch all transactions across the window
-    start_label = month_labels[0]
-    end_label = month_labels[-1]
-    import calendar
-
-    end_last_day = calendar.monthrange(int(end_label[:4]), int(end_label[5:7]))[1]
-    start_date = f"{start_label}-01"
-    end_date = f"{end_label}-{end_last_day:02d}"
+    start_date = period_start
+    end_date = period_end
 
     txn_rows = (
         db.query(Transaction)
@@ -703,34 +729,29 @@ def _classify_category(category_name: str | None) -> str:
 async def get_dashboard_breakdown(
     from_date: str | None = Query(default=None, description="ISO date start (YYYY-MM-DD)"),
     to_date: str | None = Query(default=None, description="ISO date end (YYYY-MM-DD)"),
-    period: str | None = Query(default=None, description="YYYY-MM; legacy — use from_date/to_date for range"),
     db: Session = Depends(get_db),
     _current_user: str = Depends(require_user),
 ) -> DashboardBreakdownResponse:
     """Phase 35 (Phase 2) — returns spending broken into four buckets for
     the stacked bar breakdown panel.
 
-    Aggregates negative-amount transactions and classifies them into
-    Essential / Flexible / Debt / Savings using permissive category-name
-    keyword matching.  Accepts ``from_date``/``to_date`` range or legacy
-    ``period`` (single month). Defaults to current calendar month.
+    Aggregates the shared date-range spending contract used by the Sankey
+    and domain expense breakdown. Defaults to the current calendar month
+    when no range is provided.
     """
     local_user = get_or_create_local_user(db, _current_user)
 
     if from_date and to_date:
+        try:
+            datetime.strptime(from_date[:10], "%Y-%m-%d")
+            datetime.strptime(to_date[:10], "%Y-%m-%d")
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="Invalid date range") from exc
         period_start = from_date[:10]
         period_end = to_date[:10]
         period_label = f"{period_start} to {period_end}"
-    elif period:
-        try:
-            year, month = int(period[:4]), int(period[5:7])
-        except (ValueError, IndexError):
-            raise HTTPException(status_code=400, detail="Period must be YYYY-MM")
-        import calendar
-        last_day = calendar.monthrange(year, month)[1]
-        period_start = f"{year:04d}-{month:02d}-01"
-        period_end = f"{year:04d}-{month:02d}-{last_day:02d}"
-        period_label = f"{year:04d}-{month:02d}"
+    elif from_date or to_date:
+        raise HTTPException(status_code=400, detail="from_date and to_date must be provided together")
     else:
         from datetime import datetime as dt
         now = dt.utcnow()
@@ -740,9 +761,10 @@ async def get_dashboard_breakdown(
         period_end = f"{now.year:04d}-{now.month:02d}-{last_day:02d}"
         period_label = f"{now.year:04d}-{now.month:02d}"
 
-    # Phase 52 — exclude credit and investment account types from
-    # the simple breakdown (they're capital flows, not spending).
-    # Also filter by the breakdown's existing amount < 0 guard.
+    # Use the same account types as the Sankey. Capital allocations such
+    # as investment buys and contributions are represented in the Sankey's
+    # Investments group and must remain in the shared spending total.
+    # The effect filter below excludes only non-spending movements.
     txn_rows = (
         db.query(Transaction)
         .options(joinedload(Transaction.category), joinedload(Transaction.account))
@@ -752,7 +774,6 @@ async def get_dashboard_breakdown(
             Transaction.transaction_date >= period_start,
             Transaction.transaction_date <= period_end,
             Transaction.amount < 0,
-            Account.account_type.notin_(set(INVESTMENT_ACCOUNT_TYPES)),
         )
         .all()
     )
@@ -761,12 +782,23 @@ async def get_dashboard_breakdown(
     # not spending). Credit card purchases (default) ARE counted. Uses
     # classify_cashflow() for consistent detection across all endpoints.
     bucket_totals: dict[str, float] = {"Essential": 0.0, "Flexible": 0.0, "Debt": 0.0, "Savings": 0.0}
+    category_totals: dict[str, tuple[float, str]] = {}
     for t in txn_rows:
         cr = classify_cashflow(t.amount, _get_txn_account_type(t), t.description)
-        if cr.effect == "transfer":
-            continue  # bill payment → internal transfer, not spending
+        if cr.effect not in _SPEND_EFFECTS:
+            continue  # same spend contract as the Sankey; transfers/reviews are excluded
+        amount = abs(t.amount)
         bucket = _classify_category(_get_category_name(t))
-        bucket_totals[bucket] += abs(t.amount)
+        bucket_totals[bucket] += amount
+
+        category_name = _get_category_name(t)
+        category_color = (
+            t.category.color
+            if t.category and t.category.color
+            else _BREAKDOWN_COLORS[bucket]
+        )
+        existing_amount, _existing_color = category_totals.get(category_name, (0.0, category_color))
+        category_totals[category_name] = (existing_amount + amount, category_color)
 
     total_spend = sum(bucket_totals.values())
 
@@ -780,8 +812,21 @@ async def get_dashboard_breakdown(
         for label, amount in bucket_totals.items()
     ]
 
+    categories = [
+        CategoryBreakdownBucket(
+            label=label,
+            amount=round(amount, 2),
+            color=color,
+            percentage=round((amount / total_spend * 100) if total_spend > 0 else 0, 1),
+        )
+        for label, (amount, color) in sorted(
+            category_totals.items(), key=lambda item: (-item[1][0], item[0].lower())
+        )
+    ]
+
     return DashboardBreakdownResponse(
         buckets=buckets,
+        categories=categories,
         total_spend=round(total_spend, 2),
         period=period_label,
     )

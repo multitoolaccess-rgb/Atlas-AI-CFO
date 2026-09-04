@@ -95,6 +95,7 @@ from app.routes import (
     investment_discovery_router,
     investment_assistant_router,
     investment_risk_router,
+    investment_scout_router,
 )
 
 LOG = logging.getLogger("uvicorn.error")
@@ -487,6 +488,7 @@ app.include_router(investment_persistence_router)
 app.include_router(investment_discovery_router)
 app.include_router(investment_assistant_router)
 app.include_router(investment_risk_router)
+app.include_router(investment_scout_router)
 
 
 @app.on_event("startup")

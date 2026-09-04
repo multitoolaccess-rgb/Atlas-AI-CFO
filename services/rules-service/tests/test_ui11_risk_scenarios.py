@@ -200,6 +200,8 @@ def test_request_is_strict_and_bounded():
     with pytest.raises(ValidationError):
         RiskScenarioRequest(position_id=1, market_value_delta="1", owner_id=7)
     with pytest.raises(ValidationError):
+        RiskScenarioRequest.model_validate({"schema_version": "InvestmentRiskScenarioRequest/v2", "position_id": 1, "market_value_delta": "1"})
+    with pytest.raises(ValidationError):
         RiskScenarioRequest(position_id=1, market_value_delta="1e999999")
 
 

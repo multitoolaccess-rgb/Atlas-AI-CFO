@@ -5,6 +5,7 @@
 **Scope:** UI-11 risk/scenario methodology and trusted portfolio baseline contract
 **Decision boundary:** Read-only analysis and explicitly hypothetical projections; no portfolio mutation or execution
 **Authority:** Current repository implementation, INV-01 through INV-HARDEN-01 contracts, Scenario Lab contract/ADR, UI roadmap, security model, and focused tests
+**Residual limitation:** UI-11 is complete only for a current-only owner-scoped portfolio baseline, descriptive compatible value/data-quality metrics, and an on-demand hypothetical position-value preview. Historical stress, security-level risk/sensitivity, portfolio volatility, covariance, correlation, drawdown, beta, Sharpe, concentration policy, downside/upside ranges, FX normalization, classifications, liquidity, and persisted scenarios remain unavailable until separately specified and sourced.
 
 ## Executive Verdict
 
@@ -40,7 +41,7 @@ This document originally served as the UI-11 readiness gate. The approved first 
 | UI-09 | Complete for its approved bounded discovery modes | A discovery candidate is not a portfolio-risk result or recommendation |
 | UI-11 | Bounded first slice implemented | Current-only baseline and on-demand descriptive preview are validated; historical and advanced risk remain unavailable |
 | INV-12 | Not started | Independent evaluation/replay/retention gate; not a substitute for UI-11 methodology |
-| UI-12 | Not started | Must follow stable UI-11 and INV-12 decisions |
+| UI-12 | Partial coordinated audit recorded | The UI-12 trust-certification audit exists and records UI-11 as part of its certified read-only surface set; it must follow stable UI-11 and INV-12 decisions |
 
 ## 2. Authoritative Data Source Inventory
 
@@ -249,7 +250,7 @@ A future risk/scenario contract can preserve the established model:
 - `baseline_as_of` for the portfolio snapshot;
 - `as_known_at` for information availability;
 - `retrieved_at` for source retrieval;
-- source/observation IDs and hashes;
+- source holding IDs and deterministic source-row hashes; observation IDs/hashes are unavailable because the current holdings path is not connected to an observation repository;
 - adjustment basis and currency;
 - calculation/methodology version;
 - input and output hashes;
@@ -307,7 +308,7 @@ The server must resolve owner scope from authentication before lookup and before
 
 ### Current security posture
 
-Accounts and holdings routes apply owner filters through the local authenticated user. `build_portfolio_snapshot` filters accounts by `user_id` and holdings by those account IDs. The current implementation exposes real HTTP owner-isolation tests for the baseline and on-demand scenario preview; persisted comparison/detail resources are intentionally out of scope.
+Accounts and holdings routes apply owner filters through the local authenticated user. `build_portfolio_snapshot` filters accounts by `user_id` and holdings by those account IDs. The current implementation exposes real HTTP owner-isolation tests for the baseline and on-demand scenario preview; persisted comparison/detail resources are intentionally out of scope. Security-level risk views and historical scenario controls are also intentionally unavailable because their authoritative observation/methodology boundary is not established.
 
 ## 10. Minimum Required Architecture
 
@@ -338,16 +339,16 @@ The delivered first slice defines `InvestmentPortfolioBaseline/v1` with the foll
 - stable baseline ID and schema version;
 - authenticated owner scope;
 - baseline `as_of` and `as_known_at`;
-- owner-scoped account/position references;
-- canonical security identities and identity states;
+- owner-scoped position references (account identifiers are omitted publicly);
+- canonical security identity contract with unresolved/unsupported identity states when the holdings source cannot be reconciled;
 - quantity and value with currency and data state;
-- source holding/observation IDs and hashes;
+- source holding IDs and deterministic source-row hashes; independent market-observation IDs/hashes are not claimed by this current-only slice;
 - cost-basis state without forcing unknown into zero;
 - completeness and omission reasons;
 - calculation/methodology version;
 - deterministic baseline hash;
 - explicit current-only versus historical-capable status;
-- provenance closure and freshness;
+- provenance closure for the available holding/account source rows and freshness state; this is not an independent market-observation provenance chain;
 - no broker/order/execution fields.
 
 A database snapshot table is not automatically required. First determine whether a server-owned, immutable, hash-bound projection can be rebuilt deterministically from the existing source records. If it cannot, authorize additive baseline persistence rather than passing a caller-supplied `as_of` over current holdings.
@@ -360,7 +361,7 @@ The delivered first slice defines a separate `InvestmentRiskScenario/v1` (name s
 - owner scope and baseline ID/hash;
 - selected security or portfolio scope;
 - explicit bounded hypothetical inputs;
-- input, result, baseline, and source hashes;
+- input, result, baseline, and source-row hashes;
 - methodology/calculation version;
 - metric values only for approved methods;
 - unit, currency, period, adjustment basis, and compatibility metadata;
@@ -508,7 +509,7 @@ The following capabilities remain intentionally outside the delivered first slic
 The approved first-slice package is complete. Its delivered decisions and artifacts are:
 
 1. Approved methodology: descriptive current-only portfolio baseline plus bounded hypothetical preview.
-2. Approved metrics: position count, observed/total value where compatible, per-position exposure where a nonzero compatible total exists, and explicit data-quality states; advanced risk metrics remain unavailable.
+2. Approved metrics: position count, observed/total value where compatible, per-position exposure where a nonzero compatible total exists, and explicit data-quality states; portfolio and security-level risk metrics, historical stress, and sensitivity/range analysis remain unavailable. Methodology/calculation versions, source-row references/hashes, and relevant `as_of` metadata are exposed for the delivered projection.
 3. `InvestmentPortfolioBaseline/v1` is owner-scoped, hash-bound, provenance-bearing, and explicitly current-only.
 4. `InvestmentRiskScenario/v1` accepts bounded intent, preserves baseline/source hashes, and marks results hypothetical and non-predictive.
 5. Historical portfolio observation/replay is not provided; current holdings are never relabeled as historical.
@@ -525,7 +526,7 @@ UI-11 should emit source, methodology, baseline, and result hashes that a future
 
 ### UI-12
 
-UI-12 must wait until UI-11 is either implemented and certified or explicitly excluded from the final surface inventory. Its cross-route matrix must include baseline privacy, hypothetical labels, unsupported metrics, no-execution checks, and performance budgets.
+UI-12 was required to wait until UI-11 was either implemented and certified or explicitly excluded from the final surface inventory. UI-11 is now implemented and certified for the bounded current-only slice, and the coordinated UI-12 audit records `/investments/risk` inside its ten-route read-only set. Its cross-route matrix includes baseline privacy, hypothetical labels, unsupported metrics, no-execution checks, and performance budgets.
 
 ### INV-10
 

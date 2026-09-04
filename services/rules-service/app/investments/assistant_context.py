@@ -40,8 +40,36 @@ class UntrustedText(InvestmentStrictModel):
         return " ".join(value.replace("\x00", " ").split())
 
 
+class AssistantRecommendationProjection(InvestmentStrictModel):
+    """Minimal recommendation context; internal model metadata is excluded."""
+
+    recommendation_id: str = Field(min_length=1, max_length=160)
+    security_id: str = Field(min_length=1, max_length=128)
+    recommendation_type: str = Field(min_length=1, max_length=32)
+    status: str = Field(min_length=1, max_length=32)
+    recommendation_as_of: datetime
+    analysis_as_of: datetime
+    thesis: str = Field(min_length=1, max_length=1600)
+    rationale: str = Field(min_length=1, max_length=1600)
+    key_risks: tuple[str, ...] = Field(default=(), max_length=16)
+    invalidation_conditions: tuple[str, ...] = Field(default=(), max_length=16)
+
+
+class AssistantCommitteeProjection(InvestmentStrictModel):
+    """Minimal committee context; raw run/model metadata is excluded."""
+
+    finding_id: str = Field(min_length=1, max_length=160)
+    subject_security_id: str = Field(min_length=1, max_length=128)
+    committee_view: str = Field(min_length=1, max_length=64)
+    thesis: str = Field(min_length=1, max_length=1600)
+    key_risks: tuple[str, ...] = Field(default=(), max_length=16)
+    uncertainties: tuple[str, ...] = Field(default=(), max_length=16)
+    invalidation_conditions: tuple[str, ...] = Field(default=(), max_length=16)
+    analysis_as_of: datetime
+
+
 class InvestmentAssistantSelector(InvestmentStrictModel):
-    """Client-provided selectors only; canonical facts are server-resolved."""
+    """One client selector; canonical facts are always server-resolved."""
 
     recommendation_id: str | None = Field(default=None, max_length=160)
     committee_finding_id: str | None = Field(default=None, max_length=160)
@@ -50,22 +78,38 @@ class InvestmentAssistantSelector(InvestmentStrictModel):
 
     @model_validator(mode="after")
     def bounded_selector(self) -> "InvestmentAssistantSelector":
-        if not any((self.recommendation_id, self.committee_finding_id, self.discovery_candidate_id, self.security_id)):
-            raise ValueError("at least one investment context selector is required")
+        selected = tuple(value for value in (
+            self.recommendation_id,
+            self.committee_finding_id,
+            self.discovery_candidate_id,
+            self.security_id,
+        ) if value)
+        if len(selected) != 1:
+            raise ValueError("exactly one investment context selector is required")
         return self
+
+
+class AssistantEvidenceProjection(InvestmentStrictModel):
+    """Minimal evidence reference exposed to the assistant and browser."""
+
+    packet_id: str = Field(min_length=1, max_length=128)
+    packet_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    trust: Literal["atlas_validated"] = "atlas_validated"
 
 
 class InvestmentAssistantContext(InvestmentStrictModel):
     schema_version: Literal["InvestmentAssistantContext/v1"] = "InvestmentAssistantContext/v1"
     context_id: str = Field(min_length=1, max_length=160)
-    owner_id: int = Field(gt=0)
+    # Authorization scope is retained for internal service checks but excluded
+    # from the public response projection; it is never a browser-supplied fact.
+    owner_id: int = Field(gt=0, exclude=True)
     state: AssistantContextState
     resolved_at: datetime
     context_as_of: datetime | None = None
     source_hashes: tuple[str, ...] = Field(default=(), max_length=40)
-    recommendation: dict[str, Any] | None = None
-    committee: dict[str, Any] | None = None
-    evidence: tuple[dict[str, Any], ...] = Field(default=(), max_length=24)
+    recommendation: AssistantRecommendationProjection | None = None
+    committee: AssistantCommitteeProjection | None = None
+    evidence: tuple[AssistantEvidenceProjection, ...] = Field(default=(), max_length=24)
     limitations: tuple[str, ...] = Field(default=(), max_length=12)
 
     @field_validator("resolved_at", "context_as_of")
@@ -153,12 +197,11 @@ class AssistantContextError(ValueError):
 InvestmentContextError = AssistantContextError
 
 
-def _packet_projection(packet: Any) -> dict[str, Any]:
-    return {
-        "packet_id": packet.packet_id,
-        "packet_hash": packet.packet_hash,
-        "trust": "atlas_validated",
-    }
+def _packet_projection(packet: Any) -> AssistantEvidenceProjection:
+    return AssistantEvidenceProjection(
+        packet_id=packet.packet_id,
+        packet_hash=packet.packet_hash,
+    )
 
 
 def resolve_investment_context(*, repository: InvestmentRepository, owner_id: int, request: AssistantContextRequest) -> InvestmentAssistantContext:
@@ -213,10 +256,36 @@ def resolve_investment_context(*, repository: InvestmentRepository, owner_id: in
         limitations.append("the selected security/discovery context is not available through the investment repository")
 
     state = AssistantContextState.READY if recommendation_projection or committee else AssistantContextState.UNAVAILABLE
-    recommendation = recommendation_projection.recommendation.model_dump(mode="json") if recommendation_projection else None
-    committee_payload = committee.model_dump(mode="json") if committee else None
+    recommendation = (
+        AssistantRecommendationProjection.model_validate({
+            "recommendation_id": recommendation_projection.recommendation.recommendation_id,
+            "security_id": recommendation_projection.recommendation.security_id,
+            "recommendation_type": recommendation_projection.recommendation.recommendation_type.value,
+            "status": recommendation_projection.recommendation.status.value,
+            "recommendation_as_of": recommendation_projection.recommendation.recommendation_as_of,
+            "analysis_as_of": recommendation_projection.recommendation.analysis_as_of,
+            "thesis": recommendation_projection.recommendation.thesis,
+            "rationale": recommendation_projection.recommendation.rationale,
+            "key_risks": recommendation_projection.recommendation.key_risks,
+            "invalidation_conditions": recommendation_projection.recommendation.invalidation_conditions,
+        })
+        if recommendation_projection else None
+    )
+    committee_payload = (
+        AssistantCommitteeProjection.model_validate({
+            "finding_id": committee.finding_id,
+            "subject_security_id": committee.subject_security_id,
+            "committee_view": committee.committee_view.value,
+            "thesis": committee.thesis,
+            "key_risks": committee.key_risks,
+            "uncertainties": committee.uncertainties,
+            "invalidation_conditions": committee.invalidation_conditions,
+            "analysis_as_of": committee.analysis_as_of,
+        })
+        if committee else None
+    )
     context_as_of = (getattr(committee, "analysis_as_of", None) or getattr(recommendation_projection.recommendation, "recommendation_as_of", None)) if recommendation_projection or committee else None
-    source_hashes = list(item["packet_hash"] for item in evidence)
+    source_hashes = [item.packet_hash for item in evidence]
     if recommendation_projection:
         source_hashes.append(recommendation_projection.recommendation.recommendation_hash)
     if committee:
@@ -236,9 +305,9 @@ def resolve_investment_context(*, repository: InvestmentRepository, owner_id: in
 
 
 __all__ = [
-    "AssistantCitation", "AssistantContextError", "AssistantContextRequest",
+    "AssistantCitation", "AssistantCommitteeProjection", "AssistantContextError", "AssistantContextRequest", "AssistantEvidenceProjection",
     "InvestmentAssistantToolName", "InvestmentAssistantToolRequest", "InvestmentAssistantToolResult", "InvestmentAssistantQueryRequest",
-    "AssistantContextState", "AssistantResponseSection", "AssistantSectionKind",
+    "AssistantContextState", "AssistantRecommendationProjection", "AssistantResponseSection", "AssistantSectionKind",
     "InvestmentAssistantContext", "InvestmentAssistantResponse",
     "InvestmentAssistantSelector", "InvestmentContextError", "UntrustedText",
     "resolve_investment_context",

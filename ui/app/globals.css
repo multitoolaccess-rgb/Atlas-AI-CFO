@@ -23,12 +23,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Focus mode promotes the shared range control to the viewport so it
+   stays usable without covering the visualization. DashboardFocusLayer
+   reserves matching top space for it. */
+html.dashboard-focus-active .atlas-floating-time-range-bar {
+  position: fixed;
+  top: 4.5rem;
+  left: 1rem;
+  right: 1rem;
+  margin-bottom: 0;
+}
+
 /* =================================================================
    BASE LAYER — Default element styles
    ================================================================= */
 
 @layer base {
   html {
+    overflow-x: hidden;
     color: var(--text-primary);
     background-color: var(--canvas-base);
     font-family: var(--font-primary), system-ui, sans-serif;
