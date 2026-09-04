@@ -1621,11 +1621,51 @@
         "result": "26 backend tests passed; Scout UI test, typecheck, lint, compile, tracker validation, and the 2-test UI-12 matrix passed",
         "timestamp": "2026-09-04T05:30:00Z"
       }
+    },
+    {
+      "branch": "",
+      "commit": "a8a6016",
+      "id": "work-inv-12-foundation-durable-stores",
+      "issue": "",
+      "objective": "Land the approved INV-12 design-gate foundation: one shared holding-to-security identity resolver adopted by portfolio_intelligence and risk_scenarios (GAP-09, D-2), frozen observation/evaluation contracts as code, and three additive immutable stores (market observations, portfolio snapshots, evaluation records) with append-only triggers and hash constraints. Evaluation/replay engine wiring and the owner-scoped read API remain pending (engine pending).",
+      "paths": [
+        "services/rules-service/app/investments/holding_identity.py",
+        "services/rules-service/app/investments/portfolio_intelligence.py",
+        "services/rules-service/app/investments/risk_scenarios.py",
+        "services/rules-service/app/investments/evaluation_contracts.py",
+        "services/rules-service/app/models/investment_evaluation.py",
+        "services/rules-service/app/models/__init__.py",
+        "services/rules-service/alembic/versions/AC17a1b2c3d4e5_add_investment_market_observations.py",
+        "services/rules-service/alembic/versions/AD18a1b2c3d4e5_add_investment_portfolio_snapshots.py",
+        "services/rules-service/alembic/versions/AE19a1b2c3d4e5_add_investment_evaluation_records.py",
+        "services/rules-service/tests/test_investment_evaluation_migration.py",
+        "services/rules-service/tests/test_investment_scout_migration.py"
+      ],
+      "phase_id": "inv-12",
+      "pr": null,
+      "review_evidence": "Design-gate decisions D-1/D-2/D-3/D-8 recorded in docs/architecture/ATLAS-INVESTMENT-INV-12-DESIGN.md; user approved implementation autonomously and explicitly requested commit and push; staged review covered exactly the 11 INV-12-owned files with git diff --cached --check clean",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "Alembic exactly one head AE19a1b2c3d4e5; 19 focused migration tests passed (upgrade/downgrade/re-upgrade round-trip, SQLite and PostgreSQL immutability trigger declarations, non-empty downgrade refusal)",
+        "GAP-09 parity: 33 risk/portfolio/harden tests passed with byte-identical resolved identity behavior per surface policy",
+        "Broad affected regression: 77 passed, 3 skipped",
+        "Final focused re-run: 48 passed; Python compileall, contract hash determinism/idempotency/vintage sanity checks, and git diff --check clean"
+      ],
+      "title": "Land INV-12 durable stores and frozen contracts",
+      "validation_evidence": {
+        "command": "pytest tests/test_investment_evaluation_migration.py tests/test_investment_scout_migration.py + risk/portfolio/harden/outcome/persistence/recommendation/scout regression suites; alembic heads; compileall; contract sanity checks; git diff --check",
+        "commit": "a8a6016",
+        "environment": "Python 3.12 isolated Rules Service environment; disposable SQLite test database; no provider call or production migration access",
+        "kind": "local",
+        "result": "passed; three immutable stores landed under single head AE19a1b2c3d4e5; identity divergence removed; evaluation engine and read API pending",
+        "timestamp": "2026-09-04T07:00:00Z"
+      }
     }
   ],
   "current_objective": "Preserve the now-committed UI-10 provider-backed Scout expansion and the certified UI-09/UI-11 boundaries, and remediate the UI-12 /portfolio responsive and certification blockers before the final trust-certification rerun.",
   "current_phase_id": "ui-12",
-  "last_updated": "2026-09-04T04:00:00Z",
+  "last_updated": "2026-09-04T07:00:00Z",
   "next_bounded_task": {
     "description": "Remediate the /portfolio 390px overflow and separate its mutation controls from the UI-12 read-only certification boundary; then rerun the consolidated UI-12 matrix. Current UI-12 evidence remains PARTIAL: ten-route read-only matrix passes, while populated owner-data proof, CPU interaction measurement, INV-12 policy, optional CIO archive decision, and multi-user retention/deletion policy remain open.",
     "id": "work-ui-12-portfolio-remediation-and-certification",
@@ -2082,7 +2122,7 @@
       ],
       "id": "inv-12",
       "name": "Evaluation, calibration, replay, and retention",
-      "status": "not_started"
+      "status": "in_progress"
     }
   ],
   "risks": [
