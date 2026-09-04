@@ -158,6 +158,7 @@ class InvestmentEvaluationArtifact(InvestmentStrictModel):
     benchmark_security_id: str | None = Field(default=None, max_length=128)
     evaluation_state: EvaluationState
     result_state: EvaluationResultState | None = None
+    blocked_reason: str | None = Field(default=None, max_length=64)
     methodology_version: str = Field(min_length=1, max_length=64)
     vintage_bound: datetime
     replay_state: EvaluationReplayState = EvaluationReplayState.MATCH
@@ -182,6 +183,10 @@ class InvestmentEvaluationArtifact(InvestmentStrictModel):
             raise ValueError("evaluated artifacts require a result state")
         if self.evaluation_state is EvaluationState.EVALUATED and (self.outcome_id is None or self.outcome_hash is None):
             raise ValueError("evaluated artifacts require an outcome reference")
+        if self.evaluation_state is EvaluationState.EVALUATED and self.blocked_reason is not None:
+            raise ValueError("evaluated artifacts cannot carry a blocked reason")
+        if self.evaluation_state is EvaluationState.BLOCKED and self.blocked_reason is None:
+            raise ValueError("blocked artifacts require a typed blocked reason")
         if self.result_state is EvaluationResultState.AVAILABLE and (self.outcome_id is None or self.outcome_hash is None):
             raise ValueError("available results require an outcome reference")
         return self
@@ -196,12 +201,36 @@ class InvestmentEvaluationArtifact(InvestmentStrictModel):
         return cls.model_validate({**values, "evaluation_hash": digest})
 
 
+class InvestmentEvaluationReplay(InvestmentStrictModel):
+    """Typed result of a deterministic replay re-verification (design §4/§17).
+
+    Read-only output of the internal replay over one stored artifact; it is
+    computed on demand and never persisted.
+    """
+
+    schema_version: Literal["InvestmentEvaluationReplay/v1"] = "InvestmentEvaluationReplay/v1"
+    evaluation_id: str = Field(pattern=r"^investment-evaluation:[a-f0-9]{64}$")
+    replay_state: EvaluationReplayState
+    verified: bool
+    evaluation_hash: str = Field(pattern=_HASH64)
+    input_hash: str = Field(pattern=_HASH64)
+    replayed_at: datetime
+
+    @field_validator("replayed_at")
+    @classmethod
+    def replay_utc(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("replayed_at must be timezone-aware UTC")
+        return value.astimezone(UTC)
+
+
 __all__ = [
     "EvaluationReplayState",
     "EvaluationResultState",
     "EvaluationState",
     "HORIZONS",
     "InvestmentEvaluationArtifact",
+    "InvestmentEvaluationReplay",
     "METHODOLOGY_VERSION",
     "StoredMarketObservation",
 ]

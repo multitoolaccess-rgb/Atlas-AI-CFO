@@ -87,3 +87,25 @@ class InvestmentRecommendationResponse(BaseModel):
 class InvestmentRecommendationListResponse(BaseModel):
     schema_version: Literal["atlas-investment-recommendation-list/v1"]
     items: list[dict[str, Any]]
+
+
+class InvestmentEvaluationResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal["atlas-investment-evaluation/v1"]
+    evaluation: dict[str, Any]
+
+
+class InvestmentEvaluationListResponse(BaseModel):
+    schema_version: Literal["atlas-investment-evaluation-list/v1"]
+    items: list[dict[str, Any]]
+
+
+class InvestmentEvaluationReplayResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal["atlas-investment-evaluation-replay/v1"]
+    evaluation_id: str
+    replay_state: str
+    verified: bool
+    evaluation_hash: str
+    input_hash: str
+    replayed_at: datetime

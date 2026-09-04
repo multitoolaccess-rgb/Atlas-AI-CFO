@@ -178,6 +178,14 @@ _LIFTED_TABLES = (
     "outcome_evaluations",
     "recommendations",
     "decision_journal_entries",
+    # INV-12 durable stores + evaluation artifact registry. Evaluation
+    # records FK into recommendation / decision / outcome rows (RESTRICT), so
+    # they reset before those parents; observation and portfolio-snapshot
+    # rows only FK to users. Without these, INV-12 engine/HTTP tests leak
+    # artifacts across consecutive ``client`` fixture tests.
+    "investment_evaluation_records",
+    "investment_market_observations",
+    "investment_portfolio_snapshots",
     "investment_decision_records",
     "investment_recommendation_evidence_links",
     "investment_committee_evidence_links",
