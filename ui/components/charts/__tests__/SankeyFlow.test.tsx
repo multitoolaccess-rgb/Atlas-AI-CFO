@@ -121,4 +121,83 @@ describe('SankeyFlow', () => {
     expect(visiblePath).toHaveStyle({ pointerEvents: 'none' })
     expect(particle).toHaveStyle({ pointerEvents: 'none' })
   })
+
+  // A dense final column (many categories) used to consume the whole layout
+  // height in 24px padding gaps, collapsing the ONE global scale d3-sankey
+  // applies to every node — so even the largest income flow rendered as a
+  // ~26px sliver. The layout must cap each column's padding budget so node
+  // bars stay legible. See MAX_COLUMN_PADDING_FRACTION in SankeyFlow.
+  const denseNodes = [
+    { name: 'Base Salary', node_type: 'income' as const, level: 0 },
+    { name: 'Total Income', node_type: 'income' as const, level: 1 },
+    { name: 'Expenses', node_type: 'expense' as const, level: 2 },
+    { name: 'Debt', node_type: 'expense' as const, level: 2 },
+    { name: 'Overspend', node_type: 'outcome' as const, level: 0 },
+    { name: 'Uncategorized', node_type: 'expense' as const, level: 3 },
+    { name: 'Credit Card Payments', node_type: 'expense' as const, level: 3 },
+    { name: 'Mortgage', node_type: 'expense' as const, level: 3 },
+    { name: 'Transportation', node_type: 'expense' as const, level: 3 },
+    { name: 'Bills & Utilities', node_type: 'expense' as const, level: 3 },
+    { name: 'Life Insurance', node_type: 'expense' as const, level: 3 },
+    { name: 'Loan Payments', node_type: 'expense' as const, level: 3 },
+    { name: 'Shopping', node_type: 'expense' as const, level: 3 },
+    { name: 'Brokerage Buys', node_type: 'expense' as const, level: 3 },
+    { name: 'Travel', node_type: 'expense' as const, level: 3 },
+    { name: 'Interest Paid', node_type: 'expense' as const, level: 3 },
+    { name: 'Groceries', node_type: 'expense' as const, level: 3 },
+    { name: 'Food & Dining', node_type: 'expense' as const, level: 3 },
+    { name: 'Housing', node_type: 'expense' as const, level: 3 },
+    { name: 'Education', node_type: 'expense' as const, level: 3 },
+  ]
+  const denseLinks = [
+    { source: 0, target: 1, value: 122534 },
+    { source: 4, target: 1, value: 114396 },
+    { source: 1, target: 2, value: 84628 },
+    { source: 1, target: 3, value: 84275 },
+    { source: 2, target: 5, value: 52150 },
+    { source: 3, target: 6, value: 48718 },
+    { source: 3, target: 7, value: 23906 },
+    { source: 2, target: 8, value: 19578 },
+    { source: 2, target: 9, value: 10538 },
+    { source: 3, target: 10, value: 8519 },
+    { source: 3, target: 11, value: 2848 },
+    { source: 2, target: 12, value: 1354 },
+    { source: 2, target: 13, value: 1200 },
+    { source: 2, target: 14, value: 463 },
+    { source: 3, target: 15, value: 285 },
+    { source: 2, target: 16, value: 241 },
+    { source: 2, target: 17, value: 199 },
+    { source: 2, target: 18, value: 80 },
+    { source: 2, target: 19, value: 25 },
+  ]
+
+  function nodeBarHeight(container: HTMLElement, index: number): number {
+    const rect = container.querySelector(`#sankey-node-${index} rect`)
+    return rect ? Number(rect.getAttribute('height')) : 0
+  }
+
+  it('keeps income bars legible when a dense category column would collapse the layout', () => {
+    const { container } = render(<SankeyFlow nodes={denseNodes} links={denseLinks} />)
+
+    // Regression: with 24px gaps across ~15 category nodes, d3-sankey's
+    // single global scale rendered Base Salary ~26px tall. The adaptive
+    // padding budget must keep the biggest income flow clearly visible.
+    expect(nodeBarHeight(container, 0)).toBeGreaterThan(100)
+    expect(nodeBarHeight(container, 4)).toBeGreaterThan(100)
+    // The dense column still fits the layout: nothing can exceed it.
+    expect(nodeBarHeight(container, 0)).toBeLessThanOrEqual(400)
+  })
+
+  it('caps the rendered height to the viewport in focus mode', () => {
+    const { container } = render(<SankeyFlow nodes={chainNodes} links={chainLinks} fitViewport />)
+    const svg = container.querySelector('svg')!
+    expect(svg).toHaveStyle({ maxHeight: 'calc(100vh - 22rem)' })
+    expect(svg).toHaveStyle({ height: 'auto' })
+  })
+
+  it('renders unconstrained when not in focus mode', () => {
+    const { container } = render(<SankeyFlow nodes={chainNodes} links={chainLinks} />)
+    const svg = container.querySelector('svg')!
+    expect(svg.style.maxHeight).toBe('')
+  })
 })

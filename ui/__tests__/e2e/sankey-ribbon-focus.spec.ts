@@ -127,6 +127,61 @@ test('horizontal Sankey ribbons use flow-aligned user-space gradients', async ({
   expect(result.horizontalLinks).toBeGreaterThan(0)
 })
 
+test('dense category columns keep income bars legible (adaptive padding)', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await mockCashFlow(page)
+
+  const heights = await page.evaluate(() => {
+    const nodes = Array.from(document.querySelectorAll('#sankey-nodes > g'))
+    const get = (label: string) => {
+      const g = nodes.find((n) => (n.querySelector('text')?.textContent ?? '').startsWith(label))
+      const r = g?.querySelector('rect')
+      if (!r) return -1
+      // Layout units (viewBox), independent of the container's render scale.
+      return Number(r.getAttribute('height'))
+    }
+    return { baseSalary: get('Base Salary'), overspend: get('Overspend') }
+  })
+
+  // Regression: 15 category nodes × 24px gaps used to collapse the global
+  // scale to ~26px for Base Salary (24px in layout units for Overspend).
+  // The adaptive padding budget must keep the biggest income flows clearly
+  // visible in layout units (>120px in this fixture).
+  expect(heights.baseSalary).toBeGreaterThan(120)
+  expect(heights.overspend).toBeGreaterThan(120)
+})
+
+test('focus mode fits the whole chart in the viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await mockCashFlow(page)
+
+  await page.getByTestId('dashboard-focus-toggle').first().click()
+  await page.waitForTimeout(500)
+
+  const state = await page.evaluate(() => {
+    const svg = document.querySelector('#sankey-links')?.closest('svg') as SVGSVGElement | null
+    if (!svg) return { error: 'no svg' }
+    const s = svg.getBoundingClientRect()
+    return {
+      viewportH: window.innerHeight,
+      svgTop: s.top,
+      svgBottom: s.bottom,
+      svgHeight: s.height,
+      // Pixels of the chart that fall below the visible viewport (must be 0).
+      hiddenBelowFold: Math.max(0, s.bottom - window.innerHeight),
+      // getComputedStyle resolves calc() to px; 'none' means no cap applied.
+      maxHeight: getComputedStyle(svg).maxHeight,
+    }
+  })
+
+  expect(state.error).toBeUndefined()
+  // The chart is height-capped to the viewport (computed resolves to px)…
+  expect(state.maxHeight).not.toBe('none')
+  // …so the full diagram is visible without scrolling.
+  expect(state.hiddenBelowFold!).toBe(0)
+  expect(state.svgBottom!).toBeLessThanOrEqual(state.viewportH!)
+})
+
 test('focus mode pins the range bar clear of the focused chart', async ({ page }) => {
   await mockCashFlow(page)
 

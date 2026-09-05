@@ -164,6 +164,7 @@ export default function SankeyHero({ flows, rangeLabel, loading, className }: Sa
           height={420}
           onNodeClick={handleNodeClick}
           activeNode={activeNode}
+          fitViewport={focused}
         />
       ) : (
         <div className="flex items-center justify-center h-[400px] text-[var(--text-tertiary)]">

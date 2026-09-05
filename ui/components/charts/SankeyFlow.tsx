@@ -28,6 +28,9 @@ interface SankeyFlowProps {
   height?: number
   onNodeClick?: (nodeName: string) => void
   activeNode?: string | null
+  /** In focus mode, cap the rendered height so the whole diagram fits the
+   *  viewport (letterboxed via preserveAspectRatio) instead of overflowing. */
+  fitViewport?: boolean
 }
 
 /** Augmented node type after d3-sankey layout injects geometry fields.
@@ -46,6 +49,8 @@ interface DatumNode {
   y0?: number
   y1?: number
   value?: number
+  depth?: number
+  layer?: number
 }
 
 interface DatumLink {
@@ -159,7 +164,20 @@ function getConnectedSet(
 
 const SANKEY_MARGIN = { top: 8, right: 180, bottom: 16, left: 24 }
 
-const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues, height = 440, onNodeClick, activeNode }: SankeyFlowProps) {
+/** Default gap between node bars. Sparse columns keep this comfortable
+ *  spacing; dense columns trade it for node size (see adaptive padding
+ *  below). */
+const DEFAULT_NODE_PADDING = 24
+
+/** Fraction of the layout height a single column may spend on padding at
+ *  most. d3-sankey sizes every node with ONE global scale bound by the
+ *  tightest column, so a dense column with generous gaps consumes the whole
+ *  height and collapses every bar to a sliver (e.g. 15 nodes × 24px = 336px
+ *  of padding in a 396px layout). Capping the padding budget per column
+ *  keeps node bars — and therefore the global scale — legible. */
+const MAX_COLUMN_PADDING_FRACTION = 0.3
+
+const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues, height = 440, onNodeClick, activeNode, fitViewport }: SankeyFlowProps) {
   const reducedMotion = useReducedMotion()
   const isDark = useThemeMode()
   // Single hover target for the whole diagram. Keeping one state avoids the
@@ -197,33 +215,55 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
       return { computedNodes: [] as DatumNode[], computedLinks: [] as DatumLink[] }
     }
 
-    const clonedNodes: DatumNode[] = nodes.map((n, i) => ({
-      name: n.name,
-      node_type: n.node_type,
-      color: n.color,
-      role: n.role,
-      group: n.group,
-      level: n.level,
-      index: i,
-    }))
-    const clonedLinks: DatumLink[] = validLinks.map(l => ({
-      source: l.source,
-      target: l.target,
-      value: l.value,
-    }))
+    const clone = (): { nodes: DatumNode[]; links: DatumLink[] } => ({
+      nodes: nodes.map((n, i) => ({
+        name: n.name,
+        node_type: n.node_type,
+        color: n.color,
+        role: n.role,
+        group: n.group,
+        level: n.level,
+        index: i,
+      })),
+      links: validLinks.map(l => ({
+        source: l.source,
+        target: l.target,
+        value: l.value,
+      })),
+    })
 
-    const sankeyLayout = sankey<DatumNode, DatumLink>()
-      .nodeId((d) => d.index!)
-      .nodeWidth(14)
-      .nodePadding(24)
-      .extent([
-        [SANKEY_MARGIN.left, SANKEY_MARGIN.top],
-        [width - SANKEY_MARGIN.right, height - SANKEY_MARGIN.bottom],
-      ])
+    const makeLayout = (padding: number) =>
+      sankey<DatumNode, DatumLink>()
+        .nodeId((d) => d.index!)
+        .nodeWidth(14)
+        .nodePadding(padding)
+        .extent([
+          [SANKEY_MARGIN.left, SANKEY_MARGIN.top],
+          [width - SANKEY_MARGIN.right, height - SANKEY_MARGIN.bottom],
+        ])
 
-    const { nodes: sn, links: sl } = sankeyLayout({
-      nodes: clonedNodes,
-      links: clonedLinks,
+    // Pass 1: run the layout with default padding just to learn d3's own
+    // column assignment (layer), then count nodes per column. Padding only
+    // affects y geometry, so pass 1's columns are authoritative.
+    const pass1 = clone()
+    makeLayout(DEFAULT_NODE_PADDING)({ nodes: pass1.nodes, links: pass1.links })
+    const counts = new Map<number, number>()
+    for (const node of pass1.nodes) {
+      const layer = node.layer ?? node.depth ?? 0
+      counts.set(layer, (counts.get(layer) ?? 0) + 1)
+    }
+    const maxColumnLength = Math.max(1, ...Array.from(counts.values()))
+    const innerHeight = height - SANKEY_MARGIN.top - SANKEY_MARGIN.bottom
+    const adaptivePadding = Math.min(
+      DEFAULT_NODE_PADDING,
+      (innerHeight * MAX_COLUMN_PADDING_FRACTION) / Math.max(1, maxColumnLength - 1),
+    )
+
+    // Pass 2: real layout with the adaptive padding.
+    const pass2 = clone()
+    const { nodes: sn, links: sl } = makeLayout(adaptivePadding)({
+      nodes: pass2.nodes,
+      links: pass2.links,
     })
     return { computedNodes: sn, computedLinks: sl }
   }, [nodes, validLinks, width, height])
@@ -288,7 +328,14 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
       <svg
         viewBox={`0 0 ${width} ${height}`}
         width="100%"
-        style={{ overflow: 'visible' }}
+        style={{
+          overflow: 'visible',
+          // Focus mode: cap the rendered height to the viewport (minus the
+          // pinned range bar, card chrome, and legend) so the whole diagram
+          // is visible without scrolling. preserveAspectRatio="xMidYMid
+          // meet" (the default) letterboxes the drawing when height-bound.
+          ...(fitViewport ? { maxHeight: 'calc(100vh - 22rem)', height: 'auto' } : {}),
+        }}
         onMouseLeave={handleHoverLeave}
       >
         {/* Defs: gradient per link + SVG glow filter for Phase 3 node hover */}
