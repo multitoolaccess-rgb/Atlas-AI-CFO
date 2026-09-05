@@ -1,22 +1,5 @@
 {
-  "active_work": [
-    {
-      "branch": "",
-      "id": "work-ui-12-portfolio-remediation-and-certification",
-      "issue": "",
-      "objective": "Close repository-scoped responsive defects revealed by the expanded UI-12 matrix without changing investment semantics, then rerun the consolidated certification evidence.",
-      "paths": [
-        "ui/components/market-briefs/MarketIntelligenceCenter.tsx,ui/__tests__/e2e/ui12-trust-certification.spec.ts,docs/architecture/ATLAS-INVESTMENT-UI-12-READINESS-AND-TRUST-CERTIFICATION-AUDIT.md"
-      ],
-      "phase_id": "ui-12",
-      "risk_tier": "medium",
-      "status": "in_progress",
-      "tests": [
-        "UI-12 coordinated browser matrix, frontend typecheck, focused investment regressions"
-      ],
-      "title": "Remediate UI-12 responsive and certification blockers"
-    }
-  ],
+  "active_work": [],
   "blockers": [
     {
       "description": "External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.",
@@ -1698,17 +1681,63 @@
         "result": "passed; 15 new engine/read-API tests plus 119 investment regression tests green; single alembic head AE19a1b2c3d4e5 maintained",
         "timestamp": "2026-09-04T12:00:00Z"
       }
+    },
+    {
+      "branch": "",
+      "commit": "443ce50",
+      "id": "work-ui-12-portfolio-remediation-and-certification",
+      "issue": "",
+      "objective": "Close the remaining executable UI-12 roadmap gaps: GAP-10 (390px overflow fixed via responsive HeroSummary stat-card grid), GAP-11 (portfolio mutation controls gated behind an explicit manage mode; certified surface read-only by default), GAP-12 (client-side portfolio arithmetic replaced by the server-owned holdings valuation projection with zero-denominator/negative-basis fail-closed rules and owner isolation), GAP-13 (populated single-owner e2e proof: all 11 certified routes render seeded owner data at 390px without overflow, cross-owner/execution leakage, or serious/critical axe violations), GAP-14 (per-route interaction CPU long-task budget in the trust spec), GAP-17 (stale migration-head assertion replaced with the live head), and GAP-19 (repo-wide lint verified clean). Accessibility hardening: donut charts no longer expose focusable descendants under role=img, risk-page scrollable containers are keyboard-accessible, and contrast fixes land on the certified portfolio surface.",
+      "paths": [
+        "services/rules-service/app/routes/holdings.py",
+        "services/rules-service/app/schemas/__init__.py",
+        "services/rules-service/tests/test_holdings_valuation.py",
+        "services/rules-service/tests/test_forecast_migration.py",
+        "ui/app/portfolio/page.tsx",
+        "ui/components/dashboard/HeroSummary.tsx",
+        "ui/components/charts/ChartDonut.tsx",
+        "ui/components/charts/ChartWrapper.tsx",
+        "ui/components/charts/SimpleDonutChart.tsx",
+        "ui/components/ui/StatCard.tsx",
+        "ui/components/portfolio/AnalystCoverageStatus.tsx",
+        "ui/app/investments/risk/page.tsx",
+        "ui/lib/api.ts",
+        "ui/__tests__/e2e/ui12-trust-certification.spec.ts",
+        "ui/__tests__/e2e/ui12-populated-owner.spec.ts",
+        "docs/architecture/ATLAS-INVESTMENT-COMPLETENESS-GAP-REPORT.md",
+        "docs/architecture/ATLAS-INVESTMENT-UI-12-READINESS-AND-TRUST-CERTIFICATION-AUDIT.md"
+      ],
+      "phase_id": "ui-12",
+      "pr": null,
+      "review_evidence": "User directed autonomous closure of the remaining executable roadmap gaps (no open architectural decisions); /portfolio changes are layout/accessibility/data-entry gating only and do not alter investment semantics, financial calculations, or the execution boundary",
+      "risk_tier": "medium",
+      "status": "complete",
+      "tests": [
+        "Backend: 16 focused tests passed (holdings valuation totals/allocation/gain, zero cost basis, negative basis, owner isolation, list-endpoint parity; forecast migration dynamic head) plus 312 investment/holdings/migration/dashboard/budgets regression tests passed, 3 skipped",
+        "Frontend: 693 vitest unit tests passed (86 files); tsc --noEmit clean; next lint clean (GAP-19 verified resolved)",
+        "E2E: ui12-trust-certification 2/2 passed with /portfolio certifiable at every supported width and the interaction CPU budget enforced; ui12-populated-owner 4/4 passed (populated rendering, overflow/leak/execution checks, read-only manage-mode gate, committee/evidence context, zero serious/critical axe violations); 70 additional route-mocked e2e tests passed",
+        "Two e2e failures are environmental only (universe.spec.ts and imports-and-analyst upload require the live rules-service backend at :8000; ECONNREFUSED without the official scripts/test-e2e.sh stack) and are unrelated to these changes"
+      ],
+      "title": "Remediate UI-12 responsive and certification blockers",
+      "validation_evidence": {
+        "command": "pytest tests/test_holdings_valuation.py tests/test_forecast_migration.py + investment regression suites; npx vitest run; npx tsc --noEmit; npx next lint; npx playwright test ui12-trust-certification.spec.ts ui12-populated-owner.spec.ts + affected route-mocked specs; git diff --check",
+        "commit": "443ce50",
+        "environment": "Python 3.12 isolated Rules Service environment; Chromium Playwright; Next.js dev server",
+        "kind": "local",
+        "result": "passed; all UI-12 certification evidence present (eleven-route read-only matrix incl. /portfolio, populated single-owner proof, interaction CPU budget, zero serious/critical axe violations); backend and frontend suites green; git diff --check clean",
+        "timestamp": "2026-09-04T18:00:00Z"
+      }
     }
   ],
-  "current_objective": "Preserve the now-committed UI-10 provider-backed Scout expansion and the certified UI-09/UI-11 boundaries, and remediate the UI-12 /portfolio responsive and certification blockers before the final trust-certification rerun.",
+  "current_objective": "Investment roadmap complete for the personal single-user boundary: INV-01..12 and UI-08..12 are all certified (INV-12 closed 2026-09-04; UI-12 certified 2026-09-04 after the /portfolio remediation and certification-evidence tranche). The only remaining item is external multi-user production enablement, blocked by the open retention/deletion policy decision.",
   "current_phase_id": "ui-12",
-  "last_updated": "2026-09-05T00:30:00Z",
+  "last_updated": "2026-09-05T01:30:00Z",
   "next_bounded_task": {
-    "description": "Remediate the /portfolio 390px overflow and separate its mutation controls from the UI-12 read-only certification boundary; then rerun the consolidated UI-12 matrix. INV-12 is now fully closed (implementation-complete certified; D-8 retention closed for the personal boundary; multi-user out of scope; calibration/replay-A+B/CIO-archive/methodology-registry explicitly deferred). Current UI-12 evidence remains PARTIAL: ten-route read-only matrix passes, while populated owner-data proof and CPU interaction measurement remain open for the single-user boundary.",
-    "id": "work-ui-12-portfolio-remediation-and-certification",
+    "description": "No remaining bounded investment-roadmap task for the personal single-user boundary: UI-12 is certified (2026-09-04) and every executable gap (GAP-10/11/12/13/14/17/19) is closed. External multi-user production enablement remains the only open item and stays blocked by the retention/deletion policy decision (external-multi-user-retention-deletion-blocker), which is out of scope per AGENTS.md personal-use boundary.",
+    "id": "external-multi-user-retention-deletion-blocker",
     "phase_id": "ui-12"
   },
-  "overall_status": "in_progress",
+  "overall_status": "complete",
   "phases": [
     {
       "exit_criteria": [
@@ -2135,8 +2164,8 @@
     {
       "exit_criteria": [
         {
-          "complete": false,
-          "description": "Cross-route trust, privacy, accessibility, performance, evidence, and execution-boundary certification.",
+          "complete": true,
+          "description": "Cross-route trust, privacy, accessibility, performance, evidence, and execution-boundary certification is complete for the defined personal-use read-only experience (2026-09-04). Evidence: ui12-trust-certification 2/2 (eleven certifiable routes incl. /portfolio at 390/768/1024/1440/1728, route-load and payload budgets, per-route interaction CPU long-task budget, keyboard reachability, reduced motion, zero horizontal overflow, no execution vocabulary); ui12-populated-owner 4/4 (seeded single-owner data renders on every certified route at 390px without overflow or cross-owner/execution leakage; portfolio read-only by default with mutation controls gated behind manage mode; committee/evidence context; zero serious/critical axe violations); server holdings valuation projection with fail-closed zero/negative-basis rules and owner isolation; GAP-10/11/12/13/14/17/19 closed. The external multi-user retention/deletion blocker remains separately open and out of scope for personal use (AGENTS.md).",
           "id": "ec-ui-12-certification"
         },
         {
@@ -2147,7 +2176,7 @@
       ],
       "id": "ui-12",
       "name": "Cross-route trust certification",
-      "status": "in_progress"
+      "status": "complete"
     },
     {
       "exit_criteria": [
@@ -2167,11 +2196,11 @@
       "description": "Repository-wide frontend lint debt remains outside Phase 0 scope.",
       "id": "risk-frontend-lint-debt",
       "likelihood": "high",
-      "mitigation": "Keep targeted lint and CI checks; schedule bounded cleanup separately.",
+      "mitigation": "Verified resolved 2026-09-04: npx next lint reports zero ESLint warnings or errors across ui/ (GAP-19); the UI-12 remediation tranche introduced no new lint debt.",
       "owner": "engineering",
-      "related": "CI and import report",
+      "related": "GAP-19; 443ce50",
       "severity": "medium",
-      "status": "open"
+      "status": "resolved"
     },
     {
       "description": "Monte Carlo probability model is intentionally deferred.",

@@ -11,7 +11,7 @@ preserved and are not silently reclassified by green certification tests.
 
 | ID | Description | Severity | Likelihood | Mitigation | Owner | Status | Related evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| risk-frontend-lint-debt | Repository-wide frontend lint debt remains outside Phase 0 scope. | medium | high | Keep targeted lint and CI checks; schedule bounded cleanup separately. | engineering | open | CI and import report |
+| risk-frontend-lint-debt | Repository-wide frontend lint debt remains outside Phase 0 scope. | medium | high | Verified resolved 2026-09-04: `next lint` reports zero ESLint warnings or errors across `ui/` (GAP-19); the UI-12 remediation tranche introduced no new lint debt. | engineering | resolved | GAP-19; 443ce50 |
 | risk-monte-carlo-deferred | Monte Carlo probability model is intentionally deferred. | medium | medium | Preserve deterministic projections; authorize probability work separately. | product-architecture | open | ADR-005 |
 | risk-transitional-tenancy | User-scoped tenancy remains transitional. | high | medium | Require authorization and isolation tests before expansion. | security | open | architecture/security docs |
 | risk-legacy-product-names | Legacy Finance Copilot, WealthIQ, CashFlix, and Finlynq names remain. | low | high | Track bounded terminology cleanup; avoid broad rename during delivery work. | engineering | open | import report |

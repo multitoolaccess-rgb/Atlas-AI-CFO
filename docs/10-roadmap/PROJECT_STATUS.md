@@ -2,13 +2,13 @@
 
 > Generated from `PROJECT_STATUS.json`; regenerate with `python3 scripts/atlas_project_status.py render`.
 
-- Current phase: **ui-12 — Cross-route trust certification** (in_progress)
-- Overall status: **in_progress**
-- Current objective: Preserve the now-committed UI-10 provider-backed Scout expansion and the certified UI-09/UI-11 boundaries, and remediate the UI-12 /portfolio responsive and certification blockers before the final trust-certification rerun.
-- Last updated: 2026-09-05T00:30:00Z
+- Current phase: **ui-12 — Cross-route trust certification** (complete)
+- Overall status: **complete**
+- Current objective: Investment roadmap complete for the personal single-user boundary: INV-01..12 and UI-08..12 are all certified (INV-12 closed 2026-09-04; UI-12 certified 2026-09-04 after the /portfolio remediation and certification-evidence tranche). The only remaining item is external multi-user production enablement, blocked by the open retention/deletion policy decision.
+- Last updated: 2026-09-05T01:30:00Z
 
 ## Active work
-- work-ui-12-portfolio-remediation-and-certification: Remediate UI-12 responsive and certification blockers (in_progress, medium)
+- None
 
 ## Blockers
 - {'description': 'External multi-user production enablement is BLOCKED until an approved retention and user-deletion policy exists for immutable forecast history.', 'id': 'external-multi-user-retention-deletion-blocker', 'owner': 'product-security', 'related': 'ADR-006, issue #3, PR #4', 'status': 'open'}
@@ -45,11 +45,11 @@
 - ui-09 — Opportunity discovery and comparison: complete (3/3 exit criteria)
 - ui-10 — Contextual investment assistant: complete (1/1 exit criteria)
 - ui-11 — Risk and scenario presentation: complete (1/1 exit criteria)
-- ui-12 — Cross-route trust certification: in_progress (1/2 exit criteria)
+- ui-12 — Cross-route trust certification: complete (2/2 exit criteria)
 - inv-12 — Evaluation, calibration, replay, and retention: complete (1/1 exit criteria)
 
 ## Current risks
-- risk-frontend-lint-debt [medium/high, open]: Repository-wide frontend lint debt remains outside Phase 0 scope.
+- risk-frontend-lint-debt [medium/high, resolved]: Repository-wide frontend lint debt remains outside Phase 0 scope.
 - risk-monte-carlo-deferred [medium/medium, open]: Monte Carlo probability model is intentionally deferred.
 - risk-transitional-tenancy [high/medium, open]: User-scoped tenancy remains transitional.
 - risk-legacy-product-names [low/high, open]: Legacy Finance Copilot, WealthIQ, CashFlix, and Finlynq names remain.
@@ -71,11 +71,11 @@
 - risk-inv12-retention-policy-gate [high/high, resolved]: INV-12 retention/deletion durations and semantics remain an open D-8 product/security decision; the append-only stores and evaluation boundary are certified, but the retention slice and production/multi-user readiness are gated on policy approval (no automatic deletion; any future deletion must be a policy-designed soft-tombstone).
 
 ## Recently completed work
-- work-ui-12-cross-route-trust-certification: Audit UI-12 cross-route trust and certification readiness — commit null, PR None
 - work-ui-12-coordinated-certification-evidence: Run coordinated UI-12 trust certification evidence — commit ad6bfb8, PR None
 - work-ui-10-provider-backed-scout-expansion: Implement and commit bounded provider-backed UI-10 Scout expansion — commit 84259ee, PR None
 - work-inv-12-foundation-durable-stores: Land INV-12 durable stores and frozen contracts — commit a8a6016, PR None
 - work-inv-12-evaluation-engine-and-read-api: Wire INV-12 evaluation engine, replay, and read API — commit f782ffd, PR None
+- work-ui-12-portfolio-remediation-and-certification: Remediate UI-12 responsive and certification blockers — commit 443ce50, PR None
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation
@@ -112,6 +112,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-ui-12-portfolio-remediation-and-certification: Remediate the /portfolio 390px overflow and separate its mutation controls from the UI-12 read-only certification boundary; then rerun the consolidated UI-12 matrix. INV-12 is now fully closed (implementation-complete certified; D-8 retention closed for the personal boundary; multi-user out of scope; calibration/replay-A+B/CIO-archive/methodology-registry explicitly deferred). Current UI-12 evidence remains PARTIAL: ten-route read-only matrix passes, while populated owner-data proof and CPU interaction measurement remain open for the single-user boundary.
+- external-multi-user-retention-deletion-blocker: No remaining bounded investment-roadmap task for the personal single-user boundary: UI-12 is certified (2026-09-04) and every executable gap (GAP-10/11/12/13/14/17/19) is closed. External multi-user production enablement remains the only open item and stays blocked by the retention/deletion policy decision (external-multi-user-retention-deletion-blocker), which is out of scope per AGENTS.md personal-use boundary.
 
 Do not begin the next phase or task automatically.

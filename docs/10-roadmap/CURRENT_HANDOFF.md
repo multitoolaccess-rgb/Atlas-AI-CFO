@@ -5,18 +5,15 @@
 ## Current objective
 
 - Phase: ui-12 — Cross-route trust certification
-- Phase status: in_progress
-- Overall status: in_progress
-- Objective: Preserve the now-committed UI-10 provider-backed Scout expansion and the certified UI-09/UI-11 boundaries, and remediate the UI-12 /portfolio responsive and certification blockers before the final trust-certification rerun.
-- Phase exit criteria: 1/2 complete
-- Tracker updated: 2026-09-05T00:30:00Z
+- Phase status: complete
+- Overall status: complete
+- Objective: Investment roadmap complete for the personal single-user boundary: INV-01..12 and UI-08..12 are all certified (INV-12 closed 2026-09-04; UI-12 certified 2026-09-04 after the /portfolio remediation and certification-evidence tranche). The only remaining item is external multi-user production enablement, blocked by the open retention/deletion policy decision.
+- Phase exit criteria: 2/2 complete
+- Tracker updated: 2026-09-05T01:30:00Z
 
 ## Active work
 
-- work-ui-12-portfolio-remediation-and-certification: Remediate UI-12 responsive and certification blockers [in_progress/medium]
-  - Objective: Close repository-scoped responsive defects revealed by the expanded UI-12 matrix without changing investment semantics, then rerun the consolidated certification evidence.
-  - Branch: None
-  - Paths: ui/components/market-briefs/MarketIntelligenceCenter.tsx,ui/__tests__/e2e/ui12-trust-certification.spec.ts,docs/architecture/ATLAS-INVESTMENT-UI-12-READINESS-AND-TRUST-CERTIFICATION-AUDIT.md
+- None
 
 ## Blockers
 
@@ -24,7 +21,6 @@
 
 ## Open risks
 
-- risk-frontend-lint-debt [medium/high]: Repository-wide frontend lint debt remains outside Phase 0 scope.
 - risk-monte-carlo-deferred [medium/medium]: Monte Carlo probability model is intentionally deferred.
 - risk-transitional-tenancy [high/medium]: User-scoped tenancy remains transitional.
 - risk-legacy-product-names [low/high]: Legacy Finance Copilot, WealthIQ, CashFlix, and Finlynq names remain.
@@ -40,14 +36,14 @@
 
 ## Recently completed
 
-- work-ui-12-cross-route-trust-certification: Audit UI-12 cross-route trust and certification readiness — commit null, PR not recorded
 - work-ui-12-coordinated-certification-evidence: Run coordinated UI-12 trust certification evidence — commit ad6bfb8, PR not recorded
 - work-ui-10-provider-backed-scout-expansion: Implement and commit bounded provider-backed UI-10 Scout expansion — commit 84259ee, PR not recorded
 - work-inv-12-foundation-durable-stores: Land INV-12 durable stores and frozen contracts — commit a8a6016, PR not recorded
 - work-inv-12-evaluation-engine-and-read-api: Wire INV-12 evaluation engine, replay, and read API — commit f782ffd, PR not recorded
+- work-ui-12-portfolio-remediation-and-certification: Remediate UI-12 responsive and certification blockers — commit 443ce50, PR not recorded
 
 ## Next bounded task
 
-- work-ui-12-portfolio-remediation-and-certification: Remediate the /portfolio 390px overflow and separate its mutation controls from the UI-12 read-only certification boundary; then rerun the consolidated UI-12 matrix. INV-12 is now fully closed (implementation-complete certified; D-8 retention closed for the personal boundary; multi-user out of scope; calibration/replay-A+B/CIO-archive/methodology-registry explicitly deferred). Current UI-12 evidence remains PARTIAL: ten-route read-only matrix passes, while populated owner-data proof and CPU interaction measurement remain open for the single-user boundary.
+- external-multi-user-retention-deletion-blocker: No remaining bounded investment-roadmap task for the personal single-user boundary: UI-12 is certified (2026-09-04) and every executable gap (GAP-10/11/12/13/14/17/19) is closed. External multi-user production enablement remains the only open item and stays blocked by the retention/deletion policy decision (external-multi-user-retention-deletion-blocker), which is out of scope per AGENTS.md personal-use boundary.
 
 Do not begin the next task automatically.
