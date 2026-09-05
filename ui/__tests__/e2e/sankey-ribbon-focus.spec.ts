@@ -182,6 +182,62 @@ test('focus mode fits the whole chart in the viewport', async ({ page }) => {
   expect(state.svgBottom!).toBeLessThanOrEqual(state.viewportH!)
 })
 
+test('small-node labels never overlap in dense columns', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await mockCashFlow(page)
+
+  const result = await page.evaluate(() => {
+    const svg = document.querySelector('#sankey-links')?.closest('svg')
+    if (!svg) return { error: 'no svg' }
+    const texts = Array.from(svg.querySelectorAll('#sankey-nodes text')).map((t) => {
+      const r = t.getBoundingClientRect()
+      return {
+        text: (t.textContent ?? '').slice(0, 30),
+        left: r.left, right: r.right, top: r.top, bottom: r.bottom,
+        parentId: t.closest('g')?.id ?? '',
+      }
+    })
+    const overlaps: string[] = []
+    for (let i = 0; i < texts.length; i++) {
+      for (let j = i + 1; j < texts.length; j++) {
+        const a = texts[i], b = texts[j]
+        if (a.parentId === b.parentId) continue
+        const interW = Math.min(a.right, b.right) - Math.max(a.left, b.left)
+        const interH = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)
+        if (interW > 1 && interH > 1) overlaps.push(`${a.text} ⟷ ${b.text}`)
+      }
+    }
+    return { textCount: texts.length, overlapCount: overlaps.length, overlaps: overlaps.slice(0, 6) }
+  })
+
+  expect(result.error).toBeUndefined()
+  // Regression: stacked name/value lines used to collide once adaptive
+  // padding packed dense columns together (34 collisions). Single combined
+  // lines (with labels hidden for sub-8px bars) must not overlap at all.
+  expect(result.overlapCount).toBe(0)
+})
+
+test('inline node labels are consistently white on every bar', async ({ page }) => {
+  await mockCashFlow(page)
+
+  const result = await page.evaluate(() => {
+    const svg = document.querySelector('#sankey-links')?.closest('svg')
+    if (!svg) return { error: 'no svg' }
+    // Inline labels live INSIDE the bar (textAnchor=middle, part of a node
+    // group). Side labels are start-anchored on the page background.
+    const inline = Array.from(svg.querySelectorAll('#sankey-nodes text[text-anchor="middle"]')).map((t) => getComputedStyle(t).fill)
+    const darkOnLight = inline.filter((f) => f === 'rgb(26, 24, 16)' || f === 'rgba(26, 24, 16, 0.7)')
+    return { inlineCount: inline.length, darkOnLight }
+  })
+
+  expect(result.error).toBeUndefined()
+  expect(result.inlineCount!).toBeGreaterThan(0)
+  // Regression: contrast-based fills produced black text on light bars
+  // (yellow Groceries, sky Food & Dining) next to white text on dark bars.
+  // Every inline label must now be white (with a halo).
+  expect(result.darkOnLight).toEqual([])
+})
+
 test('focus mode pins the range bar clear of the focused chart', async ({ page }) => {
   await mockCashFlow(page)
 
@@ -216,4 +272,16 @@ test('focus mode pins the range bar clear of the focused chart', async ({ page }
   // …and never covers the focused chart.
   expect(state.overlapPx!).toBe(0)
   expect(state.barBottom!).toBeLessThanOrEqual(state.cardTop!)
+
+  // Hardening: in focus mode the bar must stay single-row (so it cannot
+  // grow past the layer's reserved top space) and opaque (so it renders
+  // fully above the focused layer in every browser).
+  const barStyle = await page.evaluate(() => {
+    const barEl = document.querySelector('[data-testid="floating-time-range-bar"]')!
+    const cs = getComputedStyle(barEl)
+    return { flexWrap: cs.flexWrap, backgroundColor: cs.backgroundColor }
+  })
+  expect(barStyle.flexWrap).toBe('nowrap')
+  // Opaque: the computed background must not be a translucent /95 mix.
+  expect(barStyle.backgroundColor).toMatch(/rgba\([^)]*,\s*1\)$|^rgb\(/)
 })

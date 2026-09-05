@@ -37,6 +37,19 @@ html.dashboard-focus-active .atlas-floating-time-range-bar.atlas-floating-time-r
   left: 1rem;
   right: 1rem;
   margin: 0;
+  /* The focus layer reserves pt-40 (10rem) below the bar. A wrapped bar
+     would grow past that and start covering the chart, making the range
+     options look partially hidden. Pin the bar to a single row: it
+     scrolls horizontally instead of wrapping, so the pills are always
+     reachable and never overlap the visualization. */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  /* Solid background (no translucent blur) so the pinned bar renders
+     fully on top of the focused layer in every browser — including
+     Safari, where backdrop-filter over fixed elements can mis-paint. */
+  background-color: var(--bg-primary);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* =================================================================

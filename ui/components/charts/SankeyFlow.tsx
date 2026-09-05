@@ -10,8 +10,6 @@ import {
   GRADIENT_SOURCE_COLORS,
   getDashboardColor,
   getGradientSourceColor,
-  getTextColor,
-  getTextSecondaryColor,
 } from '@/lib/themeColors'
 import { formatCurrency } from '@/lib/format'
 
@@ -176,6 +174,18 @@ const DEFAULT_NODE_PADDING = 24
  *  of padding in a 396px layout). Capping the padding budget per column
  *  keeps node bars — and therefore the global scale — legible. */
 const MAX_COLUMN_PADDING_FRACTION = 0.3
+
+/** Inline labels sit on colored bars. They are ALWAYS white — with a soft
+ *  dark halo — so text stays consistent across bars (no white/black mix
+ *  from contrast-based colors on light fills like yellow or sky) while
+ *  remaining legible on those light fills. paintOrder paints the halo
+ *  behind the glyph fill. */
+const INLINE_LABEL_HALO: React.CSSProperties = {
+  paintOrder: 'stroke',
+  stroke: 'rgba(0, 0, 0, 0.35)',
+  strokeWidth: 3,
+  strokeLinejoin: 'round',
+}
 
 const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues, height = 440, onNodeClick, activeNode, fitViewport }: SankeyFlowProps) {
   const reducedMotion = useReducedMotion()
@@ -480,6 +490,10 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
             const h = (node.y1 ?? 0) - (node.y0 ?? 0)
             const fill = getNodeFill(node, isDark)
             const isLarge = h > 36
+            // Tiny bars (sub-8px) cannot carry a legible side label without
+            // colliding with their neighbors; their label appears on hover
+            // or when the node is selected instead of cluttering the chart.
+            const isTiny = h < 8
             const labelX = x + w + 14
             const labelY = y + h / 2
 
@@ -518,8 +532,6 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
             }
 
             const value = displayValues?.[node.name] ?? node.value ?? 0
-            const textColor = getTextColor(fill)
-            const textSecondary = getTextSecondaryColor(fill)
 
             const nodeLabel = `${node.name}${value > 0 ? `, ${formatCurrency(value)}` : ''}`
 
@@ -579,7 +591,8 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
                   strokeWidth={strokeWidth}
                 />
 
-                {/* Inline label for large nodes (Income / Retained bars) */}
+                {/* Inline label for large nodes (Income / Retained bars).
+                    Always white with a halo — consistent across every fill. */}
                 {isLarge && (
                   <text
                     x={x + w / 2}
@@ -589,20 +602,46 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
                     style={{
                       fontSize: '11px',
                       fontWeight: 700,
-                      fill: textColor,
+                      fill: '#FFFFFF',
                       fontFamily: 'var(--font-primary)',
                       letterSpacing: '0.01em',
+                      ...INLINE_LABEL_HALO,
                     }}
                   >
                     {node.name}
                   </text>
                 )}
 
-                {/* Side label — name (hardcoded hex: CSS vars can fail in SVG fills) */}
-                {!isLarge && (
+                {/* Inline value below large bars. Always white with a halo. */}
+                {isLarge && value > 0 && (
+                  <text
+                    x={x + w / 2}
+                    y={y + h / 2 + 13}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      fill: 'rgba(255, 255, 255, 0.92)',
+                      fontFamily: 'var(--font-mono)',
+                      fontVariantNumeric: 'tabular-nums',
+                      ...INLINE_LABEL_HALO,
+                    }}
+                  >
+                    {formatCurrency(value)}
+                  </text>
+                )}
+
+                {/* Side label for small nodes — ONE combined line
+                    ("Name · $Value") instead of two stacked lines. With the
+                    adaptive padding, dense columns pack bars close enough
+                    that stacked name/value lines of adjacent nodes collide;
+                    a single line per node cannot. The value stays available
+                    in the aria-label for screen readers. */}
+                {!isLarge && (!isTiny || (hovered !== null && hovered.kind === 'node' && hovered.name === node.name) || activeNode === node.name) && (
                   <text
                     x={labelX}
-                    y={labelY - 7}
+                    y={labelY}
                     textAnchor="start"
                     dominantBaseline="central"
                     style={{
@@ -610,28 +649,10 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
                       fontWeight: 600,
                       fill: isDark ? '#eaeaea' : '#0A0805',
                       fontFamily: 'var(--font-primary)',
-                    }}
-                  >
-                    {node.name}
-                  </text>
-                )}
-
-                {/* Side label — currency value (hardcoded hex: CSS vars can fail in SVG fills) */}
-                {value > 0 && (
-                  <text
-                    x={isLarge ? x + w / 2 : labelX}
-                    y={isLarge ? y + h / 2 + 13 : labelY + 8}
-                    textAnchor={isLarge ? 'middle' : 'start'}
-                    dominantBaseline="central"
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: isLarge ? 600 : 500,
-                      fill: isLarge ? textSecondary : (isDark ? '#999999' : '#6B6860'),
-                      fontFamily: 'var(--font-mono)',
                       fontVariantNumeric: 'tabular-nums',
                     }}
                   >
-                    {formatCurrency(value)}
+                    {node.name}{value > 0 ? ` · ${formatCurrency(value)}` : ''}
                   </text>
                 )}
               </g>
