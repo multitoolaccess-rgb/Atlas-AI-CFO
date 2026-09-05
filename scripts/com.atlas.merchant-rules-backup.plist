@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Atlas — scheduled merchant-rules backup (launchd LaunchAgent).
+
+  Runs scripts/backup_merchant_rules.py daily at 03:30 (and at login).
+  The script exports the merchant categorization rules to backups/merchant-rules.csv
+  and commits + pushes to GitHub ONLY when the rules changed; an unchanged
+  export is a no-op. The full database (personal financial data) is never pushed.
+
+  Paths below are machine-specific (single-user personal repo). To install on a
+  fresh machine, copy this file to ~/Library/LaunchAgents/, fix the three
+  /Users/<user> paths, then:
+
+      launchctl load ~/Library/LaunchAgents/com.atlas.merchant-rules-backup.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.atlas.merchant-rules-backup</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/env</string>
+        <string>python3</string>
+        <string>/Users/vijayuppala/Documents/Projects/Atlas-AI-CFO/scripts/backup_merchant_rules.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/vijayuppala/Documents/Projects/Atlas-AI-CFO</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>3</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/vijayuppala/Library/Logs/atlas-merchant-rules-backup.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/vijayuppala/Library/Logs/atlas-merchant-rules-backup.err.log</string>
+</dict>
+</plist>
