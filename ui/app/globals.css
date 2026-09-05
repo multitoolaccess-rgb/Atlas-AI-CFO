@@ -25,13 +25,18 @@
 
 /* Focus mode promotes the shared range control to the viewport so it
    stays usable without covering the visualization. DashboardFocusLayer
-   reserves matching top space for it. */
-html.dashboard-focus-active .atlas-floating-time-range-bar {
+   reserves matching top space for it. margin: 0 neutralises the page's
+   space-y sibling margin, which would otherwise offset the fixed bar
+   below its top and make it overlap the layer content. */
+/* Selector specificity deliberately exceeds the page's space-y sibling
+   margin (`.space-y-6 > :not([hidden]) ~ :not([hidden])` = 0,3,0) so the
+   fixed bar ignores the flow margin and pins exactly at top 4.5rem. */
+html.dashboard-focus-active .atlas-floating-time-range-bar.atlas-floating-time-range-bar {
   position: fixed;
   top: 4.5rem;
   left: 1rem;
   right: 1rem;
-  margin-bottom: 0;
+  margin: 0;
 }
 
 /* =================================================================

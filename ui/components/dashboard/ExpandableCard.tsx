@@ -74,8 +74,11 @@ export function DashboardFocusLayer({
   if (!focused) return <>{children}</>
 
   return (
+    // pt-40 reserves space for the pinned floating range bar (fixed at
+    // top 4.5rem, up to ~80px tall when wrapped) so it never overlaps
+    // the focused visualization.
     <div
-      className="fixed inset-0 z-50 touch-pan-y overflow-y-auto overscroll-contain bg-[var(--bg-primary)]/95 p-3 pt-28 backdrop-blur-sm sm:p-6 sm:pt-28"
+      className="fixed inset-0 z-50 touch-pan-y overflow-y-auto overscroll-contain bg-[var(--bg-primary)]/95 p-3 pt-40 backdrop-blur-sm sm:p-6 sm:pt-40"
       role="dialog"
       aria-modal="true"
       aria-label={`${title} focus mode`}

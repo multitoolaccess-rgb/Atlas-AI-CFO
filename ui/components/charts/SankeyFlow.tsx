@@ -315,14 +315,20 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
             const isHoverConnected = connectedSet.has(i)
             const baseSrcOpacity = isHoverConnected ? 0.92 : 0.68
             const baseTgtOpacity = isHoverConnected ? 0.88 : 0.62
+            // Gradients use userSpaceOnUse coordinates aligned to the link's
+            // actual endpoints. objectBoundingBox units are degenerate for
+            // perfectly horizontal links (y0 === y1 — e.g. a large category
+            // whose source/target centers align), whose zero-height bbox
+            // makes the gradient unresolvable and the ribbon invisible.
             return (
               <linearGradient
                 key={`grad-${i}`}
                 id={`sankey-grad-${i}`}
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="0%"
+                gradientUnits="userSpaceOnUse"
+                x1={src.x1 ?? 0}
+                y1={link.y0 ?? 0}
+                x2={tgt.x0 ?? 0}
+                y2={link.y1 ?? 0}
               >
                 <stop offset="0%" stopColor={getNodeGradientStart(src, isDark)} stopOpacity={baseSrcOpacity} />
                 <stop offset="100%" stopColor={getNodeFill(tgt, isDark)} stopOpacity={baseTgtOpacity} />
