@@ -16,7 +16,7 @@ export interface InvestmentRecommendationResponse { schema_version: string; reco
 export interface InvestmentRecommendationListResponse { schema_version: string; items: InvestmentRecommendation[] }
 export interface InvestmentDecisionListResponse { schema_version: string; items: InvestmentDecision[] }
 
-const baseURL = process.env.NEXT_PUBLIC_RULES_SERVICE_URL ?? 'http://localhost:8000'
+const baseURL = process.env.NEXT_PUBLIC_RULES_SERVICE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:8888'
 const client = axios.create({ baseURL, withCredentials: true, headers: { 'Content-Type': 'application/json' } })
 function storedToken(): string | null { return typeof window === 'undefined' ? null : window.localStorage.getItem('fc_session_token') }
 client.interceptors.request.use((config) => { const token = storedToken(); if (token) config.headers.set('Authorization', `Bearer ${token}`); return config })

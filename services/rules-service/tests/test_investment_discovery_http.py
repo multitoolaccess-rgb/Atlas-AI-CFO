@@ -57,6 +57,35 @@ def test_portfolio_mode_is_owner_scoped(client, db_session):
     assert [item["security"]["symbol"] for item in response.json()["candidates"]] == ["ZZZ"]
 
 
+def test_portfolio_mode_handles_provider_annotated_symbols(client, db_session):
+    """Provider sweep-fund annotations (e.g. ``CORE**``) must not break the
+    canonical discovery security ID pattern; the display alias is preserved."""
+    settings.atlas_investment_read_enabled = True
+    user = db_session.query(User).filter(User.local_user_sub == "alex").first()
+    if user is None:
+        from app.routes.shared import get_or_create_local_user
+        user = get_or_create_local_user(db_session, "alex")
+    institution = db_session.query(Institution).first()
+    if institution is None:
+        institution = Institution(name="UI09 Annotated Institution")
+        db_session.add(institution)
+        db_session.flush()
+    member = get_or_create_family_member_self(db_session, user)
+    account = Account(user_id=user.id, institution_id=institution.id, family_member_id=member.id, account_name="UI09A", account_type="investment", is_active=True)
+    db_session.add(account)
+    db_session.flush()
+    db_session.add(Holding(account_id=account.id, symbol="CORE**", current_value=1.0))
+    db_session.commit()
+    response = client.get("/api/v1/investments/discovery", params={"universe": "portfolio"})
+    assert response.status_code == 200
+    candidates = response.json()["candidates"]
+    # The provider annotation is a display artifact, not part of the ticker;
+    # the canonical discovery identity must carry a clean alias and ID.
+    assert [item["security"]["symbol"] for item in candidates] == ["CORE"]
+    assert all(item["security"]["security_id"].startswith("sec:ui09:portfolio:") for item in candidates)
+    assert all("*" not in item["security"]["security_id"] for item in candidates)
+
+
 def test_detail_and_invalid_comparison_are_bounded(client):
     settings.atlas_investment_read_enabled = True
     listing = client.get("/api/v1/investments/discovery", params={"universe": "sp500", "limit": 2}).json()

@@ -39,7 +39,7 @@ export interface DiscoveryComparisonResponse {
   metric_compatibility: Record<string, boolean>
 }
 
-const client = axios.create({ baseURL: process.env.NEXT_PUBLIC_RULES_SERVICE_URL ?? 'http://localhost:8000', withCredentials: true })
+const client = axios.create({ baseURL: process.env.NEXT_PUBLIC_RULES_SERVICE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:8888', withCredentials: true })
 
 export const investmentDiscovery = {
   async list(universe: DiscoveryUniverse, query?: string, limit = 50): Promise<DiscoveryListResponse> {

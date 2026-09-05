@@ -130,11 +130,18 @@ def candidate_from_symbol(symbol: str, *, universe: DiscoveryUniverse, as_of: da
     the approved universe and therefore cannot be confused with INV-09 state.
     """
     normalized = symbol.strip().upper()
+    # Provider exports may annotate symbols (e.g. Fidelity sweep funds
+    # "CORE**"/"SPAXX**"). The annotation is a provider artifact, not part
+    # of the ticker, and SecurityIdentity rejects it, so strip it before
+    # building the canonical alias and security ID.
+    sanitized = "".join(ch for ch in normalized if ch.isalnum() or ch in ".-")
+    if not sanitized:
+        sanitized = "UNKNOWN"
     security = SecurityIdentity(
-        security_id=f"sec:ui09:{universe.value}:{normalized.lower()}",
+        security_id=f"sec:ui09:{universe.value}:{sanitized.lower()}",
         state="resolved",
         instrument_type="equity",
-        symbol=normalized,
+        symbol=sanitized,
     )
     return DiscoveryCandidate(
         security=security,
