@@ -513,23 +513,48 @@ class TrustedMarketBriefComposer:
         resolved_ciks: dict[str, str] = {}
         holding_evidence: list[HoldingEvidence] = []
 
+        # Provider rate limiting is a provider-wide condition, not a
+        # per-holding one. Once any optional call observes it, the remaining
+        # optional calls are guaranteed to fail too (the pacer ceiling is
+        # shared, and upstream 429s persist). Issuing them anyway burns quota
+        # and produces one near-identical warning per holding per category.
+        # Fail fast: stop optional collection and emit ONE aggregated warning
+        # so a rate-limited brief degrades gracefully instead of flooding the
+        # limitations panel.
+        rate_limited = False
+
         def _collect(label: str, category: EvidenceCategory, loader, target, symbol: str) -> None:
+            nonlocal rate_limited
+            if rate_limited:
+                return
             try:
                 records = loader(symbol)
                 if label == "news":
                     target.extend((records or [])[:20])
                 elif label == "earnings_events":
+                    # Upcoming earnings window: the next reported quarter
+                    # (typically 30-90 days out). The lower bound keeps a small
+                    # recency cushion for events that land within a couple of
+                    # weeks of composition.
                     target.extend(
                         event for event in (records or [])
-                        if now.date() - timedelta(days=14) <= event.event_date.date() <= now.date() + timedelta(days=30)
+                        if now.date() - timedelta(days=14) <= event.event_date.date() <= now.date() + timedelta(days=90)
                     )
                 else:
+                    # Reported results are keyed on the period END (e.g. the
+                    # quarter-end 2026-06-30), which is already weeks old when
+                    # the provider publishes it. A 14-day window silently
+                    # discards every quarterly result; keep the trailing four
+                    # quarters so recent reported results are actually shown.
                     target.extend(
                         result for result in (records or [])
                         if result.source.observed_at
-                        and now.date() - timedelta(days=14) <= result.source.observed_at.date() <= now.date()
+                        and now.date() - timedelta(days=365) <= result.source.observed_at.date() <= now.date()
                     )
             except MarketBriefCompositionError as error:
+                if error.reason_code is MarketBriefReasonCode.PROVIDER_RATE_LIMITED:
+                    rate_limited = True
+                    return
                 evidence_availability.append(EvidenceAvailability(
                     symbol=symbol,
                     evidence_category=category,
@@ -539,6 +564,8 @@ class TrustedMarketBriefComposer:
                 optional_warnings.append(f"{error.reason_code.value}: optional {label} unavailable for {symbol}.")
 
         for symbol in sorted(grouped):
+            if rate_limited:
+                break
             _collect("news", EvidenceCategory.NEWS, self.providers.news, news, symbol)
             _collect("earnings_events", EvidenceCategory.EARNINGS, self.providers.earnings_events, earnings_events, symbol)
             _collect("earnings_results", EvidenceCategory.EARNINGS, self.providers.earnings_results, earnings_results, symbol)
@@ -549,53 +576,72 @@ class TrustedMarketBriefComposer:
             dividends: tuple[DividendEvent, ...] = ()
             filings: tuple[SecFilingEvent, ...] = ()
 
-            try:
-                profile = self.providers.profile(symbol)
-                if profile and profile.cik:
-                    resolved_ciks[symbol] = profile.cik
-            except MarketBriefCompositionError as error:
-                evidence_availability.append(EvidenceAvailability(
-                    symbol=symbol, evidence_category=EvidenceCategory.FILINGS,
-                    reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
-                ))
-                optional_warnings.append(f"{error.reason_code.value}: optional profile unavailable for {symbol}.")
+            if not rate_limited:
+                try:
+                    profile = self.providers.profile(symbol)
+                    if profile and profile.cik:
+                        resolved_ciks[symbol] = profile.cik
+                except MarketBriefCompositionError as error:
+                    if error.reason_code is MarketBriefReasonCode.PROVIDER_RATE_LIMITED:
+                        rate_limited = True
+                    else:
+                        evidence_availability.append(EvidenceAvailability(
+                            symbol=symbol, evidence_category=EvidenceCategory.FILINGS,
+                            reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
+                        ))
+                        optional_warnings.append(f"{error.reason_code.value}: optional profile unavailable for {symbol}.")
 
-            try:
-                recommendations = tuple(self.providers.analyst_recommendations(symbol))
-            except MarketBriefCompositionError as error:
-                evidence_availability.append(EvidenceAvailability(
-                    symbol=symbol, evidence_category=EvidenceCategory.ANALYST,
-                    reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
-                ))
-                optional_warnings.append(f"{error.reason_code.value}: optional analyst recommendation unavailable for {symbol}.")
+            if not rate_limited:
+                try:
+                    recommendations = tuple(self.providers.analyst_recommendations(symbol))
+                except MarketBriefCompositionError as error:
+                    if error.reason_code is MarketBriefReasonCode.PROVIDER_RATE_LIMITED:
+                        rate_limited = True
+                    else:
+                        evidence_availability.append(EvidenceAvailability(
+                            symbol=symbol, evidence_category=EvidenceCategory.ANALYST,
+                            reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
+                        ))
+                        optional_warnings.append(f"{error.reason_code.value}: optional analyst recommendation unavailable for {symbol}.")
 
-            try:
-                price_target = self.providers.price_target(symbol)
-            except MarketBriefCompositionError as error:
-                evidence_availability.append(EvidenceAvailability(
-                    symbol=symbol, evidence_category=EvidenceCategory.ANALYST,
-                    reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
-                ))
-                optional_warnings.append(f"{error.reason_code.value}: optional price target unavailable for {symbol}.")
+            if not rate_limited:
+                try:
+                    price_target = self.providers.price_target(symbol)
+                except MarketBriefCompositionError as error:
+                    if error.reason_code is MarketBriefReasonCode.PROVIDER_RATE_LIMITED:
+                        rate_limited = True
+                    else:
+                        evidence_availability.append(EvidenceAvailability(
+                            symbol=symbol, evidence_category=EvidenceCategory.ANALYST,
+                            reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
+                        ))
+                        optional_warnings.append(f"{error.reason_code.value}: optional price target unavailable for {symbol}.")
 
-            try:
-                dividends = tuple(self.providers.dividends(symbol))
-            except MarketBriefCompositionError as error:
-                evidence_availability.append(EvidenceAvailability(
-                    symbol=symbol, evidence_category=EvidenceCategory.NEWS,
-                    reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
-                ))
-                optional_warnings.append(f"{error.reason_code.value}: optional dividends unavailable for {symbol}.")
+            if not rate_limited:
+                try:
+                    dividends = tuple(self.providers.dividends(symbol))
+                except MarketBriefCompositionError as error:
+                    if error.reason_code is MarketBriefReasonCode.PROVIDER_RATE_LIMITED:
+                        rate_limited = True
+                    else:
+                        evidence_availability.append(EvidenceAvailability(
+                            symbol=symbol, evidence_category=EvidenceCategory.NEWS,
+                            reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
+                        ))
+                        optional_warnings.append(f"{error.reason_code.value}: optional dividends unavailable for {symbol}.")
 
-            if profile and profile.cik:
+            if not rate_limited and profile and profile.cik:
                 try:
                     filings = tuple(self.providers.filings_for_cik(profile.cik))[:10]
                 except MarketBriefCompositionError as error:
-                    evidence_availability.append(EvidenceAvailability(
-                        symbol=symbol, evidence_category=EvidenceCategory.FILINGS,
-                        reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
-                    ))
-                    optional_warnings.append(f"{error.reason_code.value}: optional SEC filings unavailable for {symbol}.")
+                    if error.reason_code is MarketBriefReasonCode.PROVIDER_RATE_LIMITED:
+                        rate_limited = True
+                    else:
+                        evidence_availability.append(EvidenceAvailability(
+                            symbol=symbol, evidence_category=EvidenceCategory.FILINGS,
+                            reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
+                        ))
+                        optional_warnings.append(f"{error.reason_code.value}: optional SEC filings unavailable for {symbol}.")
 
             holding_evidence.append(self._rank_evidence(
                 symbol=symbol,
@@ -611,6 +657,10 @@ class TrustedMarketBriefComposer:
                 now=now,
             ))
 
+        if rate_limited:
+            optional_warnings.append(
+                f"{MarketBriefReasonCode.PROVIDER_RATE_LIMITED.value}: optional market data unavailable for the remaining holdings; wait briefly and retry."
+            )
         sec_warning = "SEC filings omitted: no authoritative holding-to-CIK mapping." if not resolved_ciks else None
         composition_warnings = tuple(
             (item for item in (sec_warning, *optional_warnings) if item)

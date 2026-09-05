@@ -1013,6 +1013,11 @@ export default function MarketIntelligenceCenter() {
   const [pulseStatus, setPulseStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const [pulseError, setPulseError] = useState<MarketBriefErrorState | null>(null)
   const detailRequest = useRef(0)
+  // One-shot auto-load: on first mount we open the newest saved brief when
+  // one exists (cache hit — zero provider calls) and only auto-generate when
+  // the archive is genuinely empty. Manual Generate stays available as the
+  // explicit refresh path.
+  const autoLoadedRef = useRef(false)
   const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>({
     portfolio: null,
     pulse: null,
@@ -1110,6 +1115,19 @@ export default function MarketIntelligenceCenter() {
       setGenerating(false)
     }
   }, [selectTab])
+
+  // Auto-load on first mount: open the newest saved brief when one exists
+  // (cache hit — zero provider calls); only auto-generate when the archive is
+  // genuinely empty. Manual Generate stays available as the refresh path.
+  useEffect(() => {
+    if (autoLoadedRef.current || archiveStatus !== 'ready') return
+    autoLoadedRef.current = true
+    if (items.length > 0) {
+      void open(items[0].brief_id)
+    } else if (!archiveError) {
+      void generate()
+    }
+  }, [archiveStatus, items, archiveError, open, generate])
 
   const loadPulse = useCallback(async () => {
     if (pulseStatus === 'loading') return

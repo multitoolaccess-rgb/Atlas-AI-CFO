@@ -31,7 +31,13 @@ vi.mock('@/lib/marketBriefs', () => ({
 }))
 
 afterEach(() => {
-  vi.clearAllMocks()
+  // Reset implementations (not just calls): the component now auto-loads on
+  // mount, so a mockResolvedValue set by an earlier test would otherwise leak
+  // into the next test's auto-open/auto-generate path.
+  vi.mocked(listMarketBriefs).mockReset().mockResolvedValue([])
+  vi.mocked(getMarketBrief).mockReset()
+  vi.mocked(generateMarketBrief).mockReset()
+  vi.mocked(fetchMarketPulse).mockReset()
   vi.mocked(useSearchParams).mockImplementation(() => new URLSearchParams() as any)
   vi.mocked(useRouter).mockImplementation(() => ({ replace: vi.fn(), push: vi.fn(), prefetch: vi.fn() }) as any)
 })
@@ -95,11 +101,13 @@ function tab(name: string | RegExp) {
 }
 
 test('renders an accessible command center with the portfolio empty state and generate action', async () => {
+  // Empty archive: the component auto-attempts generation once on mount, so
+  // a clean rejection keeps the empty state visible with a retryable error.
+  vi.mocked(generateMarketBrief).mockRejectedValue({ response: { status: 503, data: { reason_code: 'provider_configuration_missing' } } })
   render(<MarketIntelligenceCenter />)
   expect(screen.getByRole('heading', { name: /market intelligence/i })).toBeInTheDocument()
   expect(await screen.findByText(/generate your first portfolio brief/i)).toBeInTheDocument()
-  expect(screen.getByText('Provider not checked')).toBeInTheDocument()
-  expect(screen.getByText('Generate a brief to verify current portfolio coverage and market-data availability.')).toBeInTheDocument()
+  expect(screen.getByText('Provider unavailable')).toBeInTheDocument()
   expect(screen.getAllByRole('button', { name: /generate brief/i }).length).toBeGreaterThanOrEqual(1)
   for (const label of ['My Portfolio', 'Market Pulse', 'Earnings & Events', 'S&P 500 Scanner', 'Archive']) {
     expect(screen.getByRole('tab', { name: label })).toBeInTheDocument()
@@ -227,25 +235,35 @@ test('clears a prior brief when a later selection fails', async () => {
     { brief_id: 'one', report_window: 'one', generated_at: '2026-08-11T12:00:00Z' },
     { brief_id: 'two', report_window: 'two', generated_at: '2026-08-11T12:00:00Z' },
   ])
-  vi.mocked(getMarketBrief).mockResolvedValueOnce({ generated_at: 'one', sections: [], warnings: [] }).mockRejectedValueOnce(new Error('nope'))
+  // The auto-load opens items[0] ('one') on mount, consuming the first
+  // resolution; key the mock on the id so both the auto-open and the manual
+  // re-selection resolve, and only 'two' fails.
+  vi.mocked(getMarketBrief).mockImplementation(id => id === 'one' ? Promise.resolve({ generated_at: 'one', sections: [], warnings: [] } as any) : Promise.reject(new Error('nope')))
   render(<MarketIntelligenceCenter />)
-  fireEvent.click(tab(/archive/i))
-  fireEvent.click(await screen.findByRole('button', { name: /brief for one/i }))
   expect(await screen.findByText(/loaded market brief from one/i)).toBeInTheDocument()
-  fireEvent.click(screen.getByRole('button', { name: /brief for two/i }))
+  fireEvent.click(tab(/archive/i))
+  fireEvent.click(await screen.findByRole('button', { name: /brief for two/i }))
   expect(screen.queryByText(/loaded market brief from one/i)).not.toBeInTheDocument()
   expect(await screen.findByText(/provider could not be reached/i)).toBeInTheDocument()
 })
 
 test('ignores a stale detail response after a newer selection', async () => {
+  let autoResolve!: (value: any) => void
   let firstResolve!: (value: any) => void
   let secondResolve!: (value: any) => void
   vi.mocked(listMarketBriefs).mockResolvedValue([
     { brief_id: 'one', report_window: 'one', generated_at: '2026-08-11T12:00:00Z' },
     { brief_id: 'two', report_window: 'two', generated_at: '2026-08-11T12:00:00Z' },
   ])
-  vi.mocked(getMarketBrief).mockImplementationOnce(() => new Promise(resolve => { firstResolve = resolve })).mockImplementationOnce(() => new Promise(resolve => { secondResolve = resolve }))
+  // Auto-load opens items[0] ('one') on mount and consumes the first mock;
+  // the two manual selections then map to the two pending promises.
+  vi.mocked(getMarketBrief)
+    .mockImplementationOnce(() => new Promise(resolve => { autoResolve = resolve }))
+    .mockImplementationOnce(() => new Promise(resolve => { firstResolve = resolve }))
+    .mockImplementationOnce(() => new Promise(resolve => { secondResolve = resolve }))
   render(<MarketIntelligenceCenter />)
+  await waitFor(() => expect(autoResolve).toBeTypeOf('function'))
+  autoResolve({ generated_at: 'auto', sections: [], warnings: [] })
   fireEvent.click(tab(/archive/i))
   fireEvent.click(await screen.findByRole('button', { name: /brief for one/i }))
   await waitFor(() => expect(firstResolve).toBeTypeOf('function'))
@@ -342,4 +360,24 @@ test('pulse refresh refetches the server-owned snapshot', async () => {
   fireEvent.click(screen.getByRole('button', { name: /refresh pulse/i }))
   expect(fetchMarketPulse).toHaveBeenCalledTimes(2)
   await screen.findByText(/markets rally on earnings/i)
+})
+
+test('auto-opens the newest cached brief on mount without calling generate', async () => {
+  vi.mocked(listMarketBriefs).mockResolvedValue([
+    { brief_id: 'cached-latest', report_window: 'latest', generated_at: '2026-09-01T12:00:00Z' },
+  ])
+  vi.mocked(getMarketBrief).mockResolvedValue({ generated_at: 'cached-latest', sections: [], warnings: [] } as any)
+  render(<MarketIntelligenceCenter />)
+  // The cached brief is opened automatically — zero provider calls.
+  expect(await screen.findByText(/loaded market brief from cached-latest/i)).toBeInTheDocument()
+  expect(getMarketBrief).toHaveBeenCalledWith('cached-latest')
+  expect(generateMarketBrief).not.toHaveBeenCalled()
+})
+
+test('auto-generates once when the archive is empty, and only once', async () => {
+  vi.mocked(listMarketBriefs).mockResolvedValue([])
+  vi.mocked(generateMarketBrief).mockResolvedValue({ brief_id: 'auto-generated', replayed: false, brief } as any)
+  render(<MarketIntelligenceCenter />)
+  expect(await screen.findByText(/generated and added/i)).toBeInTheDocument()
+  expect(generateMarketBrief).toHaveBeenCalledTimes(1)
 })

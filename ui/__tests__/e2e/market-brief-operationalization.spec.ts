@@ -30,16 +30,24 @@ const brief = {
   actions: [{ action: 'Review AAPL', why: 'Deterministic review only.', goal_linkage: 'No goal linkage is inferred.', evidence: ['AAPL'], expected_impact: 'No execution or return is implied.', risks: ['Market data may be incomplete.'], alternatives: ['Do nothing.'], confidence: 'low', approval_requirement: 'explicit_user_approval_required' }],
 }
 
-async function installBriefRoutes(page: import('@playwright/test').Page, unavailable = false, fixture = brief) {
-  let briefs: Array<{ brief_id: string; report_window: string; generated_at: string }> = []
+async function installBriefRoutes(page: import('@playwright/test').Page, unavailable = false, fixture = brief, initialBriefs: Array<{ brief_id: string; report_window: string; generated_at: string }> = []) {
+  const state = { generated: 0 }
+  let briefs = [...initialBriefs]
   await page.route('**/api/v1/market-briefs', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ briefs }) }))
+  await page.route('**/api/v1/market-briefs/*', route => {
+    const id = route.request().url().split('/').pop()
+    if (!id || id === 'generate') return route.fulfill({ status: 404, contentType: 'application/json', body: '{}' })
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ brief: fixture, brief_id: id }) })
+  })
   await page.route('**/api/v1/market-briefs/generate', route => {
+    state.generated += 1
     if (unavailable) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ code: 'market_brief_generation_unavailable', reason_code: 'provider_configuration_missing' }) })
     expect(route.request().postDataJSON()).toEqual({ report_window: 'latest' })
     briefs = [{ brief_id: 'brief-1', report_window: 'latest', generated_at: fixture.generated_at }]
     return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ brief_id: 'brief-1', replayed: false, brief: fixture }) })
   })
   await page.route('**/api/profile/**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 1, email: 'synthetic@example.test', full_name: 'Synthetic User' }) }))
+  return state
 }
 
 async function authenticateSyntheticBrowser(page: import('@playwright/test').Page, request: import('@playwright/test').APIRequestContext) {
@@ -52,9 +60,9 @@ async function authenticateSyntheticBrowser(page: import('@playwright/test').Pag
   await page.addInitScript((value) => window.localStorage.setItem('fc_session_token', value), token)
 }
 
-test('Market Intelligence is discoverable and generates a synthetic archived detail', async ({ page, request }) => {
+test('Market Intelligence auto-generates on first visit and renders the synthetic archived detail', async ({ page, request }) => {
   await authenticateSyntheticBrowser(page, request)
-  await installBriefRoutes(page)
+  const state = await installBriefRoutes(page)
   // The legacy URL remains a bookmark-compatible redirect; Market Intelligence
   // is the single authoritative destination and no Market Briefs nav link is
   // reintroduced.
@@ -62,9 +70,13 @@ test('Market Intelligence is discoverable and generates a synthetic archived det
   await expect(page).toHaveURL(/\/market-intelligence$/)
   await expect(page.getByRole('link', { name: /market briefs/i })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: /market intelligence/i })).toBeVisible()
-  await expect(page.getByText(/generate your first portfolio brief/i)).toBeVisible()
+  // Empty archive: the brief is generated automatically once on first visit.
+  await expect(page.getByText(/generated and added to the archive/i)).toBeVisible()
+  expect(state.generated).toBe(1)
+  // Manual Generate remains the explicit refresh path.
   await page.getByRole('button', { name: /^generate brief$/i }).click()
   await expect(page.getByText(/generated and added to the archive/i)).toBeVisible()
+  expect(state.generated).toBe(2)
   await expect(page.getByText('AAPL: 10')).toBeVisible()
   await expect(page.getByText(/upcoming: AAPL earnings/i)).toBeVisible()
   await expect(page.getByRole('link', { name: /synthetic source/i }).first()).toHaveAttribute('href', 'https://source.test/quote')
@@ -130,4 +142,14 @@ test('Market Briefs explains fail-closed generation unavailability', async ({ pa
   await page.goto('/market-briefs')
   await page.getByRole('button', { name: /^generate brief$/i }).click()
   await expect(page.getByText(/ask the local operator to configure the provider/i)).toBeVisible()
+})
+
+test('return visits reopen the cached brief without regenerating', async ({ page, request }) => {
+  await authenticateSyntheticBrowser(page, request)
+  const state = await installBriefRoutes(page, false, brief, [{ brief_id: 'brief-1', report_window: 'latest', generated_at: brief.generated_at }])
+  await page.goto('/market-briefs')
+  // The cached brief is fetched and opened on mount — zero provider calls.
+  await expect(page.getByText('AAPL: 10')).toBeVisible()
+  await expect(page.getByText(/upcoming: AAPL earnings/i)).toBeVisible()
+  expect(state.generated).toBe(0)
 })

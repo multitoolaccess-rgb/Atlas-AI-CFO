@@ -266,8 +266,16 @@ def test_enabled_generation_uses_only_owner_holdings_and_cites_in_window_earning
     changes = next(section for section in brief["sections"] if section["name"] == "portfolio_changes")
     assert changes["content"] == ["AAPL: 50"]
     earnings = next(section for section in brief["sections"] if section["name"] == "earnings")
-    assert earnings["content"] == ["recent result: AAPL period 2026-08-10", "upcoming: AAPL earnings on 2026-08-11"]
-    assert {citation["source_url"] for citation in earnings["citations"]} == {"https://earnings.test/aapl", "https://earnings.test/result"}
+    # The collection window keeps the trailing four reported quarters and the
+    # upcoming quarter; the older July result and September event are retained
+    # (a 14-day window would have silently discarded both).
+    assert earnings["content"] == [
+        "recent result: AAPL period 2026-07-26",
+        "recent result: AAPL period 2026-08-10",
+        "upcoming: AAPL earnings on 2026-08-11",
+        "upcoming: AAPL earnings on 2026-09-10",
+    ]
+    assert {citation["source_url"] for citation in earnings["citations"]} == {"https://earnings.test/aapl", "https://earnings.test/result", "https://earnings.test/old-result"}
     assert "SEC filings omitted: no authoritative holding-to-CIK mapping." in brief["warnings"]
     quality = next(section for section in brief["sections"] if section["name"] == "data_quality")
     assert "SEC filings omitted: no authoritative holding-to-CIK mapping." in quality["content"]
@@ -333,6 +341,57 @@ def test_unsupported_symbol_generation_error_lists_omitted_symbols(client, db_se
     payload = response.json()
     assert payload["reason_code"] == "unsupported_symbol"
     assert set(payload["omitted_symbols"]) == {"NON40OJJ2", "NON40OXLT"}
+
+
+def test_rate_limited_optional_data_stops_collection_and_aggregates_warning(client, db_session, make_account, monkeypatch) -> None:
+    """Once an optional provider call is rate limited, composition fails fast:
+    no further optional calls are attempted and exactly ONE aggregated warning
+    is emitted instead of a per-holding/per-category flood.
+    """
+    from app.config import settings
+    from app.market_intelligence.composition import MarketBriefCompositionError, TrustedMarketBriefComposer
+    from app.market_intelligence.contracts import MarketBriefReasonCode, MarketQuoteSnapshot
+    from app.models import Account, Holding
+    from app.routes.market_briefs import configure_market_brief_composer
+
+    owner_account = make_account(account_name="Owner", account_type="brokerage")
+    owner_account.is_active = True
+    db_session.add(owner_account)
+    db_session.flush()
+    db_session.add_all((
+        Holding(account_id=owner_account.id, symbol="AAPL", quantity=1, current_value=100, type="Stock"),
+        Holding(account_id=owner_account.id, symbol="MSFT", quantity=1, current_value=100, type="Stock"),
+    ))
+    db_session.commit()
+
+    class _RateLimitedProviders(_RecordingMarketProviders):
+        def quote(self, symbol: str):
+            self.calls.append(("quote", symbol))
+            return MarketQuoteSnapshot(symbol=symbol, currency="USD", current_price="110", previous_close="100", source=self.quote_source)
+
+        def news(self, symbol: str):
+            self.calls.append(("news", symbol))
+            raise MarketBriefCompositionError("rate limited", MarketBriefReasonCode.PROVIDER_RATE_LIMITED)
+
+    providers = _RateLimitedProviders()
+    configure_market_brief_composer(TrustedMarketBriefComposer(providers, now=lambda: NOW))
+    monkeypatch.setattr(settings, "atlas_market_brief_generation_enabled", True)
+    monkeypatch.setattr(settings, "atlas_market_brief_external_provider_enabled", True)
+    try:
+        response = client.post("/api/v1/market-briefs/generate", json={"report_window": "latest"})
+    finally:
+        configure_market_brief_composer(None)
+    assert response.status_code == 201
+    brief = response.json()["brief"]
+    rate_warnings = [warning for warning in brief["warnings"] if "provider_rate_limited" in warning]
+    assert len(rate_warnings) == 1
+    assert "remaining holdings" in rate_warnings[0]
+    # The first rate limit (AAPL news) stops ALL further optional collection:
+    # no AAPL earnings/profile calls and no MSFT optional calls at all.
+    assert ("news", "MSFT") not in providers.calls
+    assert ("earnings_events", "AAPL") not in providers.calls
+    assert ("profile", "AAPL") not in providers.calls
+    assert ("earnings_events", "MSFT") not in providers.calls
 
 
 def test_repository_idempotency_is_owner_scoped_and_never_mutates(db_session) -> None:

@@ -37,6 +37,15 @@ class _Adapter:
         self._paid_endpoints = paid_endpoints or set()
         self._pacer = SlidingWindowPacer(calls_per_minute, clock=clock)
         self._second_pacer = PerSecondPacer(calls_per_second, clock=clock) if calls_per_second else None
+        self._clock = clock or time.monotonic
+        # Provider-wide rate-limit cooldown: once the pacer ceiling is reached
+        # or the upstream returns 429, every further call within the cooldown
+        # window is rejected locally (no network, no quota burn) so repeated
+        # brief generations cannot re-flood the provider or the limitations
+        # panel. A 429 means the provider's own window is exhausted; the
+        # standard reset is one minute.
+        self._rate_limited_until: float | None = None
+        self._rate_limit_cooldown_seconds = 60
         self.cache: BoundedCache[Any] = BoundedCache(max_entries=128)
         self.usage = UsageLedger(now=self._now)
 
@@ -53,6 +62,8 @@ class _Adapter:
 
     def _request(self, endpoint: EndpointClass, url: str, *, params: dict[str, str] | None = None,
                  headers: dict[str, str] | None = None) -> tuple[dict[str, Any] | list[Any] | None, ProviderResult[Any] | None]:
+        if self._rate_limited_until is not None and self._clock() < self._rate_limited_until:
+            return None, self._failure(endpoint, FailureClass.RATE_LIMITED, "Provider rate limit cooldown active.")
         # Two retries, only transport/5xx; clients are closed every call and
         # timeout is deliberately short so a briefing cannot hang indefinitely.
         for attempt in range(3):
@@ -62,6 +73,7 @@ class _Adapter:
                     self._second_pacer.acquire()
                 self._pacer.acquire()
             except RateLimitExceeded:
+                self._rate_limited_until = self._clock() + self._rate_limit_cooldown_seconds
                 return None, self._failure(endpoint, FailureClass.RATE_LIMITED, "Provider pacing ceiling reached.")
             try:
                 with httpx.Client(transport=self._transport, timeout=httpx.Timeout(3.0, connect=1.0)) as client:
@@ -79,6 +91,7 @@ class _Adapter:
             if response.status_code == 404:
                 return None, self._failure(endpoint, FailureClass.NOT_FOUND, "Provider record was not found.")
             if response.status_code == 429:
+                self._rate_limited_until = self._clock() + self._rate_limit_cooldown_seconds
                 return None, self._failure(endpoint, FailureClass.RATE_LIMITED, "Provider rate limited the request.", retryable=True)
             if response.status_code in {401, 403}:
                 return None, self._failure(endpoint, FailureClass.AUTHENTICATION_FAILED, "Provider authentication failed.")
@@ -208,7 +221,14 @@ class FinnhubAdapter(_Adapter):
         if cached is not None:
             self.usage.record(self.provider, endpoint, cache_hit=True)
             return ProviderResult(value=cached, cache_hit=True)
-        payload, failure = self._request(endpoint, f"{self.BASE_URL}/calendar/earnings", params={"symbol": symbol, "token": self._api_key})
+        # The provider's calendar returns events only when bounded by an
+        # explicit from/to range; without it the free tier returns an empty
+        # payload even when earnings are scheduled. Bound the request to the
+        # trailing fortnight and the upcoming quarter (mirroring the composer
+        # window) so scheduled events are actually returned.
+        _from = (self._now() - timedelta(days=14)).date().isoformat()
+        _to = (self._now() + timedelta(days=90)).date().isoformat()
+        payload, failure = self._request(endpoint, f"{self.BASE_URL}/calendar/earnings", params={"symbol": symbol, "from": _from, "to": _to, "token": self._api_key})
         if failure:
             return failure
         try:

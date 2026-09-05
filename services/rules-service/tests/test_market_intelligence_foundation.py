@@ -163,6 +163,28 @@ def test_finnhub_never_exceeds_48_actual_calls_per_minute() -> None:
     assert result.failure and result.failure.failure_class == "rate_limited"
 
 
+def test_finnhub_rate_limit_429_triggers_cooldown_without_rehitting_network() -> None:
+    calls: dict[str, int] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        calls[path] = calls.get(path, 0) + 1
+        return httpx.Response(429, json={"error": "Too Many Requests"})
+
+    adapter = FinnhubAdapter(
+        api_key="synthetic-key", enabled=True,
+        transport=httpx.MockTransport(handler), now=lambda: NOW,
+        clock=lambda: 100.0,
+    )
+    first = adapter.company_news("AAPL", from_date="2026-08-01", to_date="2026-08-10")
+    assert first.failure and first.failure.failure_class == "rate_limited"
+    # The 429 armed the cooldown; the next call must fail locally without
+    # any network attempt (same frozen clock keeps the cooldown active).
+    second = adapter.earnings_calendar("AAPL")
+    assert second.failure and second.failure.failure_class == "rate_limited"
+    assert sum(calls.values()) == 1
+
+
 def test_finnhub_normalized_records_are_deduplicated_and_cached() -> None:
     calls: dict[str, int] = {}
 
@@ -195,6 +217,27 @@ def test_finnhub_normalized_records_are_deduplicated_and_cached() -> None:
     assert adapter.earnings_calendar("AAPL").cache_hit
     assert adapter.earnings_surprises("AAPL").cache_hit
     assert all(count == 1 for count in calls.values())
+
+
+def test_finnhub_earnings_calendar_sends_bounded_from_to_dates() -> None:
+    """The earnings calendar is requested with an explicit from/to window.
+
+    Without these bounds the free tier returns an empty payload even when
+    earnings are scheduled, so scheduled events never reach the brief.
+    """
+    captured: dict[str, str | None] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["from"] = request.url.params.get("from")
+        captured["to"] = request.url.params.get("to")
+        return httpx.Response(200, json={"earningsCalendar": [{"symbol": "AAPL", "date": "2026-09-05"}]})
+
+    adapter = FinnhubAdapter(api_key="synthetic-key", enabled=True, transport=httpx.MockTransport(handler), now=lambda: NOW)
+    result = adapter.earnings_calendar("AAPL")
+    assert result.value is not None
+    # NOW is 2026-08-10 → window is 2026-07-27 .. 2026-11-08.
+    assert captured["from"] == "2026-07-27"
+    assert captured["to"] == "2026-11-08"
 
 
 def test_finnhub_company_profile_resolves_bounded_company_metadata() -> None:
