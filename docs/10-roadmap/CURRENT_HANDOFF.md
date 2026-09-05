@@ -9,7 +9,7 @@
 - Overall status: in_progress
 - Objective: Preserve the now-committed UI-10 provider-backed Scout expansion and the certified UI-09/UI-11 boundaries, and remediate the UI-12 /portfolio responsive and certification blockers before the final trust-certification rerun.
 - Phase exit criteria: 1/2 complete
-- Tracker updated: 2026-09-04T07:00:00Z
+- Tracker updated: 2026-09-04T12:00:00Z
 
 ## Active work
 
@@ -40,11 +40,11 @@
 
 ## Recently completed
 
-- work-ui-11-risk-scenario-boundary: UI-11 bounded current-only risk/scenario presentation — commit b9ecce0, PR not recorded
 - work-ui-12-cross-route-trust-certification: Audit UI-12 cross-route trust and certification readiness — commit null, PR not recorded
 - work-ui-12-coordinated-certification-evidence: Run coordinated UI-12 trust certification evidence — commit ad6bfb8, PR not recorded
 - work-ui-10-provider-backed-scout-expansion: Implement and commit bounded provider-backed UI-10 Scout expansion — commit 84259ee, PR not recorded
 - work-inv-12-foundation-durable-stores: Land INV-12 durable stores and frozen contracts — commit a8a6016, PR not recorded
+- work-inv-12-evaluation-engine-and-read-api: Wire INV-12 evaluation engine, replay, and read API — commit f782ffd, PR not recorded
 
 ## Next bounded task
 

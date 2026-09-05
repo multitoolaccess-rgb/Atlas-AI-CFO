@@ -1627,7 +1627,7 @@
       "commit": "a8a6016",
       "id": "work-inv-12-foundation-durable-stores",
       "issue": "",
-      "objective": "Land the approved INV-12 design-gate foundation: one shared holding-to-security identity resolver adopted by portfolio_intelligence and risk_scenarios (GAP-09, D-2), frozen observation/evaluation contracts as code, and three additive immutable stores (market observations, portfolio snapshots, evaluation records) with append-only triggers and hash constraints. Evaluation/replay engine wiring and the owner-scoped read API remain pending (engine pending).",
+      "objective": "Land the approved INV-12 design-gate foundation: one shared holding-to-security identity resolver adopted by portfolio_intelligence and risk_scenarios (GAP-09, D-2), frozen observation/evaluation contracts as code, and three additive immutable stores (market observations, portfolio snapshots, evaluation records) with append-only triggers and hash constraints. The evaluation/replay engine and the owner-scoped read API landed in the subsequent engine/API tranche (work-inv-12-evaluation-engine-and-read-api).",
       "paths": [
         "services/rules-service/app/investments/holding_identity.py",
         "services/rules-service/app/investments/portfolio_intelligence.py",
@@ -1658,14 +1658,51 @@
         "commit": "a8a6016",
         "environment": "Python 3.12 isolated Rules Service environment; disposable SQLite test database; no provider call or production migration access",
         "kind": "local",
-        "result": "passed; three immutable stores landed under single head AE19a1b2c3d4e5; identity divergence removed; evaluation engine and read API pending",
+        "result": "passed; three immutable stores landed under single head AE19a1b2c3d4e5; identity divergence removed; engine and read API landed in the follow-on tranche",
         "timestamp": "2026-09-04T07:00:00Z"
+      }
+    },
+    {
+      "branch": "",
+      "commit": "f782ffd",
+      "id": "work-inv-12-evaluation-engine-and-read-api",
+      "issue": "",
+      "objective": "Implement the approved design-gate steps 6-8 over the landed durable stores: an internal evaluation service that reuses evaluate_outcome() unchanged (observations projected from the durable store), measured values frozen only through record_outcome(), typed blocked artifacts (missing snapshot never re-derived from current holdings; currency/adjustment-basis mismatch is not_comparable, never converted), deterministic read-only replay C+D+E with hash verification, and the owner-scoped /evaluations read API (list/detail/replay) with the internal write boundary. Live provider-ingestion and recommendation-persist store-write hooks remain unwired by design; the engine is proven via the service vertical slice until those flows exist.",
+      "paths": [
+        "services/rules-service/app/investments/evaluation_service.py",
+        "services/rules-service/app/investments/evaluation_contracts.py",
+        "services/rules-service/app/routes/investment_evaluations.py",
+        "services/rules-service/app/routes/__init__.py",
+        "services/rules-service/app/main.py",
+        "services/rules-service/app/investment_schemas.py",
+        "services/rules-service/tests/conftest.py",
+        "services/rules-service/tests/test_investment_evaluation.py",
+        "services/rules-service/tests/test_investment_evaluation_http.py"
+      ],
+      "phase_id": "inv-12",
+      "pr": null,
+      "review_evidence": "User directed autonomous implementation of the approved design-gate steps 6-8 (no open architectural decisions); staged review covered exactly the 9 INV-12-owned files with git diff --cached --check clean",
+      "risk_tier": "high",
+      "status": "complete",
+      "tests": [
+        "15 new INV-12 engine/HTTP tests passed (vertical slice store-to-replay, idempotency/conflict, blocked missing-snapshot/missing-observation/window-not-closed, currency and basis not_comparable, zero-price unavailable, vintage restatement, tamper hash-mismatch, decision linkage, owner isolation)",
+        "Broad investment regression: 119 passed (outcome tracking, persistence final/http/boundary, scout, UI-11 risk, committee, recommendations, evaluation + scout + outcome migrations)",
+        "Alembic single head AE19a1b2c3d4e5 maintained; Python compileall and git diff --check clean"
+      ],
+      "title": "Wire INV-12 evaluation engine, replay, and read API",
+      "validation_evidence": {
+        "command": "pytest tests/test_investment_evaluation.py tests/test_investment_evaluation_http.py + investment outcome/persistence/scout/ui11/committee/recommendation/harden/migration regression suites; alembic heads; compileall; git diff --check",
+        "commit": "f782ffd",
+        "environment": "Python 3.12 isolated Rules Service environment; temp-file SQLite test DB; no provider or production migration access",
+        "kind": "local",
+        "result": "passed; 15 new engine/read-API tests plus 119 investment regression tests green; single alembic head AE19a1b2c3d4e5 maintained",
+        "timestamp": "2026-09-04T12:00:00Z"
       }
     }
   ],
   "current_objective": "Preserve the now-committed UI-10 provider-backed Scout expansion and the certified UI-09/UI-11 boundaries, and remediate the UI-12 /portfolio responsive and certification blockers before the final trust-certification rerun.",
   "current_phase_id": "ui-12",
-  "last_updated": "2026-09-04T07:00:00Z",
+  "last_updated": "2026-09-04T12:00:00Z",
   "next_bounded_task": {
     "description": "Remediate the /portfolio 390px overflow and separate its mutation controls from the UI-12 read-only certification boundary; then rerun the consolidated UI-12 matrix. Current UI-12 evidence remains PARTIAL: ten-route read-only matrix passes, while populated owner-data proof, CPU interaction measurement, INV-12 policy, optional CIO archive decision, and multi-user retention/deletion policy remain open.",
     "id": "work-ui-12-portfolio-remediation-and-certification",

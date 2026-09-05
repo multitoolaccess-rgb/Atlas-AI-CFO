@@ -5,7 +5,7 @@
 - Current phase: **ui-12 — Cross-route trust certification** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Preserve the now-committed UI-10 provider-backed Scout expansion and the certified UI-09/UI-11 boundaries, and remediate the UI-12 /portfolio responsive and certification blockers before the final trust-certification rerun.
-- Last updated: 2026-09-04T07:00:00Z
+- Last updated: 2026-09-04T12:00:00Z
 
 ## Active work
 - work-ui-12-portfolio-remediation-and-certification: Remediate UI-12 responsive and certification blockers (in_progress, medium)
@@ -70,11 +70,11 @@
 - risk-ui11-current-only-scope [medium/high, open]: UI-11 is intentionally limited to a current-only portfolio baseline, descriptive compatible value/exposure metrics, and an on-demand hypothetical value preview; historical reconstruction and advanced aggregate risk methods are unavailable.
 
 ## Recently completed work
-- work-ui-11-risk-scenario-boundary: UI-11 bounded current-only risk/scenario presentation — commit b9ecce0, PR n/a
 - work-ui-12-cross-route-trust-certification: Audit UI-12 cross-route trust and certification readiness — commit null, PR None
 - work-ui-12-coordinated-certification-evidence: Run coordinated UI-12 trust certification evidence — commit ad6bfb8, PR None
 - work-ui-10-provider-backed-scout-expansion: Implement and commit bounded provider-backed UI-10 Scout expansion — commit 84259ee, PR None
 - work-inv-12-foundation-durable-stores: Land INV-12 durable stores and frozen contracts — commit a8a6016, PR None
+- work-inv-12-evaluation-engine-and-read-api: Wire INV-12 evaluation engine, replay, and read API — commit f782ffd, PR None
 
 ## Evidence
 - c0f5287: Atlas baseline initialization from the validated Finance Copilot foundation

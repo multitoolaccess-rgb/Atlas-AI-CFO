@@ -519,3 +519,41 @@ One owner + one security with a resolved identity under D-2 → provider fixture
 ---
 
 *End of INV-12 design gate. Design only: no production code, migrations, API implementation, UI changes, commit, or push were made.*
+
+---
+
+## 27. Implementation Record (2026-09-04) — post-gate status
+
+### 27a. Landed (committed, design §21a steps 1–8)
+
+| §21a step | Status | Commit / evidence |
+|---|---|---|
+| 0–1. D-1/D-2/D-3/D-7/D-8(position)/D-9 approvals; GAP-09 scheduled | APPROVED | Executive Verdict table (2026-09-04) |
+| 2. GAP-09 shared identity resolver (D-2) | Landed | `a8a6016` — `holding_identity.py` consumed by `portfolio_intelligence` (CANONICAL) and `risk_scenarios` (MASTER_VERIFIED_ONLY); byte-identical outputs per surface |
+| 3–5. Three additive immutable stores + contracts | Landed | `a8a6016` — observation/snapshot/evaluation stores under single head `AE19a1b2c3d4e5`; 19 migration tests |
+| 6. Persistence/service writers + engine reusing `evaluate_outcome()` | Landed | `f782ffd` — `EvaluationService` (`store_observation`, `store_portfolio_snapshot`, `evaluate`, replay); projections of the durable store into the `outcome_tracking` shape; values frozen only via `record_outcome()` |
+| 7. Internal boundary + owner-scoped read API | Landed | `f782ffd` — `GET /api/v1/investments/evaluations`, `/{evaluation_id}`, `/{evaluation_id}/replay` (auth, non-enumerating 404, typed envelopes, no write routes) |
+| 8. Deterministic/temporal/provenance/security tests + vertical slice | Landed | `f782ffd` — 15 new tests; vertical slice (§21b) proves store→outcome→artifact→replay-match; broad regression 119 passed |
+
+**Two recorded implementation deviations (both fail closed; neither changes a certified INV-08/09/11 contract):**
+
+1. **SQLite datetime normalization before `record_outcome()`.** SQLite strips tzinfo when persisting `DateTime(timezone=True)`, so the certified persistence service's aware-vs-naive `evaluation_as_of >= recommendation_as_of` comparison would trip under the repo's SQLite test DB. `evaluation_service.evaluate()` converts the identity-mapped recommendation row's stored instant back to aware UTC immediately before delegating. On PostgreSQL (the production dialect) this is a no-op. No certified code changed.
+2. **Temporal violation is a typed service error, not a persisted artifact.** An evaluation whose `evaluation_as_of` precedes the baseline cannot be recorded honestly as an artifact without violating the immutable DB CHECK `evaluation_as_of >= evaluation_window_start` (blocked artifacts carry their typed reason only in `payload_json`, not as a column). The evaluator therefore raises `EvaluationServiceError('temporal_violation')` and persists nothing — fail closed with a typed reason (design §18) rather than fabricate a row. `EvaluationResultState.TEMPORAL_VIOLATION` remains part of the contract vocabulary for future use.
+
+**Integration-hook note (by design, not a defect):** the store writers exist but no *live* flow calls them yet — no route persists recommendations today, so the recommendation-persist snapshot-write hook and provider-adapter observation ingestion will be wired when those flows materialize. The engine is proven end-to-end via the service vertical slice (§21b) and the read API serves persisted artifacts.
+
+### 27b. Remaining gates
+
+**INV-12 implementation-complete (§23)** — the code-level work above is done; what remains is evidence + documentation: certification evidence recording (this doc + tracker), and the live integration hooks noted in §27a.
+
+**INV-12 production/multi-user ready (§23)** — NOT reachable without approvals:
+- D-8 retention/deletion policy (PRODUCT/SECURITY decision required) + the retention slice; architecture position approved (no auto-deletion; future deletion = policy-designed soft-tombstone).
+- Multi-user deletion/orphan semantics (GAP-16/GAP-18) and a populated multi-owner data proof.
+
+**Explicitly deferred (D-3/D-7/D-9/D-10):** replay A+B (until real vintaged observation history exists), calibration, CIO archive, methodology registry (until a second methodology), scheduler/background evaluation, and any UI surface for evaluations.
+
+### 27c. Tracker
+
+- `work-inv-12-foundation-durable-stores` — complete, `a8a6016`.
+- `work-inv-12-evaluation-engine-and-read-api` — complete, `f782ffd`.
+- Phase `inv-12`: `in_progress`; exit criterion `ec-inv-12-boundary` (evaluation/calibration/replay and retention boundary implemented and certified) remains open until §27b implementation-complete evidence is recorded and the retention/calibration boundaries are closed by the approvals above.
