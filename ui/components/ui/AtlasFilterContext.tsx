@@ -71,7 +71,10 @@ export interface AtlasFilterState {
   setSelectedCategoryId: (id: number | null) => void
 }
 
-const AtlasFilterContext = createContext<AtlasFilterState | null>(null)
+/** Export the raw context so components can opt into a no-op fallback
+ *  (e.g. charts rendered standalone in tests) instead of the throwing
+ *  useAtlasFilters hook. */
+export const AtlasFilterContext = createContext<AtlasFilterState | null>(null)
 
 export function AtlasFilterProvider({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams()

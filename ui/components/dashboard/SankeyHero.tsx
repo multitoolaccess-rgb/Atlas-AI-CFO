@@ -1,12 +1,21 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useContext } from 'react'
 import { GitBranch } from 'lucide-react'
 import SankeyFlow from '@/components/charts/SankeyFlow'
 import CountUp from '@/components/ui/CountUp'
+import TimeRangeSelector from '@/components/ui/TimeRangeSelector'
+import { AtlasFilterContext, type AtlasFilterState } from '@/components/ui/AtlasFilterContext'
 import type { DashboardFlowsResponse, CashflowRole } from '@/lib/api'
 import { ROLE_COLORS, ROLE_LABELS } from '@/lib/api'
 import { DashboardFocusLayer, DashboardFocusToggle, useDashboardFocus } from '@/components/dashboard/ExpandableCard'
+
+/** Range state from the unified filter context, with a no-op fallback so
+ *  the component also renders standalone (unit tests) without a provider. */
+function useFocusRange(): Pick<AtlasFilterState, 'timeRange' | 'setTimeRange'> {
+  const ctx = useContext(AtlasFilterContext)
+  return ctx ?? { timeRange: '30D' as const, setTimeRange: () => {} }
+}
 
 // ---------------------------------------------------------------------------
 // Props
@@ -26,7 +35,12 @@ interface SankeyHeroProps {
 
 export default function SankeyHero({ flows, rangeLabel, loading, className }: SankeyHeroProps) {
   const [activeNode, setActiveNode] = useState<string | null>(null)
-  const { focused, setFocused } = useDashboardFocus()
+  // In focus mode the card renders its OWN range selector (so the range
+  // controls are always visible inside the focused layer, regardless of
+  // the floating bar's behavior); the extra class scopes CSS to hide the
+  // floating bar and reclaim its reserved space.
+  const { focused, setFocused } = useDashboardFocus('dashboard-focus-sankey')
+  const { timeRange, setTimeRange } = useFocusRange()
 
   const handleNodeClick = (nodeName: string) => {
     setActiveNode(prev => (prev === nodeName ? null : nodeName))
@@ -105,6 +119,11 @@ export default function SankeyHero({ flows, rangeLabel, loading, className }: Sa
           </div>
         </div>
         <div className="flex items-center gap-4 flex-shrink-0">
+          {/* Focus mode carries its own range selector inside the card, so
+              the range controls are always visible over the focused chart. */}
+          {focused && (
+            <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+          )}
           {/* Summary chips — earned income stays separate from balancing overspend. */}
           {flows && flows.nodes.length > 0 && (
             <div className="hidden md:flex items-center gap-4" data-testid="sankey-summary-chips">

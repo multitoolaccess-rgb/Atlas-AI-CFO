@@ -18,8 +18,10 @@ interface ExpandableCardProps {
   onExpand?: (expanded: boolean) => void
 }
 
-/** Shared focus-mode state for dashboard visualizations outside ExpandableCard. */
-export function useDashboardFocus() {
+/** Shared focus-mode state for dashboard visualizations outside ExpandableCard.
+ *  Pass an extra class (e.g. 'dashboard-focus-sankey') when the focused card
+ *  renders its own controls, so CSS can scope the shared floating bar away. */
+export function useDashboardFocus(extraClass?: string) {
   const [focused, setFocused] = useState(false)
 
   useEffect(() => {
@@ -30,13 +32,15 @@ export function useDashboardFocus() {
     }
     document.body.style.overflow = 'hidden'
     document.documentElement.classList.add('dashboard-focus-active')
+    if (extraClass) document.documentElement.classList.add(extraClass)
     document.addEventListener('keydown', onKeyDown)
     return () => {
       document.body.style.overflow = previousOverflow
       document.documentElement.classList.remove('dashboard-focus-active')
+      if (extraClass) document.documentElement.classList.remove(extraClass)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [focused])
+  }, [focused, extraClass])
 
   return { focused, setFocused }
 }
@@ -74,11 +78,11 @@ export function DashboardFocusLayer({
   if (!focused) return <>{children}</>
 
   return (
-    // pt-40 reserves space for the pinned floating range bar (fixed at
-    // top 4.5rem, up to ~80px tall when wrapped) so it never overlaps
+    // pt-24 reserves space for the pinned floating range bar (fixed at
+    // top 1rem, single-row ~58px tall in focus mode) so it never overlaps
     // the focused visualization.
     <div
-      className="fixed inset-0 z-50 touch-pan-y overflow-y-auto overscroll-contain bg-[var(--bg-primary)]/95 p-3 pt-40 backdrop-blur-sm sm:p-6 sm:pt-40"
+      className="dashboard-focus-layer fixed inset-0 z-50 touch-pan-y overflow-y-auto overscroll-contain bg-[var(--bg-primary)]/95 p-3 pt-24 backdrop-blur-sm sm:p-6 sm:pt-24"
       role="dialog"
       aria-modal="true"
       aria-label={`${title} focus mode`}

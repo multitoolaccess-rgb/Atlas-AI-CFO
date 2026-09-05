@@ -341,10 +341,12 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
         style={{
           overflow: 'visible',
           // Focus mode: cap the rendered height to the viewport (minus the
-          // pinned range bar, card chrome, and legend) so the whole diagram
-          // is visible without scrolling. preserveAspectRatio="xMidYMid
+          // card chrome and legend — the Sankey focus layer no longer
+          // reserves space for the floating bar, which is hidden in favor
+          // of the card's own range selector) so the whole diagram is
+          // visible without scrolling. preserveAspectRatio="xMidYMid
           // meet" (the default) letterboxes the drawing when height-bound.
-          ...(fitViewport ? { maxHeight: 'calc(100vh - 22rem)', height: 'auto' } : {}),
+          ...(fitViewport ? { maxHeight: 'calc(100vh - 16rem)', height: 'auto' } : {}),
         }}
         onMouseLeave={handleHoverLeave}
       >
@@ -490,10 +492,11 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
             const h = (node.y1 ?? 0) - (node.y0 ?? 0)
             const fill = getNodeFill(node, isDark)
             const isLarge = h > 36
-            // Tiny bars (sub-8px) cannot carry a legible side label without
-            // colliding with their neighbors; their label appears on hover
-            // or when the node is selected instead of cluttering the chart.
-            const isTiny = h < 8
+            // Short bars use a smaller side-label font. The app font's
+            // line box is ~1.5em, so 12px labels on bars under ~16px tall
+            // crowd their neighbors' metric boxes; 10px keeps every label
+            // visible with real glyphs well clear of adjacent lines.
+            const isTiny = h < 16
             const labelX = x + w + 14
             const labelY = y + h / 2
 
@@ -638,14 +641,14 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
                     that stacked name/value lines of adjacent nodes collide;
                     a single line per node cannot. The value stays available
                     in the aria-label for screen readers. */}
-                {!isLarge && (!isTiny || (hovered !== null && hovered.kind === 'node' && hovered.name === node.name) || activeNode === node.name) && (
+                {!isLarge && (
                   <text
                     x={labelX}
                     y={labelY}
                     textAnchor="start"
                     dominantBaseline="central"
                     style={{
-                      fontSize: '12px',
+                      fontSize: isTiny ? '10px' : '12px',
                       fontWeight: 600,
                       fill: isDark ? '#eaeaea' : '#0A0805',
                       fontFamily: 'var(--font-primary)',

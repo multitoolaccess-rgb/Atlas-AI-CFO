@@ -191,7 +191,7 @@ describe('SankeyFlow', () => {
   it('caps the rendered height to the viewport in focus mode', () => {
     const { container } = render(<SankeyFlow nodes={chainNodes} links={chainLinks} fitViewport />)
     const svg = container.querySelector('svg')!
-    expect(svg).toHaveStyle({ maxHeight: 'calc(100vh - 22rem)' })
+    expect(svg).toHaveStyle({ maxHeight: 'calc(100vh - 16rem)' })
     expect(svg).toHaveStyle({ height: 'auto' })
   })
 

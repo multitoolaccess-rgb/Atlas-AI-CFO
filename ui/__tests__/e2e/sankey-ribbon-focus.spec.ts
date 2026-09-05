@@ -198,23 +198,50 @@ test('small-node labels never overlap in dense columns', async ({ page }) => {
       }
     })
     const overlaps: string[] = []
+    let maxOverlapH = 0
     for (let i = 0; i < texts.length; i++) {
       for (let j = i + 1; j < texts.length; j++) {
         const a = texts[i], b = texts[j]
         if (a.parentId === b.parentId) continue
         const interW = Math.min(a.right, b.right) - Math.max(a.left, b.left)
         const interH = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)
-        if (interW > 1 && interH > 1) overlaps.push(`${a.text} ⟷ ${b.text}`)
+        if (interW > 1 && interH > 1) {
+          maxOverlapH = Math.max(maxOverlapH, interH)
+          if (interH >= 4) overlaps.push(`${a.text} ⟷ ${b.text} (${interH.toFixed(1)}px)`)
+        }
       }
     }
-    return { textCount: texts.length, overlapCount: overlaps.length, overlaps: overlaps.slice(0, 6) }
+    return { textCount: texts.length, overlapCount: overlaps.length, maxOverlapH, overlaps: overlaps.slice(0, 6) }
   })
 
   expect(result.error).toBeUndefined()
   // Regression: stacked name/value lines used to collide once adaptive
-  // padding packed dense columns together (34 collisions). Single combined
-  // lines (with labels hidden for sub-8px bars) must not overlap at all.
+  // padding packed dense columns together (34 collisions, up to 9px deep).
+  // Single combined lines must never overlap by more than ~3px — that is
+  // only the font's empty ascender/descender metric box (the app font's
+  // line box is ~1.5em), which does not touch the visible glyphs.
   expect(result.overlapCount).toBe(0)
+  expect(result.maxOverlapH!).toBeLessThan(4)
+})
+
+test('every category node keeps a visible label in dense columns', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await mockCashFlow(page)
+
+  const result = await page.evaluate(() => {
+    const svg = document.querySelector('#sankey-links')?.closest('svg')
+    if (!svg) return { error: 'no svg' }
+    const rendered = Array.from(svg.querySelectorAll('#sankey-nodes text')).map((t) => t.textContent ?? '')
+    const expected = ['Uncategorized', 'Credit Card Payments', 'Mortgage', 'Transportation', 'Bills & Utilities', 'Life Insurance', 'Loan Payments', 'Shopping', 'Brokerage Buys', 'Travel', 'Interest Paid', 'Groceries', 'Food & Dining', 'Housing', 'Education']
+    const missing = expected.filter((name) => !rendered.some((t) => t.includes(name)))
+    return { renderedCount: rendered.length, expectedCount: expected.length, missing }
+  })
+
+  expect(result.error).toBeUndefined()
+  // Regression: sub-8px bars used to hide their label entirely (hover
+  // only), which made several categories impossible to identify. Every
+  // category must now be labeled, even the tiny tail bars.
+  expect(result.missing).toEqual([])
 })
 
 test('inline node labels are consistently white on every bar', async ({ page }) => {
@@ -238,7 +265,7 @@ test('inline node labels are consistently white on every bar', async ({ page }) 
   expect(result.darkOnLight).toEqual([])
 })
 
-test('focus mode pins the range bar clear of the focused chart', async ({ page }) => {
+test('focused Sankey shows an in-card range selector and hides the floating bar', async ({ page }) => {
   await mockCashFlow(page)
 
   await page.getByTestId('dashboard-focus-toggle').first().click()
@@ -246,42 +273,45 @@ test('focus mode pins the range bar clear of the focused chart', async ({ page }
 
   const state = await page.evaluate(() => {
     const barEl = document.querySelector('[data-testid="floating-time-range-bar"]')
+    const cardSel = document.querySelector('[data-testid="sankey-hero"] [role="radiogroup"]')
+    const layer = document.querySelector('[data-testid="dashboard-focus-layer"]')
     const sankey = document.querySelector('[data-testid="sankey-hero"]')
-    if (!barEl || !sankey) return { error: 'missing elements' }
-    const bar = barEl.getBoundingClientRect()
+    if (!layer || !sankey) return { error: 'missing elements' }
     const card = sankey.getBoundingClientRect()
-    const cs = getComputedStyle(barEl)
     return {
-      barTop: bar.top,
-      barBottom: bar.bottom,
-      cardTop: card.top,
-      position: cs.position,
-      marginTop: cs.marginTop,
-      overlapPx: Math.max(0, bar.bottom - card.top),
+      floatingBarHidden: barEl ? getComputedStyle(barEl).display === 'none' : true,
+      inCardSelectorVisible: !!cardSel && cardSel.getBoundingClientRect().height > 0,
+      // The selector sits INSIDE the card (normal flow), so it can never
+      // be occluded by the focused layer.
+      selectorInsideCard: !!cardSel,
       focusLayerActive: document.documentElement.classList.contains('dashboard-focus-active'),
+      sankeyFocusClass: document.documentElement.classList.contains('dashboard-focus-sankey'),
+      cardTop: card.top,
     }
   })
 
   expect(state.error).toBeUndefined()
   expect(state.focusLayerActive).toBe(true)
-  // The bar is promoted to a fixed viewport control…
-  expect(state.position).toBe('fixed')
-  // …ignores the page's space-y sibling margin (which used to push it
-  // 24px down onto the chart)…
-  expect(state.marginTop).toBe('0px')
-  // …and never covers the focused chart.
-  expect(state.overlapPx!).toBe(0)
-  expect(state.barBottom!).toBeLessThanOrEqual(state.cardTop!)
+  expect(state.sankeyFocusClass).toBe(true)
+  // The floating bar is replaced by the card's own selector in focus mode…
+  expect(state.floatingBarHidden).toBe(true)
+  expect(state.inCardSelectorVisible).toBe(true)
+  // …and the card reclaims the reserved top space (selector sits at the
+  // top of the layer, not below a 160px reserved band).
+  expect(state.cardTop!).toBeLessThan(80)
+})
 
-  // Hardening: in focus mode the bar must stay single-row (so it cannot
-  // grow past the layer's reserved top space) and opaque (so it renders
-  // fully above the focused layer in every browser).
-  const barStyle = await page.evaluate(() => {
-    const barEl = document.querySelector('[data-testid="floating-time-range-bar"]')!
-    const cs = getComputedStyle(barEl)
-    return { flexWrap: cs.flexWrap, backgroundColor: cs.backgroundColor }
-  })
-  expect(barStyle.flexWrap).toBe('nowrap')
-  // Opaque: the computed background must not be a translucent /95 mix.
-  expect(barStyle.backgroundColor).toMatch(/rgba\([^)]*,\s*1\)$|^rgb\(/)
+test('changing the range inside focused Sankey refetches that range', async ({ page }) => {
+  await mockCashFlow(page)
+
+  await page.getByTestId('dashboard-focus-toggle').first().click()
+  await page.waitForTimeout(400)
+
+  // The in-card selector reflects the current range…
+  await expect(page.locator('[data-testid="sankey-hero"] [role="radiogroup"]')).toBeVisible()
+  // …clicking a pill updates the URL-synced range while staying focused.
+  await page.locator('[data-testid="sankey-hero"] [role="radiogroup"] button', { hasText: '90D' }).click()
+  await page.waitForTimeout(300)
+  expect(page.url()).toContain('range=90D')
+  await expect(page.locator('[data-testid="dashboard-focus-layer"]')).toBeVisible()
 })

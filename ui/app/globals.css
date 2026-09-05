@@ -23,6 +23,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Focus mode must own the viewport. The focused layer lives inside
+   <main> (z-index: 1), so the app shell's fixed sidebar (root z-50) and
+   sticky header (root z-40) paint ABOVE it — the sidebar was silently
+   covering the left portion of the floating range bar (its "Range"
+   label and the first pills) during focus mode. Hide the shell chrome
+   so the layer — and everything in it — is fully visible and clickable. */
+html.dashboard-focus-active .atlas-sidebar,
+html.dashboard-focus-active #header {
+  display: none;
+}
+
 /* Focus mode promotes the shared range control to the viewport so it
    stays usable without covering the visualization. DashboardFocusLayer
    reserves matching top space for it. margin: 0 neutralises the page's
@@ -30,14 +41,14 @@
    below its top and make it overlap the layer content. */
 /* Selector specificity deliberately exceeds the page's space-y sibling
    margin (`.space-y-6 > :not([hidden]) ~ :not([hidden])` = 0,3,0) so the
-   fixed bar ignores the flow margin and pins exactly at top 4.5rem. */
+   fixed bar ignores the flow margin and pins exactly at the top. */
 html.dashboard-focus-active .atlas-floating-time-range-bar.atlas-floating-time-range-bar {
   position: fixed;
-  top: 4.5rem;
+  top: 1rem;
   left: 1rem;
   right: 1rem;
   margin: 0;
-  /* The focus layer reserves pt-40 (10rem) below the bar. A wrapped bar
+  /* The focus layer reserves pt-24 (6rem) below the bar. A wrapped bar
      would grow past that and start covering the chart, making the range
      options look partially hidden. Pin the bar to a single row: it
      scrolls horizontally instead of wrapping, so the pills are always
@@ -50,6 +61,22 @@ html.dashboard-focus-active .atlas-floating-time-range-bar.atlas-floating-time-r
   background-color: var(--bg-primary);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+/* The Sankey card renders its OWN range selector inside the focused
+   layer, so the floating bar is hidden and its reserved top space is
+   reclaimed — the range controls cannot be missed or obscured. */
+html.dashboard-focus-sankey .atlas-floating-time-range-bar.atlas-floating-time-range-bar {
+  display: none;
+}
+
+html.dashboard-focus-sankey .dashboard-focus-layer {
+  padding-top: 1rem;
+}
+@media (min-width: 640px) {
+  html.dashboard-focus-sankey .dashboard-focus-layer {
+    padding-top: 1.5rem;
+  }
 }
 
 /* =================================================================
