@@ -178,7 +178,13 @@ class FinnhubAdapter(_Adapter):
             )
         except (KeyError, TypeError, ValueError, OverflowError):
             return self._failure(endpoint, FailureClass.INVALID_QUOTE, "Finnhub quote payload was invalid.")
-        self.cache.put(key, quote, ttl_seconds=60)
+        # Quote reuse aligns with the freshness policy (quotes up to
+        # LIVE_QUOTE_MAX_AGE / 15 minutes are still classified FRESH). The
+        # shared per-minute budget cannot refetch a full portfolio's quotes
+        # and still collect news/earnings evidence, so reusing fresh quotes
+        # within the freshness horizon keeps repeated brief generations cheap
+        # enough for the optional evidence to actually be collected.
+        self.cache.put(key, quote, ttl_seconds=900)
         self.usage.record(self.provider, endpoint, cache_hit=False)
         return ProviderResult(value=quote)
 

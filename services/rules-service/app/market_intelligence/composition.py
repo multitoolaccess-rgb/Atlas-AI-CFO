@@ -563,33 +563,63 @@ class TrustedMarketBriefComposer:
                 ))
                 optional_warnings.append(f"{error.reason_code.value}: optional {label} unavailable for {symbol}.")
 
-        for symbol in sorted(grouped):
+        # Two-pass optional collection. The shared provider budget is far
+        # smaller than the call volume a full portfolio demands (free-tier
+        # Finnhub ~48 calls/min vs. ~8 optional calls per holding), so once
+        # the ceiling trips, the burst-stop would otherwise discard everything
+        # after the first failure. The UI renders news and earnings (the
+        # Earnings & Events tab and material-news packets), so those are
+        # collected FIRST across all holdings; enrichment extras (analyst
+        # mix, price target, dividends, SEC filings) run second with whatever
+        # budget remains.
+        priority_symbols = sorted(grouped)
+
+        for symbol in priority_symbols:
             if rate_limited:
                 break
             _collect("news", EvidenceCategory.NEWS, self.providers.news, news, symbol)
             _collect("earnings_events", EvidenceCategory.EARNINGS, self.providers.earnings_events, earnings_events, symbol)
             _collect("earnings_results", EvidenceCategory.EARNINGS, self.providers.earnings_results, earnings_results, symbol)
+            holding_evidence.append(self._rank_evidence(
+                symbol=symbol,
+                quote=covered_by_symbol.get(symbol),
+                profile=None,
+                news=tuple(item for item in news if item.symbol == symbol)[:10],
+                earnings_events=tuple(event for event in earnings_events if event.symbol == symbol),
+                earnings_results=tuple(result for result in earnings_results if result.symbol == symbol),
+                filings=(),
+                recommendations=(),
+                price_target=None,
+                dividends=(),
+                now=now,
+            ))
 
+        # Enrichment pass: profile/analyst/price-target/dividends/filings are
+        # best-effort additions to the priority packets. A rate limit here
+        # stops only this pass — the news/earnings evidence already collected
+        # in the priority pass is preserved.
+        for index, symbol in enumerate(priority_symbols):
+            if rate_limited:
+                break
             profile: CompanyProfile | None = None
             recommendations: tuple[AnalystRecommendation, ...] = ()
             price_target: PriceTarget | None = None
             dividends: tuple[DividendEvent, ...] = ()
             filings: tuple[SecFilingEvent, ...] = ()
 
-            if not rate_limited:
-                try:
-                    profile = self.providers.profile(symbol)
-                    if profile and profile.cik:
-                        resolved_ciks[symbol] = profile.cik
-                except MarketBriefCompositionError as error:
-                    if error.reason_code is MarketBriefReasonCode.PROVIDER_RATE_LIMITED:
-                        rate_limited = True
-                    else:
-                        evidence_availability.append(EvidenceAvailability(
-                            symbol=symbol, evidence_category=EvidenceCategory.FILINGS,
-                            reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
-                        ))
-                        optional_warnings.append(f"{error.reason_code.value}: optional profile unavailable for {symbol}.")
+            try:
+                profile = self.providers.profile(symbol)
+                if profile and profile.cik:
+                    resolved_ciks[symbol] = profile.cik
+            except MarketBriefCompositionError as error:
+                if error.reason_code is MarketBriefReasonCode.PROVIDER_RATE_LIMITED:
+                    rate_limited = True
+                else:
+                    evidence_availability.append(EvidenceAvailability(
+                        symbol=symbol, evidence_category=EvidenceCategory.FILINGS,
+                        reason_code=error.reason_code, recovery=_SAFE_RECOVERY_GUIDANCE.get(error.reason_code),
+                    ))
+                    optional_warnings.append(f"{error.reason_code.value}: optional profile unavailable for {symbol}.")
 
             if not rate_limited:
                 try:
@@ -643,19 +673,20 @@ class TrustedMarketBriefComposer:
                         ))
                         optional_warnings.append(f"{error.reason_code.value}: optional SEC filings unavailable for {symbol}.")
 
-            holding_evidence.append(self._rank_evidence(
+            prior = holding_evidence[index]
+            holding_evidence[index] = self._rank_evidence(
                 symbol=symbol,
-                quote=covered_by_symbol.get(symbol),
+                quote=prior.quote,
                 profile=profile,
-                news=tuple(item for item in news if item.symbol == symbol)[:10],
-                earnings_events=tuple(event for event in earnings_events if event.symbol == symbol),
-                earnings_results=tuple(result for result in earnings_results if result.symbol == symbol),
+                news=prior.news,
+                earnings_events=prior.earnings_events,
+                earnings_results=prior.earnings_results,
                 filings=filings,
                 recommendations=recommendations,
                 price_target=price_target,
                 dividends=dividends,
                 now=now,
-            ))
+            )
 
         if rate_limited:
             optional_warnings.append(

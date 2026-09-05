@@ -394,6 +394,61 @@ def test_rate_limited_optional_data_stops_collection_and_aggregates_warning(clie
     assert ("earnings_events", "MSFT") not in providers.calls
 
 
+def test_priority_news_and_earnings_survive_enrichment_rate_limit(client, db_session, make_account, monkeypatch) -> None:
+    """News and earnings are collected across ALL holdings before enrichment
+    extras, so a rate limit hit during the enrichment pass (profile/analyst/
+    price target/dividends/filings) does not discard the earnings evidence the
+    Earnings & Events tab renders.
+    """
+    from app.config import settings
+    from app.market_intelligence.composition import MarketBriefCompositionError, TrustedMarketBriefComposer
+    from app.market_intelligence.contracts import MarketBriefReasonCode, MarketQuoteSnapshot
+    from app.models import Account, Holding
+    from app.routes.market_briefs import configure_market_brief_composer
+
+    owner_account = make_account(account_name="Owner", account_type="brokerage")
+    owner_account.is_active = True
+    db_session.add(owner_account)
+    db_session.flush()
+    db_session.add_all((
+        Holding(account_id=owner_account.id, symbol="AAPL", quantity=1, current_value=100, type="Stock"),
+        Holding(account_id=owner_account.id, symbol="MSFT", quantity=1, current_value=100, type="Stock"),
+    ))
+    db_session.commit()
+
+    class _EnrichmentRateLimitedProviders(_RecordingMarketProviders):
+        def quote(self, symbol: str):
+            self.calls.append(("quote", symbol))
+            return MarketQuoteSnapshot(symbol=symbol, currency="USD", current_price="110", previous_close="100", source=self.quote_source)
+
+        def profile(self, symbol: str):
+            self.calls.append(("profile", symbol))
+            raise MarketBriefCompositionError("rate limited", MarketBriefReasonCode.PROVIDER_RATE_LIMITED)
+
+    providers = _EnrichmentRateLimitedProviders()
+    configure_market_brief_composer(TrustedMarketBriefComposer(providers, now=lambda: NOW))
+    monkeypatch.setattr(settings, "atlas_market_brief_generation_enabled", True)
+    monkeypatch.setattr(settings, "atlas_market_brief_external_provider_enabled", True)
+    try:
+        response = client.post("/api/v1/market-briefs/generate", json={"report_window": "latest"})
+    finally:
+        configure_market_brief_composer(None)
+    assert response.status_code == 201
+    brief = response.json()["brief"]
+    packets = {packet["symbol"]: packet for packet in brief["holding_evidence"]}
+    # The priority pass ran for BOTH holdings before the enrichment pass
+    # tripped, so earnings/news are present for both.
+    for symbol in ("AAPL", "MSFT"):
+        assert packets[symbol]["news"]
+        assert packets[symbol]["earnings_events"]
+        assert packets[symbol]["earnings_results"]
+    # The enrichment pass tripped on the first profile call and stopped there.
+    assert ("profile", "MSFT") not in providers.calls
+    assert ("analyst_recommendations", "AAPL") not in providers.calls
+    rate_warnings = [warning for warning in brief["warnings"] if "provider_rate_limited" in warning]
+    assert len(rate_warnings) == 1
+
+
 def test_repository_idempotency_is_owner_scoped_and_never_mutates(db_session) -> None:
     from app.market_intelligence.brief_repository import MarketBriefRepository
     from app.models import User
