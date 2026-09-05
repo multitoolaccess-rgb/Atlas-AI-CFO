@@ -149,6 +149,7 @@ const ChartDonut = React.memo(function ChartDonut({
       empty={!slices.length}
       emptyMessage="No allocation data yet."
       ariaLabel="Donut chart"
+      interactiveChildren={slices.length > 0}
       className={className}
     >
       <div className="relative" style={{ height: chartHeight }}>

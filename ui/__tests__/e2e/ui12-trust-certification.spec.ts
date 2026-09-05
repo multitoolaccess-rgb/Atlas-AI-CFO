@@ -12,16 +12,48 @@ const ROUTES = [
   { path: '/scenario-lab', heading: 'Scenario Lab', certifiable: true },
   { path: '/decisions', heading: 'Decisions', certifiable: true },
   { path: '/market-intelligence', heading: /market intelligence/i, certifiable: true },
-  // The legacy portfolio page currently has a known 390px overflow and
-  // mutation controls outside the UI-12 read-only certification boundary.
-  // Keep it in the inventory, but exclude it from the certifiable set until
-  // that separately owned surface is remediated.
-  { path: '/portfolio', heading: 'Portfolio', certifiable: false },
+  // /portfolio is certifiable as of GAP-10/11/12: the 390px overflow was
+  // fixed (responsive hero grid), mutation controls are gated behind an
+  // explicit manage mode (read-only by default), and all portfolio
+  // arithmetic moved to the server valuation projection.
+  { path: '/portfolio', heading: 'Portfolio', certifiable: true },
 ] as const
 
 const SUPPORTED_WIDTHS = [390, 768, 1024, 1440, 1728] as const
 const ROUTE_LOAD_BUDGET_MS = 10_000
 const MAX_API_RESPONSE_BYTES = 512 * 1024
+// GAP-14 — interaction CPU budget. Long tasks (>50ms main-thread blocks)
+// are collected during route load plus a bounded keyboard interaction;
+// a healthy read-only surface stays under both bounds.
+const INTERACTION_LONG_TASK_BUDGET = 4
+const INTERACTION_CPU_BUDGET_MS = 600
+
+type LongTaskRecord = { startTime: number; duration: number }
+
+async function installLongTaskMonitor(page: Page) {
+  await page.addInitScript(() => {
+    const tasks: LongTaskRecord[] = []
+    ;(window as unknown as { __ui12LongTasks: LongTaskRecord[] }).__ui12LongTasks = tasks
+    try {
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          tasks.push({ startTime: entry.startTime, duration: entry.duration })
+        }
+      }).observe({ type: 'longtask', buffered: false })
+    } catch {
+      // LongTask timing API unavailable — the budget is trivially met.
+    }
+  })
+}
+
+async function measuredInteractionCpu(page: Page): Promise<{ count: number; totalMs: number }> {
+  const tasks = await page.evaluate(() =>
+    (window as unknown as { __ui12LongTasks?: LongTaskRecord[] }).__ui12LongTasks ?? [])
+  return {
+    count: tasks.length,
+    totalMs: Math.round(tasks.reduce((sum, task) => sum + task.duration, 0)),
+  }
+}
 
 async function installUnavailableBackend(page: Page) {
   await page.route('**/health', (route) => route.fulfill({
@@ -59,6 +91,7 @@ test.describe('UI-12 coordinated cross-route trust certification', () => {
   test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await installUnavailableBackend(page)
+    await installLongTaskMonitor(page)
   })
 
   test('covers the frozen investment surface inventory with safe recovery states', async ({ page }) => {
@@ -87,6 +120,13 @@ test.describe('UI-12 coordinated cross-route trust certification', () => {
 
       await page.keyboard.press('Tab')
       await expect.poll(() => page.evaluate(() => document.activeElement?.tagName ?? '')).not.toBe('BODY')
+      // GAP-14 — bounded interaction: two more focus moves, then assert
+      // the main-thread interaction CPU budget.
+      await page.keyboard.press('Tab')
+      await page.keyboard.press('Tab')
+      const interactionCpu = await measuredInteractionCpu(page)
+      expect(interactionCpu.count, `${route.path} interaction CPU long-task count`).toBeLessThanOrEqual(INTERACTION_LONG_TASK_BUDGET)
+      expect(interactionCpu.totalMs, `${route.path} interaction CPU budget`).toBeLessThanOrEqual(INTERACTION_CPU_BUDGET_MS)
 
       const layout = await page.evaluate(() => ({
         scrollWidth: document.documentElement.scrollWidth,

@@ -1446,6 +1446,47 @@ export interface Holding {
   day_change_pct?: number | null
 }
 
+/** Server-owned per-holding valuation row from ``GET /api/holdings/summary``.
+ *  ``allocation_pct`` / ``gain_pct`` are null (never invented zeros) when
+ *  the denominator or cost basis is absent — the browser only formats them. */
+export interface PortfolioHoldingValuation {
+  holding_id: number
+  symbol?: string | null
+  description?: string | null
+  value: number
+  allocation_pct?: number | null
+  gain_pct?: number | null
+}
+
+export interface PortfolioAccountValuation {
+  account_id: number
+  account_name?: string | null
+  account_type?: string | null
+  total: number
+  positions_count: number
+  allocation_pct?: number | null
+}
+
+export interface PortfolioTypeValuation {
+  type: string
+  total: number
+  allocation_pct?: number | null
+}
+
+/** GAP-12 (UI-12): the authoritative portfolio valuation projection.
+ *  All totals, allocation percentages, and gain percentages are computed
+ *  server-side; the Portfolio page renders this projection and performs
+ *  no portfolio arithmetic. */
+export interface PortfolioValuationSummary {
+  schema_version: string
+  grand_total: number
+  currency: string
+  accounts: PortfolioAccountValuation[]
+  holdings: PortfolioHoldingValuation[]
+  types: PortfolioTypeValuation[]
+  computed_at: string
+}
+
 export interface PortfolioImportResult {
   holdings_count: number
   accounts_created: number
@@ -2752,6 +2793,12 @@ export const rulesService = {
   /** List all holdings for the current user. */
   listHoldings: async (): Promise<Holding[]> => {
     const response = await api.get('/api/holdings/')
+    return response.data
+  },
+
+  /** GAP-12 (UI-12): server-owned portfolio valuation projection. */
+  getPortfolioValuation: async (): Promise<PortfolioValuationSummary> => {
+    const response = await api.get('/api/holdings/summary')
     return response.data
   },
 

@@ -37,7 +37,7 @@ export default function AnalystCoverageStatus({
   if (!loaded) {
     return (
       <p
-        className="text-xs text-tertiary mt-3"
+        className="text-xs text-secondary mt-3"
         role="status"
         aria-live="polite"
         data-testid="analyst-coverage-loading"
@@ -49,7 +49,7 @@ export default function AnalystCoverageStatus({
 
   return (
     <p
-      className="text-xs text-tertiary mt-3"
+      className="text-xs text-secondary mt-3"
       role="status"
       aria-live="polite"
       data-testid="analyst-coverage-empty"

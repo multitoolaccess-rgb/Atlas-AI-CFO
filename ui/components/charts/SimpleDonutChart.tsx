@@ -92,6 +92,7 @@ export default function SimpleDonutChart({
   )
 
   const effectiveActiveId = activeId ?? hoveredId
+  const interactive = Boolean(onSelect)
 
   return (
     <div className={`relative ${className}`} style={{ width: size, height: size }}>
@@ -99,8 +100,8 @@ export default function SimpleDonutChart({
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
-        role="img"
-        aria-label="Donut chart"
+        role={interactive ? undefined : 'img'}
+        aria-label={interactive ? undefined : 'Donut chart'}
       >
         <defs>
           {data.map((d, i) => (
@@ -158,15 +159,19 @@ export default function SimpleDonutChart({
               onMouseEnter={() => setHoveredId(datum.id)}
               onMouseLeave={() => setHoveredId((prev) => (prev === datum.id ? null : prev))}
               onClick={() => handleClick(datum)}
-              role="button"
+              role={interactive ? 'button' : undefined}
               aria-label={`${datum.name}: ${formatCurrency(datum.value)}`}
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  handleClick(datum)
-                }
-              }}
+              tabIndex={interactive ? 0 : -1}
+              onKeyDown={
+                interactive
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        handleClick(datum)
+                      }
+                    }
+                  : undefined
+              }
             />
           )
         })}

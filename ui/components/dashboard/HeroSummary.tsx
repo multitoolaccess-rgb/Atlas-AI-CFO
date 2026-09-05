@@ -30,6 +30,11 @@ export default function HeroSummary({ loading, summary, greeting }: HeroSummaryP
       </div>
 
       {/* Metrics Grid (real numbers from /api/dashboard/summary) */}
+      {/* GAP-10 (UI-12): the four cards were ``col-span-3`` at every
+          breakpoint, which squeezed them to ~72px on a 390px viewport
+          and pushed the card icons past the right edge (scrollWidth
+          407 > 390). Cards now go full-width on phones, 2-up on
+          tablets, and back to 4-up on xl screens. */}
       <div className="bento-grid">
         <StatCard
           title="Net Worth"
@@ -38,28 +43,28 @@ export default function HeroSummary({ loading, summary, greeting }: HeroSummaryP
           changeType={loading ? 'neutral' : 'positive'}
           icon={<Landmark className="w-5 h-5" aria-hidden="true" />}
           format="currency"
-          className="col-span-3 md:col-span-3"
+          className="col-span-12 md:col-span-6 xl:col-span-3"
         />
         <StatCard
           title="Cash Flow (month)"
           value={(summary?.total_income_month ?? 0) - (summary?.total_expenses_month ?? 0)}
           icon={<TrendingUp className="w-5 h-5" aria-hidden="true" />}
           format="currency"
-          className="col-span-3 md:col-span-3"
+          className="col-span-12 md:col-span-6 xl:col-span-3"
         />
         <StatCard
           title="Income (month)"
           value={summary?.total_income_month ?? 0}
           icon={<Wallet className="w-5 h-5" aria-hidden="true" />}
           format="currency"
-          className="col-span-3 md:col-span-3"
+          className="col-span-12 md:col-span-6 xl:col-span-3"
         />
         <StatCard
           title="Expenses (month)"
           value={summary?.total_expenses_month ?? 0}
           icon={<PiggyBank className="w-5 h-5" aria-hidden="true" />}
           format="currency"
-          className="col-span-3 md:col-span-3"
+          className="col-span-12 md:col-span-6 xl:col-span-3"
         />
       </div>
     </section>

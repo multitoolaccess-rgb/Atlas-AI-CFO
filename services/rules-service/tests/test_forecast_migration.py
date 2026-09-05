@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect, text
 
 from app.database import register_sqlite_compat
@@ -13,11 +14,6 @@ from app.database import register_sqlite_compat
 
 ROOT = Path(__file__).parent.parent
 PARENT = "Q5h1i2j3k4l5"
-# The balance-evidence migration extends the certified chain with the
-# exact-cent authority head used by these round-trip assertions. Phase
-# 30g (transfer pairing) and 30h (category hierarchy) add newer heads
-# on top of it.
-REVISION = "Z14a1b2c3d4e5"
 ACCOUNT_CURRENCY_PARENT = "R6f1g2h3i4j5"
 
 
@@ -26,6 +22,21 @@ def _config(url: str) -> Config:
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     cfg.set_main_option("sqlalchemy.url", url)
     return cfg
+
+
+def _head_revision(cfg: Config) -> str:
+    """Resolve the single current Alembic head.
+
+    These round-trip assertions run ``upgrade(cfg, "head")`` and then
+    verify the database landed on the canonical head. Hardcoding the
+    revision string (previously ``Z14a1b2c3d4e5``) made the test break
+    every time a new migration extended the chain, so the expected
+    value is derived from the script directory instead. The suite still
+    fails loudly if the chain ever has more than one head.
+    """
+    heads = ScriptDirectory.from_config(cfg).get_heads()
+    assert len(heads) == 1, f"expected a single Alembic head, got {heads}"
+    return heads[0]
 
 
 def test_forecast_migration_upgrade_downgrade_reupgrade_preserves_existing_data(monkeypatch):
@@ -42,13 +53,13 @@ def test_forecast_migration_upgrade_downgrade_reupgrade_preserves_existing_data(
         command.upgrade(cfg, "head")
         assert {"forecasts", "forecast_versions"} <= set(inspect(engine).get_table_names())
         assert engine.connect().execute(text("SELECT count(*) FROM categories WHERE name = 'Migration Existing' ")).scalar_one() == 1
-        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "Z14a1b2c3d4e5"
+        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == _head_revision(cfg)
 
         command.downgrade(cfg, PARENT)
         assert "forecasts" not in inspect(engine).get_table_names()
         assert engine.connect().execute(text("SELECT count(*) FROM categories WHERE name = 'Migration Existing' ")).scalar_one() == 1
         command.upgrade(cfg, "head")
-        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "Z14a1b2c3d4e5"
+        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == _head_revision(cfg)
 
 
 def test_forecast_version_guards_and_downgrade_refusal(monkeypatch):
@@ -246,7 +257,7 @@ def test_account_currency_migration_clean_downgrade_and_reupgrade(monkeypatch):
         command.downgrade(cfg, ACCOUNT_CURRENCY_PARENT)
         assert "goal_projection_configs" not in inspect(engine).get_table_names()
         command.upgrade(cfg, "head")
-        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "Z14a1b2c3d4e5"
+        assert engine.connect().execute(text("SELECT version_num FROM alembic_version")).scalar_one() == _head_revision(cfg)
 
 
 def test_postgresql_currency_constraint_explicitly_rejects_partial_null_provenance():

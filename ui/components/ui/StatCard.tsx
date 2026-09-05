@@ -43,9 +43,9 @@ export default function StatCard({
 
   const changeClass =
     changeType === 'positive'
-      ? 'text-positive'
+      ? 'text-[var(--success-700)]'
       : changeType === 'negative'
-        ? 'text-negative'
+        ? 'text-[var(--danger-700)]'
         : 'text-neutral';
 
   return (

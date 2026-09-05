@@ -1264,6 +1264,60 @@ class HoldingResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PortfolioHoldingValuation(BaseModel):
+    """One position's server-computed valuation row.
+
+    ``value`` is the stored ``current_value`` the Portfolio page also
+    receives from ``GET /api/holdings/``, so the server projection is
+    authoritative and the browser never performs portfolio arithmetic
+    (GAP-12 closure).
+    """
+
+    holding_id: int
+    symbol: Optional[str] = None
+    description: Optional[str] = None
+    value: float
+    allocation_pct: Optional[float] = None  # None when portfolio total <= 0
+    gain_pct: Optional[float] = None  # None when cost basis is absent/zero
+
+
+class PortfolioAccountValuation(BaseModel):
+    """Per-account server-computed total and allocation."""
+
+    account_id: int
+    account_name: Optional[str] = None
+    account_type: Optional[str] = None
+    total: float
+    positions_count: int
+    allocation_pct: Optional[float] = None  # None when portfolio total <= 0
+
+
+class PortfolioTypeValuation(BaseModel):
+    """Asset-type rollup (type, total, allocation)."""
+
+    type: str
+    total: float
+    allocation_pct: Optional[float] = None  # None when portfolio total <= 0
+
+
+class PortfolioValuationSummary(BaseModel):
+    """Server-owned portfolio valuation projection for the Portfolio page.
+
+    All totals, allocation percentages, and gain percentages are computed
+    here — the browser only formats them. ``computed_at`` is the server
+    clock at projection time; ``currency`` is fixed to USD (the only
+    portfolio currency supported today).
+    """
+
+    schema_version: str = "portfolio-valuation/v1"
+    grand_total: float
+    currency: str = "USD"
+    accounts: List[PortfolioAccountValuation] = []
+    holdings: List[PortfolioHoldingValuation] = []
+    types: List[PortfolioTypeValuation] = []
+    computed_at: datetime
+
+
 class PortfolioImportResponse(BaseModel):
     """Summary returned by ``POST /api/holdings/import``."""
 

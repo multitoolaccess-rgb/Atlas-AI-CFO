@@ -14,6 +14,8 @@ export interface ChartWrapperProps {
   emptyMessage?: string
   /** Accessible label for the chart region */
   ariaLabel?: string
+  /** Children contain interactive controls (e.g. legend buttons); avoid role="img" so focusable descendants stay announced */
+  interactiveChildren?: boolean
   /** Additional classes on the outer container */
   className?: string
   /** Children — the actual Recharts content */
@@ -27,6 +29,7 @@ export default function ChartWrapper({
   empty = false,
   emptyMessage = 'No data yet.',
   ariaLabel = 'Chart',
+  interactiveChildren = false,
   className,
   children,
 }: ChartWrapperProps) {
@@ -60,7 +63,7 @@ export default function ChartWrapper({
       surfaceRole="working"
       className={className}
       style={{ height }}
-      role="img"
+      role={interactiveChildren ? 'group' : 'img'}
       aria-label={ariaLabel}
     >
       {children}

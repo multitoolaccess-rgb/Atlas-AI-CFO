@@ -10,7 +10,8 @@ import io
 import logging
 import os
 import re
-from typing import Any
+from datetime import datetime
+from typing import Any, Optional
 
 import pdfplumber
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -29,7 +30,11 @@ from app.schemas import (
     HoldingManualCreate,
     HoldingResponse,
     HoldingUpdate,
+    PortfolioAccountValuation,
+    PortfolioHoldingValuation,
     PortfolioImportResponse,
+    PortfolioTypeValuation,
+    PortfolioValuationSummary,
 )
 
 _logger = logging.getLogger(__name__)
@@ -744,6 +749,113 @@ async def list_holdings(
             type=h.type,
         ))
     return result
+
+
+@router.get("/summary", response_model=PortfolioValuationSummary)
+async def portfolio_valuation_summary(
+    db: Session = Depends(get_db),
+    _current_user: str = Depends(require_user),
+):
+    """Server-owned portfolio valuation projection (GAP-12 closure).
+
+    Computes grand total, per-account totals/allocation, per-holding
+    value/allocation/gain, and asset-type rollups from the same rows
+    served by ``GET /api/holdings/`` (``current_value`` — the stored,
+    deterministic value; live quotes are ephemeral refresh responses
+    and are never persisted). The browser consumes this projection and
+    performs no portfolio arithmetic; percentages are ``null`` (never
+    invented zeros) when a denominator or cost basis is absent.
+    """
+    local_user = get_or_create_local_user(db, _current_user)
+
+    account_ids = [
+        r[0]
+        for r in db.query(Account.id)
+        .filter(Account.user_id == local_user.id, Account.is_active.is_(True))
+        .all()
+    ]
+
+    now = datetime.utcnow()
+    if not account_ids:
+        return PortfolioValuationSummary(
+            grand_total=0.0,
+            accounts=[],
+            holdings=[],
+            types=[],
+            computed_at=now,
+        )
+
+    holdings = (
+        db.query(Holding)
+        .filter(Holding.account_id.in_(account_ids))
+        .order_by(Holding.account_id, Holding.current_value.desc())
+        .all()
+    )
+
+    acct_names: dict[int, tuple[Optional[str], Optional[str]]] = {}
+    for acct in db.query(Account).filter(Account.id.in_(account_ids)).all():
+        acct_names[acct.id] = (acct.account_name, acct.account_type)
+
+    def _value(h: Holding) -> float:
+        return float(h.current_value)
+
+    holding_rows: list[PortfolioHoldingValuation] = []
+    account_totals: dict[int, float] = {aid: 0.0 for aid in account_ids}
+    type_totals: dict[str, float] = {}
+
+    for h in holdings:
+        value = _value(h)
+        holding_rows.append(PortfolioHoldingValuation(
+            holding_id=h.id,
+            symbol=h.symbol,
+            description=h.description,
+            value=value,
+            allocation_pct=None,  # filled after grand total is known
+            gain_pct=(
+                ((value - float(h.cost_basis_total)) / abs(float(h.cost_basis_total))) * 100.0
+                if h.cost_basis_total is not None and h.cost_basis_total != 0
+                else None
+            ),
+        ))
+        account_totals[h.account_id] = account_totals.get(h.account_id, 0.0) + value
+        t = h.type or "Other"
+        type_totals[t] = type_totals.get(t, 0.0) + value
+
+    grand_total = sum(account_totals.values())
+
+    for row in holding_rows:
+        if grand_total > 0:
+            row.allocation_pct = (row.value / grand_total) * 100.0
+
+    account_rows: list[PortfolioAccountValuation] = []
+    for aid in account_ids:
+        total = account_totals.get(aid, 0.0)
+        name, atype = acct_names.get(aid, (None, None))
+        account_rows.append(PortfolioAccountValuation(
+            account_id=aid,
+            account_name=name,
+            account_type=atype,
+            total=total,
+            positions_count=sum(1 for h in holdings if h.account_id == aid),
+            allocation_pct=((total / grand_total) * 100.0) if grand_total > 0 else None,
+        ))
+    account_rows.sort(key=lambda r: r.account_id)
+
+    type_rows: list[PortfolioTypeValuation] = []
+    for t, total in sorted(type_totals.items(), key=lambda kv: kv[1], reverse=True):
+        type_rows.append(PortfolioTypeValuation(
+            type=t,
+            total=total,
+            allocation_pct=((total / grand_total) * 100.0) if grand_total > 0 else None,
+        ))
+
+    return PortfolioValuationSummary(
+        grand_total=grand_total,
+        accounts=account_rows,
+        holdings=holding_rows,
+        types=type_rows,
+        computed_at=now,
+    )
 
 
 @router.post("/refresh-prices")

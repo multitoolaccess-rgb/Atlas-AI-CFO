@@ -23,6 +23,7 @@ import {
   // the old X icon implied.
   Pencil,
   Trash2,
+  Check,
 } from 'lucide-react'
 import PageLayout from '@/components/layout/PageLayout'
 import { AtlasFilterProvider } from '@/components/ui/AtlasFilterContext'
@@ -44,6 +45,7 @@ import {
   type Holding,
   type HoldingManualCreate,
   type HoldingUpdate,
+  type PortfolioValuationSummary,
   type Profile,
 } from '@/lib/api'
 import { classifyErrorMessage } from '@/lib/errors'
@@ -97,6 +99,18 @@ export default function PortfolioPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [priceWarning, setPriceWarning] = useState<string | null>(null)
   const [pricesAvailable, setPricesAvailable] = useState(false)
+
+  // GAP-12 (UI-12) — server-owned portfolio valuation projection. All
+  // totals / allocation % / gain % render from this; the browser only
+  // formats it. Null until ``/api/holdings/summary`` resolves.
+  const [valuation, setValuation] = useState<PortfolioValuationSummary | null>(null)
+
+  // GAP-11 (UI-12) — manage-mode gate. Defaults to READ-ONLY view so
+  // the certified UI-12 surface carries no mutation controls; flipping
+  // to manage mode reveals Import / Refresh Prices / Add Holding / the
+  // auto-refresh config / per-row Edit + Delete. In view mode the
+  // auto-refresh loop is also paused (it POSTs refresh-prices).
+  const [manageMode, setManageMode] = useState(false)
   // ---- Phase 48 — auto-refresh state ----
   // ``autoRefreshMinutes``: COMMITTED minutes between automatic
   // refreshes (0 = off, default DEFAULT_REFRESH_MINUTES, clamped to
@@ -209,16 +223,18 @@ export default function PortfolioPage() {
     setLoading(true)
     setError(null)
     try {
-      const [s, a, h, p] = await Promise.all([
+      const [s, a, h, p, v] = await Promise.all([
         rulesService.getDashboardSummary(),
         rulesService.listAccounts(),
         rulesService.listHoldings(),
         rulesService.getProfile().catch(() => null),
+        rulesService.getPortfolioValuation(),
       ])
       setSummary(s)
       setAccounts(a)
       setHoldings(h)
       setProfile(p)
+      setValuation(v)
       // Detect whether any row carries live-price data from a
       // previous refresh — drives the Top Movers visibility toggle.
       setPricesAvailable(h.some((row) => row.live_price != null))
@@ -318,14 +334,15 @@ export default function PortfolioPage() {
   }, [])
 
   // 1s ticker for the "Next refresh in MM:SS" countdown. Skipped
-  // when the loop is off (no countdown needed) so an off-user pays
-  // zero re-render cost — important because the countdown would
-  // otherwise force the entire page to re-render every second.
+  // when the loop is off OR the page is in read-only view mode (no
+  // countdown needed) so a view-mode user pays zero re-render cost —
+  // important because the countdown would otherwise force the entire
+  // page to re-render every second.
   useEffect(() => {
-    if (autoRefreshMinutes === 0) return
+    if (!manageMode || autoRefreshMinutes === 0) return
     const t = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(t)
-  }, [autoRefreshMinutes])
+  }, [manageMode, autoRefreshMinutes])
 
   // Auto-refresh loop. setInterval re-fires every
   // ``autoRefreshMinutes`` minutes. The tick skips when:
@@ -343,7 +360,11 @@ export default function PortfolioPage() {
   // could fire arbitrarily soon after the just-completed one).
   // ``holdings.length`` is in the deps so the interval tears
   // down when the user has no portfolio to refresh.
+  // ``manageMode`` (GAP-11): the loop POSTs refresh-prices, so it is
+  // fully paused in the default read-only view — the read-only surface
+  // never mutates server data.
   useEffect(() => {
+    if (!manageMode) return
     if (autoRefreshMinutes === 0) return
     if (typeof window === 'undefined') return
     if (holdings.length === 0) return
@@ -358,7 +379,7 @@ export default function PortfolioPage() {
     const intervalMs = autoRefreshMinutes * 60 * 1000
     const handle = setInterval(tick, intervalMs)
     return () => clearInterval(handle)
-  }, [autoRefreshMinutes, holdings.length, performRefresh, lastRefreshedAt])
+  }, [manageMode, autoRefreshMinutes, holdings.length, performRefresh, lastRefreshedAt])
 
   // "Next refresh in MM:SS" countdown. Reads the 1-second ticker
   // (``now``) so the display stays live without any setInterval
@@ -582,7 +603,23 @@ export default function PortfolioPage() {
     }
   }
 
-  // ---- Derived aggregates ----
+  // ---- Derived aggregates (GAP-12: every total / allocation % /
+  //      gain % comes from the server valuation projection; the
+  //      browser only formats. Row-level value cells may still show
+  //      ephemeral live quotes — those are server-returned fields,
+  //      not browser-computed portfolio math.) ----
+  const valuationByAccount = useMemo(() => {
+    const map: Record<number, PortfolioValuationSummary['accounts'][number]> = {}
+    for (const row of valuation?.accounts ?? []) map[row.account_id] = row
+    return map
+  }, [valuation])
+
+  const valuationByHolding = useMemo(() => {
+    const map: Record<number, PortfolioValuationSummary['holdings'][number]> = {}
+    for (const row of valuation?.holdings ?? []) map[row.holding_id] = row
+    return map
+  }, [valuation])
+
   const holdingsByAccount: Record<
     number,
     { account: Account; holdings: Holding[]; total: number }
@@ -591,20 +628,22 @@ export default function PortfolioPage() {
     if (!holdingsByAccount[h.account_id]) {
       const acct = accounts.find((a) => a.id === h.account_id)
       if (!acct) continue
-      holdingsByAccount[h.account_id] = { account: acct, holdings: [], total: 0 }
+      holdingsByAccount[h.account_id] = {
+        account: acct,
+        holdings: [],
+        total: valuationByAccount[h.account_id]?.total ?? 0,
+      }
     }
     holdingsByAccount[h.account_id].holdings.push(h)
   }
   for (const group of Object.values(holdingsByAccount)) {
-    group.total = group.holdings.reduce(
-      (sum, h) => sum + (h.live_value ?? h.current_value),
-      0
-    )
+    // Presentation ordering only — the authoritative totals live in
+    // ``valuationByAccount``.
     group.holdings.sort(
       (a, b) => (b.live_value ?? b.current_value) - (a.live_value ?? a.current_value)
     )
   }
-  const grandTotal = Object.values(holdingsByAccount).reduce((s, g) => s + g.total, 0)
+  const grandTotal = valuation?.grand_total ?? 0
 
   // ---- Phase 41 derived: Top Movers (only after live prices) ----
   const topMovers = useMemo(() => {
@@ -622,17 +661,20 @@ export default function PortfolioPage() {
   }, [holdings])
 
   // ---- Phase 41 derived: Top Holdings by % portfolio (concentration) ----
+  // Server-computed allocation percentages from the valuation projection
+  // (GAP-12) — the client only joins them back to rows for rendering.
   const topHoldingsConcentration = useMemo(() => {
     if (grandTotal <= 0) return []
-    return [...holdings]
-      .map((h) => ({
-        h,
-        pct: ((h.live_value ?? h.current_value) / grandTotal) * 100,
-        value: h.live_value ?? h.current_value,
-      }))
-      .sort((a, b) => b.pct - a.pct)
+    return [...(valuation?.holdings ?? [])]
+      .sort((a, b) => b.value - a.value)
       .slice(0, 10)
-  }, [holdings, grandTotal])
+      .map((row) => ({
+        h: holdings.find((h) => h.id === row.holding_id),
+        pct: row.allocation_pct ?? 0,
+        value: row.value,
+      }))
+      .filter((entry): entry is { h: Holding; pct: number; value: number } => entry.h != null)
+  }, [valuation, holdings, grandTotal])
 
   // ---- Phase 42 derived: every tradable holding (analyst-coverage batch) ----
   // User asked for analyst coverage to be visible on /portfolio's
@@ -869,59 +911,94 @@ export default function PortfolioPage() {
         greeting={profile?.full_name ?? 'Alex'}
       />
 
-      {/* Import + Refresh + Add Holding row (Phase 41 adds Add) */}
+      {/* Controls row — GAP-11 (UI-12): the page is READ-ONLY by
+          default. Import / Refresh Prices / Add Holding are mutation
+          flows gated behind an explicit manage mode, so the certified
+          read-only surface carries no write affordances. */}
       <div className="flex flex-wrap items-center gap-3 mt-6 mb-4">
-        <label className="relative">
-          <input
-            type="file"
-            accept=".csv,.pdf,application/pdf,text/csv"
-            onChange={handleImport}
-            disabled={importing}
-            className="absolute inset-0 opacity-0 cursor-pointer"
-          />
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={importing}
-            icon={
-              importing ? (
-                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <Upload className="w-4 h-4" aria-hidden="true" />
-              )
-            }
-          >
-            {importing ? 'Importing…' : 'Import Portfolio (CSV / PDF)'}
-          </Button>
-        </label>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={refreshing || holdings.length === 0}
-          icon={
-            refreshing ? (
-              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-            ) : (
-              <RefreshCw className="w-4 h-4" aria-hidden="true" />
-            )
-          }
-        >
-          {refreshing ? 'Refreshing…' : 'Refresh Prices'}
-        </Button>
-        <Button
-          variant="tertiary"
-          size="sm"
-          onClick={() => setShowAddForm(true)}
-          icon={<Plus className="w-4 h-4" aria-hidden="true" />}
-        >
-          Add Holding
-        </Button>
+        {!manageMode ? (
+          <div className="flex flex-wrap items-center gap-3 w-full">
+            <p className="text-xs text-secondary mr-auto" data-testid="readonly-note">
+              Read-only view — manage mode unlocks import, refresh, and edit controls.
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setManageMode(true)}
+              icon={<Pencil className="w-4 h-4" aria-hidden="true" />}
+            >
+              Manage portfolio
+            </Button>
+          </div>
+        ) : (
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setManageMode(false)}
+              icon={<Check className="w-4 h-4" aria-hidden="true" />}
+            >
+              Done
+            </Button>
+            <label className="relative">
+              <input
+                type="file"
+                accept=".csv,.pdf,application/pdf,text/csv"
+                onChange={handleImport}
+                disabled={importing}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={importing}
+                icon={
+                  importing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Upload className="w-4 h-4" aria-hidden="true" />
+                  )
+                }
+              >
+                {importing ? 'Importing…' : 'Import Portfolio (CSV / PDF)'}
+              </Button>
+            </label>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={refreshing || holdings.length === 0}
+              icon={
+                refreshing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" aria-hidden="true" />
+                )
+              }
+            >
+              {refreshing ? 'Refreshing…' : 'Refresh Prices'}
+            </Button>
+            <Button
+              variant="tertiary"
+              size="sm"
+              onClick={() => setShowAddForm(true)}
+              icon={<Plus className="w-4 h-4" aria-hidden="true" />}
+            >
+              Add Holding
+            </Button>
+          </>
+        )}
       </div>
 
       {/* ============================================================
           Phase 48 — auto-refresh config row
           ============================================================
+          GAP-11 (UI-12): the auto-refresh input COMMITS a refresh
+          loop (it POSTs refresh-prices), so the config row only
+          renders in manage mode. In the default read-only view the
+          loop is paused and only the last-refreshed badge (when one
+          exists) is shown.
+
           Sits BELOW the action buttons so the timer input reads as
           a "preference" rather than a sibling action. The number
           input is a plain styled <input type="number"> (NOT the
@@ -942,10 +1019,18 @@ export default function PortfolioPage() {
             signal without parsing the countdown.
           - "Auto-refresh is off" when the user set 0, so the row
             never reads as broken (input shows 0, no countdown). */}
+      {!manageMode && lastRefreshedLabel && (
+        <div className="flex flex-wrap items-center gap-3 -mt-2 mb-4 text-sm">
+          <span className="ml-auto text-xs text-secondary" data-testid="last-refreshed-label">
+            Last refreshed {lastRefreshedLabel}
+          </span>
+        </div>
+      )}
+      {manageMode && (
       <div className="flex flex-wrap items-center gap-3 -mt-2 mb-4 text-sm">
         <label
           htmlFor="auto-refresh-minutes"
-          className="label-sm uppercase tracking-wider text-tertiary"
+          className="label-sm uppercase tracking-wider text-secondary"
         >
           Auto-refresh every
         </label>
@@ -973,10 +1058,10 @@ export default function PortfolioPage() {
           title={`Minutes between automatic price refreshes (0 to disable, ${MIN_REFRESH_MINUTES}-${MAX_REFRESH_MINUTES})`}
           data-testid="auto-refresh-minutes-input"
         />
-        <span className="text-xs text-tertiary">min (0 = off)</span>
+        <span className="text-xs text-secondary">min (0 = off)</span>
         {autoRefreshMinutes > 0 && nextRefreshInSec !== null && (
           <span
-            className="text-xs text-tertiary font-mono"
+            className="text-xs text-secondary font-mono"
             data-testid="auto-refresh-countdown"
           >
             · Next in {Math.floor(nextRefreshInSec / 60)}:
@@ -985,7 +1070,7 @@ export default function PortfolioPage() {
         )}
         {autoRefreshMinutes === 0 && (
           <span
-            className="text-xs text-tertiary"
+            className="text-xs text-secondary"
             data-testid="auto-refresh-off-indicator"
           >
             · Auto-refresh is off
@@ -993,13 +1078,14 @@ export default function PortfolioPage() {
         )}
         {lastRefreshedLabel && (
           <span
-            className="ml-auto text-xs text-tertiary"
+            className="ml-auto text-xs text-secondary"
             data-testid="last-refreshed-label"
           >
             Last refreshed {lastRefreshedLabel}
           </span>
         )}
       </div>
+      )}
 
       {importStatus && (
         <div
@@ -1012,7 +1098,7 @@ export default function PortfolioPage() {
       )}
 
       {priceWarning && (
-        <div className="p-3 rounded-[var(--radius-md)] bg-[var(--warning-50)] text-[var(--warning-700)] border border-[var(--warning-200)] mb-4 text-sm">
+        <div className="p-3 rounded-[var(--radius-md)] bg-[var(--warning-50)] text-[var(--warning-800)] border border-[var(--warning-200)] mb-4 text-sm">
           ⚠️ {priceWarning}
         </div>
       )}
@@ -1064,13 +1150,13 @@ export default function PortfolioPage() {
             >
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-[var(--primary-50)] flex items-center justify-center border border-[var(--primary-200)]">
-                  <Sparkles className="w-4 h-4 text-[var(--primary-600)]" aria-hidden="true" />
+                  <Sparkles className="w-4 h-4 text-[var(--primary-700)]" aria-hidden="true" />
                 </div>
                 <div>
                   <h2 className="headline-md text-primary">Analyst Coverage</h2>
-                  <span className="text-xs text-tertiary">
+                  <span className="text-xs text-secondary">
                     sell-side consensus across your{' '}
-                    <span className="font-semibold text-[var(--primary-600)]">
+                    <span className="font-semibold text-[var(--primary-700)]">
                       {tradableHoldingsForCoverage.length} unique{' '}
                       {tradableHoldingsForCoverage.length === 1 ? 'ticker' : 'tickers'}
                     </span>
@@ -1087,28 +1173,28 @@ export default function PortfolioPage() {
                   }
                   if (!analystCoverageLoaded) {
                     return (
-                      <span className="ml-auto text-xs text-tertiary" role="status" aria-live="polite">
+                      <span className="ml-auto text-xs text-secondary" role="status" aria-live="polite">
                         Checking analyst coverage…
                       </span>
                     )
                   }
                   if (analystCoverageAggregate.requestErrors > 0) {
                     return (
-                      <span className="ml-auto text-xs text-[var(--warning-700)]" role="status" aria-live="polite">
+                      <span className="ml-auto text-xs text-[var(--warning-800)]" role="status" aria-live="polite">
                         {analystCoverageAggregate.covered}/{stockCount} covered · {analystCoverageAggregate.requestErrors}{' '}
                         {analystCoverageAggregate.requestErrors === 1 ? 'request' : 'requests'} need review
                         {analystCoverageAggregate.excluded > 0 && (
-                          <span className="opacity-60"> · {analystCoverageAggregate.excluded} excluded</span>
+                          <span className="opacity-80"> · {analystCoverageAggregate.excluded} excluded</span>
                         )}
                       </span>
                     )
                   }
                   if (analystCoverageAggregate.covered < stockCount) {
                     return (
-                      <span className="ml-auto text-xs text-tertiary">
+                      <span className="ml-auto text-xs text-secondary">
                         {analystCoverageAggregate.covered}/{stockCount} stocks covered
                         {analystCoverageAggregate.excluded > 0 && (
-                          <span className="opacity-60"> · {analystCoverageAggregate.excluded} excluded</span>
+                          <span className="opacity-80"> · {analystCoverageAggregate.excluded} excluded</span>
                         )}
                       </span>
                     )
@@ -1117,7 +1203,7 @@ export default function PortfolioPage() {
                     <span className="ml-auto text-xs text-[var(--success-700)]">
                       ✓ all {stockCount} stocks covered
                       {analystCoverageAggregate.excluded > 0 && (
-                        <span className="text-tertiary opacity-60"> · {analystCoverageAggregate.excluded} excluded</span>
+                        <span className="text-secondary opacity-80"> · {analystCoverageAggregate.excluded} excluded</span>
                       )}
                     </span>
                   )
@@ -1147,7 +1233,7 @@ export default function PortfolioPage() {
                     n: analystCoverageAggregate.hold,
                     bg: 'bg-[var(--bg-tertiary)]',
                     border: 'border-[var(--border-subtle)]',
-                    text: 'text-tertiary',
+                    text: 'text-secondary',
                   },
                   {
                     key: 'sell',
@@ -1155,7 +1241,7 @@ export default function PortfolioPage() {
                     n: analystCoverageAggregate.sell,
                     bg: 'bg-gradient-to-br from-[var(--warning-50)] to-[var(--warning-100)]',
                     border: 'border-[var(--warning-200)]',
-                    text: 'text-[var(--warning-700)]',
+                    text: 'text-[var(--warning-800)]',
                   },
                   {
                     key: 'strongSell',
@@ -1209,7 +1295,7 @@ export default function PortfolioPage() {
                     </div>
                     <div>
                       <h2 className="headline-md text-primary leading-tight">{group.account.account_name}</h2>
-                      <p className="text-xs text-tertiary mt-0.5">
+                      <p className="text-xs text-secondary mt-0.5">
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
                           {group.account.account_type}
                         </span>
@@ -1222,8 +1308,11 @@ export default function PortfolioPage() {
                     <p className="numeric-lg text-primary">
                       {group.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
-                    <p className="text-[10px] text-tertiary">
-                      {grandTotal > 0 ? `${((group.total / grandTotal) * 100).toFixed(1)}% of portfolio` : ''}
+                    <p className="text-[10px] text-secondary">
+                      {(() => {
+                        const apct = valuationByAccount[Number(acctId)]?.allocation_pct
+                        return apct != null ? `${apct.toFixed(1)}% of portfolio` : ''
+                      })()}
                     </p>
                   </div>
                 </div>
@@ -1232,30 +1321,31 @@ export default function PortfolioPage() {
                 <table className="w-full text-sm" data-testid="holdings-table">
                   <thead>
                     <tr className="border-b-2 border-[var(--border-color)] bg-gradient-to-r from-[var(--bg-secondary)] to-transparent">
-                      <th className="text-left py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-tertiary)] text-[10px]">Symbol</th>
-                      <th className="text-left py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-tertiary)] text-[10px]">Description</th>
-                      <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-tertiary)] text-[10px]">Shares</th>
-                      <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-tertiary)] text-[10px]">Price</th>
-                      <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-tertiary)] text-[10px]">Value</th>
-                      <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-tertiary)] text-[10px]">Gain/Loss</th>
-                      <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-tertiary)] text-[10px]">%</th>
-                      <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-tertiary)] text-[10px]">Action</th>
+                      <th className="text-left py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-secondary)] text-[10px]">Symbol</th>
+                      <th className="text-left py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-secondary)] text-[10px]">Description</th>
+                      <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-secondary)] text-[10px]">Shares</th>
+                      <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-secondary)] text-[10px]">Price</th>
+                      <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-secondary)] text-[10px]">Value</th>
+                      <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-secondary)] text-[10px]">Gain/Loss</th>
+                      <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-secondary)] text-[10px]">%</th>
+                      <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-secondary)] text-[10px]">Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {group.holdings.map((h, rowIdx) => {
                       const value = h.live_value ?? h.current_value
-                      const pct = group.total > 0 ? (value / group.total) * 100 : 0
-                      const gain =
-                        h.cost_basis_total != null && h.cost_basis_total !== 0
-                          ? ((value - h.cost_basis_total) / Math.abs(h.cost_basis_total)) * 100
-                          : null
+                      // GAP-12: allocation % and gain % are server-computed
+                      // (null-safe — '—' when the server could not derive
+                      // them, e.g. no cost basis or zero portfolio total).
+                      const valRow = valuationByHolding[h.id]
+                      const pct = valRow?.allocation_pct ?? null
+                      const gain = valRow?.gain_pct ?? null
                       const gainColor =
                         gain != null
                           ? gain >= 0
                             ? 'text-[var(--success-700)]'
                             : 'text-[var(--danger-700)]'
-                          : 'text-tertiary'
+                          : 'text-secondary'
                       // Zebra striping — alternating subtle background
                       const rowBg = rowIdx % 2 === 0 ? '' : 'bg-[var(--bg-tertiary)]/30'
                       return (
@@ -1270,7 +1360,7 @@ export default function PortfolioPage() {
                                   href={`https://finance.yahoo.com/quote/${encodeURIComponent(h.symbol.toUpperCase())}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 font-mono font-semibold text-primary text-xs hover:text-[var(--primary-600)] hover:underline transition-colors group"
+                                  className="inline-flex items-center gap-1 font-mono font-semibold text-primary text-xs hover:text-[var(--primary-700)] hover:underline transition-colors group"
                                   title={`View ${h.symbol} on Yahoo Finance`}
                                 >
                                   {h.symbol}
@@ -1283,7 +1373,7 @@ export default function PortfolioPage() {
                                 />
                               </div>
                             ) : (
-                              <span className="text-tertiary text-xs">—</span>
+                              <span className="text-secondary text-xs">—</span>
                             )}
                           </td>
                           <td className="py-2.5 px-4 text-primary max-w-[16rem] truncate" title={h.description || ''}>
@@ -1307,7 +1397,7 @@ export default function PortfolioPage() {
                                 {h.last_price.toFixed(2)}
                               </span>
                             ) : (
-                              <span className="text-tertiary text-xs">—</span>
+                              <span className="text-secondary text-xs">—</span>
                             )}
                           </td>
                           <td className="py-2.5 px-4 text-right font-semibold text-primary font-mono text-xs">
@@ -1316,8 +1406,8 @@ export default function PortfolioPage() {
                           <td className={`py-2.5 px-4 text-right font-mono text-xs ${gainColor}`}>
                             {gain != null ? `${gain >= 0 ? '+' : ''}${gain.toFixed(1)}%` : '—'}
                           </td>
-                          <td className="py-2.5 px-4 text-right text-tertiary text-xs">
-                            {pct.toFixed(1)}%
+                          <td className="py-2.5 px-4 text-right text-secondary text-xs">
+                            {pct != null ? `${pct.toFixed(1)}%` : '—'}
                           </td>
                           <td className="py-2.5 px-4 text-right">
                             {/* Phase 47 — three-button cluster.
@@ -1337,16 +1427,21 @@ export default function PortfolioPage() {
                                 differently on hover so a user scanning the row
                                 can tell which cursor is over which action. */}
                             <div className="inline-flex items-center gap-1 justify-end whitespace-nowrap">
-                              <button
-                                type="button"
-                                onClick={() => openEdit(h)}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--primary-50)] hover:text-[var(--primary-700)] border border-transparent hover:border-[var(--primary-200)] transition-colors"
-                                title={`Edit ${h.symbol ?? 'holding'}`}
-                                data-testid={`holding-edit-${h.id}`}
-                              >
-                                <Pencil className="w-3 h-3" aria-hidden="true" />
-                                Edit
-                              </button>
+                              {/* GAP-11 (UI-12): Edit + Delete are mutation
+                                  flows and render only in manage mode. Analyze
+                                  is a read-only fetch and stays available. */}
+                              {manageMode && (
+                                <button
+                                  type="button"
+                                  onClick={() => openEdit(h)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--primary-50)] hover:text-[var(--primary-700)] border border-transparent hover:border-[var(--primary-200)] transition-colors"
+                                  title={`Edit ${h.symbol ?? 'holding'}`}
+                                  data-testid={`holding-edit-${h.id}`}
+                                >
+                                  <Pencil className="w-3 h-3" aria-hidden="true" />
+                                  Edit
+                                </button>
+                              )}
                               {h.symbol && (
                                 <button
                                   type="button"
@@ -1359,16 +1454,18 @@ export default function PortfolioPage() {
                                   Analyze
                                 </button>
                               )}
-                              <button
-                                type="button"
-                                onClick={() => openDelete(h)}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--danger-50)] hover:text-[var(--danger-700)] border border-transparent hover:border-[var(--danger-200)] transition-colors"
-                                title={`Delete ${h.symbol ?? 'holding'}`}
-                                data-testid={`holding-delete-${h.id}`}
-                              >
-                                <Trash2 className="w-3 h-3" aria-hidden="true" />
-                                Delete
-                              </button>
+                              {manageMode && (
+                                <button
+                                  type="button"
+                                  onClick={() => openDelete(h)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--danger-50)] hover:text-[var(--danger-700)] border border-transparent hover:border-[var(--danger-200)] transition-colors"
+                                  title={`Delete ${h.symbol ?? 'holding'}`}
+                                  data-testid={`holding-delete-${h.id}`}
+                                >
+                                  <Trash2 className="w-3 h-3" aria-hidden="true" />
+                                  Delete
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1388,11 +1485,11 @@ export default function PortfolioPage() {
             <section className="card p-6 border-l-4 border-l-[var(--primary-400)] h-full" data-testid="top-movers-card">
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-8 h-8 rounded-lg bg-[var(--primary-50)] flex items-center justify-center border border-[var(--primary-200)]">
-                  <TrendingUp className="w-4 h-4 text-[var(--primary-600)]" aria-hidden="true" />
+                  <TrendingUp className="w-4 h-4 text-[var(--primary-700)]" aria-hidden="true" />
                 </div>
                 <div>
                   <h2 className="headline-md text-primary">Top Movers</h2>
-                  <span className="text-xs text-tertiary">from today’s live prices</span>
+                  <span className="text-xs text-secondary">from today’s live prices</span>
                 </div>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1413,7 +1510,7 @@ export default function PortfolioPage() {
                             href={`https://finance.yahoo.com/quote/${encodeURIComponent((h.symbol ?? '').toUpperCase())}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-12 font-mono font-bold text-primary hover:text-[var(--primary-600)] hover:underline transition-colors"
+                            className="w-12 font-mono font-bold text-primary hover:text-[var(--primary-700)] hover:underline transition-colors"
                             title={`View ${h.symbol} on Yahoo Finance`}
                           >
                             {h.symbol}
@@ -1455,7 +1552,7 @@ export default function PortfolioPage() {
                             href={`https://finance.yahoo.com/quote/${encodeURIComponent((h.symbol ?? '').toUpperCase())}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-12 font-mono font-bold text-primary hover:text-[var(--primary-600)] hover:underline transition-colors"
+                            className="w-12 font-mono font-bold text-primary hover:text-[var(--primary-700)] hover:underline transition-colors"
                             title={`View ${h.symbol} on Yahoo Finance`}
                           >
                             {h.symbol}
@@ -1494,27 +1591,30 @@ export default function PortfolioPage() {
             <section className="card p-6 border-l-4 border-l-[var(--primary-400)] h-full" data-testid="asset-allocation-card">
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-8 h-8 rounded-lg bg-[var(--primary-50)] flex items-center justify-center border border-[var(--primary-200)]">
-                  <Wallet className="w-4 h-4 text-[var(--primary-600)]" aria-hidden="true" />
+                  <Wallet className="w-4 h-4 text-[var(--primary-700)]" aria-hidden="true" />
                 </div>
                 <h2 className="headline-md text-primary">Asset Allocation</h2>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
                 {/* SVG donut */}
                 <ChartDonut
-                  slices={Object.entries(holdingsByAccount).map(([acctId, g], i) => ({
-                    label: g.account.account_name,
-                    value: g.total,
-                    color: accountPalette[i % accountPalette.length],
-                    pctLabel: `${((g.total / grandTotal) * 100).toFixed(1)}%`,
-                    subLabel: g.account.account_type,
-                  }))}
+                  slices={Object.entries(holdingsByAccount).map(([acctId, g], i) => {
+                    const apct = valuationByAccount[Number(acctId)]?.allocation_pct
+                    return {
+                      label: g.account.account_name,
+                      value: g.total,
+                      color: accountPalette[i % accountPalette.length],
+                      pctLabel: apct != null ? `${apct.toFixed(1)}%` : '—',
+                      subLabel: g.account.account_type,
+                    }
+                  })}
                   centerLabel="Total"
                   centerValue={grandTotal}
                 />
                 {/* Bars + legend */}
                 <div className="space-y-3">
                   {Object.entries(holdingsByAccount).map(([acctId, group], i) => {
-                    const pct = (group.total / grandTotal) * 100
+                    const pct = valuationByAccount[Number(acctId)]?.allocation_pct ?? 0
                     const color = accountPalette[i % accountPalette.length]
                     return (
                       <div key={acctId} className="space-y-1.5">
@@ -1526,7 +1626,7 @@ export default function PortfolioPage() {
                               aria-hidden="true"
                             />
                             <span className="text-primary font-medium">{group.account.account_name}</span>
-                            <span className="text-tertiary text-xs">
+                            <span className="text-secondary text-xs">
                               {group.account.account_type}
                             </span>
                           </div>
@@ -1553,33 +1653,26 @@ export default function PortfolioPage() {
                 </div>
               </div>
 
-              {/* Type breakdown */}
+              {/* Type breakdown (server rollup from the valuation
+                  projection — GAP-12) */}
               {(() => {
-                const typeTotals: Record<string, number> = {}
-                for (const h of holdings) {
-                  const t = h.type || 'Other'
-                  typeTotals[t] = (typeTotals[t] || 0) + (h.live_value ?? h.current_value)
-                }
-                const types = Object.entries(typeTotals).sort((a, b) => b[1] - a[1])
+                const types = valuation?.types ?? []
                 if (types.length <= 1) return null
                 return (
                   <div className="mt-6 pt-4 border-t border-[var(--border-subtle)]">
-                    <p className="label-sm text-tertiary uppercase tracking-wider mb-3">By Asset Type</p>
+                    <p className="label-sm text-secondary uppercase tracking-wider mb-3">By Asset Type</p>
                     <div className="flex flex-wrap gap-3">
-                      {types.map(([type, value]) => {
-                        const tpct = (value / grandTotal) * 100
-                        return (
-                          <div
-                            key={type}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-tertiary)]"
-                          >
-                            <span className="text-sm text-primary font-medium">{type}</span>
-                            <span className="text-xs text-tertiary">
-                              {tpct.toFixed(1)}%
-                            </span>
-                          </div>
-                        )
-                      })}
+                      {types.map(({ type, total: _value, allocation_pct: tpctRaw }) => (
+                        <div
+                          key={type}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-tertiary)]"
+                        >
+                          <span className="text-sm text-primary font-medium">{type}</span>
+                          <span className="text-xs text-secondary">
+                            {tpctRaw != null ? `${tpctRaw.toFixed(1)}%` : '—'}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )
@@ -1600,7 +1693,7 @@ export default function PortfolioPage() {
                 </div>
                 <div>
                   <h2 className="headline-md text-primary">Top Holdings Concentration</h2>
-                  <span className="text-xs text-tertiary">top 10 by weight</span>
+                  <span className="text-xs text-secondary">top 10 by weight</span>
                 </div>
               </div>
               <div className="space-y-3">
@@ -1624,7 +1717,7 @@ export default function PortfolioPage() {
                               href={`https://finance.yahoo.com/quote/${encodeURIComponent(h.symbol.toUpperCase())}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 font-mono font-semibold text-primary text-xs hover:text-[var(--primary-600)] hover:underline transition-colors group"
+                              className="inline-flex items-center gap-1 font-mono font-semibold text-primary text-xs hover:text-[var(--primary-700)] hover:underline transition-colors group"
                               title={`View ${h.symbol} on Yahoo Finance`}
                             >
                               {h.symbol}
@@ -1634,7 +1727,7 @@ export default function PortfolioPage() {
                             <span className="font-mono font-semibold text-primary text-xs">—</span>
                           )}
                           {h.description && (
-                            <span className="text-tertiary text-xs truncate max-w-[20rem]" title={h.description}>
+                            <span className="text-secondary text-xs truncate max-w-[20rem]" title={h.description}>
                               {h.description}
                             </span>
                           )}
@@ -1643,7 +1736,7 @@ export default function PortfolioPage() {
                               className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
                                 dangerLevel === 'danger'
                                   ? 'bg-[var(--danger-50)] text-[var(--danger-700)] border border-[var(--danger-200)]'
-                                  : 'bg-[var(--warning-50)] text-[var(--warning-700)] border border-[var(--warning-200)]'
+                                  : 'bg-[var(--warning-50)] text-[var(--warning-800)] border border-[var(--warning-200)]'
                               }`}
                               title={
                                 dangerLevel === 'danger'
@@ -1660,7 +1753,7 @@ export default function PortfolioPage() {
                           <span className="text-primary font-mono text-xs">
                             ${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                           </span>
-                          <span className="text-tertiary text-xs ml-2 font-mono">{pct.toFixed(1)}%</span>
+                          <span className="text-secondary text-xs ml-2 font-mono">{pct.toFixed(1)}%</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1689,7 +1782,7 @@ export default function PortfolioPage() {
           <div className="card p-5 flex items-center justify-between bg-gradient-to-r from-[var(--primary-200)]/15 to-transparent border-l-4 border-l-[var(--primary-500)]">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-[var(--primary-100)] flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-[var(--primary-600)]" aria-hidden="true" />
+                <Wallet className="w-5 h-5 text-[var(--primary-700)]" aria-hidden="true" />
               </div>
               <span className="label-md text-primary">Total Portfolio Value</span>
               {pricesAvailable && (
@@ -1745,7 +1838,7 @@ export default function PortfolioPage() {
       >
         <form id="add-holding-form" onSubmit={submitAddHolding} className="space-y-4">
           <div>
-            <p className="label-sm uppercase tracking-wider text-tertiary mb-2">Account</p>
+            <p className="label-sm uppercase tracking-wider text-secondary mb-2">Account</p>
             <div className="flex items-center gap-3 mb-2">
               {(['existing', 'new'] as const).map((mode) => (
                 <label key={mode} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -1825,7 +1918,7 @@ export default function PortfolioPage() {
               placeholder="optional"
             />
           </div>
-          <p className="text-xs text-tertiary">
+          <p className="text-xs text-secondary">
             Cost basis defaults to <code>last_price × quantity</code> if left blank.
             Account balance is recomputed automatically when this holding lands.
           </p>
@@ -1927,7 +2020,7 @@ export default function PortfolioPage() {
               placeholder="optional"
             />
           </div>
-          <p className="text-xs text-tertiary">
+          <p className="text-xs text-secondary">
             Server auto-derives position value as <code>last price × quantity</code>{' '}
             when both are updated. The parent account&apos;s balance is recomputed
             when the patch lands.
@@ -1994,7 +2087,7 @@ export default function PortfolioPage() {
           {deleteHoldingRow && (
             <div className="card p-4 bg-[var(--bg-secondary)] space-y-2 text-sm">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-tertiary uppercase label-xs tracking-wider">
+                <span className="text-secondary uppercase label-xs tracking-wider">
                   Symbol
                 </span>
                 <span className="font-mono font-semibold text-primary">
@@ -2002,7 +2095,7 @@ export default function PortfolioPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-tertiary uppercase label-xs tracking-wider">
+                <span className="text-secondary uppercase label-xs tracking-wider">
                   Description
                 </span>
                 <span
@@ -2013,7 +2106,7 @@ export default function PortfolioPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-tertiary uppercase label-xs tracking-wider">
+                <span className="text-secondary uppercase label-xs tracking-wider">
                   Shares
                 </span>
                 <span className="font-mono text-secondary">
@@ -2025,7 +2118,7 @@ export default function PortfolioPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-tertiary uppercase label-xs tracking-wider">
+                <span className="text-secondary uppercase label-xs tracking-wider">
                   Value
                 </span>
                 <span className="font-mono font-semibold text-primary">
@@ -2142,7 +2235,7 @@ function RatingsChip({
   const entry = ratingsByTicker[symbol]
   if (!entry) return (
     <span
-      className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider text-tertiary"
+      className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider text-secondary"
       title={`${symbol}: ratings not yet fetched`}
       data-testid={`ratings-chip-pending-${symbol}`}
     >
@@ -2152,7 +2245,7 @@ function RatingsChip({
   if (entry.state === 'loading') {
     return (
       <span
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider bg-[var(--bg-tertiary)] text-tertiary"
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider bg-[var(--bg-tertiary)] text-secondary"
         title={`Loading analyst consensus for ${symbol}…`}
         data-testid={`ratings-chip-loading-${symbol}`}
       >
@@ -2165,7 +2258,7 @@ function RatingsChip({
     const assetLabel = noCoverageLabel(holdingType)
     return (
       <span
-        className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider bg-[var(--bg-tertiary)] text-tertiary border border-[var(--border-subtle)]"
+        className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider bg-[var(--bg-tertiary)] text-secondary border border-[var(--border-subtle)]"
         title={assetLabel ? `${symbol}: ${holdingType} — Finnhub does not provide analyst consensus for this asset class` : `${symbol}: ${entry.message}`}
         data-testid={`ratings-chip-error-${symbol}`}
       >
@@ -2182,7 +2275,7 @@ function RatingsChip({
     const assetLabel = noCoverageLabel(holdingType)
     return (
       <span
-        className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider bg-[var(--bg-tertiary)] text-tertiary border border-[var(--border-subtle)]"
+        className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider bg-[var(--bg-tertiary)] text-secondary border border-[var(--border-subtle)]"
         title={assetLabel ? `${symbol}: ${holdingType} — no analyst consensus available` : `${symbol}: no consensus yet`}
         data-testid={`ratings-chip-empty-${symbol}`}
       >
@@ -2229,8 +2322,8 @@ function RatingsChip({
   const colorMap: Record<keyof typeof weighted, string> = {
     strongBuy: 'bg-[var(--success-50)] text-[var(--success-700)] border-[var(--success-200)]',
     buy: 'bg-[var(--success-50)] text-[var(--success-600)] border-[var(--success-200)]',
-    hold: 'bg-[var(--bg-tertiary)] text-tertiary border-[var(--border-subtle)]',
-    sell: 'bg-[var(--warning-50)] text-[var(--warning-700)] border-[var(--warning-200)]',
+    hold: 'bg-[var(--bg-tertiary)] text-secondary border-[var(--border-subtle)]',
+    sell: 'bg-[var(--warning-50)] text-[var(--warning-800)] border-[var(--warning-200)]',
     strongSell: 'bg-[var(--danger-50)] text-[var(--danger-700)] border-[var(--danger-200)]',
   }
   return (
@@ -2272,7 +2365,7 @@ function AnalyzeContent({
   if (!ratings || ratings.state === 'loading') {
     return (
       <div className="space-y-3" data-testid="ratings-loading">
-        <div className="flex items-center gap-2 text-tertiary text-sm">
+        <div className="flex items-center gap-2 text-secondary text-sm">
           <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
           Fetching consensus for {symbol}…
         </div>
@@ -2322,7 +2415,7 @@ function AnalyzeContent({
   // misleading. Show an honest empty card instead.
   if (aggregateTotal === 0 && consensusMonths.length === 0) {
     return (
-      <div className="p-6 text-center text-sm text-tertiary" data-testid="ratings-empty">
+      <div className="p-6 text-center text-sm text-secondary" data-testid="ratings-empty">
         No analyst coverage found for <strong>{symbol}</strong> yet.
         <br />
         The consensus will appear here once sell-side analysts publish a rating.
@@ -2357,7 +2450,7 @@ function AnalyzeContent({
           strokeWidth={5}
           color={consensusColors.hold}
           trackColor="var(--bg-tertiary)"
-          label={<span className="text-[10px] font-mono font-semibold text-tertiary">{aggregate.hold}</span>}
+          label={<span className="text-[10px] font-mono font-semibold text-secondary">{aggregate.hold}</span>}
         />
         <AnimatedRadialProgress
           percentage={(aggregate.sell / aggregateTotalSafe) * 100}
@@ -2365,7 +2458,7 @@ function AnalyzeContent({
           strokeWidth={5}
           color={consensusColors.sell}
           trackColor="var(--bg-tertiary)"
-          label={<span className="text-[10px] font-mono font-semibold text-[var(--warning-700)]">{aggregate.sell}</span>}
+          label={<span className="text-[10px] font-mono font-semibold text-[var(--warning-800)]">{aggregate.sell}</span>}
         />
         <AnimatedRadialProgress
           percentage={(aggregate.strongSell / aggregateTotalSafe) * 100}
@@ -2376,18 +2469,18 @@ function AnalyzeContent({
           label={<span className="text-[10px] font-mono font-semibold text-[var(--danger-700)]">{aggregate.strongSell}</span>}
         />
       </div>
-      <p className="text-xs text-tertiary">
+      <p className="text-xs text-secondary">
         Aggregate of last {consensusMonths.length} reported months:{' '}
         <span className="font-mono text-[var(--success-700)]">{aggregate.strongBuy} Strong Buy</span> ·{' '}
         <span className="font-mono text-[var(--success-600)]">{aggregate.buy} Buy</span> ·{' '}
         <span className="font-mono">{aggregate.hold} Hold</span> ·{' '}
-        <span className="font-mono text-[var(--warning-700)]">{aggregate.sell} Sell</span> ·{' '}
+        <span className="font-mono text-[var(--warning-800)]">{aggregate.sell} Sell</span> ·{' '}
         <span className="font-mono text-[var(--danger-700)]">{aggregate.strongSell} Strong Sell</span>
       </p>
 
       {consensusMonths.length > 0 && (
         <div>
-          <p className="label-sm uppercase tracking-wider text-tertiary mb-2">Trend (last {consensusMonths.length} months)</p>
+          <p className="label-sm uppercase tracking-wider text-secondary mb-2">Trend (last {consensusMonths.length} months)</p>
           <div className="space-y-2">
             {consensusMonths.map((t, idx) => {
               const total =
@@ -2395,8 +2488,8 @@ function AnalyzeContent({
               return (
                 <div key={idx} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-mono text-tertiary">{t.period}</span>
-                    <span className="text-tertiary">{total} reports</span>
+                    <span className="font-mono text-secondary">{t.period}</span>
+                    <span className="text-secondary">{total} reports</span>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <AnimatedRadialProgress
@@ -2421,7 +2514,7 @@ function AnalyzeContent({
                       strokeWidth={4}
                       color={consensusColors.hold}
                       trackColor="var(--bg-tertiary)"
-                      label={<span className="text-[8px] font-mono font-semibold text-tertiary">{t.hold ?? 0}</span>}
+                      label={<span className="text-[8px] font-mono font-semibold text-secondary">{t.hold ?? 0}</span>}
                     />
                     <AnimatedRadialProgress
                       percentage={Math.min(100, ((t.sell ?? 0) / trendMax) * 100)}
@@ -2429,7 +2522,7 @@ function AnalyzeContent({
                       strokeWidth={4}
                       color={consensusColors.sell}
                       trackColor="var(--bg-tertiary)"
-                      label={<span className="text-[8px] font-mono font-semibold text-[var(--warning-700)]">{t.sell ?? 0}</span>}
+                      label={<span className="text-[8px] font-mono font-semibold text-[var(--warning-800)]">{t.sell ?? 0}</span>}
                     />
                     <AnimatedRadialProgress
                       percentage={Math.min(100, ((t.strongSell ?? 0) / trendMax) * 100)}
@@ -2449,26 +2542,26 @@ function AnalyzeContent({
 
       {pt ? (
         <div className="card p-4 bg-[var(--bg-secondary)]">
-          <p className="label-sm uppercase tracking-wider text-tertiary mb-2">Price Target</p>
+          <p className="label-sm uppercase tracking-wider text-secondary mb-2">Price Target</p>
           <div className="grid grid-cols-4 gap-3">
             <div>
-              <p className="text-[10px] text-tertiary uppercase">Low</p>
+              <p className="text-[10px] text-secondary uppercase">Low</p>
               <p className="numeric-md text-[var(--danger-600)]">{pt.targetLow?.toFixed(2) ?? '—'}</p>
             </div>
             <div>
-              <p className="text-[10px] text-tertiary uppercase">Mean</p>
+              <p className="text-[10px] text-secondary uppercase">Mean</p>
               <p className="numeric-md text-[var(--text-primary)] font-bold">{pt.targetMean?.toFixed(2) ?? '—'}</p>
             </div>
             <div>
-              <p className="text-[10px] text-tertiary uppercase">Median</p>
+              <p className="text-[10px] text-secondary uppercase">Median</p>
               <p className="numeric-md text-primary">{pt.targetMedian?.toFixed(2) ?? '—'}</p>
             </div>
             <div>
-              <p className="text-[10px] text-tertiary uppercase">High</p>
+              <p className="text-[10px] text-secondary uppercase">High</p>
               <p className="numeric-md text-[var(--success-600)]">{pt.targetHigh?.toFixed(2) ?? '—'}</p>
             </div>
           </div>
-          <p className="text-[11px] text-tertiary mt-2">
+          <p className="text-[11px] text-secondary mt-2">
             Dominant signal:{' '}
             <span className="font-semibold text-[var(--success-700)]">
               {dominant === 'strongBuy' ? 'Strong Buy' : 'Buy'}
@@ -2476,7 +2569,7 @@ function AnalyzeContent({
           </p>
         </div>
       ) : (
-        <div className="card p-4 bg-[var(--bg-secondary)] text-sm text-tertiary">
+        <div className="card p-4 bg-[var(--bg-secondary)] text-sm text-secondary">
           No price target consensus available for {symbol}.
         </div>
       )}
