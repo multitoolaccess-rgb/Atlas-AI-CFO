@@ -1,0 +1,480 @@
+category_name,keyword,priority,is_archived,source
+ATM Withdrawals,WITHDRWL,100,false,tag-rule
+Base Salary,PAYROLL,10,false,system
+Base Salary,DIRECT DEPOSIT,20,false,system
+Base Salary,SALARY,30,false,system
+Base Salary,DEPOSIT,40,false,system
+Base Salary,E2E-AUTO-PRIO-TEST,100,false,manual
+Base Salary,E2E-AUTO-PRIO-1785697369161,110,false,manual
+Base Salary,E2E-AUTO-PRIO-1785697384523,120,false,manual
+Base Salary,E2E-AUTO-PRIO-1785716174087,130,false,manual
+Base Salary,E2E-AUTO-PRIO-1785716224851,140,false,manual
+Base Salary,E2E-AUTO-PRIO-1785716388809,150,false,manual
+Base Salary,E2E-AUTO-PRIO-1785717049960,160,false,manual
+Base Salary,E2E-AUTO-PRIO-1785717496548,170,false,manual
+Base Salary,E2E-AUTO-PRIO-1785717818635,180,false,manual
+Base Salary,E2E-AUTO-PRIO-1786408596542,190,false,manual
+Base Salary,E2E-AUTO-PRIO-1786408644955,200,false,manual
+Base Salary,E2E-AUTO-PRIO-1786411026083,210,false,manual
+Base Salary,E2E-AUTO-PRIO-1786416841351,220,false,manual
+Base Salary,E2E-AUTO-PRIO-1786417161067,230,false,manual
+Base Salary,E2E-AUTO-PRIO-1786417422174,240,false,manual
+Base Salary,E2E-AUTO-PRIO-1786417730071,250,false,manual
+Base Salary,E2E-AUTO-PRIO-1786418504326,260,false,manual
+Bills & Utilities,VERIZON,2180,false,system
+Bills & Utilities,AT&T,2190,false,system
+Bills & Utilities,AT&T ,2200,false,system
+Bills & Utilities,AT&T SERVICES,2210,false,system
+Bills & Utilities,T-MOBILE,2220,false,system
+Bills & Utilities,TMOBILE,2230,false,system
+Bills & Utilities,SPRINT,2240,false,system
+Bills & Utilities,COMCAST,2250,false,system
+Bills & Utilities,XFINITY,2260,false,system
+Bills & Utilities,SPECTRUM,2270,false,system
+Bills & Utilities,COX COMM,2280,false,system
+Bills & Utilities,ELECTRIC,2290,false,system
+Bills & Utilities,GAS COMPANY,2300,false,system
+Bills & Utilities,WATER,2310,false,system
+Bills & Utilities,SEWER,2320,false,system
+Bills & Utilities,WASTE MANAGEMENT,2330,false,system
+Bills & Utilities,WASTE MGMT,2340,false,system
+Bills & Utilities,PG&E,2350,false,system
+Bills & Utilities,CON EDISON,2360,false,system
+Bills & Utilities,DUKE ENERGY,2370,false,system
+Bills & Utilities,NATIONAL GRID,2380,false,system
+Bills & Utilities,SOUTHERN CALIFORNIA EDISON,2390,false,system
+Bills & Utilities,RENT,2400,false,system
+Bills & Utilities,LEASE PAYMENT,2410,false,system
+Bills & Utilities,MORTGAGE,2420,false,system
+Bills & Utilities,PROPERTY MGMT,2430,false,system
+Bills & Utilities,INTERNET,2440,false,system
+Bills & Utilities,PHONE BILL,2450,false,system
+Bills & Utilities,WIFI,2460,false,system
+Bills & Utilities,ALLSTATE,2470,false,system
+Bills & Utilities,GEICO,2480,false,system
+Bills & Utilities,STATE FARM,2490,false,system
+Bills & Utilities,PROGRESSIVE,2500,false,system
+Bills & Utilities,INSURANCE,2510,false,system
+Bills & Utilities,PUGET SOUND ENER DES:BILLPAY,2520,false,tag-rule
+Bills & Utilities,EDMONDS SD,2530,false,tag-rule
+Bills & Utilities,RING BASIC PLAN HAWTHORNE CA NULL XXXXXXXXXXXX7280,2540,false,llm
+Bills & Utilities,AVA ROCKMEADOW LEASEAPP,2550,false,tag-rule
+Brokerage Buys,YOU BOUGHT,100,false,system
+Brokerage Buys,YOU SOLD,110,false,system
+Brokerage Buys,REINVESTMENT,120,false,system
+Brokerage Buys,ROBINHOOD DEBITS,130,false,tag-rule
+Capital Gains,CAPITAL GAIN,130,false,system
+Credit Card Payments,ONLINE PAYMENT,140,false,system
+Credit Card Payments,MOBILE PAYMENT,150,false,system
+Credit Card Payments,AUTOMATIC PAYMENT,160,false,system
+Credit Card Payments,ELECTRONIC PAYMENT,170,false,system
+Credit Card Payments,PAYMENT THANK YOU,180,false,system
+Credit Card Payments,AUTOPAY PAYMENT,190,false,system
+Credit Card Payments,SCHEDULED PAYMENT,200,false,system
+Credit Card Payments,CHASE CREDIT CRD DES:EPAY,210,false,tag-rule
+Education,TUITION,3190,false,system
+Education,UNIVERSITY,3200,false,system
+Education,COLLEGE,3210,false,system
+Education,SCHOOL,3220,false,system
+Education,UDEMY,3230,false,system
+Education,COURSERA,3240,false,system
+Education,EDX,3250,false,system
+Education,TEXTBOOK,3260,false,system
+Education,BOOKSTORE,3270,false,system
+Education,KHAN ACADEMY,3280,false,system
+Education,SKILLSHARE,3290,false,system
+Education,MASTERCLASS,3300,false,system
+Education,STUDENT LOAN,3310,false,system
+Education,FAFSA,3320,false,system
+Education,MYPERFECTRESUME.COM,3330,false,tag-rule
+Entertainment,NETFLIX,1830,false,system
+Entertainment,HULU,1840,false,system
+Entertainment,DISNEY+,1850,false,system
+Entertainment,DISNEY PLUS,1860,false,system
+Entertainment,SPOTIFY,1870,false,system
+Entertainment,AMAZON PRIME,1880,false,system
+Entertainment,PRIME VIDEO,1890,false,system
+Entertainment,HBO MAX,1900,true,system
+Entertainment,HBOMAX,1910,true,system
+Entertainment,PARAMOUNT+,1920,false,system
+Entertainment,PARAMOUNT PLUS,1930,false,system
+Entertainment,PEACOCK,1940,false,system
+Entertainment,YOUTUBE PREMIUM,1950,false,system
+Entertainment,YOUTUBE TV,1960,false,system
+Entertainment,APPLE MUSIC,1970,false,system
+Entertainment,APPLE TV+,1980,false,system
+Entertainment,APPLE TV PLUS,1990,false,system
+Entertainment,HBO,2000,false,system
+Entertainment,MOVIE,2010,false,system
+Entertainment,CINEMA,2020,false,system
+Entertainment,AMC,2030,false,system
+Entertainment,REGAL,2040,false,system
+Entertainment,CONCERT,2050,false,system
+Entertainment,STEAM,2060,false,system
+Entertainment,PLAYSTATION,2070,false,system
+Entertainment,XBOX,2080,false,system
+Entertainment,NINTENDO,2090,false,system
+Entertainment,TWITCH,2100,false,system
+Entertainment,EPIC GAMES,2110,false,system
+Entertainment,ROBLOX,2120,false,system
+Entertainment,BLIZZARD,2130,false,system
+Entertainment,TICKETMASTER,2140,false,system
+Entertainment,STUBHUB,2150,false,system
+Entertainment,EVENTBRITE,2160,false,system
+Entertainment,LIVE NATION,2170,false,system
+Entertainment,ARENA SPORTS,2180,false,tag-rule
+Entertainment,BANQUETS,2190,false,tag-rule
+Entertainment,FUN EXPRESS,2200,false,tag-rule
+Entertainment,FREEDOM GUN RANGE LLC,2210,false,tag-rule
+Entertainment,EB *AVN ADULT ENTERTAI,2220,false,tag-rule
+Entertainment,TIQETS,2230,false,tag-rule
+Entertainment,KIDSTRONG,2240,false,tag-rule
+Entertainment,LEGO,2250,false,tag-rule
+Entertainment,DORIAN STUDIO. INC,2260,false,llm
+Entertainment,GLOW LANGLEY,2270,false,tag-rule
+Entertainment,TBMBM,2280,false,tag-rule
+Food & Dining,STARBUCKS,530,false,system
+Food & Dining,MCDONALD,540,false,system
+Food & Dining,CHIPOTLE,550,false,system
+Food & Dining,PANERA,560,false,system
+Food & Dining,DUNKIN,570,false,system
+Food & Dining,TIM HORTONS,580,false,system
+Food & Dining,BLUE BOTTLE,590,false,system
+Food & Dining,BLUE BOTL,600,false,system
+Food & Dining,PEET'S,610,false,system
+Food & Dining,PEETS,620,false,system
+Food & Dining,PHILZ,630,false,system
+Food & Dining,LA COLOMBE,640,false,system
+Food & Dining,INTELLIGENTSIA,650,false,system
+Food & Dining,COUNTER CULTURE,660,false,system
+Food & Dining,STUMPTOWN,670,false,system
+Food & Dining,DOORDASH,680,false,system
+Food & Dining,UBER EATS,690,false,system
+Food & Dining,GRUBHUB,700,false,system
+Food & Dining,CAVIAR,710,false,system
+Food & Dining,POSTMATES,720,false,system
+Food & Dining,SEAMLESS,730,false,system
+Food & Dining,CAVA,740,false,system
+Food & Dining,SWEETGREEN,750,false,system
+Food & Dining,RESTAURANT,760,false,system
+Food & Dining,CAFE,770,false,system
+Food & Dining,COFFEE,780,false,system
+Food & Dining,BISTRO,790,false,system
+Food & Dining,DINER,800,false,system
+Food & Dining,PIZZA,810,false,system
+Food & Dining,SUBWAY,820,false,system
+Food & Dining,TACO,830,false,system
+Food & Dining,SUSHI,840,false,system
+Food & Dining,BANGKOK,850,false,system
+Food & Dining,BOWL,860,false,system
+Food & Dining,THAI,870,false,system
+Food & Dining,INDIAN,880,false,system
+Food & Dining,CHINESE,890,false,system
+Food & Dining,MEXICAN,900,false,system
+Food & Dining,BURGER,910,false,system
+Food & Dining,CHICK-FIL-A #03251,920,true,tag-rule
+Food & Dining,EZELLS,930,false,tag-rule
+Food & Dining,CHICK-FIL-A,940,false,tag-rule
+Food & Dining,TPD BOTHELL,950,false,tag-rule
+Food & Dining,GRILL,960,false,tag-rule
+Food & Dining,COLDSTONE,970,false,tag-rule
+Food & Dining,TAQUERIA,980,false,tag-rule
+Food & Dining,ELEVATED SPORTZ,990,false,llm
+Food & Dining,SP ROSLYN CANDY CO.,1000,false,llm
+Food & Dining,ZSK*IT THORPFRUIT ANTI,1010,false,llm
+Food & Dining,WOODLAND PARK ZOO,1020,false,llm
+Food & Dining,PHINEAS Q BUTTERPHATS I.,1030,false,llm
+Food & Dining,7-ELEVEN,1040,false,llm
+Food & Dining,SPEEDWAY,1050,false,llm
+Food & Dining,HUDSON ST 1479,1060,false,llm
+Food & Dining,7-ELEVEN 23929,1070,false,llm
+Food & Dining,GOLGAPPA FACTORY,1080,false,llm
+Food & Dining,PAGLIACCI BALLINGER WAY,1090,false,llm
+Food & Dining,CASANOVA BAR - LAS VEGAS,1100,false,llm
+Food & Dining,IHOP,1110,false,llm
+Food & Dining,CINNABON,1120,false,tag-rule
+Food & Dining,CHAAT HOUSE,1130,false,tag-rule
+Food & Dining,SENOR PANCHO,1140,false,tag-rule
+Food & Dining,SWEETS,1150,false,tag-rule
+Food & Dining,FRYING FISH,1160,false,tag-rule
+Food & Dining,DONAIR,1170,false,tag-rule
+Food & Dining,EL POLLO LOCO,1180,false,tag-rule
+Food & Dining,DUMPLING,1190,false,tag-rule
+Food & Dining,OLIVE GARDEN,1200,false,tag-rule
+Food & Dining,KRISPY KREME,1210,false,tag-rule
+Food & Dining,CHARLEYS PHILLY STEAKS,1220,false,tag-rule
+Food & Dining,MC DONALDS,1230,false,tag-rule
+Food & Dining,RESTAUR,1240,false,tag-rule
+Food & Dining,CHEESECAKE,1250,false,tag-rule
+Food & Dining,SHAKE SHACK,1260,false,tag-rule
+Food & Dining,DAIRY QUEEN,1270,false,tag-rule
+Food & Dining,MEDITERRANEAN KITCHEN,1280,false,tag-rule
+Food & Dining,RED ROBIN,1290,false,tag-rule
+Food & Dining,HMS HOST INTERNATIONAL,1300,false,tag-rule
+Food & Dining,VHLV-DESERT STAR,1310,false,llm
+Food & Dining,TOULOUSE DALLAS,1320,false,llm
+Food & Dining,LIQOUR TOBACCO CONFECTION,1330,false,llm
+Food & Dining,TBL TULALIP,1340,false,llm
+Food & Dining,TIC TACS,1350,false,llm
+Food & Dining,DEVYANI INTL KFC,1360,false,llm
+Food & Dining,SPUNTINO,1370,false,llm
+Food & Dining,WH SMITH,1380,false,tag-rule
+Groceries,WHOLE FOODS,920,false,system
+Groceries,TRADER JOE,930,false,system
+Groceries,SAFEWAY,940,false,system
+Groceries,KROGER,950,false,system
+Groceries,PUBLIX,960,false,system
+Groceries,COSTCO,970,false,system
+Groceries,WAL-MART,980,false,system
+Groceries,WALMART,990,false,system
+Groceries,ALDI,1000,false,system
+Groceries,GROCERY,1010,false,system
+Groceries,SUPERMARKET,1020,false,system
+Groceries,FOOD LION,1030,false,system
+Groceries,HEB,1040,false,system
+Groceries,SPROUTS,1050,false,system
+Groceries,ALBERTSONS,1060,false,system
+Groceries,STOP & SHOP,1070,false,system
+Groceries,WEGMANS,1080,false,system
+Groceries,HARRIS TEETER,1090,false,system
+Groceries,WINCO,1100,false,system
+Groceries,TARGET,1110,false,system
+Groceries,INSTACART,1120,false,system
+Groceries,FRESHDIRECT,1130,false,system
+Groceries,MOTHER'S MARKET,1140,false,system
+Groceries,BUTCHER,1150,false,system
+Groceries,BAKERY,1160,false,system
+Groceries,PRODUCE,1170,false,system
+Groceries,FRED-MEYER,1180,false,tag-rule
+Groceries,MARKET,1190,false,tag-rule
+Groceries,WHOLEFDS,1200,false,llm
+Groceries,MKT,1210,false,tag-rule
+Health,CVS,2520,false,system
+Health,CVS/PHARMACY,2530,true,system
+Health,WALGREENS,2540,false,system
+Health,RITE AID,2550,false,system
+Health,DUANE READE,2560,false,system
+Health,PHARMACY,2570,false,system
+Health,DOCTOR,2580,false,system
+Health,HOSPITAL,2590,false,system
+Health,MEDICAL,2600,false,system
+Health,DENTAL,2610,false,system
+Health,VISION,2620,false,system
+Health,EYE CARE,2630,false,system
+Health,URGENT CARE,2640,false,system
+Health,CLINIC,2650,false,system
+Health,ONE MEDICAL,2660,false,system
+Health,FITNESS,2670,false,system
+Health,GYM,2680,false,system
+Health,PLANET FITNESS,2690,true,system
+Health,EQUINOX,2700,false,system
+Health,PELOTON,2710,false,system
+Health,CROSSFIT,2720,false,system
+Health,SOULCYCLE,2730,false,system
+Health,ORANGETHEORY,2740,false,system
+Health,YMCA,2750,false,system
+Health,LA FITNESS,2760,true,system
+Health,24 HOUR FITNESS,2770,true,system
+Health,THERAPY,2780,false,system
+Health,BETTERHELP,2790,false,system
+Health,TALKSPACE,2800,false,system
+Health,PROLIANCE SURGEONS CFED,2810,false,llm
+Health,FRANCES GRACE SALON,2820,false,tag-rule
+Health,SPA,2830,false,tag-rule
+Health,HAIRCUT,2840,false,tag-rule
+Health,LAUNDROMAT,2850,false,tag-rule
+Health,MASSAGE,2860,false,tag-rule
+Housing,RENT,330,false,system
+Housing,LEASE PAYMENT,340,false,system
+Housing,PROPERTY MGMT,350,false,system
+Housing,PROPERTY MANAGEMENT,360,false,system
+Housing,LOWES,370,false,tag-rule
+Housing,HOMEGOODS,380,false,tag-rule
+Interest Earned,PROMOTIONAL APR ENDED,100,false,tag-rule
+Interest Paid,INTEREST CHARGE,430,false,system
+Interest Paid,FINANCE CHARGE,440,false,system
+Interest Paid,INTEREST FEE,450,false,system
+Interest Paid,STANDARD PURCH,460,false,tag-rule
+Investment Income,DIVIDEND RECEIVED,80,false,system
+Investment Income,DIVIDEND,90,false,system
+Life Insurance,NEW YORK LIFE DES:INS,100,false,tag-rule
+Loan Payments,AUTO LOAN,370,false,system
+Loan Payments,CAR LOAN,380,false,system
+Loan Payments,STUDENT LOAN,390,false,system
+Loan Payments,PERSONAL LOAN,400,false,system
+Loan Payments,AUTO PAYMENT,410,false,system
+Loan Payments,CAR PAYMENT,420,false,system
+Loan Payments,GLOBAL CREDIT UN,430,false,tag-rule
+Mortgage,SERVICEMAC PMT,100,false,tag-rule
+Refunds/Reimbursements,REFUND,50,false,system
+Refunds/Reimbursements,REIMBURSEMENT,60,false,system
+Refunds/Reimbursements,TAX REFUND,70,false,system
+Retirement,401K,460,false,system
+Retirement,401(K),470,false,system
+Retirement,IRA,480,false,system
+Retirement,ROTH IRA,490,false,system
+Retirement,ROTH,500,false,system
+Retirement,RETIREMENT,510,false,system
+Retirement,EMPLOYER MATCH,520,false,system
+Shopping,AMAZON,1490,false,system
+Shopping,AMZN,1500,false,system
+Shopping,AMZN MKTP,1510,false,system
+Shopping,EBAY,1520,false,system
+Shopping,ETSY,1530,false,system
+Shopping,TARGET,1540,false,system
+Shopping,BEST BUY,1550,false,system
+Shopping,IKEA,1560,false,system
+Shopping,MACY,1570,false,system
+Shopping,NORDSTROM,1580,false,system
+Shopping,NIKE,1590,false,system
+Shopping,ADIDAS,1600,false,system
+Shopping,APPLE STORE,1610,false,system
+Shopping,TJ MAXX,1620,false,system
+Shopping,MARSHALLS,1630,false,system
+Shopping,ROSS,1640,false,system
+Shopping,HOME DEPOT,1650,false,system
+Shopping,LOWE'S,1660,false,system
+Shopping,ACE HARDWARE,1670,false,system
+Shopping,SQ *,1680,false,system
+Shopping,TST*,1690,false,system
+Shopping,STRIPE,1700,false,system
+Shopping,WAYFAIR,1710,false,system
+Shopping,SHEIN,1720,false,system
+Shopping,TEMU,1730,false,system
+Shopping,ALIEXPRESS,1740,false,system
+Shopping,PATAGONIA,1750,false,system
+Shopping,LULULEMON,1760,false,system
+Shopping,REI,1770,false,system
+Shopping,UNIQLO,1780,false,system
+Shopping,STORE,1790,false,system
+Shopping,RETAIL,1800,false,system
+Shopping,MALL,1810,false,system
+Shopping,SHOP,1820,false,system
+Shopping,THE NAIL PALACE,1830,false,tag-rule
+Shopping,LOTTE DUTY FREE,1840,false,tag-rule
+Shopping,BATH AND BODY WORKS 3687,1850,false,llm
+Shopping,2GC@WPZ,1860,false,llm
+Shopping,COLUMBIA SPORTSWEAR,1870,false,llm
+Shopping,SP MILNAH,1880,false,llm
+Shopping,DOLLARAMA,1890,false,llm
+Shopping,LIDS,1900,false,tag-rule
+Shopping,SALLY BEAUTY,1910,false,tag-rule
+Shopping,PAYPAL,1920,false,tag-rule
+Shopping,WILLIAMS-SONOMA,1930,false,tag-rule
+Shopping,PANDORA,1940,false,tag-rule
+Shopping,STAPLES,1950,false,tag-rule
+Shopping,DSW,1960,false,tag-rule
+Shopping,PONY MAILBOX,1970,false,tag-rule
+Shopping,OSH KOSH,1980,false,tag-rule
+Shopping,HOBBY-LOBBY,1990,false,tag-rule
+Shopping,NAYAX CANADA INC MASTER,2000,false,tag-rule
+Shopping,VENDING,2010,false,tag-rule
+Shopping,VEND,2020,false,tag-rule
+Shopping,H&AMP;M,2030,false,tag-rule
+Transfer,TRANSFER,210,true,system
+Transfer,ZELLE,220,false,system
+Transfer,VENMO,230,false,system
+Transfer,CASHAPP,240,false,system
+Transfer,WIRE,250,false,system
+Transfer,ACH ,260,false,system
+Transfer,ATM ,270,false,system
+Transfer,MOBILE TRANSFER,280,false,system
+Transfer,INTERNAL TRANSFER,290,false,system
+Transfer,FID BPG SVC,300,false,system
+Transfer,MONEYLINE,310,false,system
+Transfer,EFT FUNDS RECEIVED,320,false,system
+Transfer,KEEPTHECHANGE CREDIT,330,false,tag-rule
+Transfer,ONLINE BANKING TRANSFER TO CHK 8268,340,false,llm
+Transfer,ONLINE BANKING TRANSFER FROM SAV 1725,350,false,llm
+Transfer,CONTINENTAL EXC,360,false,tag-rule
+Transfer,ONLINE BANKING TRANSFER TO CHK 8268 CONFIRMATION# 5369816599,360,true,llm
+Transfer,ONLINE BANKING TRANSFER TO CHK 8268 CONFIRMATION# 4150088438,370,true,llm
+Transfer,ONLINE SCHEDULED TRANSFER,370,false,tag-rule
+Transfer,XE MONEY TRANSFER,380,false,tag-rule
+Transfer,ONLINE BANKING TRANSFER TO CHK 4414 TRANSFER,390,false,tag-rule
+Transfer,CHECK 127,400,false,llm
+Transportation,SHELL,1180,false,system
+Transportation,CHEVRON,1190,false,system
+Transportation,EXXON,1200,false,system
+Transportation,BP ,1210,false,system
+Transportation,MOBIL,1220,false,system
+Transportation,VALERO,1230,false,system
+Transportation,76 ,1240,false,system
+Transportation,ARCO,1250,false,system
+Transportation,SUNOCO,1260,false,system
+Transportation,MARATHON,1270,false,system
+Transportation,CONOCO,1280,false,system
+Transportation,GAS STATION,1290,false,system
+Transportation,UBER TRIP,1300,false,system
+Transportation,UBER *,1310,false,system
+Transportation,LYFT,1320,false,system
+Transportation,TAXI,1330,false,system
+Transportation,TAXI ,1340,false,system
+Transportation,PARKING,1350,false,system
+Transportation,METRO,1360,false,system
+Transportation,TRANSIT,1370,false,system
+Transportation,MTA,1380,false,system
+Transportation,BART,1390,false,system
+Transportation,CTA ,1400,false,system
+Transportation,AMTRAK,1410,false,system
+Transportation,NJ TRANSIT,1420,false,system
+Transportation,LIRR,1430,false,system
+Transportation,SEPTA,1440,false,system
+Transportation,MARTA,1450,false,system
+Transportation,TOLL,1460,false,system
+Transportation,EZPASS,1470,false,system
+Transportation,DMV,1480,false,system
+Transportation,WA DOL LIC,1490,false,tag-rule
+Transportation,LES SCHWAB,1500,false,tag-rule
+Transportation,FIRESTONE,1510,false,tag-rule
+Transportation,PARKI,1520,false,tag-rule
+Transportation,DICKS TOWING,1530,false,tag-rule
+Transportation,CITY OF VAN PAYBYPHONE,1540,false,tag-rule
+Transportation,KS EVERETT,1550,false,tag-rule
+Travel,UNITED AIRLINES,2810,true,system
+Travel,DELTA,2820,false,system
+Travel,AMERICAN AIRLINES,2830,true,system
+Travel,SOUTHWEST,2840,false,system
+Travel,JETBLUE,2850,false,system
+Travel,SPIRIT AIRLINES,2860,true,system
+Travel,FRONTIER,2870,false,system
+Travel,ALASKA AIRLINES,2880,true,system
+Travel,AIRLINE,2890,false,system
+Travel,FLIGHT,2900,false,system
+Travel,AIRBNB,2910,false,system
+Travel,VRBO,2920,false,system
+Travel,HOTEL,2930,false,system
+Travel,MARRIOTT,2940,false,system
+Travel,HILTON,2950,false,system
+Travel,HYATT,2960,false,system
+Travel,IHG,2970,false,system
+Travel,BEST WESTERN,2980,false,system
+Travel,MOTEL 6,2990,false,system
+Travel,CAR RENTAL,3000,false,system
+Travel,HERTZ,3010,false,system
+Travel,AVIS,3020,false,system
+Travel,ENTERPRISE,3030,false,system
+Travel,BUDGET,3040,false,system
+Travel,DOLLAR RENT,3050,false,system
+Travel,THRIFTY,3060,false,system
+Travel,NATIONAL CAR,3070,false,system
+Travel,EXPEDIA,3080,false,system
+Travel,BOOKING.COM,3090,false,system
+Travel,KAYAK,3100,false,system
+Travel,PRICELINE,3110,false,system
+Travel,TRIPADVISOR,3120,false,system
+Travel,TRIP.COM,3130,false,system
+Travel,AGODA,3140,false,system
+Travel,CRUISE,3150,false,system
+Travel,CARNIVAL,3160,false,system
+Travel,ROYAL CARIBBEAN,3170,false,system
+Travel,NORWEGIAN,3180,false,system
+Travel,HERMES SINGAPORE AIRPORT,3190,false,llm
+Travel,GURUFARE AIR TKT,3200,false,llm
+Travel,SPRINGHILL,3210,false,tag-rule
+Travel,COURTYARD,3220,false,tag-rule
+Travel,ALASKA,3230,false,tag-rule
+Travel,FAIRFIELD,3240,false,tag-rule
+Travel,KLM,3250,false,tag-rule
+Travel,UKVI,3260,false,tag-rule
+Travel,CL *CHASE TRAVEL,3270,false,llm
