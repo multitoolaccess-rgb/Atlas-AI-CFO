@@ -65,6 +65,9 @@ test.describe('Phase 28 — priority auto-increment + detach + Untagged filter',
     await page.goto('/settings')
     await page.waitForLoadState('networkidle')
 
+    // Merchant rules live on the Rules & Categories sub-tab.
+    await page.getByRole('tab', { name: 'Rules & Categories' }).click()
+
     // Open the "Add rule" form.
     await page.getByTestId('add-merchant-rule').click()
     // Pick the first non-placeholder category.

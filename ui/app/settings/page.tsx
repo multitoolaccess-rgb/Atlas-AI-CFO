@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import PageLayout from '@/components/layout/PageLayout'
 import ErrorBanner from '@/components/ui/ErrorBanner'
 import { Button, Input, Select } from '@/components/ui'
@@ -32,6 +33,23 @@ import PageHeader from '@/components/ui/PageHeader'
  * kills the "Session expired" flash that surfaces on JWT_SECRET drift
  * between rules-service and Finlynq.
  */
+/**
+ * Settings sub-views. The page was a single vertical stack of unrelated
+ * sections (appearance, readiness, profile, data maintenance, danger zone,
+ * family members, merchant rules); this splits them into four URL-driven
+ * tabs (``?view=...``, default ``appearance``) so each surface stays
+ * focused. Mirrors the Market Intelligence tab pattern (role=tablist +
+ * arrow-key navigation).
+ */
+type SettingsView = 'appearance' | 'profile' | 'rules' | 'system'
+
+const SETTINGS_TABS: ReadonlyArray<{ id: SettingsView; label: string; description: string }> = [
+  { id: 'appearance', label: 'Appearance', description: 'Theme, accent, and reading comfort' },
+  { id: 'profile', label: 'Profile & Household', description: 'Your details, account info, and family members' },
+  { id: 'rules', label: 'Rules & Categories', description: 'Auto-categorization rules, categories, and CSV import/export' },
+  { id: 'system', label: 'System & Data', description: 'Provider readiness, maintenance, and dangerous actions' },
+]
+
 const CURRENCY_OPTIONS = [
   { value: 'USD', label: 'USD — US Dollar' },
   { value: 'EUR', label: 'EUR — Euro' },
@@ -1662,18 +1680,97 @@ export default function SettingsPage() {
     }
   }
 
+  // Settings sub-view tabs (URL-driven ``?view=...``; default Appearance).
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const viewParam = searchParams.get('view')
+  const [activeView, setActiveView] = useState<SettingsView>(
+    SETTINGS_TABS.some(tab => tab.id === viewParam) ? (viewParam as SettingsView) : 'appearance',
+  )
+  const viewRefs = useRef<Record<SettingsView, HTMLButtonElement | null>>({
+    appearance: null,
+    profile: null,
+    rules: null,
+    system: null,
+  })
+
+  const selectView = useCallback((view: SettingsView) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('view', view)
+    router.replace(`?${params.toString()}`, { scroll: false })
+    setActiveView(view)
+  }, [router, searchParams])
+
+  const onViewKeyDown = useCallback((event: React.KeyboardEvent<HTMLButtonElement>) => {
+    const ids = SETTINGS_TABS.map(tab => tab.id)
+    const index = ids.indexOf(activeView)
+    if (event.key === 'ArrowRight') {
+      event.preventDefault()
+      const next = ids[(index + 1) % ids.length]
+      selectView(next)
+      viewRefs.current[next]?.focus()
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      const next = ids[(index - 1 + ids.length) % ids.length]
+      selectView(next)
+      viewRefs.current[next]?.focus()
+    } else if (event.key === 'Home') {
+      event.preventDefault()
+      selectView(ids[0])
+      viewRefs.current[ids[0]]?.focus()
+    } else if (event.key === 'End') {
+      event.preventDefault()
+      selectView(ids[ids.length - 1])
+      viewRefs.current[ids[ids.length - 1]]?.focus()
+    }
+  }, [activeView, selectView])
+
   return (
     <PageLayout>
       <PageHeader
         eyebrow="System"
         title="Settings"
-        description="Appearance, profile, currency, household preferences, and safe data maintenance controls."
+        description="Appearance, profile, household, categorization rules, and data maintenance — organized into focused sections."
         className="mb-6"
       />
 
-      <AppearanceSection />
-      <ReadinessSection />
+      <div role="tablist" aria-label="Settings sections" className="mt-6 flex flex-wrap gap-1 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface-color)] p-1">
+        {SETTINGS_TABS.map(tab => {
+          const selected = activeView === tab.id
+          return (
+            <button
+              key={tab.id}
+              ref={element => { viewRefs.current[tab.id] = element }}
+              type="button"
+              role="tab"
+              id={`settings-tab-${tab.id}`}
+              aria-selected={selected}
+              aria-controls={`settings-panel-${tab.id}`}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => selectView(tab.id)}
+              onKeyDown={onViewKeyDown}
+              className={`min-h-[44px] flex-1 whitespace-nowrap rounded-[var(--radius-md)] px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-500)] sm:flex-none sm:px-4 ${selected ? 'bg-[var(--interactive-primary)] text-[var(--accent-on-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
 
+      {activeView === 'appearance' && (
+        <div role="tabpanel" id="settings-panel-appearance" aria-labelledby="settings-tab-appearance" tabIndex={0}>
+          <AppearanceSection />
+        </div>
+      )}
+
+      {activeView === 'system' && (
+        <div role="tabpanel" id="settings-panel-system" aria-labelledby="settings-tab-system" tabIndex={0}>
+          <ReadinessSection />
+        </div>
+      )}
+
+      {activeView === 'profile' && (
+        <div role="tabpanel" id="settings-panel-profile" aria-labelledby="settings-tab-profile" tabIndex={0}>
       {error && (
         // variant="warning" (amber) — the profile-load failure is
         // recoverable via Retry; not a destructive action-fail.
@@ -1752,7 +1849,11 @@ export default function SettingsPage() {
           </div>
         </dl>
       </div>
+        </div>
+      )}
 
+      {activeView === 'system' && (
+        <>
       {/* Data maintenance — reconcile balances */}
       <div className="mt-8 card p-6 max-w-2xl">
         <h2 className="headline-md text-primary mb-2">Data Maintenance</h2>
@@ -1845,7 +1946,11 @@ export default function SettingsPage() {
           This cannot be undone.
         </p>
       </Modal>
+        </>
+      )}
 
+      {activeView === 'profile' && (
+        <>
       {/* Phase 16 — Family Members card. Mirrors the layout of the
         Profile card above: a single ``card p-6 max-w-2xl`` block
         with a heading + list + add form. Members are grouped so
@@ -2269,7 +2374,11 @@ export default function SettingsPage() {
           </div>
         )}
       </Modal>
+        </>
+      )}
 
+      {activeView === 'rules' && (
+        <div role="tabpanel" id="settings-panel-rules" aria-labelledby="settings-tab-rules" tabIndex={0}>
       <MerchantRulesCard
         rules={rules}
         categories={categories}
@@ -2739,6 +2848,8 @@ export default function SettingsPage() {
           )}
         </div>
       </Modal>
+        </div>
+      )}
     </PageLayout>
   )
 }

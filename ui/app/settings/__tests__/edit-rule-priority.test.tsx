@@ -189,6 +189,9 @@ describe('Settings — edit merchant rule priority', () => {
   it('opens the edit modal for a priority-1660 rule without a validation error', async () => {
     render(<SettingsPage />)
 
+    // Merchant rules live on the Rules & Categories sub-tab.
+    fireEvent.click(await screen.findByRole('tab', { name: 'Rules & Categories' }))
+
     const editButton = await screen.findByTestId('merchant-rule-edit-1660')
     fireEvent.click(editButton)
 
@@ -202,6 +205,9 @@ describe('Settings — edit merchant rule priority', () => {
 
   it('saves the rule keeping its high priority intact', async () => {
     render(<SettingsPage />)
+
+    // Merchant rules live on the Rules & Categories sub-tab.
+    fireEvent.click(await screen.findByRole('tab', { name: 'Rules & Categories' }))
 
     const editButton = await screen.findByTestId('merchant-rule-edit-1660')
     fireEvent.click(editButton)

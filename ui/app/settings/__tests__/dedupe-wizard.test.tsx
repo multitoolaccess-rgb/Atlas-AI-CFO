@@ -171,6 +171,8 @@ describe('Phase 29 — dedup wizard wiring', () => {
 
   it('renders the "Clean up duplicates" button in the merchant rules card', async () => {
     render(<SettingsPage />)
+    // Merchant rules live on the Rules & Categories sub-tab.
+    fireEvent.click(await screen.findByRole('tab', { name: 'Rules & Categories' }))
     const button = await screen.findByTestId('merchant-rules-dedupe')
     expect(button).toBeTruthy()
     expect(button.textContent).toMatch(/clean up duplicates/i)
@@ -178,6 +180,8 @@ describe('Phase 29 — dedup wizard wiring', () => {
 
   it('opens the wizard modal with a Run scan button when the card button is clicked', async () => {
     render(<SettingsPage />)
+    // Merchant rules live on the Rules & Categories sub-tab.
+    fireEvent.click(await screen.findByRole('tab', { name: 'Rules & Categories' }))
     const openButton = await screen.findByTestId('merchant-rules-dedupe')
     fireEvent.click(openButton)
     const runButton = await screen.findByTestId('dedupe-run')
@@ -195,6 +199,8 @@ describe('Phase 29 — dedup wizard wiring', () => {
       emptyResult,
     )
     render(<SettingsPage />)
+    // Merchant rules live on the Rules & Categories sub-tab.
+    fireEvent.click(await screen.findByRole('tab', { name: 'Rules & Categories' }))
     fireEvent.click(await screen.findByTestId('merchant-rules-dedupe'))
     fireEvent.click(await screen.findByTestId('dedupe-run'))
     await waitFor(() => {
@@ -225,6 +231,8 @@ describe('Phase 29 — dedup wizard wiring', () => {
       l2_status: 'skipped',
     })
     render(<SettingsPage />)
+    // Merchant rules live on the Rules & Categories sub-tab.
+    fireEvent.click(await screen.findByRole('tab', { name: 'Rules & Categories' }))
     fireEvent.click(await screen.findByTestId('merchant-rules-dedupe'))
     fireEvent.click(await screen.findByTestId('dedupe-run'))
     const checkbox = (await screen.findByTestId(
@@ -255,6 +263,8 @@ describe('Phase 29 — dedup wizard wiring', () => {
       l2_status: 'skipped',
     })
     render(<SettingsPage />)
+    // Merchant rules live on the Rules & Categories sub-tab.
+    fireEvent.click(await screen.findByRole('tab', { name: 'Rules & Categories' }))
     fireEvent.click(await screen.findByTestId('merchant-rules-dedupe'))
     fireEvent.click(await screen.findByTestId('dedupe-run'))
     const applyButton = (await screen.findByTestId(
@@ -304,6 +314,8 @@ describe('Phase 29 — dedup wizard wiring', () => {
       skipped: 0,
     })
     render(<SettingsPage />)
+    // Merchant rules live on the Rules & Categories sub-tab.
+    fireEvent.click(await screen.findByRole('tab', { name: 'Rules & Categories' }))
     fireEvent.click(await screen.findByTestId('merchant-rules-dedupe'))
     fireEvent.click(await screen.findByTestId('dedupe-run'))
     // Tick BOTH candidates.
@@ -322,6 +334,8 @@ describe('Phase 29 — dedup wizard wiring', () => {
       emptyResult,
     )
     render(<SettingsPage />)
+    // Merchant rules live on the Rules & Categories sub-tab.
+    fireEvent.click(await screen.findByRole('tab', { name: 'Rules & Categories' }))
     fireEvent.click(await screen.findByTestId('merchant-rules-dedupe'))
     // Toggle the LLM opt-in.
     const llmCheckbox = screen.getByTestId(
@@ -345,6 +359,8 @@ describe('Phase 29 — dedup wizard wiring', () => {
       l2_status: 'offline',
     })
     render(<SettingsPage />)
+    // Merchant rules live on the Rules & Categories sub-tab.
+    fireEvent.click(await screen.findByRole('tab', { name: 'Rules & Categories' }))
     fireEvent.click(await screen.findByTestId('merchant-rules-dedupe'))
     fireEvent.click(await screen.findByTestId('dedupe-run'))
     const banner = await screen.findByTestId('error-banner')
@@ -360,6 +376,8 @@ describe('Phase 29 — dedup wizard wiring', () => {
       l2_status: 'malformed',
     })
     render(<SettingsPage />)
+    // Merchant rules live on the Rules & Categories sub-tab.
+    fireEvent.click(await screen.findByRole('tab', { name: 'Rules & Categories' }))
     fireEvent.click(await screen.findByTestId('merchant-rules-dedupe'))
     fireEvent.click(await screen.findByTestId('dedupe-run'))
     const banner = await screen.findByTestId('error-banner')
@@ -396,6 +414,8 @@ describe('Phase 29 — dedup wizard wiring', () => {
       l2_status: 'ok',
     })
     render(<SettingsPage />)
+    // Merchant rules live on the Rules & Categories sub-tab.
+    fireEvent.click(await screen.findByRole('tab', { name: 'Rules & Categories' }))
     fireEvent.click(await screen.findByTestId('merchant-rules-dedupe'))
     fireEvent.click(await screen.findByTestId('dedupe-run'))
     const selectAll = (await screen.findByTestId(
@@ -433,6 +453,8 @@ describe('Phase 29 — dedup wizard wiring', () => {
       l2_status: 'ok',
     })
     render(<SettingsPage />)
+    // Merchant rules live on the Rules & Categories sub-tab.
+    fireEvent.click(await screen.findByRole('tab', { name: 'Rules & Categories' }))
     fireEvent.click(await screen.findByTestId('merchant-rules-dedupe'))
     fireEvent.click(await screen.findByTestId('dedupe-run'))
     // Click Select all
@@ -481,6 +503,8 @@ describe('Phase 29 — dedup wizard wiring', () => {
       skipped: 0,
     })
     render(<SettingsPage />)
+    // Merchant rules live on the Rules & Categories sub-tab.
+    fireEvent.click(await screen.findByRole('tab', { name: 'Rules & Categories' }))
     fireEvent.click(await screen.findByTestId('merchant-rules-dedupe'))
     fireEvent.click(await screen.findByTestId('dedupe-run'))
     // Tick only the first candidate
