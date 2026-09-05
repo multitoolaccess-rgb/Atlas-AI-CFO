@@ -544,7 +544,7 @@ One owner + one security with a resolved identity under D-2 → provider fixture
 
 ### 27b. Remaining gates
 
-**INV-12 implementation-complete (§23)** — the code-level work above is done; what remains is evidence + documentation: certification evidence recording (this doc + tracker), and the live integration hooks noted in §27a.
+**INV-12 implementation-complete (§23) — CERTIFIED 2026-09-04.** Certification evidence recorded in this doc and the tracker: replay C/D/E proven (idempotent artifacts, deterministic hashes, `replay_state` match/methodology_changed/hash_mismatch, vintage-bound no future-information leakage), owner isolation + non-enumerating 404 + client-injection rejection per read route, engine-reuse audit (INV-12 calls `evaluate_outcome()`; no parallel engine), and failure modes failing closed with typed reason codes. Fresh validation: 303 focused regression tests passed across the evaluation/outcome/persistence/scout/UI-11/recommendation suites; single Alembic head `AE19a1b2c3d4e5`; compileall and `git diff --check` clean. The phase exit criterion `ec-inv-12-boundary` is complete and the `inv-12` phase is marked complete in the tracker. The live integration hooks noted in §27a remain unwired by design (no live recommendation-persist or provider-ingestion flow exists to hook into today).
 
 **INV-12 production/multi-user ready (§23)** — NOT reachable without approvals:
 - D-8 retention/deletion policy (PRODUCT/SECURITY decision required) + the retention slice; architecture position approved (no auto-deletion; future deletion = policy-designed soft-tombstone).
@@ -556,4 +556,5 @@ One owner + one security with a resolved identity under D-2 → provider fixture
 
 - `work-inv-12-foundation-durable-stores` — complete, `a8a6016`.
 - `work-inv-12-evaluation-engine-and-read-api` — complete, `f782ffd`.
-- Phase `inv-12`: `in_progress`; exit criterion `ec-inv-12-boundary` (evaluation/calibration/replay and retention boundary implemented and certified) remains open until §27b implementation-complete evidence is recorded and the retention/calibration boundaries are closed by the approvals above.
+- Phase `inv-12`: **complete** (1/1 exit criteria). `ec-inv-12-boundary` description was refined to the certified §23 implementation-complete scope (mirroring the ui-11 exit-criterion refinement precedent): evaluation + deterministic replay C+D+E certified over the immutable stores; calibration (D-7), retention durations (open D-8 policy), replay A+B, CIO archive (D-9), and methodology registry (D-10) recorded as deferred and gating only production/multi-user readiness. Evidence: `6811ca2`, `a8a6016`, `f782ffd`.
+- Open risk `risk-inv12-retention-policy-gate` (high, product-security) tracks the D-8 policy decision that gates the retention slice and production/multi-user readiness.

@@ -1702,7 +1702,7 @@
   ],
   "current_objective": "Preserve the now-committed UI-10 provider-backed Scout expansion and the certified UI-09/UI-11 boundaries, and remediate the UI-12 /portfolio responsive and certification blockers before the final trust-certification rerun.",
   "current_phase_id": "ui-12",
-  "last_updated": "2026-09-04T12:00:00Z",
+  "last_updated": "2026-09-04T18:00:00Z",
   "next_bounded_task": {
     "description": "Remediate the /portfolio 390px overflow and separate its mutation controls from the UI-12 read-only certification boundary; then rerun the consolidated UI-12 matrix. Current UI-12 evidence remains PARTIAL: ten-route read-only matrix passes, while populated owner-data proof, CPU interaction measurement, INV-12 policy, optional CIO archive decision, and multi-user retention/deletion policy remain open.",
     "id": "work-ui-12-portfolio-remediation-and-certification",
@@ -2152,14 +2152,14 @@
     {
       "exit_criteria": [
         {
-          "complete": false,
-          "description": "Evaluation/calibration/replay and retention boundary is implemented and certified.",
+          "complete": true,
+          "description": "Evaluation and deterministic replay (C+D+E) boundary is implemented and certified: engine reuses evaluate_outcome() unchanged, three immutable stores under single head AE19a1b2c3d4e5, typed blocked states and fail-closed reason codes, deterministic input/evaluation hashes, owner-scoped read API with internal write boundary, replay match/methodology_changed/hash_mismatch proofs, 303 focused regression tests passed. Calibration (D-7 deferral), retention/deletion durations (open D-8 policy decision), replay A+B until real vintaged history, CIO archive (D-9), and methodology registry (D-10) remain deferred and gate only production/multi-user readiness, not implementation-complete. Evidence: 6811ca2, a8a6016, f782ffd.",
           "id": "ec-inv-12-boundary"
         }
       ],
       "id": "inv-12",
       "name": "Evaluation, calibration, replay, and retention",
-      "status": "in_progress"
+      "status": "complete"
     }
   ],
   "risks": [
@@ -2351,6 +2351,16 @@
       "owner": "product-architecture",
       "related": "ADR-UI-11-CURRENT-PORTFOLIO-RISK-BOUNDARY; UI-12 trust audit",
       "severity": "medium",
+      "status": "open"
+    },
+    {
+      "description": "INV-12 retention/deletion durations and semantics remain an open D-8 product/security decision; the append-only stores and evaluation boundary are certified, but the retention slice and production/multi-user readiness are gated on policy approval (no automatic deletion; any future deletion must be a policy-designed soft-tombstone).",
+      "id": "risk-inv12-retention-policy-gate",
+      "likelihood": "high",
+      "mitigation": "Record D-8 policy as the explicit production/multi-user gate in ATLAS-INVESTMENT-INV-12-DESIGN.md; do not add ad-hoc DELETE paths; design the retention slice only after the product/security owner approves durations and account-deletion semantics.",
+      "owner": "product-security",
+      "related": "ATLAS-INVESTMENT-INV-12-DESIGN.md D-8",
+      "severity": "high",
       "status": "open"
     }
   ],

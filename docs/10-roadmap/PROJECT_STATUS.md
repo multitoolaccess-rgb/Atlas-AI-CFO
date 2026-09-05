@@ -5,7 +5,7 @@
 - Current phase: **ui-12 — Cross-route trust certification** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Preserve the now-committed UI-10 provider-backed Scout expansion and the certified UI-09/UI-11 boundaries, and remediate the UI-12 /portfolio responsive and certification blockers before the final trust-certification rerun.
-- Last updated: 2026-09-04T12:00:00Z
+- Last updated: 2026-09-04T18:00:00Z
 
 ## Active work
 - work-ui-12-portfolio-remediation-and-certification: Remediate UI-12 responsive and certification blockers (in_progress, medium)
@@ -46,7 +46,7 @@
 - ui-10 — Contextual investment assistant: complete (1/1 exit criteria)
 - ui-11 — Risk and scenario presentation: complete (1/1 exit criteria)
 - ui-12 — Cross-route trust certification: in_progress (1/2 exit criteria)
-- inv-12 — Evaluation, calibration, replay, and retention: in_progress (0/1 exit criteria)
+- inv-12 — Evaluation, calibration, replay, and retention: complete (1/1 exit criteria)
 
 ## Current risks
 - risk-frontend-lint-debt [medium/high, open]: Repository-wide frontend lint debt remains outside Phase 0 scope.
@@ -68,6 +68,7 @@
 - risk-p1-legacy-balance-cent-representation [high/high, resolved]: The prior disposable-clone non-cent legacy balance blocker was resolved through explicitly authorized ROUND_HALF_EVEN USD-cent evidence; no historical Float precision was claimed restored.
 - risk-p1-personal-account-scope-mismatch [high/high, resolved]: The prior four-versus-six active-account scope mismatch was resolved by explicit authorization covering all six active accounts; six-account evidence, projection, baseline, restart, and readiness checks passed.
 - risk-ui11-current-only-scope [medium/high, open]: UI-11 is intentionally limited to a current-only portfolio baseline, descriptive compatible value/exposure metrics, and an on-demand hypothetical value preview; historical reconstruction and advanced aggregate risk methods are unavailable.
+- risk-inv12-retention-policy-gate [high/high, open]: INV-12 retention/deletion durations and semantics remain an open D-8 product/security decision; the append-only stores and evaluation boundary are certified, but the retention slice and production/multi-user readiness are gated on policy approval (no automatic deletion; any future deletion must be a policy-designed soft-tombstone).
 
 ## Recently completed work
 - work-ui-12-cross-route-trust-certification: Audit UI-12 cross-route trust and certification readiness — commit null, PR None

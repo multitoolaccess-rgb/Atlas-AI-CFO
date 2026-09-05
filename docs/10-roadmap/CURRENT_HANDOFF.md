@@ -9,7 +9,7 @@
 - Overall status: in_progress
 - Objective: Preserve the now-committed UI-10 provider-backed Scout expansion and the certified UI-09/UI-11 boundaries, and remediate the UI-12 /portfolio responsive and certification blockers before the final trust-certification rerun.
 - Phase exit criteria: 1/2 complete
-- Tracker updated: 2026-09-04T12:00:00Z
+- Tracker updated: 2026-09-04T18:00:00Z
 
 ## Active work
 
@@ -37,6 +37,7 @@
 - risk-p1-external-provider-local-config [high/medium]: Ignored local configuration has Market Intelligence read/generation/external-provider flags enabled and provider credentials present; no provider call was made in this task, but the local state is not safe to treat as fully disabled.
 - risk-p1-local-backup-recovery [high/low]: WAL-safe local backup, disposable restore, and backup-first personal activation have passed; in-place restore remains intentionally unsupported and requires a future separately authorized recovery task.
 - risk-ui11-current-only-scope [medium/high]: UI-11 is intentionally limited to a current-only portfolio baseline, descriptive compatible value/exposure metrics, and an on-demand hypothetical value preview; historical reconstruction and advanced aggregate risk methods are unavailable.
+- risk-inv12-retention-policy-gate [high/high]: INV-12 retention/deletion durations and semantics remain an open D-8 product/security decision; the append-only stores and evaluation boundary are certified, but the retention slice and production/multi-user readiness are gated on policy approval (no automatic deletion; any future deletion must be a policy-designed soft-tombstone).
 
 ## Recently completed
 
