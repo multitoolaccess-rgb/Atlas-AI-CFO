@@ -5,7 +5,7 @@
 - Current phase: **ui-12 — Cross-route trust certification** (in_progress)
 - Overall status: **in_progress**
 - Current objective: Preserve the now-committed UI-10 provider-backed Scout expansion and the certified UI-09/UI-11 boundaries, and remediate the UI-12 /portfolio responsive and certification blockers before the final trust-certification rerun.
-- Last updated: 2026-09-04T18:00:00Z
+- Last updated: 2026-09-05T00:30:00Z
 
 ## Active work
 - work-ui-12-portfolio-remediation-and-certification: Remediate UI-12 responsive and certification blockers (in_progress, medium)
@@ -68,7 +68,7 @@
 - risk-p1-legacy-balance-cent-representation [high/high, resolved]: The prior disposable-clone non-cent legacy balance blocker was resolved through explicitly authorized ROUND_HALF_EVEN USD-cent evidence; no historical Float precision was claimed restored.
 - risk-p1-personal-account-scope-mismatch [high/high, resolved]: The prior four-versus-six active-account scope mismatch was resolved by explicit authorization covering all six active accounts; six-account evidence, projection, baseline, restart, and readiness checks passed.
 - risk-ui11-current-only-scope [medium/high, open]: UI-11 is intentionally limited to a current-only portfolio baseline, descriptive compatible value/exposure metrics, and an on-demand hypothetical value preview; historical reconstruction and advanced aggregate risk methods are unavailable.
-- risk-inv12-retention-policy-gate [high/high, open]: INV-12 retention/deletion durations and semantics remain an open D-8 product/security decision; the append-only stores and evaluation boundary are certified, but the retention slice and production/multi-user readiness are gated on policy approval (no automatic deletion; any future deletion must be a policy-designed soft-tombstone).
+- risk-inv12-retention-policy-gate [high/high, resolved]: INV-12 retention/deletion durations and semantics remain an open D-8 product/security decision; the append-only stores and evaluation boundary are certified, but the retention slice and production/multi-user readiness are gated on policy approval (no automatic deletion; any future deletion must be a policy-designed soft-tombstone).
 
 ## Recently completed work
 - work-ui-12-cross-route-trust-certification: Audit UI-12 cross-route trust and certification readiness — commit null, PR None
@@ -112,6 +112,6 @@
 - Test test-p1-cert: Phase 1 final certification matrix on clean main @ 08f6f811 — Rules Service 930 passed, 10 skipped, 1 xfailed, 726 warnings in 11.19s; Finlynq 106 passed, 38 warnings in 1.16s; cross-service (repo-root tests/) 29 passed in 6.42s; tracker (tests/test_atlas_project_status.py) 9 passed in 0.97s; privacy + observability (test_observability.py + test_shadow_validate.py) 74 passed in 0.10s; UI 'npm run typecheck' (tsc --noEmit) exit 0; UI 'npm test --silent -- --run' (vitest non-watch) exit 0; alembic upgrade head -> current -> downgrade base -> re-upgrade head clean on disposable SQLite; alembic heads single S7a1b2c3d4e5; test_forecast_migration.py 7 passed in 0.42s
 
 ## Next bounded task
-- work-ui-12-portfolio-remediation-and-certification: Remediate the /portfolio 390px overflow and separate its mutation controls from the UI-12 read-only certification boundary; then rerun the consolidated UI-12 matrix. Current UI-12 evidence remains PARTIAL: ten-route read-only matrix passes, while populated owner-data proof, CPU interaction measurement, INV-12 policy, optional CIO archive decision, and multi-user retention/deletion policy remain open.
+- work-ui-12-portfolio-remediation-and-certification: Remediate the /portfolio 390px overflow and separate its mutation controls from the UI-12 read-only certification boundary; then rerun the consolidated UI-12 matrix. INV-12 is now fully closed (implementation-complete certified; D-8 retention closed for the personal boundary; multi-user out of scope; calibration/replay-A+B/CIO-archive/methodology-registry explicitly deferred). Current UI-12 evidence remains PARTIAL: ten-route read-only matrix passes, while populated owner-data proof and CPU interaction measurement remain open for the single-user boundary.
 
 Do not begin the next phase or task automatically.

@@ -333,6 +333,8 @@ Do not implement. Per record class, the required disposition and owner:
 
 **Architecture position (can be frozen now, independent of policy):** new stores are append-only and physically-deletion-resistant by trigger; any future deletion must be a designed, policy-approved operation (soft-tombstone + derived-data rebuild plan), never an ad-hoc `DELETE`. This matches the existing "Never roll back by deleting or rewriting analytical, decision, or outcome records" rule in the consolidated execution plan. Implementation-complete (per §23) is reachable without D-8; production/multi-user ready is not.
 
+**D-8 CLOSED 2026-09-04 (owner decision):** Atlas is a personal, single-user system; **multi-user is out of scope** (recorded in AGENTS.md). The personal-use retention default is **retain indefinitely with no automatic deletion** — the append-only immutable stores already enforce this by trigger, so no retention slice is required for the personal boundary. Any future deletion must be a policy-designed soft-tombstone; that future work is not an INV-12 gate. `risk-inv12-retention-policy-gate` is resolved in the tracker for the personal-use boundary; the external-multi-user rollout blocker remains a separate, out-of-scope tracker item.
+
 ---
 
 ## 15. Multi-User / Privacy Requirements
@@ -478,10 +480,7 @@ One owner + one security with a resolved identity under D-2 → provider fixture
 - [ ] Failure modes fail closed with typed reason codes (§18)
 - [ ] Regression suites green; documentation updated (this design + tracker/status)
 
-**INV-12 production/multi-user ready** (NOT reachable without approvals):
-- [ ] D-8 retention/deletion policy approved and retention slice implemented
-- [ ] Multi-user deletion/orphan semantics approved (GAP-16/GAP-18 tenant boundary)
-- [ ] Populated multi-owner data proof for the new surfaces
+**INV-12 production/multi-user ready** — CLOSED as not a goal 2026-09-04: multi-user is out of scope for Atlas (personal single-user per AGENTS.md), so multi-user deletion/orphan semantics (GAP-16/GAP-18) and a populated multi-owner data proof are not required. D-8 retention for the personal-use boundary is closed (retain indefinitely, no auto-deletion; soft-tombstone only if a deletion policy is ever approved). INV-12 has no remaining open gates.
 
 ---
 
@@ -496,7 +495,7 @@ One owner + one security with a resolved identity under D-2 → provider fixture
 | D-5 | Snapshot store scope | payload + hash vs hash-only | **full payload + hash, single builder reused** (§7a) | architecture | Freeze |
 | D-6 | Evaluation trigger | internal on-demand / job / scheduler | **internal on-demand** (§17) | architecture | Freeze |
 | D-7 | Calibration | include / defer | **defer** (§13) | product owner | Freeze (deferral) |
-| D-8 | Retention durations + deletion semantics | per §14 | **no automatic deletion; default-off until approved; delete path policy-designed** | product/security | **Architecture position APPROVED 2026-09-04** — durations/deletion policy remain open; retention slice gated |
+| D-8 | Retention durations + deletion semantics | per §14 | **no automatic deletion; retain indefinitely for the personal boundary; delete path policy-designed (soft-tombstone) if ever approved** | product/security | **CLOSED 2026-09-04** — personal single-user default approved; multi-user out of scope; `risk-inv12-retention-policy-gate` resolved |
 | D-9 | CIO archive | required / not required | **not required** unless consumer dependency appears (§16) | product owner | Freeze |
 | D-10 | Versioning | embedded strings / registry | **embedded strings**; registry only when a 2nd methodology exists (§12) | architecture | Freeze |
 
@@ -504,10 +503,10 @@ One owner + one security with a resolved identity under D-2 → provider fixture
 
 ## 25. Final GO / NO-GO
 
-**GO — INV-12 IS IMPLEMENTATION-READY (bounded first slice; retention slice remains approval-gated).**
+**GO — INV-12 IS IMPLEMENTATION-READY; fully closed 2026-09-04.**
 
-- D-1 (investment substrate only), D-2 (identity rule + GAP-09 scheduling), D-3 (C+D+E now, A+B deferred), D-7 (calibration deferral), D-8 (architecture position: no auto-deletion; policy stays open for the retention slice), and D-9 (CIO archive not required) were approved by the product/architecture owner on 2026-09-04. D-4/D-5/D-6/D-10 are architectural and frozen by this design.
-- The retention/deletion **slice** (durations, account deletion, legal hold) remains gated on the open D-8 product/security policy decision; implementation-complete per §23 does not require it.
+- D-1..D-10 approved/frozen: D-1/D-2/D-3/D-7/D-9 by product/architecture owner 2026-09-04; D-4/D-5/D-6/D-10 architectural and frozen by this design; **D-8 closed 2026-09-04** (personal single-user boundary — retain indefinitely, no auto-deletion; multi-user out of scope per AGENTS.md).
+- The retention/deletion **slice** is not required for the personal-use boundary (append-only triggers already enforce no-auto-deletion); any future deletion policy work is explicitly not an INV-12 gate.
 - **NO-GO conditions were checked and do not apply:** no foundational contract is missing from this design (the three prerequisite contracts are now specified), and no architectural revision of INV-08/09/11 is required (all reuse is additive).
 
 ---
@@ -546,15 +545,12 @@ One owner + one security with a resolved identity under D-2 → provider fixture
 
 **INV-12 implementation-complete (§23) — CERTIFIED 2026-09-04.** Certification evidence recorded in this doc and the tracker: replay C/D/E proven (idempotent artifacts, deterministic hashes, `replay_state` match/methodology_changed/hash_mismatch, vintage-bound no future-information leakage), owner isolation + non-enumerating 404 + client-injection rejection per read route, engine-reuse audit (INV-12 calls `evaluate_outcome()`; no parallel engine), and failure modes failing closed with typed reason codes. Fresh validation: 303 focused regression tests passed across the evaluation/outcome/persistence/scout/UI-11/recommendation suites; single Alembic head `AE19a1b2c3d4e5`; compileall and `git diff --check` clean. The phase exit criterion `ec-inv-12-boundary` is complete and the `inv-12` phase is marked complete in the tracker. The live integration hooks noted in §27a remain unwired by design (no live recommendation-persist or provider-ingestion flow exists to hook into today).
 
-**INV-12 production/multi-user ready (§23)** — NOT reachable without approvals:
-- D-8 retention/deletion policy (PRODUCT/SECURITY decision required) + the retention slice; architecture position approved (no auto-deletion; future deletion = policy-designed soft-tombstone).
-- Multi-user deletion/orphan semantics (GAP-16/GAP-18) and a populated multi-owner data proof.
+**INV-12 production/multi-user ready (§23)** — CLOSED 2026-09-04: not a goal. Multi-user is out of scope for Atlas (personal single-user, AGENTS.md); D-8 retention defaulted to retain-indefinitely/no-auto-deletion for the personal boundary (append-only triggers already enforce it); multi-user deletion/orphan semantics (GAP-16/GAP-18) and populated multi-owner proof are not required. No open INV-12 gates remain.
 
 **Explicitly deferred (D-3/D-7/D-9/D-10):** replay A+B (until real vintaged observation history exists), calibration, CIO archive, methodology registry (until a second methodology), scheduler/background evaluation, and any UI surface for evaluations.
 
-### 27c. Tracker
+### 27c. Closure (2026-09-04)
 
-- `work-inv-12-foundation-durable-stores` — complete, `a8a6016`.
-- `work-inv-12-evaluation-engine-and-read-api` — complete, `f782ffd`.
-- Phase `inv-12`: **complete** (1/1 exit criteria). `ec-inv-12-boundary` description was refined to the certified §23 implementation-complete scope (mirroring the ui-11 exit-criterion refinement precedent): evaluation + deterministic replay C+D+E certified over the immutable stores; calibration (D-7), retention durations (open D-8 policy), replay A+B, CIO archive (D-9), and methodology registry (D-10) recorded as deferred and gating only production/multi-user readiness. Evidence: `6811ca2`, `a8a6016`, `f782ffd`.
-- Open risk `risk-inv12-retention-policy-gate` (high, product-security) tracks the D-8 policy decision that gates the retention slice and production/multi-user readiness.
+- **D-8 closed** — personal-use retention default: retain indefinitely, no automatic deletion (already enforced by the append-only triggers); multi-user is out of scope per AGENTS.md. `risk-inv12-retention-policy-gate` **resolved** in the tracker.
+- **Live-hook wiring verification (exhaustive, read-only):** `persist_recommendation`, `store_observation`, `store_portfolio_snapshot`, and `EvaluationService.evaluate` have **zero non-test callers**; the only live investment write route is the decision route, which itself requires a recommendation row that no live flow creates; no seed/startup/script path exists in the repo. The §27a integration hooks therefore cannot be wired today without inventing non-existent upstream flows (a live recommendation-persist route and provider-adapter observation ingestion) — those flows belong to future INV-08/09/INV-02 runtime work, not INV-12. This is recorded as the design intended ("wired when those flows materialize"), not a defect.
+- Phase `inv-12`: **complete** (1/1 exit criteria), evidence `6811ca2`/`a8a6016`/`f782ffd`. No open INV-12 gates remain.
