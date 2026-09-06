@@ -160,7 +160,12 @@ function getConnectedSet(
   return connected
 }
 
-const SANKEY_MARGIN = { top: 8, right: 180, bottom: 16, left: 24 }
+// The right margin is the reserved lane for the last column's side labels
+// (every node label sits to the right of its bar). 180px fits most labels,
+// but the longest realistic one — "Credit Card Payments · $48,718" at 12px
+// — measures ~176 viewBox px and used to clip past the viewBox edge; 200px
+// keeps even that label fully inside the drawing.
+const SANKEY_MARGIN = { top: 8, right: 200, bottom: 16, left: 24 }
 
 /** Default gap between node bars. Sparse columns keep this comfortable
  *  spacing; dense columns trade it for node size (see adaptive padding
@@ -175,17 +180,14 @@ const DEFAULT_NODE_PADDING = 24
  *  keeps node bars — and therefore the global scale — legible. */
 const MAX_COLUMN_PADDING_FRACTION = 0.3
 
-/** Inline labels sit on colored bars. They are ALWAYS white — with a soft
- *  dark halo — so text stays consistent across bars (no white/black mix
- *  from contrast-based colors on light fills like yellow or sky) while
- *  remaining legible on those light fills. paintOrder paints the halo
- *  behind the glyph fill. */
-const INLINE_LABEL_HALO: React.CSSProperties = {
-  paintOrder: 'stroke',
-  stroke: 'rgba(0, 0, 0, 0.35)',
-  strokeWidth: 3,
-  strokeLinejoin: 'round',
-}
+/** Absolute floor for the node gap. Side labels sit on the page background
+ *  next to each bar at the bar's vertical center, so the pitch between
+ *  adjacent label baselines can never be smaller than the node padding
+ *  (zero-height tail bars are exactly `padding` apart). Without this floor
+ *  a dense column's adaptive padding falls to ~8.5px and 10–12px words on
+ *  neighboring bars overlap. 13px keeps ~2px of true glyph clearance at
+ *  the 10px tiny-bar font while preserving legible bar heights. */
+const MIN_NODE_PADDING = 13
 
 const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues, height = 440, onNodeClick, activeNode, fitViewport }: SankeyFlowProps) {
   const reducedMotion = useReducedMotion()
@@ -264,9 +266,18 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
     }
     const maxColumnLength = Math.max(1, ...Array.from(counts.values()))
     const innerHeight = height - SANKEY_MARGIN.top - SANKEY_MARGIN.bottom
+    // Cap each column's padding budget (so dense columns can't crush the
+    // global scale), but NEVER below the label-legibility floor: side labels
+    // sit at each bar's vertical center, and zero-height tail bars end up
+    // exactly `padding` apart, so the padding is also the minimum pitch
+    // between adjacent words. 13px keeps ~3px of true glyph clearance at the
+    // 10px tiny-bar font.
     const adaptivePadding = Math.min(
       DEFAULT_NODE_PADDING,
-      (innerHeight * MAX_COLUMN_PADDING_FRACTION) / Math.max(1, maxColumnLength - 1),
+      Math.max(
+        MIN_NODE_PADDING,
+        (innerHeight * MAX_COLUMN_PADDING_FRACTION) / Math.max(1, maxColumnLength - 1),
+      ),
     )
 
     // Pass 2: real layout with the adaptive padding.
@@ -491,7 +502,6 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
             const w = (node.x1 ?? 0) - (node.x0 ?? 0)
             const h = (node.y1 ?? 0) - (node.y0 ?? 0)
             const fill = getNodeFill(node, isDark)
-            const isLarge = h > 36
             // Short bars use a smaller side-label font. The app font's
             // line box is ~1.5em, so 12px labels on bars under ~16px tall
             // crowd their neighbors' metric boxes; 10px keeps every label
@@ -594,70 +604,32 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
                   strokeWidth={strokeWidth}
                 />
 
-                {/* Inline label for large nodes (Income / Retained bars).
-                    Always white with a halo — consistent across every fill. */}
-                {isLarge && (
-                  <text
-                    x={x + w / 2}
-                    y={y + h / 2 - 1}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      fill: '#FFFFFF',
-                      fontFamily: 'var(--font-primary)',
-                      letterSpacing: '0.01em',
-                      ...INLINE_LABEL_HALO,
-                    }}
-                  >
-                    {node.name}
-                  </text>
-                )}
-
-                {/* Inline value below large bars. Always white with a halo. */}
-                {isLarge && value > 0 && (
-                  <text
-                    x={x + w / 2}
-                    y={y + h / 2 + 13}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      fill: 'rgba(255, 255, 255, 0.92)',
-                      fontFamily: 'var(--font-mono)',
-                      fontVariantNumeric: 'tabular-nums',
-                      ...INLINE_LABEL_HALO,
-                    }}
-                  >
-                    {formatCurrency(value)}
-                  </text>
-                )}
-
-                {/* Side label for small nodes — ONE combined line
-                    ("Name · $Value") instead of two stacked lines. With the
-                    adaptive padding, dense columns pack bars close enough
-                    that stacked name/value lines of adjacent nodes collide;
-                    a single line per node cannot. The value stays available
-                    in the aria-label for screen readers. */}
-                {!isLarge && (
-                  <text
-                    x={labelX}
-                    y={labelY}
-                    textAnchor="start"
-                    dominantBaseline="central"
-                    style={{
-                      fontSize: isTiny ? '10px' : '12px',
-                      fontWeight: 600,
-                      fill: isDark ? '#eaeaea' : '#0A0805',
-                      fontFamily: 'var(--font-primary)',
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                  >
-                    {node.name}{value > 0 ? ` · ${formatCurrency(value)}` : ''}
-                  </text>
-                )}
+                {/* Every node gets ONE label on the SIDE of its bar — never
+                    text over the bar or ribbons. Big bars used to carry a
+                    centered white name/value ON the 14px-wide bar, which
+                    straddled the ribbons and collided with neighboring side
+                    labels (a visible mix of "inline over the chart" and
+                    "beside the bar"). A single start-anchored line at the
+                    bar's vertical center reads consistently for tall income
+                    bars and tiny tail categories alike, and each column's
+                    labels are spaced by the node padding (see
+                    MIN_NODE_PADDING), so adjacent lines cannot collide. The
+                    value stays in the aria-label for screen readers. */}
+                <text
+                  x={labelX}
+                  y={labelY}
+                  textAnchor="start"
+                  dominantBaseline="central"
+                  style={{
+                    fontSize: isTiny ? '10px' : '12px',
+                    fontWeight: 600,
+                    fill: isDark ? '#eaeaea' : '#0A0805',
+                    fontFamily: 'var(--font-primary)',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {node.name}{value > 0 ? ` · ${formatCurrency(value)}` : ''}
+                </text>
               </g>
             )
           })}

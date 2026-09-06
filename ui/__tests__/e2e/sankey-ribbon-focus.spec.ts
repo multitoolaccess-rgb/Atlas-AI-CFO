@@ -244,25 +244,74 @@ test('every category node keeps a visible label in dense columns', async ({ page
   expect(result.missing).toEqual([])
 })
 
-test('inline node labels are consistently white on every bar', async ({ page }) => {
+test('every node label sits on the side of its bar with one consistent color', async ({ page }) => {
   await mockCashFlow(page)
 
   const result = await page.evaluate(() => {
     const svg = document.querySelector('#sankey-links')?.closest('svg')
     if (!svg) return { error: 'no svg' }
-    // Inline labels live INSIDE the bar (textAnchor=middle, part of a node
-    // group). Side labels are start-anchored on the page background.
-    const inline = Array.from(svg.querySelectorAll('#sankey-nodes text[text-anchor="middle"]')).map((t) => getComputedStyle(t).fill)
-    const darkOnLight = inline.filter((f) => f === 'rgb(26, 24, 16)' || f === 'rgba(26, 24, 16, 0.7)')
-    return { inlineCount: inline.length, darkOnLight }
+    // Inline labels used to live INSIDE the bar (textAnchor=middle, centered
+    // over the 14px bar, straddling ribbons). Side labels are start-anchored
+    // at the bar's right edge.
+    const middleAnchored = Array.from(svg.querySelectorAll('#sankey-nodes text[text-anchor="middle"]')).length
+    const side = Array.from(svg.querySelectorAll('#sankey-nodes text[text-anchor="start"]'))
+    const fills = new Set(side.map((t) => getComputedStyle(t).fill))
+    return {
+      middleCount: middleAnchored,
+      sideCount: side.length,
+      nodeCount: svg.querySelectorAll('#sankey-nodes > g').length,
+      distinctFills: Array.from(fills),
+    }
   })
 
   expect(result.error).toBeUndefined()
-  expect(result.inlineCount!).toBeGreaterThan(0)
-  // Regression: contrast-based fills produced black text on light bars
-  // (yellow Groceries, sky Food & Dining) next to white text on dark bars.
-  // Every inline label must now be white (with a halo).
-  expect(result.darkOnLight).toEqual([])
+  // Regression: large bars used to carry white centered text ON the bar next
+  // to dark side labels for small bars — a visually mixed "inline over the
+  // chart" + "beside the bar" scheme, with text straddling ribbons and
+  // colliding with neighbors. Every node must now render exactly one label on
+  // the side of its bar, and all labels share one theme color (no white/black
+  // split by bar fill).
+  expect(result.middleCount!).toBe(0)
+  expect(result.sideCount!).toBe(result.nodeCount!)
+  expect(result.distinctFills!.length).toBe(1)
+})
+
+test('side labels never overlap and stay inside the chart in dense columns', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 })
+  await mockCashFlow(page)
+
+  const result = await page.evaluate(() => {
+    const svg = document.querySelector('#sankey-links')?.closest('svg')
+    if (!svg) return { error: 'no svg' }
+    const sr = svg.getBoundingClientRect()
+    const texts = Array.from(svg.querySelectorAll('#sankey-nodes text')).map((t) => {
+      const r = t.getBoundingClientRect()
+      return {
+        txt: (t.textContent ?? '').slice(0, 30),
+        left: r.left, right: r.right, top: r.top, bottom: r.bottom,
+        parentId: t.closest('g')?.id ?? '',
+      }
+    })
+    const overlaps: string[] = []
+    for (let i = 0; i < texts.length; i++) {
+      for (let j = i + 1; j < texts.length; j++) {
+        const a = texts[i], b = texts[j]
+        if (a.parentId === b.parentId) continue
+        const interW = Math.min(a.right, b.right) - Math.max(a.left, b.left)
+        const interH = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)
+        if (interW > 1 && interH > 1) overlaps.push(`${a.txt} ⟷ ${b.txt}`)
+      }
+    }
+    // The longest last-column label ("Credit Card Payments · $48,718") used
+    // to run past the viewBox's right edge and clip at the card boundary.
+    const outside = texts.filter((t) => t.right > sr.right + 2 || t.left < sr.left - 2).map((t) => t.txt)
+    return { textCount: texts.length, overlaps, outside }
+  })
+
+  expect(result.error).toBeUndefined()
+  expect(result.textCount!).toBeGreaterThan(0)
+  expect(result.overlaps!).toEqual([])
+  expect(result.outside!).toEqual([])
 })
 
 test('focused Sankey shows an in-card range selector and hides the floating bar', async ({ page }) => {
