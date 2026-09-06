@@ -213,6 +213,9 @@ def test_budget_status_empty_returns_zero_totals(client):
     assert body["totals"]["actual"] == 0
     assert body["totals"]["remaining"] == 0
     assert body["totals"]["percent_used"] == 0
+    # Data-availability metadata: no transactions, no latest-data month.
+    assert body["period_txn_count"] == 0
+    assert body["latest_data_month"] is None
 
 
 def test_budget_status_returns_budget_vs_actual(client, db_session, make_account, make_transaction, make_category):
@@ -284,6 +287,35 @@ def test_budget_status_rolls_child_category_spend_into_parent_budget(client, db_
     body = client.get("/api/budgets/status", params={"period": "2026-07"}).json()
     assert body["categories"][0]["actual"] == 25.0
     assert body["categories"][0]["percent_used"] == round(25 / 300 * 100, 2)
+
+
+def test_budget_status_reports_period_txn_count_and_latest_data_month(client, db_session, make_account, make_transaction):
+    """Status carries the data-availability metadata the UI hint needs."""
+    from datetime import datetime
+
+    acc = make_account(account_type="checking")
+    db_session.add(acc)
+    db_session.commit()
+
+    # One transaction inside the queried period, one after it.
+    july = make_transaction(
+        account_id=acc.id, description="Dinner", amount=-30.0,
+        transaction_date=datetime(2026, 7, 10),
+    )
+    august = make_transaction(
+        account_id=acc.id, description="Trip", amount=-400.0,
+        transaction_date=datetime(2026, 8, 2),
+    )
+    db_session.add(july)
+    db_session.add(august)
+    db_session.commit()
+
+    body = client.get("/api/budgets/status", params={"period": "2026-07"}).json()
+    # Only the July transaction falls inside the queried period…
+    assert body["period_txn_count"] == 1
+    # …but the most recent month with ANY data is August — the UI uses
+    # this to explain "$0 spent" for months with no imports.
+    assert body["latest_data_month"] == "2026-08"
 
 
 def test_budget_status_defaults_missing_account_type_to_checking(client, db_session, make_account, make_transaction):

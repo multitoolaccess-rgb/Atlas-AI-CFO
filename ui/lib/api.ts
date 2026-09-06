@@ -1189,6 +1189,11 @@ export interface BudgetCategoryStatus {
 
 export interface BudgetStatusResponse {
   period: string
+  /** Number of transactions in the queried period (0 → the month may have
+   *  no imported data yet, so $0 spent is expected, not broken). */
+  period_txn_count: number
+  /** Most recent YYYY-MM with any transaction for this user, or null. */
+  latest_data_month: string | null
   categories: BudgetCategoryStatus[]
   totals: {
     planned: number

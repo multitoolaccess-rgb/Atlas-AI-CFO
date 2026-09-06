@@ -24,8 +24,11 @@ import {
   Check,
   X,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Info,
 } from 'lucide-react'
-import { formatNumber } from '@/lib/format'
+import { formatNumber, formatMonthLabel } from '@/lib/format'
 import { classifyErrorMessage } from '@/lib/errors'
 import PageHeader from '@/components/ui/PageHeader'
 import { useEmbeddedMoneyView } from '@/components/money/EmbeddedMoneyView'
@@ -138,11 +141,76 @@ function BudgetingContent({ embedded = false }: { embedded?: boolean }) {
     {} as Record<string, typeof status.categories>,
   )
 
+  // Month-period selector styled like the app's time-range bar (pill
+  // segmented control) — budgets key by YYYY-MM, so instead of the
+  // date-window presets (7D/90D would be a dead control) the selector
+  // offers chevron navigation and This/Last month quick jumps, all
+  // URL-synced through the same ?period= param.
+  const monthSelector = (() => {
+    const toPeriod = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const now = new Date()
+    const currentPeriod = toPeriod(now)
+    const lastPeriod = toPeriod(new Date(now.getFullYear(), now.getMonth() - 1, 1))
+    const shiftMonth = (delta: number) => {
+      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(newPeriod)) return
+      const [y, m] = newPeriod.split('-').map(Number)
+      setPeriod(toPeriod(new Date(y, m - 1 + delta, 1)))
+    }
+    const pillClass = (active: boolean) =>
+      `px-2.5 py-1 rounded-md text-xs font-semibold tracking-wide transition-all duration-200 ease-out select-none focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--primary-500)] ${
+        active
+          ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-color)] shadow-none'
+          : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] border border-transparent'
+      }`
+    return (
+      <div
+        className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)] overflow-x-auto max-w-full"
+        role="radiogroup"
+        aria-label="Budget period"
+      >
+        <button type="button" onClick={() => shiftMonth(-1)} aria-label="Previous month" className={pillClass(false)}>
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </button>
+        <span className="px-2.5 py-1 rounded-md text-xs font-semibold text-[var(--text-primary)] tabular-nums min-w-[5.75rem] text-center border border-transparent">
+          {/^\d{4}-(0[1-9]|1[0-2])$/.test(newPeriod) ? formatMonthLabel(newPeriod) : ''}
+        </span>
+        <button type="button" onClick={() => shiftMonth(1)} aria-label="Next month" className={pillClass(false)}>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+        <span className="mx-1 w-px h-4 bg-[var(--border-color)]" aria-hidden="true" />
+        <button
+          type="button"
+          role="radio"
+          aria-checked={newPeriod === currentPeriod}
+          onClick={() => setPeriod(currentPeriod)}
+          className={pillClass(newPeriod === currentPeriod)}
+        >
+          This month
+        </button>
+        <button
+          type="button"
+          role="radio"
+          aria-checked={newPeriod === lastPeriod}
+          onClick={() => setPeriod(lastPeriod)}
+          className={pillClass(newPeriod === lastPeriod)}
+        >
+          Last month
+        </button>
+      </div>
+    )
+  })()
+
+  // A month with no imported transactions correctly reads $0 spent; the
+  // hint explains that instead of making budgets look broken, and offers
+  // a one-click jump to the most recent month that has data.
+  const showNoDataHint = !!status && status.period_txn_count === 0
+  const latestDataMonth = status?.latest_data_month ?? null
+
   const budgetControls = <>
     <div className="flex items-center gap-2 min-w-0">
       <Calendar className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0" />
-      <label htmlFor="budget-period" className="text-sm font-medium text-[var(--text-secondary)]">Period</label>
-      <input id="budget-period" type="month" value={newPeriod} onChange={(e) => setPeriod(e.target.value)} className="px-3 py-1.5 bg-surface-container border border-outline-variant/30 rounded-lg text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-500" />
+      <span className="text-xs font-semibold text-[var(--text-secondary)]">Period</span>
+      {monthSelector}
     </div>
     <button onClick={() => setShowAddForm(!showAddForm)} data-testid="add-budget-button" className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold"><Plus className="w-4 h-4" />Add Budget</button>
   </>
@@ -162,6 +230,31 @@ function BudgetingContent({ embedded = false }: { embedded?: boolean }) {
       <div className="sticky top-16 z-[60] flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)]/95 px-4 py-3 shadow-sm backdrop-blur-md scroll-mt-16" data-testid="floating-budget-period-bar" aria-label="Budget period">
         {budgetControls}
       </div>
+
+      {/* Data-availability hint — spending shows as $0 when the selected
+          month has no imported transactions. Explain that honestly and
+          offer a jump to the most recent month that has data. */}
+      {showNoDataHint && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 p-4 rounded-lg border border-warning-200 bg-warning-50" data-testid="budget-no-data-hint" role="status">
+          <Info className="w-4 h-4 text-warning-600 shrink-0" />
+          <p className="text-sm text-warning-700 flex-1 min-w-0">
+            {latestDataMonth ? (
+              <>No transaction data in {formatMonthLabel(newPeriod)} — your latest transactions are from {formatMonthLabel(latestDataMonth)}. Spending shows as $0 against this month&apos;s budgets.</>
+            ) : (
+              <>No transaction data yet — import or link an account to see spending against budgets.</>
+            )}
+          </p>
+          {latestDataMonth && latestDataMonth !== newPeriod && (
+            <button
+              type="button"
+              onClick={() => setPeriod(latestDataMonth)}
+              className="text-sm font-semibold text-warning-700 underline underline-offset-2 hover:text-warning-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-warning-500"
+            >
+              View {formatMonthLabel(latestDataMonth)}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Add Budget Form */}
       {showAddForm && (

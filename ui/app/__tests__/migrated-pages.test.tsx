@@ -60,6 +60,8 @@ vi.mock('@/lib/api', () => ({
       Promise.resolve({
         totals: { planned: 0, actual: 0, remaining: 0, percent_used: 0 },
         categories: [],
+        period_txn_count: 0,
+        latest_data_month: null,
       }),
     listBudgets: () => Promise.resolve([]),
     listCategories: () => Promise.resolve([]),
@@ -252,14 +254,21 @@ describe.each(MIGRATED_PAGES)(
 )
 
 describe('Floating time-range bar — /budgeting page (month-period contract)', () => {
-  it('renders the authoritative month Period control and NO Range selector', () => {
+  it('renders a month Period selector consistent with the range-bar styling', () => {
     render(<BudgetingPage />)
-    // The month input drives every budget read/write (getBudgetStatus,
-    // listBudgets, createBudget) — it is the only time control here.
-    expect(screen.getByLabelText('Period')).toBeInTheDocument()
-    // The date-window Range selector is intentionally absent: budgeting
-    // keys by month, so the presets would be a dead control.
+    // The month selector drives every budget read/write (getBudgetStatus,
+    // listBudgets, createBudget). It reuses the range-bar pill language:
+    // chevron navigation + This/Last month quick pills.
+    expect(screen.getByText('Period')).toBeInTheDocument()
+    expect(screen.getByText('This month')).toBeInTheDocument()
+    expect(screen.getByText('Last month')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Previous month' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Next month' })).toBeInTheDocument()
+    // The date-window Range presets stay intentionally absent: budgeting
+    // keys by YYYY-MM, so 7D/90D would be a dead control.
     expect(screen.queryByText(/^Range$/)).not.toBeInTheDocument()
-    expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('radio', { name: /^(7D|30D|90D|MTD|QTD|YTD|1Y|All)$/ }),
+    ).not.toBeInTheDocument()
   })
 })

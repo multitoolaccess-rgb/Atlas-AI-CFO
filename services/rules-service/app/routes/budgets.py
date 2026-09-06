@@ -15,6 +15,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from app.auth import require_user
@@ -267,6 +268,17 @@ async def get_budget_status(
         )
         total_expense_actual += max(0.0, cr.expense_effect)
 
+    # Data-availability metadata for the UI. Budgets key by month, so a
+    # budget in a month that has no imported transactions correctly reads
+    # $0 spent — the UI uses these fields to explain that instead of
+    # looking broken ("Travel 0% spent despite travel expenses").
+    latest_data_month = (
+        db.query(func.max(func.substr(Transaction.transaction_date, 1, 7)))
+        .join(Account, Transaction.account_id == Account.id)
+        .filter(Account.user_id == user.id)
+        .scalar()
+    )
+
     categories = []
     total_planned = 0.0
     total_actual = 0.0
@@ -295,6 +307,8 @@ async def get_budget_status(
 
     return {
         "period": period,
+        "period_txn_count": len(txns),
+        "latest_data_month": latest_data_month,
         "categories": categories,
         "totals": {
             "planned": total_planned,
