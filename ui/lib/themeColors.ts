@@ -224,6 +224,56 @@ export function getTextSecondaryColor(bgHex: string): string {
   return luminance(bgHex) > 0.35 ? 'rgba(26,24,16,0.7)' : 'rgba(255,255,255,0.78)'
 }
 
+/** Stable fallback palette for unrecognized budget-group keys. */
+const GROUP_FALLBACK_KEYS = ['account_0', 'account_1', 'account_2', 'account_3', 'account_4', 'account_5']
+
+/**
+ * Theme-aware hex color for a budget/group bucket key.
+ *
+ * `palette` is the object returned by `useThemeColors()` — its values are
+ * hex strings that resolve inside SVG attributes and inline styles (CSS
+ * `var(--…)` strings do not reliably resolve in SVG presentation
+ * attributes such as `stopColor`).
+ *
+ * Unknown group keys get a stable color derived from the key itself, so
+ * the same custom group is always the same color across charts.
+ */
+export function resolveGroupColor(group: string, palette: Record<string, string>): string {
+  const key = group.trim().toLowerCase()
+  switch (key) {
+    case 'income':
+      return palette.income_accent ?? palette.income
+    case 'expenses':
+    case 'expense':
+    case 'spend':
+      return palette.spend_series ?? palette.spend
+    case 'debt':
+      return palette.debt
+    case 'investments':
+    case 'invest':
+      return palette.invest
+    case 'transfer':
+      return palette.transfer
+    case 'fixed':
+    case 'essential':
+      return palette.essential
+    case 'flexible':
+      return palette.flexible
+    case 'savings':
+    case 'save':
+      return palette.savings
+    case 'other':
+    case 'uncategorized':
+    case '':
+      return palette.transfer
+    default: {
+      let h = 0
+      for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0
+      return palette[GROUP_FALLBACK_KEYS[h % GROUP_FALLBACK_KEYS.length]] ?? '#8b92b9'
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // React hook — returns the full theme-aware palette for the current mode
 // ---------------------------------------------------------------------------

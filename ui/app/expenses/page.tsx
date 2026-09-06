@@ -14,12 +14,12 @@ import {
 import MerchantSpendTable from '@/components/dashboard/MerchantSpendTable'
 import InsightsBanner from '@/components/dashboard/InsightsBanner'
 import DrilldownDrawer from '@/components/dashboard/DrilldownDrawer'
-import BreakdownDonut from '@/components/charts/BreakdownDonut'
-import VerticalBarChart from '@/components/charts/VerticalBarChart'
-
-import TiltCard from '@/components/ui/TiltCard'
-import AnimatedSection from '@/components/ui/AnimatedSection'
-import { formatCurrency } from '@/lib/format'
+import GroupDonutCard from '@/components/dashboard/GroupDonutCard'
+import MonthlyTrendCard from '@/components/dashboard/MonthlyTrendCard'
+import CategoryBreakdownCard, { type CategoryBreakdownItem } from '@/components/dashboard/CategoryBreakdownCard'
+import type { DonutDatum } from '@/components/charts/SimpleDonutChart'
+import { useThemeColors, resolveGroupColor } from '@/lib/themeColors'
+import { formatCurrency, formatMonthLabel } from '@/lib/format'
 import {
   TrendingDown,
   DollarSign,
@@ -32,6 +32,7 @@ function ExpensesContent({ embedded = false }: { embedded?: boolean }) {
   // The floating bar reads timeRange from the unified context; this
   // page only consumes timeRange to pass into the BE range query.
   const { timeRange } = useGlobalFilters()
+  const tc = useThemeColors()
   const [data, setData] = useState<ExpenseBreakdownResponse | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
@@ -71,46 +72,120 @@ function ExpensesContent({ embedded = false }: { embedded?: boolean }) {
 
   useEffect(() => { loadData() }, [loadData])
 
-  const formatDisplay = (n: number) => formatCurrency(n)
+  const formatDisplay = useCallback((n: number) => formatCurrency(n), [])
 
-  // Phase D — use the canonical category group color map.
-  // The BE `by_group` response uses budget_group keys (fixed/flexible/etc)
-  // AND category group keys (Income/Expenses/etc). Map both for coverage.
-  const groupColorValues: Record<string, string> = {
-    Income: 'var(--success-500)',
-    Expenses: 'var(--danger-500)',
-    Debt: 'var(--warning-500)',
-    Investments: 'var(--info-500)',
-    Transfer: 'var(--slate-400)',
-    fixed: 'var(--primary-500)',
-    flexible: 'var(--info-500)',
-    debt: 'var(--warning-500)',
-    savings: 'var(--success-500)',
-    other: 'var(--slate-400)',
-  }
-  const groupColors: Record<string, string> = {
-    Income: 'bg-success-500',
-    Expenses: 'bg-danger-500',
-    Debt: 'bg-warning-500',
-    Investments: 'bg-info-500',
-    Transfer: 'bg-slate-400',
-    fixed: 'bg-primary-500',
-    flexible: 'bg-info-500',
-    debt: 'bg-warning-500',
-    savings: 'bg-success-500',
-    other: 'bg-slate-400',
-  }
+  // Canonical theme-aware hex colors — the same vocabulary the Overview
+  // dashboard uses (Sankey groups / breakdown donut), so income/spending
+  // charts stay visually aligned. Unknown group keys resolve to a stable
+  // palette color instead of falling back to a single gray.
+  const donutData: DonutDatum[] = useMemo(
+    () =>
+      data
+        ? data.by_group.map((g) => ({
+            id: g.group,
+            name: g.group.charAt(0).toUpperCase() + g.group.slice(1),
+            value: g.amount,
+            color: resolveGroupColor(g.group, tc),
+          }))
+        : [],
+    [data, tc],
+  )
+
+  const categoryItems: CategoryBreakdownItem[] = useMemo(
+    () =>
+      data
+        ? data.by_category.map((c) => ({
+            id: String(c.category_id),
+            name: c.category_name,
+            amount: c.amount,
+            color: resolveGroupColor(c.budget_group, tc),
+            group: c.budget_group,
+          }))
+        : [],
+    [data, tc],
+  )
 
   const recentMonths = useMemo(() => data ? data.trend.slice(-6) : [], [data])
+
+  const openGroupDrilldown = useCallback((d: DonutDatum) => {
+    const groupTxns = transactions.filter((t) => {
+      const cat = data?.by_category.find((c) => c.category_name === t.category_name)
+      return cat?.budget_group === d.id
+    })
+    openDrilldown(
+      `${d.name} Expenses`,
+      `${groupTxns.length} transactions · ${formatDisplay(d.value)}`,
+      <div className="space-y-2">
+        {groupTxns.slice(0, 50).map((t) => (
+          <div key={t.id} className="flex items-center justify-between py-2 border-b border-[var(--border-subtle)]">
+            <div className="min-w-0">
+              <p className="text-sm text-[var(--text-primary)] truncate">{t.description}</p>
+              <p className="text-xs text-[var(--text-secondary)]">{t.transaction_date}{t.merchant_name ? ` · ${t.merchant_name}` : ''}</p>
+            </div>
+            <span className="text-sm font-mono font-semibold text-[var(--danger-500)]">
+              {formatDisplay(Math.abs(t.amount))}
+            </span>
+          </div>
+        ))}
+        {groupTxns.length === 0 && <p className="text-sm text-[var(--text-secondary)] py-4">No transactions found.</p>}
+      </div>,
+    )
+  }, [transactions, data, openDrilldown, formatDisplay])
+
+  const openMonthDrilldown = useCallback((month: string) => {
+    const monthTxns = transactions.filter((t) => t.transaction_date?.startsWith(month))
+    openDrilldown(
+      `Expenses in ${formatMonthLabel(month)}`,
+      `${monthTxns.length} transactions · ${formatDisplay(monthTxns.reduce((s, t) => s + Math.abs(t.amount), 0))}`,
+      <div className="space-y-2">
+        {monthTxns.slice(0, 50).map((t) => (
+          <div key={t.id} className="flex items-center justify-between py-2 border-b border-[var(--border-subtle)]">
+            <div className="min-w-0">
+              <p className="text-sm text-[var(--text-primary)] truncate">{t.description}</p>
+              <p className="text-xs text-[var(--text-secondary)]">{t.transaction_date}{t.merchant_name ? ` · ${t.merchant_name}` : ''}</p>
+            </div>
+            <span className="text-sm font-mono font-semibold text-[var(--danger-500)]">
+              {formatDisplay(Math.abs(t.amount))}
+            </span>
+          </div>
+        ))}
+        {monthTxns.length === 0 && <p className="text-sm text-[var(--text-secondary)] py-4">No transactions found.</p>}
+      </div>,
+    )
+  }, [transactions, openDrilldown, formatDisplay])
+
+  const openCategoryDrilldown = useCallback((item: CategoryBreakdownItem) => {
+    const catTxns = transactions.filter((t) =>
+      (t.category_name || 'Uncategorized').toLowerCase() === item.name.toLowerCase()
+    )
+    openDrilldown(
+      item.name,
+      `${catTxns.length} transactions · ${formatDisplay(item.amount)}`,
+      <div className="space-y-2">
+        {catTxns.slice(0, 50).map((t) => (
+          <div key={t.id} className="flex items-center justify-between py-2 border-b border-[var(--border-subtle)]">
+            <div className="min-w-0">
+              <p className="text-sm text-[var(--text-primary)] truncate">{t.description}</p>
+              <p className="text-xs text-[var(--text-secondary)]">{t.transaction_date}{t.merchant_name ? ` · ${t.merchant_name}` : ''}</p>
+            </div>
+            <span className="text-sm font-mono font-semibold text-[var(--danger-500)]">
+              {formatDisplay(Math.abs(t.amount))}
+            </span>
+          </div>
+        ))}
+        {catTxns.length === 0 && <p className="text-sm text-[var(--text-secondary)] py-4">No transactions found.</p>}
+      </div>,
+    )
+  }, [transactions, openDrilldown, formatDisplay])
 
   return (
     <div className="space-y-8">
       {!embedded && <><PageHeader title="Expenses" description="Analyze spending patterns and categories." /><FloatingTimeRangeBar /></>}
 
       {error && (
-        <div className="flex items-center gap-3 p-4 bg-danger-50 border border-danger-200 rounded-lg">
-          <AlertTriangle className="w-5 h-5 text-danger-500 shrink-0" />
-          <p className="text-sm text-danger-700">{error}</p>
+        <div className="flex items-center gap-3 p-4 rounded-lg border border-[var(--danger-200)] bg-[var(--danger-50)]">
+          <AlertTriangle className="w-5 h-5 text-[var(--danger-500)] shrink-0" />
+          <p className="text-sm text-[var(--danger-700)]">{error}</p>
           <button onClick={() => setError(null)} className="ml-auto"><X className="w-4 h-4" /></button>
         </div>
       )}
@@ -122,8 +197,8 @@ function ExpensesContent({ embedded = false }: { embedded?: boolean }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="card p-6 animate-pulse">
-              <div className="h-4 bg-slate-200 rounded w-1/2 mb-3" />
-              <div className="h-8 bg-slate-200 rounded w-3/4" />
+              <div className="skeleton h-4 w-1/2 mb-3" />
+              <div className="skeleton h-8 w-3/4" />
             </div>
           ))}
         </div>
@@ -131,147 +206,66 @@ function ExpensesContent({ embedded = false }: { embedded?: boolean }) {
         <>
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <TiltCard className="card p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="w-4 h-4 text-danger-500" />
-                <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Total Expenses</span>
+            <div className="card p-6 relative overflow-hidden transition-all duration-200">
+              <div className="flex items-start justify-between mb-3">
+                <p className="label-sm text-tertiary">Total Expenses</p>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${tc.spend_series}24` }}>
+                  <DollarSign className="w-4 h-4" style={{ color: tc.spend_series }} />
+                </div>
               </div>
-              <p className="text-2xl font-bold text-danger-600">{formatDisplay(data.total_expenses)}</p>
-            </TiltCard>
-            <TiltCard className="card p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingDown className="w-4 h-4 text-warning-500" />
-                <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Categories</span>
+              <p className="headline-xl text-[var(--text-primary)] mb-1 font-bold tracking-tight">{formatDisplay(data.total_expenses)}</p>
+            </div>
+            <div className="card p-6 relative overflow-hidden transition-all duration-200">
+              <div className="flex items-start justify-between mb-3">
+                <p className="label-sm text-tertiary">Categories</p>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${tc.flexible}24` }}>
+                  <TrendingDown className="w-4 h-4" style={{ color: tc.flexible }} />
+                </div>
               </div>
-              <p className="text-2xl font-bold text-on-surface">{data.by_category.length}</p>
-            </TiltCard>
-            <TiltCard className="card p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Layers className="w-4 h-4 text-info-500" />
-                <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Groups</span>
+              <p className="headline-xl text-[var(--text-primary)] mb-1 font-bold tracking-tight">{data.by_category.length}</p>
+            </div>
+            <div className="card p-6 relative overflow-hidden transition-all duration-200">
+              <div className="flex items-start justify-between mb-3">
+                <p className="label-sm text-tertiary">Groups</p>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${tc.debt}24` }}>
+                  <Layers className="w-4 h-4" style={{ color: tc.debt }} />
+                </div>
               </div>
-              <p className="text-2xl font-bold text-on-surface">{data.by_group.length}</p>
-            </TiltCard>
+              <p className="headline-xl text-[var(--text-primary)] mb-1 font-bold tracking-tight">{data.by_group.length}</p>
+            </div>
           </div>
 
-          {/* Expense by Group */}
+          {/* Spending by Group */}
           {data.by_group.length > 0 && (
-            <BreakdownDonut
+            <GroupDonutCard
               title="Spending by Group"
-              data={data.by_group.map((g) => ({
-                id: g.group,
-                name: g.group.charAt(0).toUpperCase() + g.group.slice(1),
-                value: g.amount,
-                color: groupColorValues[g.group] || 'var(--slate-400)',
-              }))}
+              totalLabel="Total Expenses"
+              data={donutData}
               total={data.total_expenses}
-              onSelect={(d) => {
-                const groupTxns = transactions.filter((t) => {
-                  const cat = data?.by_category.find((c) => c.category_name === t.category_name)
-                  return cat?.budget_group === d.id
-                })
-                openDrilldown(
-                  `${d.name} Expenses`,
-                  `${groupTxns.length} transactions · ${formatDisplay(d.value)}`,
-                  <div className="space-y-2">
-                    {groupTxns.slice(0, 50).map((t) => (
-                      <div key={t.id} className="flex items-center justify-between py-2 border-b border-outline-variant/10">
-                        <div className="min-w-0">
-                          <p className="text-sm text-on-surface truncate">{t.description}</p>
-                          <p className="text-xs text-on-surface-variant">{t.transaction_date}{t.merchant_name ? ` · ${t.merchant_name}` : ''}</p>
-                        </div>
-                        <span className="text-sm font-mono font-semibold text-danger-500">
-                          ${Math.abs(t.amount).toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
-                    {groupTxns.length === 0 && <p className="text-sm text-on-surface-variant py-4">No transactions found.</p>}
-                  </div>,
-                )
-              }}
+              onSelect={openGroupDrilldown}
             />
           )}
 
           {/* Monthly Trend */}
           {recentMonths.length > 0 && (
-            <div className="card p-6">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface mb-4">Monthly Trend</h3>
-              <VerticalBarChart
-                data={recentMonths.map((m) => ({
-                  id: m.month,
-                  label: m.month,
-                  value: m.amount,
-                  color: 'var(--danger-500)',
-                }))}
-                defaultColor="var(--danger-500)"
-                currency
-                onSelect={(d) => {
-                  const monthTxns = transactions.filter((t) => t.transaction_date?.startsWith(d.id))
-                  openDrilldown(
-                    `Expenses in ${d.label}`,
-                    `${monthTxns.length} transactions · ${formatDisplay(d.value)}`,
-                    <div className="space-y-2">
-                      {monthTxns.slice(0, 50).map((t) => (
-                        <div key={t.id} className="flex items-center justify-between py-2 border-b border-outline-variant/10">
-                          <div className="min-w-0">
-                            <p className="text-sm text-on-surface truncate">{t.description}</p>
-                            <p className="text-xs text-on-surface-variant">{t.transaction_date}{t.merchant_name ? ` · ${t.merchant_name}` : ''}</p>
-                          </div>
-                          <span className="text-sm font-mono font-semibold text-danger-500">
-                            ${Math.abs(t.amount).toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
-                      {monthTxns.length === 0 && <p className="text-sm text-on-surface-variant py-4">No transactions found.</p>}
-                    </div>,
-                  )
-                }}
-              />
-            </div>
+            <MonthlyTrendCard
+              title="Monthly Spending"
+              seriesName="Spending"
+              points={recentMonths}
+              color={tc.spend_series}
+              onSelect={openMonthDrilldown}
+            />
           )}
 
           {/* Expense Categories */}
-          {data.by_category.length > 0 && (
-            <div className="card p-6">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface mb-4">Expense Categories</h3>
-              <div className="space-y-2">
-                {data.by_category.map((cat) => (
-                  <div
-                    key={cat.category_id}
-                    className="flex items-center justify-between py-2 border-b border-outline-variant/10 last:border-0 cursor-pointer hover:bg-slate-50 rounded px-1 transition-colors"
-                    onClick={() => {
-                      const catTxns = transactions.filter((t) =>
-                        (t.category_name || 'Uncategorized').toLowerCase() === cat.category_name.toLowerCase()
-                      )
-                      openDrilldown(
-                        cat.category_name,
-                        `${catTxns.length} transactions · ${formatDisplay(cat.amount)}`,
-                        <div className="space-y-2">
-                          {catTxns.slice(0, 50).map((t) => (
-                            <div key={t.id} className="flex items-center justify-between py-2 border-bborder-outline-variant/10">
-                            <div className="min-w-0">
-                                <p className="text-sm text-on-surface truncate">{t.description}</p>
-                                <p className="text-xs text-on-surface-variant">{t.transaction_date}{t.merchant_name ? ` · ${t.merchant_name}` : ''}</p>
-                              </div>
-                              <span className="text-sm font-mono font-semibold text-danger-500">
-                                ${Math.abs(t.amount).toFixed(2)}
-                              </span>
-                            </div>
-                          ))}
-                          {catTxns.length === 0 && <p className="text-sm text-on-surface-variant py-4">No transactions found.</p>}
-                        </div>,
-                      )
-                    }}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className={`w-2 h-2 rounded-full shrink-0 ${groupColors[cat.budget_group] || 'bg-slate-400'}`} />
-                      <span className="text-sm font-semibold text-on-surface truncate">{cat.category_name}</span>
-                      <span className="text-[0.6rem] uppercase tracking-wider text-on-surface-variant">{cat.budget_group}</span>
-                    </div>                        <span className="text-sm font-bold text-danger-600 tabular-nums ml-4 shrink-0">{formatDisplay(cat.amount)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {categoryItems.length > 0 && (
+            <CategoryBreakdownCard
+              title="Expense Categories"
+              subtitle={`${categoryItems.length} categories · ${formatDisplay(data.total_expenses)}`}
+              items={categoryItems}
+              total={data.total_expenses}
+              onSelect={openCategoryDrilldown}
+            />
           )}
 
           {/* Top Merchants */}

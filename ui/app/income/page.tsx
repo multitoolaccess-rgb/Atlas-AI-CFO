@@ -12,14 +12,13 @@ import {
   type Transaction,
 } from '@/lib/api'
 import DrilldownDrawer from '@/components/dashboard/DrilldownDrawer'
-import BreakdownDonut from '@/components/charts/BreakdownDonut'
-import VerticalBarChart from '@/components/charts/VerticalBarChart'
-import TreemapChart, { type TreemapDatum } from '@/components/charts/TreemapChart'
-import TiltCard from '@/components/ui/TiltCard'
-import AnimatedSection from '@/components/ui/AnimatedSection'
+import GroupDonutCard from '@/components/dashboard/GroupDonutCard'
+import MonthlyTrendCard from '@/components/dashboard/MonthlyTrendCard'
+import CategoryBreakdownCard, { type CategoryBreakdownItem } from '@/components/dashboard/CategoryBreakdownCard'
+import type { DonutDatum } from '@/components/charts/SimpleDonutChart'
+import { useThemeColors, resolveGroupColor } from '@/lib/themeColors'
 import { formatCurrency, formatMonthLabel } from '@/lib/format'
 import {
-  TrendingUp,
   DollarSign,
   Calendar,
   Layers,
@@ -29,6 +28,7 @@ function IncomeContent({ embedded = false }: { embedded?: boolean }) {
   // The floating bar reads timeRange from the unified context; this
   // page only consumes timeRange to pass into the BE range query.
   const { timeRange } = useGlobalFilters()
+  const tc = useThemeColors()
   const [data, setData] = useState<IncomeBreakdownResponse | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
@@ -68,48 +68,122 @@ function IncomeContent({ embedded = false }: { embedded?: boolean }) {
 
   useEffect(() => { loadData() }, [loadData])
 
-  const formatDisplay = (n: number) => formatCurrency(n)
+  const formatDisplay = useCallback((n: number) => formatCurrency(n), [])
 
-  // Phase D — use the canonical category group color map.
-  // The BE `by_group` response uses budget_group keys (fixed/flexible/etc)
-  // AND category group keys (Income/Expenses/etc). Map both for coverage.
-  const groupColorValues: Record<string, string> = {
-    Income: 'var(--success-500)',
-    Expenses: 'var(--danger-500)',
-    Debt: 'var(--warning-500)',
-    Investments: 'var(--info-500)',
-    Transfer: 'var(--slate-400)',
-    fixed: 'var(--primary-500)',
-    flexible: 'var(--info-500)',
-    savings: 'var(--success-500)',
-    debt: 'var(--warning-500)',
-    other: 'var(--slate-400)',
-  }
-  const groupColors: Record<string, string> = {
-    Income: 'bg-success-500',
-    Expenses: 'bg-danger-500',
-    Debt: 'bg-warning-500',
-    Investments: 'bg-info-500',
-    Transfer: 'bg-slate-400',
-    fixed: 'bg-primary-500',
-    flexible: 'bg-info-500',
-    savings: 'bg-success-500',
-    debt: 'bg-warning-500',
-    other: 'bg-slate-400',
-  }
+  // Canonical theme-aware hex colors — the same vocabulary the Overview
+  // dashboard uses (Sankey groups / breakdown donut), so income/spending
+  // charts stay visually aligned. Unknown group keys resolve to a stable
+  // palette color instead of falling back to a single gray.
+  const donutData: DonutDatum[] = useMemo(
+    () =>
+      data
+        ? data.by_group.map((g) => ({
+            id: g.group,
+            name: g.group.charAt(0).toUpperCase() + g.group.slice(1),
+            value: g.amount,
+            color: resolveGroupColor(g.group, tc),
+          }))
+        : [],
+    [data, tc],
+  )
+
+  const categoryItems: CategoryBreakdownItem[] = useMemo(
+    () =>
+      data
+        ? data.by_category.map((c) => ({
+            id: String(c.category_id),
+            name: c.category_name,
+            amount: c.amount,
+            color: resolveGroupColor(c.budget_group, tc),
+            group: c.budget_group,
+          }))
+        : [],
+    [data, tc],
+  )
 
   const recentMonths = useMemo(() => {
     if (!data) return []
     return data.trend.slice(-6)
   }, [data])
 
+  const openGroupDrilldown = useCallback((d: DonutDatum) => {
+    const groupTxns = transactions.filter((t) => {
+      const cat = data?.by_category.find((c) => c.category_name === t.category_name)
+      return cat?.budget_group === d.id
+    })
+    openDrilldown(
+      `${d.name} Income`,
+      `${groupTxns.length} transactions · ${formatDisplay(d.value)}`,
+      <div className="space-y-2">
+        {groupTxns.slice(0, 50).map((t) => (
+          <div key={t.id} className="flex items-center justify-between py-2 border-b border-[var(--border-subtle)]">
+            <div className="min-w-0">
+              <p className="text-sm text-[var(--text-primary)] truncate">{t.description}</p>
+              <p className="text-xs text-[var(--text-secondary)]">{t.transaction_date}{t.merchant_name ? ` · ${t.merchant_name}` : ''}</p>
+            </div>
+            <span className="text-sm font-mono font-semibold text-[var(--success-600)]">
+              +{formatDisplay(Math.abs(t.amount))}
+            </span>
+          </div>
+        ))}
+        {groupTxns.length === 0 && <p className="text-sm text-[var(--text-secondary)] py-4">No transactions found.</p>}
+      </div>,
+    )
+  }, [transactions, data, openDrilldown, formatDisplay])
+
+  const openMonthDrilldown = useCallback((month: string) => {
+    const monthTxns = transactions.filter((t) => t.transaction_date?.startsWith(month))
+    openDrilldown(
+      `Income in ${formatMonthLabel(month)}`,
+      `${monthTxns.length} transactions · ${formatDisplay(monthTxns.reduce((s, t) => s + Math.abs(t.amount), 0))}`,
+      <div className="space-y-2">
+        {monthTxns.slice(0, 50).map((t) => (
+          <div key={t.id} className="flex items-center justify-between py-2 border-b border-[var(--border-subtle)]">
+            <div className="min-w-0">
+              <p className="text-sm text-[var(--text-primary)] truncate">{t.description}</p>
+              <p className="text-xs text-[var(--text-secondary)]">{t.transaction_date}{t.merchant_name ? ` · ${t.merchant_name}` : ''}</p>
+            </div>
+            <span className="text-sm font-mono font-semibold text-[var(--success-600)]">
+              +{formatDisplay(Math.abs(t.amount))}
+            </span>
+          </div>
+        ))}
+        {monthTxns.length === 0 && <p className="text-sm text-[var(--text-secondary)] py-4">No transactions found.</p>}
+      </div>,
+    )
+  }, [transactions, openDrilldown, formatDisplay])
+
+  const openCategoryDrilldown = useCallback((item: CategoryBreakdownItem) => {
+    const catTxns = transactions.filter((t) =>
+      (t.category_name || 'Uncategorized').toLowerCase() === item.name.toLowerCase()
+    )
+    openDrilldown(
+      item.name,
+      `${catTxns.length} transactions · ${formatDisplay(item.amount)}`,
+      <div className="space-y-2">
+        {catTxns.slice(0, 50).map((t) => (
+          <div key={t.id} className="flex items-center justify-between py-2 border-b border-[var(--border-subtle)]">
+            <div className="min-w-0">
+              <p className="text-sm text-[var(--text-primary)] truncate">{t.description}</p>
+              <p className="text-xs text-[var(--text-secondary)]">{t.transaction_date}{t.merchant_name ? ` · ${t.merchant_name}` : ''}</p>
+            </div>
+            <span className="text-sm font-mono font-semibold text-[var(--success-600)]">
+              +{formatDisplay(Math.abs(t.amount))}
+            </span>
+          </div>
+        ))}
+        {catTxns.length === 0 && <p className="text-sm text-[var(--text-secondary)] py-4">No transactions found.</p>}
+      </div>,
+    )
+  }, [transactions, openDrilldown, formatDisplay])
+
   return (
     <div className="space-y-8">
       {!embedded && <><PageHeader title="Income" description="Track all income sources and trends." /><FloatingTimeRangeBar /></>}
 
       {error && (
-        <div className="flex items-center gap-3 p-4 bg-danger-50 border border-danger-200 rounded-lg">
-          <p className="text-sm text-danger-700">{error}</p>
+        <div className="flex items-center gap-3 p-4 rounded-lg border border-[var(--danger-200)] bg-[var(--danger-50)]">
+          <p className="text-sm text-[var(--danger-700)]">{error}</p>
         </div>
       )}
 
@@ -117,8 +191,8 @@ function IncomeContent({ embedded = false }: { embedded?: boolean }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="card p-6 animate-pulse">
-              <div className="h-4 bg-slate-200 rounded w-1/2 mb-3" />
-              <div className="h-8 bg-slate-200 rounded w-3/4" />
+              <div className="skeleton h-4 w-1/2 mb-3" />
+              <div className="skeleton h-8 w-3/4" />
             </div>
           ))}
         </div>
@@ -126,151 +200,66 @@ function IncomeContent({ embedded = false }: { embedded?: boolean }) {
         <>
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <TiltCard className="card p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="w-4 h-4 text-success-500" />
-                <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Total Income</span>
+            <div className="card p-6 relative overflow-hidden transition-all duration-200">
+              <div className="flex items-start justify-between mb-3">
+                <p className="label-sm text-tertiary">Total Income</p>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${tc.income_accent}24` }}>
+                  <DollarSign className="w-4 h-4" style={{ color: tc.income_accent }} />
+                </div>
               </div>
-              <p className="text-2xl font-bold text-success-600">{formatDisplay(data.total_income)}</p>
-            </TiltCard>
-            <TiltCard className="card p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Layers className="w-4 h-4 text-primary-500" />
-                <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Sources</span>
+              <p className="headline-xl text-[var(--text-primary)] mb-1 font-bold tracking-tight">{formatDisplay(data.total_income)}</p>
+            </div>
+            <div className="card p-6 relative overflow-hidden transition-all duration-200">
+              <div className="flex items-start justify-between mb-3">
+                <p className="label-sm text-tertiary">Sources</p>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${tc.invest}24` }}>
+                  <Layers className="w-4 h-4" style={{ color: tc.invest }} />
+                </div>
               </div>
-              <p className="text-2xl font-bold text-on-surface">{data.by_category.length}</p>
-            </TiltCard>
-            <TiltCard className="card p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="w-4 h-4 text-info-500" />
-                <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Groups</span>
+              <p className="headline-xl text-[var(--text-primary)] mb-1 font-bold tracking-tight">{data.by_category.length}</p>
+            </div>
+            <div className="card p-6 relative overflow-hidden transition-all duration-200">
+              <div className="flex items-start justify-between mb-3">
+                <p className="label-sm text-tertiary">Groups</p>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${tc.flexible}24` }}>
+                  <Calendar className="w-4 h-4" style={{ color: tc.flexible }} />
+                </div>
               </div>
-              <p className="text-2xl font-bold text-on-surface">{data.by_group.length}</p>
-            </TiltCard>
+              <p className="headline-xl text-[var(--text-primary)] mb-1 font-bold tracking-tight">{data.by_group.length}</p>
+            </div>
           </div>
 
           {/* Income by Group */}
           {data.by_group.length > 0 && (
-            <AnimatedSection animation="slideUp" delay={100}>
-              <TiltCard>
-                <BreakdownDonut
-                  title="Income by Group"
-                  data={data.by_group.map((g) => ({
-                    id: g.group,
-                    name: g.group.charAt(0).toUpperCase() + g.group.slice(1),
-                    value: g.amount,
-                    color: groupColorValues[g.group] || 'var(--slate-400)',
-                  }))}
-                  total={data.total_income}
-                  onSelect={(d) => {
-                    const groupTxns = transactions.filter((t) => {
-                      const cat = data?.by_category.find((c) => c.category_name === t.category_name)
-                      return cat?.budget_group === d.id
-                    })
-                    openDrilldown(
-                      `${d.name} Income`,
-                      `${groupTxns.length} transactions · ${formatDisplay(d.value)}`,
-                      <div className="space-y-2">
-                        {groupTxns.slice(0, 50).map((t) => (
-                          <div key={t.id} className="flex items-center justify-between py-2 border-b border-outline-variant/10">
-                            <div className="min-w-0">
-                              <p className="text-sm text-on-surface truncate">{t.description}</p>
-                              <p className="text-xs text-on-surface-variant">{t.transaction_date}{t.merchant_name ? ` · ${t.merchant_name}` : ''}</p>
-                            </div>
-                            <span className="text-sm font-mono font-semibold text-success-600">
-                              +{formatDisplay(Math.abs(t.amount))}
-                            </span>
-                          </div>
-                        ))}
-                        {groupTxns.length === 0 && <p className="text-sm text-on-surface-variant py-4">No transactions found.</p>}
-                      </div>,
-                    )
-                  }}
-                />
-              </TiltCard>
-            </AnimatedSection>
+            <GroupDonutCard
+              title="Income by Group"
+              totalLabel="Total Income"
+              data={donutData}
+              total={data.total_income}
+              onSelect={openGroupDrilldown}
+            />
           )}
 
           {/* Monthly Trend */}
           {recentMonths.length > 0 && (
-            <AnimatedSection animation="slideUp" delay={150}>
-              <div className="card p-6">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface mb-4">Monthly Trend</h3>
-                <VerticalBarChart
-                  data={recentMonths.map((m) => ({
-                    id: m.month,
-                    label: m.month,
-                    value: m.amount,
-                    color: 'var(--success-500)',
-                  }))}
-                  defaultColor="var(--success-500)"
-                  currency
-                  onSelect={(d) => {
-                    const monthTxns = transactions.filter((t) => t.transaction_date?.startsWith(d.id))
-                    openDrilldown(
-                      `Income in ${formatMonthLabel(d.id)}`,
-                      `${monthTxns.length} transactions · ${formatDisplay(d.value)}`,
-                      <div className="space-y-2">
-                        {monthTxns.slice(0, 50).map((t) => (
-                          <div key={t.id} className="flex items-center justify-between py-2 border-b border-outline-variant/10">
-                            <div className="min-w-0">
-                              <p className="text-sm text-on-surface truncate">{t.description}</p>
-                              <p className="text-xs text-on-surface-variant">{t.transaction_date}{t.merchant_name ? ` · ${t.merchant_name}` : ''}</p>
-                            </div>
-                            <span className="text-sm font-mono font-semibold text-success-600">
-                              +{formatDisplay(Math.abs(t.amount))}
-                            </span>
-                          </div>
-                        ))}
-                        {monthTxns.length === 0 && <p className="text-sm text-on-surface-variant py-4">No transactions found.</p>}
-                      </div>,
-                    )
-                  }}
-                />
-              </div>
-            </AnimatedSection>
+            <MonthlyTrendCard
+              title="Monthly Income"
+              seriesName="Income"
+              points={recentMonths}
+              color={tc.income_accent}
+              onSelect={openMonthDrilldown}
+            />
           )}
 
-          {/* Income Sources Treemap */}
-          {data.by_category.length > 0 && (
-            <AnimatedSection animation="slideUp" delay={200}>
-              <TiltCard>
-                <div className="card p-6">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface mb-4">Income Sources</h3>
-                  <TreemapChart
-                    data={data.by_category.map((cat) => ({
-                      id: String(cat.category_id),
-                      name: cat.category_name,
-                      value: cat.amount,
-                      color: groupColorValues[cat.budget_group] || 'var(--slate-400)',
-                    }))}
-                    onSelect={(d) => {
-                      const catTxns = transactions.filter((t) =>
-                        (t.category_name || 'Uncategorized').toLowerCase() === d.name.toLowerCase()
-                      )
-                      openDrilldown(
-                        d.name,
-                        `${catTxns.length} transactions · ${formatDisplay(d.value)}`,
-                        <div className="space-y-2">
-                          {catTxns.slice(0, 50).map((t) => (
-                            <div key={t.id} className="flex items-center justify-between py-2 border-b border-outline-variant/10">
-                              <div className="min-w-0">
-                                <p className="text-sm text-on-surface truncate">{t.description}</p>
-                                <p className="text-xs text-on-surface-variant">{t.transaction_date}{t.merchant_name ? ` · ${t.merchant_name}` : ''}</p>
-                              </div>
-                              <span className="text-sm font-mono font-semibold text-success-600">
-                                +{formatDisplay(Math.abs(t.amount))}
-                              </span>
-                            </div>
-                          ))}
-                          {catTxns.length === 0 && <p className="text-sm text-on-surface-variant py-4">No transactions found.</p>}
-                        </div>,
-                      )
-                    }}
-                  />
-                </div>
-              </TiltCard>
-            </AnimatedSection>
+          {/* Income Sources */}
+          {categoryItems.length > 0 && (
+            <CategoryBreakdownCard
+              title="Income Sources"
+              subtitle={`${categoryItems.length} sources · ${formatDisplay(data.total_income)}`}
+              items={categoryItems}
+              total={data.total_income}
+              onSelect={openCategoryDrilldown}
+            />
           )}
         </>
       ) : null}
