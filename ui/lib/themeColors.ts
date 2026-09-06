@@ -262,11 +262,12 @@ export function resolveGroupColor(group: string, palette: Record<string, string>
     case 'savings':
     case 'save':
       return palette.savings
-    case 'other':
-    case 'uncategorized':
-    case '':
-      return palette.transfer
     default: {
+      // Unknown / catch-all buckets ("other", "uncategorized", custom
+      // groups) intentionally do NOT map to grey — they fall through to the
+      // stable deterministic hash so every bucket renders in a real hue and
+      // the same key is always the same color across charts. Only the actual
+      // `transfer` role above stays neutral grey.
       let h = 0
       for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0
       return palette[GROUP_FALLBACK_KEYS[h % GROUP_FALLBACK_KEYS.length]] ?? '#8b92b9'

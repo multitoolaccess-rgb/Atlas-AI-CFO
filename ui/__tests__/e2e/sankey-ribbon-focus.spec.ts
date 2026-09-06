@@ -350,6 +350,46 @@ test('focused Sankey shows an in-card range selector and hides the floating bar'
   expect(state.cardTop!).toBeLessThan(80)
 })
 
+test('hovering a node never hides or blurs any label', async ({ page }) => {
+  await mockCashFlow(page)
+
+  // Hover the Uncategorized category node — the flow the user reported:
+  // its label "disappeared" (dimmed with its group) and the hovered
+  // node's own label was smeared by the glow halo.
+  const node = page.getByRole('option', { name: /^Uncategorized,/ })
+  await node.hover()
+  await page.waitForTimeout(300)
+
+  const state = await page.evaluate(() => {
+    const svg = document.querySelector('#sankey-links')?.closest('svg')
+    if (!svg) return { error: 'no svg' }
+    const texts = Array.from(svg.querySelectorAll('#sankey-nodes text'))
+    const hidden = texts
+      .map((t) => {
+        const opacity = Number(getComputedStyle(t).opacity)
+        const parentStyle = (t.closest('g') as SVGElement | null)?.getAttribute('style') ?? ''
+        return {
+          label: (t.textContent ?? '').slice(0, 24),
+          opacity,
+          // If the parent group carried the glow filter, the label text
+          // would inherit the blur (stdDeviation 3 smears 10–12px words).
+          blurred: parentStyle.includes('filter'),
+        }
+      })
+      .filter((t) => t.opacity < 0.65 || t.blurred)
+    return { textCount: texts.length, hidden }
+  })
+
+  expect(state.error).toBeUndefined()
+  // Regression: node hover used to dim the whole <g> — every disconnected
+  // label dropped to 0.3 (nearly invisible on the dark canvas) — and the
+  // glow filter applied to the group, blurring the hovered node's own
+  // label. Labels must now stay ≥ 0.65 and never sit inside a filtered
+  // group.
+  expect(state.textCount!).toBeGreaterThan(0)
+  expect(state.hidden!).toEqual([])
+})
+
 test('changing the range inside focused Sankey refetches that range', async ({ page }) => {
   await mockCashFlow(page)
 

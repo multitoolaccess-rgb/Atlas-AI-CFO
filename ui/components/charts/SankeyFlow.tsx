@@ -557,7 +557,13 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
                 aria-selected={activeNode === node.name}
                 aria-label={nodeLabel}
                 tabIndex={focusedNode === i || (focusedNode === null && i === 0) ? 0 : -1}
-                style={{ cursor: 'pointer', transition, opacity: nodeOpacity, outline: 'none', filter: nodeFilter }}
+                // The group itself carries NO opacity or filter: both used to
+                // apply to the whole subtree, which dimmed the label of every
+                // disconnected node to 0.3 (text nearly vanished on hover)
+                // and blurred the hovered node's own label with the glow
+                // halo. Dimming and the glow now live on the bar rect only;
+                // the label clamps to a readable opacity (see the <text>).
+                style={{ cursor: 'pointer', outline: 'none' }}
                 onClick={() => onNodeClick?.(node.name)}
                 onMouseEnter={() => handleNodeEnter(node.name)}
                 onFocus={() => setFocusedNode(i)}
@@ -588,10 +594,13 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
                   ry={4}
                   fill="none"
                   className="sankey-focus-ring"
-                  style={{ pointerEvents: 'none' }}
+                  style={{ pointerEvents: 'none', transition, opacity: nodeOpacity }}
                 />
 
-                {/* Node bar */}
+                {/* Node bar — the only element that dims on hover and the
+                    only element the glow halo may blur. Opacity and filter
+                    live here (not on the group) so labels are never hidden
+                    or smeared while the flow is being traced. */}
                 <rect
                   x={x}
                   y={y}
@@ -602,6 +611,7 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
                   fill={fill}
                   stroke={strokeColor}
                   strokeWidth={strokeWidth}
+                  style={{ transition, opacity: nodeOpacity, filter: nodeFilter }}
                 />
 
                 {/* Every node gets ONE label on the SIDE of its bar — never
@@ -626,6 +636,11 @@ const SankeyFlow = React.memo(function SankeyFlow({ nodes, links, displayValues,
                     fill: isDark ? '#eaeaea' : '#0A0805',
                     fontFamily: 'var(--font-primary)',
                     fontVariantNumeric: 'tabular-nums',
+                    // Labels never fully disappear while tracing a flow:
+                    // disconnected bars dim to 0.3, but their words stay at
+                    // least 0.7 so the diagram remains readable on hover.
+                    transition,
+                    opacity: Math.max(nodeOpacity, 0.7),
                   }}
                 >
                   {node.name}{value > 0 ? ` · ${formatCurrency(value)}` : ''}

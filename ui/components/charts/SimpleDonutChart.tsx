@@ -29,7 +29,8 @@ function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
   }
 }
 
-function describeArc(
+/** Path for one annular sector (a donut slice) between two angles. */
+function annulusSector(
   cx: number,
   cy: number,
   innerR: number,
@@ -50,6 +51,30 @@ function describeArc(
     `A ${innerR} ${innerR} 0 ${largeArc} 1 ${startInner.x} ${startInner.y}`,
     'Z',
   ].join(' ')
+}
+
+function describeArc(
+  cx: number,
+  cy: number,
+  innerR: number,
+  outerR: number,
+  startAngle: number,
+  endAngle: number,
+) {
+  // A full 360° sweep makes the arc's start and end points coincide, and per
+  // the SVG spec a segment whose endpoints are identical draws nothing — so a
+  // single-segment 100% donut (e.g. one income group filling the whole ring)
+  // used to render an EMPTY path: no fill, leaving only the thin dark stroke
+  // visible as a "grey ring". Split full sweeps into two semicircle sectors
+  // so the fill always paints, no matter how concentrated the data is.
+  if (endAngle - startAngle >= Math.PI * 2 - 0.001) {
+    const mid = startAngle + Math.PI
+    return [
+      annulusSector(cx, cy, innerR, outerR, startAngle, mid),
+      annulusSector(cx, cy, innerR, outerR, mid, endAngle),
+    ].join(' ')
+  }
+  return annulusSector(cx, cy, innerR, outerR, startAngle, endAngle)
 }
 
 export default function SimpleDonutChart({

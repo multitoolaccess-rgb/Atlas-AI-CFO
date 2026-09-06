@@ -36,8 +36,24 @@ describe('SankeyFlow', () => {
     return container.querySelector(`#sankey-link-path-${index}`)?.getAttribute('opacity') ?? null
   }
 
+  // Opacity now lives on the node's BAR rect (the group itself is clean so
+  // labels never inherit dimming or the glow filter).
   function nodeOpacity(container: HTMLElement, index: number): string | null {
-    return container.querySelector(`#sankey-node-${index}`)?.getAttribute('style')?.match(/opacity:\s*([^;]+)/)?.[1] ?? null
+    return container
+      .querySelector(`#sankey-node-${index} rect`)
+      ?.getAttribute('style')
+      ?.match(/(?:^|;)\s*opacity:\s*([^;]+)/)?.[1] ?? null
+  }
+
+  function nodeLabelOpacity(container: HTMLElement, index: number): string | null {
+    return container
+      .querySelector(`#sankey-node-${index} text`)
+      ?.getAttribute('style')
+      ?.match(/(?:^|;)\s*opacity:\s*([^;]+)/)?.[1] ?? null
+  }
+
+  function groupInlineStyle(container: HTMLElement, index: number): string | null {
+    return container.querySelector(`#sankey-node-${index}`)?.getAttribute('style') ?? null
   }
 
   it('highlights the connected flow when a node is hovered and dims disconnected elements', () => {
@@ -55,10 +71,19 @@ describe('SankeyFlow', () => {
     expect(linkPathOpacity(container, 0)).toBe('0.85')
     expect(linkPathOpacity(container, 1)).toBe('0.85')
     expect(linkPathOpacity(container, 2)).toBe('0.08')
-    // Connected nodes stay bright; the disconnected node dims.
+    // Connected nodes stay bright; the disconnected node's BAR dims.
     expect(nodeOpacity(container, 0)).toBe('1')
     expect(nodeOpacity(container, 2)).toBe('1')
     expect(nodeOpacity(container, 3)).toBe('0.3')
+    // Regression: dimming must never hide the labels. The disconnected
+    // node's bar drops to 0.3 but its label clamps to a readable 0.7, and
+    // the group itself carries no opacity/filter (so text can't inherit
+    // dimming or the glow blur).
+    expect(nodeLabelOpacity(container, 0)).toBe('1')
+    expect(nodeLabelOpacity(container, 3)).toBe('0.7')
+    const groupStyle = groupInlineStyle(container, 3) ?? ''
+    expect(groupStyle).not.toContain('opacity')
+    expect(groupStyle).not.toContain('filter')
 
     // Moving the pointer to a different node must not reset the highlight to
     // "everything bright" (the old flicker): hover the source node instead.
@@ -68,6 +93,8 @@ describe('SankeyFlow', () => {
     expect(linkPathOpacity(container, 2)).toBe('0.08')
     expect(nodeOpacity(container, 1)).toBe('1')
     expect(nodeOpacity(container, 2)).toBe('0.3')
+    // Labels stay readable even when their bars dim.
+    expect(nodeLabelOpacity(container, 2)).toBe('0.7')
 
     // Leaving the whole diagram clears the highlight completely.
     fireEvent.mouseLeave(container.querySelector('svg')!)
