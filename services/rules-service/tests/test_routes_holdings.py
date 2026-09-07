@@ -1079,3 +1079,72 @@ def test_refresh_prices_reports_missing_api_key(client, db_session, monkeypatch,
     assert body["prices_updated"] == 0
     assert "Finnhub API key not configured" in (body["warning"] or "")
     assert body["holdings"][0]["live_price"] is None
+
+
+def test_refresh_prices_falls_back_to_twelve_data_for_rejected_symbols(
+    client, db_session, monkeypatch, make_account
+):
+    """When Finnhub rejects symbols (rate limit / timeout / unsupported),
+    the route retries them as ONE Twelve Data batch so a first refresh
+    still covers the whole portfolio instead of leaving gaps."""
+    from types import SimpleNamespace
+
+    from app.models import Holding
+    from app.routes.shared import get_or_create_local_user
+
+    get_or_create_local_user(db_session, "alex")
+    account = make_account()
+    db_session.add(account)
+    db_session.commit()
+    for symbol, quantity in [("AAPL", 10), ("MSFT", 5)]:
+        db_session.add(
+            Holding(
+                account_id=account.id, symbol=symbol, quantity=quantity,
+                current_value=1000.0, type="Stock",
+            )
+        )
+    db_session.commit()
+
+    class FakeFinnhub:
+        def __init__(self) -> None:
+            self.called: list[str] = []
+
+        def quote(self, symbol: str):
+            self.called.append(symbol)
+            return SimpleNamespace(
+                failure=SimpleNamespace(failure_class=SimpleNamespace(value="rate_limited")),
+                value=None,
+            )
+
+    class FakeTwelveData:
+        def __init__(self) -> None:
+            self.batch_called: list[list[str]] = []
+
+        def batch_quotes(self, symbols: list[str]):
+            self.batch_called.append(symbols)
+            return SimpleNamespace(
+                failure=None,
+                value={
+                    "AAPL": SimpleNamespace(current_price="210.0", previous_close="200.0"),
+                    "MSFT": SimpleNamespace(current_price="410.5", previous_close="405.0"),
+                },
+            )
+
+    finnhub = FakeFinnhub()
+    twelve = FakeTwelveData()
+    monkeypatch.setenv("FINNHUB_API_KEY", "test-key")
+    monkeypatch.setattr("app.routes.holdings._get_prices_adapter", lambda: finnhub)
+    monkeypatch.setattr("app.routes.holdings._get_twelve_data_adapter", lambda: twelve)
+
+    response = client.post("/api/holdings/refresh-prices")
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["prices_updated"] == 2
+    # The whole rejected set is retried as a single sorted batch.
+    assert twelve.batch_called == [["AAPL", "MSFT"]]
+    by_symbol = {row["symbol"]: row for row in body["holdings"]}
+    assert by_symbol["AAPL"]["live_price"] == 210.0
+    assert by_symbol["AAPL"]["live_value"] == 2100.0
+    assert by_symbol["MSFT"]["live_price"] == 410.5
+    # Full coverage means no partial-coverage warning.
+    assert (body["warning"] or "") == ""

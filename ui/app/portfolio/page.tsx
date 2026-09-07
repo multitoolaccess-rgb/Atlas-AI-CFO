@@ -1373,7 +1373,9 @@ export default function PortfolioPage() {
                       <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-secondary)] text-[10px]">Value</th>
                       <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-secondary)] text-[10px]">Gain/Loss</th>
                       <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-secondary)] text-[10px]">%</th>
-                      <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-secondary)] text-[10px]">Action</th>
+                      {/* Sticky-right so the per-row actions stay visible
+                          while the wide table scrolls horizontally. */}
+                      <th className="text-right py-3 px-4 label-sm uppercase tracking-wider text-[var(--text-secondary)] text-[10px] sticky right-0 bg-[var(--bg-secondary)]">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1454,7 +1456,7 @@ export default function PortfolioPage() {
                           <td className="py-2.5 px-4 text-right text-secondary text-xs">
                             {pct != null ? `${pct.toFixed(1)}%` : '—'}
                           </td>
-                          <td className="py-2.5 px-4 text-right">
+                          <td className="py-2.5 px-4 text-right sticky right-0 bg-[var(--surface-working)] shadow-[-6px_0_10px_-8px_rgba(0,0,0,0.45)]">
                             {/* Phase 47 — three-button cluster.
                                 Phase 47 bullet order: Edit → Analyze → Delete.
                                 Destructive action LAST (vs. sandwiched in the

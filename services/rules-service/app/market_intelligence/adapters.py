@@ -4,7 +4,7 @@ from __future__ import annotations
 import time
 import re
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation as _DecimalInvalidOperation
 from typing import Any, Callable, Generic, TypeVar
 
 import httpx
@@ -583,3 +583,108 @@ class SecAdapter(_Adapter):
         self.cache.put(key, facts, ttl_seconds=86400)
         self.usage.record(self.provider, endpoint, cache_hit=False)
         return ProviderResult(value=facts)
+
+
+class TwelveDataAdapter(_Adapter):
+    """Key-gated second free tier for portfolio price refresh.
+
+    Twelve Data's free plan (800 credits/day, 8 requests/min) is the
+    cheapest high-capacity fallback for per-symbol quotes: its
+    ``/quote`` endpoint accepts multiple comma-separated symbols and
+    returns every row in ONE response, so a whole-portfolio fallback
+    costs a single request against the 8/min ceiling. It is deliberately
+    provider-gated the same way Finnhub is — disabled until
+    ``TWELVE_DATA_API_KEY`` is configured, so a missing key degrades to
+    today's Finnhub-only behavior instead of failing.
+    """
+
+    BASE_URL = "https://api.twelvedata.com"
+
+    def __init__(self, *, api_key: str | None, enabled: bool, transport: httpx.BaseTransport | None = None,
+                 now: Callable[[], datetime] | None = None, sleep: Callable[[float], None] | None = None,
+                 clock: Callable[[], float] | None = None,
+                 paid_endpoints: set[EndpointClass] | None = None) -> None:
+        super().__init__("twelve_data", enabled=enabled, transport=transport, now=now, sleep=sleep,
+                         calls_per_minute=8, clock=clock, paid_endpoints=paid_endpoints)
+        self._api_key = (api_key or "").strip()
+
+    def batch_quotes(self, symbols: list[str]) -> ProviderResult[dict[str, MarketQuoteSnapshot]]:
+        """Fetch live quotes for many symbols in a single upstream request.
+
+        Returns a dict keyed by the normalized symbol containing only the
+        rows the provider actually served; unsupported / errored symbols
+        are omitted so the caller can count coverage honestly.
+        """
+        endpoint = EndpointClass.QUOTE
+        blocked = self._permitted(endpoint)
+        if blocked:
+            return blocked
+        if not self._api_key:
+            return self._failure(endpoint, FailureClass.UNCONFIGURED, "Twelve Data API key is not configured.")
+        clean = [s.strip().upper() for s in symbols if s and s.strip()]
+        if not clean:
+            return ProviderResult(value={})
+        # One cache entry per (sorted) batch so repeated fallbacks for the
+        # same rejected set stay within the 15-minute freshness horizon.
+        key = f"batch:{','.join(sorted(clean))}"
+        cached = self.cache.get(key)
+        if cached is not None:
+            self.usage.record(self.provider, endpoint, cache_hit=True)
+            return ProviderResult(value=cached, cache_hit=True)
+        payload, failure = self._request(
+            endpoint, f"{self.BASE_URL}/quote",
+            params={"symbol": ",".join(clean), "apikey": self._api_key},
+        )
+        if failure:
+            return failure
+        out: dict[str, MarketQuoteSnapshot] = {}
+        try:
+            assert isinstance(payload, dict)
+            for symbol in clean:
+                row = payload.get(symbol)
+                if not isinstance(row, dict):
+                    continue
+                raw_close = row.get("close")
+                # Error rows (``{"code": 401, "message": ...}``) carry no
+                # close and are omitted so coverage is counted honestly.
+                if not raw_close:
+                    continue
+                raw_current = Decimal(str(raw_close))
+                if not raw_current.is_finite() or raw_current <= 0:
+                    continue
+                raw_previous = row.get("previous_close")
+                previous: str | None = None
+                if raw_previous is not None:
+                    candidate = Decimal(str(raw_previous))
+                    if candidate.is_finite() and candidate > 0:
+                        previous = str(candidate)
+                observed_at: datetime | None = None
+                raw_ts = row.get("timestamp")
+                if raw_ts is not None:
+                    try:
+                        observed_at = datetime.fromtimestamp(int(raw_ts), UTC)
+                    except (ValueError, TypeError, OverflowError):
+                        observed_at = None
+                classification = classify_quote(observed_at=observed_at, now=self._now())
+                source = SourceMetadata(
+                    provider=self.provider,
+                    source_url=f"{self.BASE_URL}/quote?symbol={symbol}",
+                    retrieved_at=self._now(),
+                    observed_at=observed_at or self._now(),
+                    freshness=classification.freshness,
+                    price_basis=classification.price_basis,
+                )
+                out[symbol] = MarketQuoteSnapshot(
+                    symbol=symbol,
+                    currency=str(row.get("currency", "USD")),
+                    current_price=str(raw_current),
+                    previous_close=previous,
+                    source=source,
+                )
+        except (KeyError, TypeError, ValueError, OverflowError, _DecimalInvalidOperation):
+            return self._failure(endpoint, FailureClass.INVALID_QUOTE, "Twelve Data quote payload was invalid.")
+        if not out:
+            return self._failure(endpoint, FailureClass.NOT_FOUND, "Twelve Data returned no usable quotes.")
+        self.cache.put(key, out, ttl_seconds=900)
+        self.usage.record(self.provider, endpoint, cache_hit=False)
+        return ProviderResult(value=out)

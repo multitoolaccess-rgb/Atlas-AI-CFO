@@ -48,6 +48,12 @@ router = APIRouter(prefix="/api/holdings", tags=["holdings"])
 # and cheap instead of firing an unbounded concurrent storm at the free tier.
 _finnhub_prices_adapter: Any = None
 
+# Optional second free tier (Twelve Data, 800 credits/day) used as a batch
+# fallback for whatever symbols Finnhub rejected, so a first refresh covers
+# the whole portfolio instead of only the ~48 symbols inside the per-minute
+# pacer window. Lazily built so a missing key costs nothing.
+_twelve_data_prices_adapter: Any = None
+
 
 def _get_prices_adapter() -> Any:
     global _finnhub_prices_adapter
@@ -61,6 +67,22 @@ def _get_prices_adapter() -> Any:
             api_key=api_key, enabled=bool(api_key)
         )
     return _finnhub_prices_adapter
+
+
+def _get_twelve_data_adapter() -> Any:
+    global _twelve_data_prices_adapter
+    if _twelve_data_prices_adapter is None:
+        from app.market_intelligence.adapters import TwelveDataAdapter
+
+        api_key = (
+            os.environ.get("TWELVE_DATA_API_KEY")
+            or getattr(settings, "twelve_data_api_key", None)
+            or ""
+        ).strip()
+        _twelve_data_prices_adapter = TwelveDataAdapter(
+            api_key=api_key, enabled=bool(api_key)
+        )
+    return _twelve_data_prices_adapter
 
 # ---- Portfolio CSV column index (by normalized header name) ----
 
@@ -935,6 +957,7 @@ async def refresh_prices(
 
         def _fetch_all() -> dict[str, dict[str, float]]:
             out: dict[str, dict[str, float]] = {}
+            rejected: list[str] = []
             for s in sorted(symbols):
                 result = adapter.quote(s)
                 if result.failure is None and result.value is not None:
@@ -943,10 +966,33 @@ async def refresh_prices(
                         "previous_close": float(result.value.previous_close) if result.value.previous_close else 0.0,
                     }
                 else:
+                    failure_class = result.failure.failure_class.value if result.failure else "no_value"
                     _logger.warning(
                         "refresh-prices quote for %s: %s",
                         s,
-                        result.failure.failure_class.value if result.failure else "no value",
+                        failure_class,
+                    )
+                    # Second free tier: anything Finnhub could not serve
+                    # (rate-limited, timed out, unsupported) is retried as
+                    # one Twelve Data batch request. Provider misconfig
+                    # classes are NOT retried — a missing key or auth
+                    # failure would repeat for the whole rejected set.
+                    if failure_class not in ("disabled", "unconfigured", "authentication_failed"):
+                        rejected.append(s)
+            if rejected:
+                fallback = _get_twelve_data_adapter()
+                batch = fallback.batch_quotes(rejected)
+                if batch.failure is None and batch.value:
+                    for s, quote in batch.value.items():
+                        out[s] = {
+                            "current": float(quote.current_price),
+                            "previous_close": float(quote.previous_close) if quote.previous_close else 0.0,
+                        }
+                elif batch.failure is not None and batch.failure.failure_class.value not in ("disabled", "unconfigured"):
+                    _logger.warning(
+                        "refresh-prices Twelve Data fallback for %d symbol(s): %s",
+                        len(rejected),
+                        batch.failure.message,
                     )
             return out
 

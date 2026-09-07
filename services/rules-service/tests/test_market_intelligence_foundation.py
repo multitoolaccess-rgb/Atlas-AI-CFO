@@ -17,6 +17,7 @@ from app.market_intelligence import (
     SecAdapter,
     SourceMetadata,
     SyntheticMarketTransport,
+    TwelveDataAdapter,
     UsageLedger,
 )
 from app.market_intelligence.contracts import Freshness
@@ -383,3 +384,58 @@ def test_sec_normalized_records_are_deduplicated_and_cached() -> None:
     assert adapter.submissions("320193").cache_hit
     assert adapter.company_facts("320193").cache_hit
     assert calls == 2
+
+
+def test_twelve_data_batch_quotes_parses_served_symbols_and_skips_errors() -> None:
+    """The second free tier returns one row per symbol in a single
+    request; unsupported symbols come back as error rows and are omitted
+    so the caller can count coverage honestly."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/quote"
+        return httpx.Response(200, json={
+            "AAPL": {
+                "symbol": "AAPL", "name": "Apple Inc.", "close": "210.0",
+                "previous_close": "200.0", "currency": "USD",
+                "timestamp": int(NOW.timestamp()),
+            },
+            "NOPE": {"code": 401, "message": "Invalid symbol"},
+            "MSFT": {"symbol": "MSFT", "name": "Microsoft", "close": "410.5",
+                      "previous_close": "405.0", "currency": "USD"},
+        })
+
+    adapter = TwelveDataAdapter(
+        api_key="synthetic-key", enabled=True,
+        transport=httpx.MockTransport(handler), now=lambda: NOW, sleep=lambda _: None,
+    )
+    result = adapter.batch_quotes(["aapl", "nope", "msft"])
+    assert result.failure is None
+    assert result.value is not None
+    assert set(result.value) == {"AAPL", "MSFT"}
+    aapl = result.value["AAPL"]
+    # The canonical_decimal validator normalizes trailing zeros, mirroring
+    # the Finnhub path.
+    assert aapl.current_price == "210"
+    assert aapl.previous_close == "200"
+    assert aapl.source.provider == "twelve_data"
+    assert aapl.source.observed_at is not None
+    assert "NOPE" not in result.value
+    # A repeat call for the same rejected set is a cache hit.
+    assert adapter.batch_quotes(["aapl", "nope", "msft"]).cache_hit
+
+
+def test_twelve_data_unconfigured_fails_without_network() -> None:
+    called = False
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        nonlocal called
+        called = True
+        return httpx.Response(200, json={})
+
+    adapter = TwelveDataAdapter(
+        api_key=None, enabled=True,
+        transport=httpx.MockTransport(handler), now=lambda: NOW, sleep=lambda _: None,
+    )
+    result = adapter.batch_quotes(["AAPL"])
+    assert result.failure and result.failure.failure_class == "unconfigured"
+    assert called is False

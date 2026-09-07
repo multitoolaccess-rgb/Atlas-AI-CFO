@@ -1,6 +1,6 @@
 """Bounded, provider-neutral market-research contracts (Phase 5 Slice 1)."""
 
-from .adapters import FinnhubAdapter, ProviderConfigurationError, SecAdapter
+from .adapters import FinnhubAdapter, ProviderConfigurationError, SecAdapter, TwelveDataAdapter
 from .contracts import (
     CompanyNewsItem,
     CoverageBasis,
@@ -33,6 +33,7 @@ from .market_calendar import (
 __all__ = [
     "BoundedCache", "CompanyNewsItem", "CoverageBasis", "CoverageOmission", "CoverageSummary",
     "EarningsEvent", "EarningsResult", "EndpointClass", "FinnhubAdapter",
+    "TwelveDataAdapter",
     "LIVE_QUOTE_MAX_AGE", "MAX_PRIOR_CLOSE_SESSIONS", "MarketBriefReasonCode",
     "MarketQuoteSnapshot", "MarketSession", "NormalizedProviderFailure",
     "PortfolioHolding", "PortfolioUniverse", "PriceBasis", "ProviderReadiness",

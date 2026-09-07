@@ -72,6 +72,14 @@ class Settings(BaseSettings):
     # fallback chain — see Phase 39.2 comment in
     # ``app/routes/analyst_ratings.py`` and ``app/routes/holdings.py``.
     finnhub_api_key: Optional[str] = None
+    # Optional second free tier for portfolio price refresh (Twelve Data
+    # free plan: 800 credits/day, 8 requests/min). When set, the
+    # ``refresh-prices`` route falls back to a single batch quote for any
+    # symbols Finnhub rejected (rate limit / timeout / unsupported), so a
+    # first refresh covers the whole portfolio instead of only the ~48
+    # symbols that fit inside Finnhub's per-minute pacer window. Reads the
+    # same ``os.environ OR settings`` fallback chain as the Finnhub key.
+    twelve_data_api_key: Optional[str] = None
     # Phase 5 operational market-brief composition requires an SEC-compliant
     # contact User-Agent even though filing enrichment is skipped when a
     # holding has no authoritative CIK.  This value is server-only and must
