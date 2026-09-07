@@ -390,8 +390,9 @@ test.describe('UI-12 populated single-owner data proof', () => {
     // Read-only by default (GAP-11): mutation controls are absent.
     await expect(page.getByRole('button', { name: 'Manage portfolio' })).toBeVisible()
     await expect(page.getByRole('button', { name: /Import Portfolio/ })).toHaveCount(0)
-    // Refresh Prices is a non-mutating read action (live-price overlays
-    // only, never writes the DB), so it stays in the default view.
+    // Refresh Prices is the sanctioned price-sync action (persists
+    // refreshed quotes + account balances), so it stays in the default
+    // view without exposing position-editing controls.
     await expect(page.getByRole('button', { name: 'Refresh Prices' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Add Holding' })).toHaveCount(0)
     await expect(page.locator('#auto-refresh-minutes')).toHaveCount(0)

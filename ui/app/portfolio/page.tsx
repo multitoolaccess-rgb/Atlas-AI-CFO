@@ -293,6 +293,22 @@ export default function PortfolioPage() {
         setHoldings(result.holdings)
         setPricesAvailable(true)
       }
+      // The refresh PERSISTED the live quotes server-side, so re-pull the
+      // server-owned aggregates — valuation projection (grand total,
+      // allocation %, gain %) and the hero net worth — or the page would
+      // show live rows against stale totals. Isolated so a failed
+      // aggregate re-fetch never masks a successful price refresh.
+      try {
+        const [v, s] = await Promise.all([
+          rulesService.getPortfolioValuation(),
+          rulesService.getDashboardSummary(),
+        ])
+        setValuation(v)
+        setSummary(s)
+      } catch (refetchErr: unknown) {
+        // eslint-disable-next-line no-console
+        console.warn('[portfolio] aggregate re-fetch after refresh failed:', refetchErr)
+      }
       setImportStatus(
         kind === 'auto'
           ? `Auto-refresh: prices updated for ${result.prices_updated} symbol(s).`
@@ -359,10 +375,11 @@ export default function PortfolioPage() {
   // could fire arbitrarily soon after the just-completed one).
   // ``holdings.length`` is in the deps so the interval tears
   // down when the user has no portfolio to refresh.
-  // The loop runs in BOTH modes: refresh-prices is a non-mutating
-  // read action (live-price overlays only — it never writes the DB),
-  // so the default read-only surface keeps prices fresh without
-  // violating the read-only boundary. Only the cadence INPUT is
+  // The loop runs in BOTH modes: refresh-prices is the sanctioned
+  // price-sync action (it persists refreshed quotes + account balances
+  // so net worth and totals stay market-accurate, without touching
+  // position data), so the default view keeps prices fresh without
+  // exposing position-editing controls. Only the cadence INPUT is
   // manage-gated; the loop honors the persisted preference either way.
   useEffect(() => {
     if (autoRefreshMinutes === 0) return
@@ -930,8 +947,9 @@ export default function PortfolioPage() {
       {/* Controls row — the page is READ-ONLY by default. Import /
           Add Holding / per-row Edit + Delete are mutation flows gated
           behind an explicit manage mode. Refresh Prices stays in the
-          default view: it only overlays live quotes (never writes the
-          DB), so it does not violate the read-only boundary. */}
+          default view: it is the sanctioned price-sync action — it
+          persists refreshed quotes + account balances so net worth and
+          totals stay market-accurate, without touching position data. */}
       <div className="flex flex-wrap items-center gap-3 mt-6 mb-4">
         {!manageMode ? (
           <div className="flex flex-wrap items-center gap-3 w-full">

@@ -1003,6 +1003,31 @@ async def refresh_prices(
                 "or unsupported. Refresh again shortly to pick them up."
             )
 
+    # Persist the refreshed quotes so EVERY read-side aggregate reflects
+    # the market — the valuation projection (``/api/holdings/summary``),
+    # dashboard net worth (``Account.current_balance`` via
+    # ``/api/dashboard/summary``), and the brief's P&L all read the DB.
+    # Only holdings with a usable quote AND a quantity are touched (cash
+    # labels / internal ``**`` rows / quantity-less rows keep their stored
+    # value), and each affected account's balance is recomputed from the
+    # holdings sum so the account-level number stays ground-truth to the
+    # refreshed rows.
+    affected_account_ids: set[int] = set()
+    for h in holdings:
+        sym = (h.symbol or "").strip().upper()
+        quote = prices.get(sym)
+        if quote is None or h.quantity is None or h.quantity <= 0:
+            continue
+        current = float(quote["current"])
+        h.last_price = current
+        h.current_value = round(current * h.quantity, 2)
+        db.add(h)
+        affected_account_ids.add(h.account_id)
+    if affected_account_ids:
+        for account_id in affected_account_ids:
+            _recompute_account_balance(db, account_id)
+        db.commit()
+
     acct_names: dict[int, str] = {}
     for acct in db.query(Account).filter(Account.id.in_(account_ids)).all():
         acct_names[acct.id] = acct.account_name

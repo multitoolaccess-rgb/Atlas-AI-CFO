@@ -1148,3 +1148,53 @@ def test_refresh_prices_falls_back_to_twelve_data_for_rejected_symbols(
     assert by_symbol["MSFT"]["live_price"] == 410.5
     # Full coverage means no partial-coverage warning.
     assert (body["warning"] or "") == ""
+
+
+def test_refresh_prices_persists_quotes_and_recomputes_account_balance(
+    client, db_session, monkeypatch, make_account
+):
+    """Refreshed quotes are PERSISTED (last_price/current_value) and the
+    account balance is recomputed from the refreshed rows, so net worth
+    and the valuation projection reflect the market on the next read."""
+    from types import SimpleNamespace
+
+    from app.models import Holding
+    from app.routes.shared import get_or_create_local_user
+
+    get_or_create_local_user(db_session, "alex")
+    account = make_account()
+    db_session.add(account)
+    db_session.commit()
+    db_session.add(
+        Holding(account_id=account.id, symbol="AAPL", quantity=10,
+                last_price=150.0, current_value=1500.0, cost_basis_total=1000.0, type="Stock")
+    )
+    db_session.commit()
+    account.current_balance = 1500.0
+    db_session.commit()
+
+    class FakeAdapter:
+        def quote(self, symbol: str):
+            return SimpleNamespace(
+                failure=None,
+                value=SimpleNamespace(current_price="210.0", previous_close="200.0"),
+            )
+
+    monkeypatch.setenv("FINNHUB_API_KEY", "test-key")
+    monkeypatch.setattr("app.routes.holdings._get_prices_adapter", lambda: FakeAdapter())
+
+    response = client.post("/api/holdings/refresh-prices")
+    assert response.status_code == 200, response.text
+
+    # The persisted rows now carry the refreshed market values.
+    rows = client.get("/api/holdings/").json()
+    assert rows[0]["current_value"] == 2100.0
+    assert rows[0]["last_price"] == 210.0
+    assert rows[0]["cost_basis_total"] == 1000.0  # untouched
+
+    # The server-owned valuation projection reflects the refreshed rows.
+    valuation = client.get("/api/holdings/summary").json()
+    assert valuation["grand_total"] == 2100.0
+
+    # Net worth (account balance) was recomputed from the refreshed sum.
+    assert account.current_balance == 2100.0
