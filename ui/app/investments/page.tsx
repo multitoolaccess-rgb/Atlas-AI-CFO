@@ -8,9 +8,9 @@ import PageHeader from '@/components/ui/PageHeader'
 
 const surfaces = [
   {
-    title: 'Daily Investment Brief',
-    description: 'A structured, point-in-time review of portfolio, market, committee, and recommendation context.',
-    href: '/investments/brief',
+    title: 'Investment Intelligence',
+    description: 'Today\u2019s brief (movement, market context, news, earnings) plus the full research workspace: portfolio evidence, market pulse, earnings, scanner, and archive.',
+    href: '/market-intelligence',
     icon: BookOpen,
     status: 'Available',
   },
@@ -19,13 +19,6 @@ const surfaces = [
     description: 'Open the canonical holdings and exposure view without duplicating portfolio calculations.',
     href: '/portfolio',
     icon: Database,
-    status: 'Available',
-  },
-  {
-    title: 'Research workspace',
-    description: 'Review normalized market intelligence while deeper security research surfaces are assembled.',
-    href: '/market-intelligence',
-    icon: Search,
     status: 'Available',
   },
   {
@@ -76,7 +69,7 @@ export default function InvestmentsPage() {
         eyebrow="Investment intelligence"
         title="Command Center"
         description="A focused entry point for Atlas investment analysis. Every surface remains read-only, evidence-first, and explicitly as-of."
-        actions={<span className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-working)] px-3 py-1.5 text-xs font-medium text-secondary">UI-02 · route contract</span>}
+        actions={<span className="rounded-full border border-[var(--border-subtle)] bg-[var(--surface-working)] px-3 py-1.5 text-xs font-medium text-secondary">UI-12 · command center</span>}
         className="mb-6"
       />
 

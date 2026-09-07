@@ -4,7 +4,8 @@ import { expect, test, type Page } from '@playwright/test'
 const ROUTES = [
   { path: '/investments', heading: 'Command Center', certifiable: true },
   { path: '/investments/discovery', heading: 'Opportunity discovery', certifiable: true },
-  { path: '/investments/brief', heading: 'Daily Investment Brief', certifiable: true },
+  // The standalone Daily Brief folded into Market Intelligence's Today tab.
+  { path: '/market-intelligence?view=today', heading: /market intelligence/i, certifiable: true },
   { path: '/investments/recommendations', heading: 'Recommendation review', certifiable: true },
   { path: '/investments/assistant', heading: 'Investment Scout', certifiable: true },
   { path: '/investments/scout', heading: 'Investment Context Scout', certifiable: true },

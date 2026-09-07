@@ -2,13 +2,14 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { useRouter, useSearchParams } from 'next/navigation'
 import MarketIntelligenceCenter from '../MarketIntelligenceCenter'
-import { fetchMarketPulse, generateMarketBrief, getMarketBrief, listMarketBriefs } from '@/lib/marketBriefs'
+import { fetchDailyBriefSummary, fetchMarketPulse, generateMarketBrief, getMarketBrief, listMarketBriefs } from '@/lib/marketBriefs'
 
 vi.mock('@/lib/marketBriefs', () => ({
   listMarketBriefs: vi.fn().mockResolvedValue([]),
   getMarketBrief: vi.fn(),
   generateMarketBrief: vi.fn(),
   fetchMarketPulse: vi.fn(),
+  fetchDailyBriefSummary: vi.fn().mockRejectedValue(new Error('daily brief unavailable in tests')),
   classifyMarketBriefError: vi.fn((error: { response?: { data?: { reason_code?: string, omitted_symbols?: string[] } } }) => {
     const reason = error?.response?.data?.reason_code
     if (reason === 'provider_rate_limited') {
@@ -38,6 +39,7 @@ afterEach(() => {
   vi.mocked(getMarketBrief).mockReset()
   vi.mocked(generateMarketBrief).mockReset()
   vi.mocked(fetchMarketPulse).mockReset()
+  vi.mocked(fetchDailyBriefSummary).mockReset().mockRejectedValue(new Error('daily brief unavailable in tests'))
   vi.mocked(useSearchParams).mockImplementation(() => new URLSearchParams() as any)
   vi.mocked(useRouter).mockImplementation(() => ({ replace: vi.fn(), push: vi.fn(), prefetch: vi.fn() }) as any)
 })
@@ -106,6 +108,8 @@ test('renders an accessible command center with the portfolio empty state and ge
   vi.mocked(generateMarketBrief).mockRejectedValue({ response: { status: 503, data: { reason_code: 'provider_configuration_missing' } } })
   render(<MarketIntelligenceCenter />)
   expect(screen.getByRole('heading', { name: /market intelligence/i })).toBeInTheDocument()
+  // Today is the default view; the portfolio empty state lives on My Portfolio.
+  fireEvent.click(await screen.findByRole('tab', { name: 'My Portfolio' }))
   expect(await screen.findByText(/generate your first portfolio brief/i)).toBeInTheDocument()
   expect(screen.getByText('Provider unavailable')).toBeInTheDocument()
   expect(screen.getAllByRole('button', { name: /generate brief/i }).length).toBeGreaterThanOrEqual(1)
@@ -127,6 +131,13 @@ test('announces the checking state and disables duplicate generation', async () 
 })
 
 test('generates a brief, shows the catalyst stream, and switches to My Portfolio', async () => {
+  // Seed a non-empty archive so the mount-time auto-load OPENS the cached
+  // brief instead of auto-generating; the manual click is then the only
+  // generate() call and the once-assertion below is deterministic.
+  vi.mocked(listMarketBriefs).mockResolvedValue([
+    { brief_id: 'existing', report_window: 'latest', generated_at: '2026-08-11T12:00:00Z' },
+  ])
+  vi.mocked(getMarketBrief).mockResolvedValue(brief as any)
   vi.mocked(generateMarketBrief).mockResolvedValue({ brief_id: 'generated', replayed: false, brief })
   render(<MarketIntelligenceCenter />)
   fireEvent.click(await screen.findByRole('button', { name: /^generate brief$/i }))
@@ -332,6 +343,9 @@ test('opens the bookmarked tab and preserves query state when selecting another 
 test('keyboard arrow navigation moves between tabs', async () => {
   render(<MarketIntelligenceCenter />)
   const portfolioTab = await screen.findByRole('tab', { name: /my portfolio/i })
+  // Today is the default view; make My Portfolio the active tab first so
+  // arrow keys navigate from a known position.
+  fireEvent.click(portfolioTab)
   portfolioTab.focus()
   fireEvent.keyDown(portfolioTab, { key: 'ArrowRight' })
   expect(screen.getByRole('tab', { name: /market pulse/i })).toHaveAttribute('aria-selected', 'true')
@@ -341,7 +355,7 @@ test('keyboard arrow navigation moves between tabs', async () => {
   fireEvent.keyDown(portfolioTab, { key: 'End' })
   expect(screen.getByRole('tab', { name: /archive/i })).toHaveAttribute('aria-selected', 'true')
   fireEvent.keyDown(screen.getByRole('tab', { name: /archive/i }), { key: 'Home' })
-  expect(portfolioTab).toHaveAttribute('aria-selected', 'true')
+  expect(screen.getByRole('tab', { name: /today/i })).toHaveAttribute('aria-selected', 'true')
 })
 
 test('archive empty state explains where briefs are generated', async () => {

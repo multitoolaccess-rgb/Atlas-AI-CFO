@@ -386,6 +386,11 @@ export async function fetchMarketPulse(): Promise<MarketPulseSnapshot> {
   return (await api.get<MarketPulseSnapshot>('/api/v1/market-briefs/pulse')).data
 }
 
+/** Daily Investment Brief summary — composed from the same Market Intelligence evidence. */
+export async function fetchDailyBriefSummary(): Promise<BriefSummary> {
+  return (await api.get<BriefSummary>('/api/v1/investments/brief/summary')).data
+}
+
 // ============================================================================
 // Redesigned Brief Types (Robinhood/Fidelity/Bloomberg-style)
 // ============================================================================

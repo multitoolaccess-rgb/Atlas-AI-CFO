@@ -46,7 +46,7 @@ export const PROPOSED_NAVIGATION: readonly ProposedNavigationGroup[] = [
   ] },
   { id: 'intelligence', label: 'Intelligence', destinations: [
     { id: 'decisions', label: 'Decisions', path: '/decisions', icon: 'decisions', activeMatch: ['/decisions'], activated: true, tabs: [tab('recommendations', 'Recommendations'), tab('journal', 'Decision journal'), tab('outcomes', 'Outcomes')] },
-    { id: 'market-intelligence', label: 'Market Intelligence', path: '/market-intelligence', icon: 'market-intelligence', activeMatch: ['/market-intelligence'], activated: true, tabs: [tab('portfolio', 'My Portfolio'), tab('pulse', 'Market Pulse'), tab('earnings', 'Earnings & Events'), tab('scanner', 'S&P 500 Scanner'), tab('archive', 'Archive')] },
+    { id: 'market-intelligence', label: 'Market Intelligence', path: '/market-intelligence', icon: 'market-intelligence', activeMatch: ['/market-intelligence', '/investments/brief'], activated: true, tabs: [tab('today', 'Today'), tab('portfolio', 'My Portfolio'), tab('pulse', 'Market Pulse'), tab('earnings', 'Earnings & Events'), tab('scanner', 'S&P 500 Scanner'), tab('archive', 'Archive')] },
     { id: 'scenario-lab', label: 'Scenario Lab', path: '/scenario-lab', icon: 'scenario-lab', activeMatch: ['/scenario-lab'], activated: true, tabs: [tab('scenarios', 'Scenarios'), tab('comparisons', 'Comparisons'), tab('archive', 'Archive')] },
   ] },
   { id: 'system', label: 'System', destinations: [
@@ -65,10 +65,11 @@ export const COMPATIBILITY_REDIRECTS = [
   { from: '/universe', to: '/wealth', view: 'universe' },
   { from: '/recommendations', to: '/decisions', view: 'recommendations' },
   { from: '/market-briefs', to: '/market-intelligence' },
+  { from: '/investments/brief', to: '/market-intelligence', view: 'today' },
   { from: '/accounts', to: '/data-connections', view: 'accounts' },
 ] as const
 
-export const ACTIVE_COMPATIBILITY_REDIRECTS = COMPATIBILITY_REDIRECTS.filter(({ from }) => ['/income', '/expenses', '/activity', '/budgeting', '/debts', '/universe', '/recommendations', '/market-briefs', '/accounts'].includes(from))
+export const ACTIVE_COMPATIBILITY_REDIRECTS = COMPATIBILITY_REDIRECTS.filter(({ from }) => ['/income', '/expenses', '/activity', '/budgeting', '/debts', '/universe', '/recommendations', '/market-briefs', '/investments/brief', '/accounts'].includes(from))
 
 export const SCOUT_PLACEMENT_CONTRACT = {
   futureLocation: 'global-header',

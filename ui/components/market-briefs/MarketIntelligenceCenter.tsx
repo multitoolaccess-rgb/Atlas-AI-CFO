@@ -28,6 +28,7 @@ import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import Card from '@/components/ui/Card'
 import EmptyState from '@/components/ui/EmptyState'
+import DailyBriefToday from '@/components/market-briefs/DailyBriefToday'
 import {
   classifyMarketBriefError,
   fetchMarketPulse,
@@ -46,9 +47,10 @@ import {
   type PriceBasis,
 } from '@/lib/marketBriefs'
 
-type TabId = 'portfolio' | 'pulse' | 'earnings' | 'scanner' | 'archive'
+type TabId = 'today' | 'portfolio' | 'pulse' | 'earnings' | 'scanner' | 'archive'
 
 const TABS: ReadonlyArray<{ id: TabId; label: string; description: string }> = [
+  { id: 'today', label: 'Today', description: 'Daily snapshot: portfolio movement, market context, and what to watch.' },
   { id: 'portfolio', label: 'My Portfolio', description: 'What changed, why it matters, and what deserves your attention.' },
   { id: 'pulse', label: 'Market Pulse', description: 'Index direction, market-wide headlines, and the bounded scanner.' },
   { id: 'earnings', label: 'Earnings & Events', description: 'Portfolio-linked earnings plus the market earnings calendar.' },
@@ -997,7 +999,7 @@ export default function MarketIntelligenceCenter() {
   const searchParams = useSearchParams()
   const queryString = searchParams.toString()
   const requestedTab = new URLSearchParams(queryString).get('view')
-  const urlTab: TabId = TABS.some(tab => tab.id === requestedTab) ? requestedTab as TabId : 'portfolio'
+  const urlTab: TabId = TABS.some(tab => tab.id === requestedTab) ? requestedTab as TabId : 'today'
   const [items, setItems] = useState<BriefIndex[]>([])
   const [brief, setBrief] = useState<MarketBrief | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -1019,6 +1021,7 @@ export default function MarketIntelligenceCenter() {
   // explicit refresh path.
   const autoLoadedRef = useRef(false)
   const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>({
+    today: null,
     portfolio: null,
     pulse: null,
     earnings: null,
@@ -1277,6 +1280,17 @@ export default function MarketIntelligenceCenter() {
         )}
 
         <div className="mt-8">
+          {activeTab === 'today' && (
+            <div
+              role="tabpanel"
+              id="market-panel-today"
+              aria-labelledby="market-tab-today"
+              tabIndex={0}
+              className="min-w-0"
+            >
+              <DailyBriefToday />
+            </div>
+          )}
           {activeTab === 'portfolio' && (
           <div
             role="tabpanel"

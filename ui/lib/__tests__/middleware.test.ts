@@ -15,6 +15,12 @@ describe('information architecture compatibility middleware', () => {
     expect(response.headers.get('location')).toBe('http://localhost/market-intelligence?brief=abc')
   })
 
+  it('folds the legacy Daily Investment Brief into the Market Intelligence Today tab', () => {
+    const response = middleware(new NextRequest('http://localhost/investments/brief'))
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('http://localhost/market-intelligence?view=today')
+  })
+
   it('redirects legacy Accounts to Data Connections while preserving query state', () => {
     const response = middleware(new NextRequest('http://localhost/accounts?tab=all'))
     expect(response.status).toBe(307)

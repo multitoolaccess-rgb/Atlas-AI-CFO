@@ -9,14 +9,15 @@ describe('information architecture activation contract', () => {
   })
 
   it('maps every legacy route to a documented destination', () => {
-    expect(COMPATIBILITY_REDIRECTS.map(({ from }) => from)).toEqual(['/income', '/expenses', '/activity', '/budgeting', '/debts', '/universe', '/recommendations', '/market-briefs', '/accounts'])
+    expect(COMPATIBILITY_REDIRECTS.map(({ from }) => from)).toEqual(['/income', '/expenses', '/activity', '/budgeting', '/debts', '/universe', '/recommendations', '/market-briefs', '/investments/brief', '/accounts'])
     expect(COMPATIBILITY_REDIRECTS.every(({ to }) => to.startsWith('/'))).toBe(true)
-    expect(ACTIVE_COMPATIBILITY_REDIRECTS.map(({ from }) => from)).toEqual(['/income', '/expenses', '/activity', '/budgeting', '/debts', '/universe', '/recommendations', '/market-briefs', '/accounts'])
+    expect(ACTIVE_COMPATIBILITY_REDIRECTS.map(({ from }) => from)).toEqual(['/income', '/expenses', '/activity', '/budgeting', '/debts', '/universe', '/recommendations', '/market-briefs', '/investments/brief', '/accounts'])
   })
 
   it('keeps Market Intelligence deep links aligned with the implemented tab state', () => {
     const market = PROPOSED_NAVIGATION.flatMap((group) => group.destinations).find((destination) => destination.id === 'market-intelligence')
-    expect(market?.tabs?.map((tab) => tab.id)).toEqual(['portfolio', 'pulse', 'earnings', 'scanner', 'archive'])
+    expect(market?.tabs?.map((tab) => tab.id)).toEqual(['today', 'portfolio', 'pulse', 'earnings', 'scanner', 'archive'])
+    expect(market?.tabs?.find((tab) => tab.id === 'today')?.query).toEqual({ view: 'today' })
     expect(market?.tabs?.find((tab) => tab.id === 'earnings')?.query).toEqual({ view: 'earnings' })
   })
 

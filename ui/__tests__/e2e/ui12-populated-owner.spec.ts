@@ -148,6 +148,32 @@ const BRIEFS = [
   { brief_id: 'brief:populated:1', title: 'Market Pulse', report_window: 'latest', generated_at: '2026-09-04T00:00:00Z' },
 ]
 
+const DAILY_BRIEF = {
+  id: 'daily-brief:populated:1',
+  generated_at: '2026-09-04T15:06:00Z',
+  warnings: [],
+  hero: {
+    daily_pnl: -3745,
+    daily_pct: -0.32,
+    ytd_pnl: 0,
+    ytd_pct: 0,
+    updated_at: '2026-09-04T15:06:00Z',
+    top_gainer: { symbol: 'MU', name: 'MU', change_pct: 6.1, change_dollar: 123.4, current_price: 123.4, materiality: 'high' },
+    top_loser: { symbol: 'PLTR', name: 'PLTR', change_pct: -4.5, change_dollar: -90.1, current_price: 45.2, materiality: 'high' },
+    market_context: { spy_change: -0.39, qqq_change: 0.18, vti_change: -0.32, market_sentiment: null },
+  },
+  market: { spy_change: -0.39, qqq_change: 0.18, vti_change: -0.32, market_sentiment: null },
+  top_movers: [],
+  news: [
+    { id: 'news:1', headline: 'Apple reports record quarter', summary: 'Synthetic seeded headline.', source: 'Synthetic News', published_at: '2026-09-04T12:00:00Z', symbols: ['AAPL'], materiality_score: 0.9, url: 'https://source.test/apple' },
+  ],
+  earnings: [
+    { symbol: 'AAPL', name: 'Apple Inc.', date: '2026-10-28T00:00:00Z', eps_estimate: null, eps_whisper: null, confidence: 'low', quarter: 'Q4 2026', previous_eps: null },
+  ],
+  alerts: [],
+  quality: { freshness: 'fresh', coverage_eligible: 2, coverage_covered: 2, coverage_basis: 'position_count', warnings: [] },
+}
+
 const DISCOVERY_CANDIDATES = [
   {
     candidate_id: 'discovery:populated:aapl',
@@ -271,6 +297,7 @@ async function installPopulatedBackend(page: Page) {
     if (path === '/api/v1/market-briefs') return json(route, { briefs: BRIEFS })
     if (path === '/api/v1/market-briefs/pulse') return json(route, { pulse: 'stable', as_of: '2026-09-04T00:00:00Z' })
     if (path.startsWith('/api/v1/market-briefs/generate')) return json(route, { brief_id: 'brief:populated:1', replayed: false, brief: MARKET_BRIEF })
+    if (path === '/api/v1/investments/brief/summary') return json(route, DAILY_BRIEF)
     if (path.startsWith('/api/v1/market-briefs/')) return json(route, { brief: MARKET_BRIEF })
     if (path === '/api/v1/investments/scout/runs' && method === 'GET') return json(route, SCOUT_RUNS)
     if (path.startsWith('/api/v1/investments/scout/runs/')) return json(route, SCOUT_RUNS[0])
@@ -301,7 +328,7 @@ async function installPopulatedBackend(page: Page) {
 const POPULATED_ROUTES = [
   { path: '/investments', heading: 'Command Center', expectText: 'Start with the signal' },
   { path: '/investments/discovery', heading: 'Opportunity discovery', expectText: 'AAPL' },
-  { path: '/investments/brief', heading: 'Daily Investment Brief', expectText: 'What matters today' },
+  { path: '/market-intelligence?view=today', heading: /market intelligence/i, expectText: "TODAY'S BRIEF" },
   { path: '/investments/recommendations', heading: 'Recommendation review', expectText: 'BUY' },
   { path: '/investments/assistant', heading: 'Investment Scout', expectText: /scout|research|question/i },
   { path: '/investments/scout', heading: 'Investment Context Scout', expectText: 'AAPL' },
