@@ -269,6 +269,7 @@ async function installPopulatedBackend(page: Page) {
     if (path === '/api/accounts/') return json(route, OWNER.accounts)
     if (path === '/api/holdings/') return json(route, OWNER.holdings)
     if (path === '/api/holdings/summary') return json(route, OWNER.valuation)
+    if (path === '/api/holdings/refresh-prices') return json(route, { holdings: OWNER.holdings, warning: null, prices_updated: OWNER.holdings.length })
     if (path === '/api/profile/') return json(route, OWNER.profile)
     if (path === '/api/goals/') return json(route, GOALS)
     if (path.startsWith('/api/v1/goals/') && path.endsWith('/scenarios')) return json(route, SCENARIO_LIST)
@@ -389,7 +390,9 @@ test.describe('UI-12 populated single-owner data proof', () => {
     // Read-only by default (GAP-11): mutation controls are absent.
     await expect(page.getByRole('button', { name: 'Manage portfolio' })).toBeVisible()
     await expect(page.getByRole('button', { name: /Import Portfolio/ })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Refresh Prices' })).toHaveCount(0)
+    // Refresh Prices is a non-mutating read action (live-price overlays
+    // only, never writes the DB), so it stays in the default view.
+    await expect(page.getByRole('button', { name: 'Refresh Prices' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Add Holding' })).toHaveCount(0)
     await expect(page.locator('#auto-refresh-minutes')).toHaveCount(0)
     await expect(page.locator('[data-testid^="holding-edit-"]')).toHaveCount(0)

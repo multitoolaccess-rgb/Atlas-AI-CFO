@@ -27,6 +27,7 @@ from app.routes.shared import (
     get_or_create_local_user,
 )
 from app.schemas import (
+
     HoldingManualCreate,
     HoldingResponse,
     HoldingUpdate,
@@ -40,6 +41,26 @@ from app.schemas import (
 _logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/holdings", tags=["holdings"])
+
+# Shared Finnhub adapter for ``POST /api/holdings/refresh-prices``. A single
+# module-level instance keeps the 48-calls/min sliding-window pacer and the
+# 15-minute quote cache across requests, so repeated refreshes are rate-safe
+# and cheap instead of firing an unbounded concurrent storm at the free tier.
+_finnhub_prices_adapter: Any = None
+
+
+def _get_prices_adapter() -> Any:
+    global _finnhub_prices_adapter
+    if _finnhub_prices_adapter is None:
+        from app.market_intelligence.adapters import FinnhubAdapter
+
+        api_key = (
+            os.environ.get("FINNHUB_API_KEY") or settings.finnhub_api_key or ""
+        ).strip()
+        _finnhub_prices_adapter = FinnhubAdapter(
+            api_key=api_key, enabled=bool(api_key)
+        )
+    return _finnhub_prices_adapter
 
 # ---- Portfolio CSV column index (by normalized header name) ----
 
@@ -883,7 +904,10 @@ async def refresh_prices(
     symbols: set[str] = set()
     for h in holdings:
         s = (h.symbol or "").strip().upper()
-        if s and not s.endswith("**") and s not in ("CORE", "NON40", "PENDING"):
+        # Internal position labels (Fidelity ``NON40...`` scratch codes,
+        # ``SPAXX**``, ``CORE**``, ``Pending activity``) are not
+        # market-addressable and would otherwise burn a quote call each.
+        if s and not s.endswith("**") and not s.startswith("NON40") and s not in ("CORE", "PENDING"):
             symbols.add(s)
 
     prices: dict[str, dict[str, float]] = {}
@@ -902,31 +926,36 @@ async def refresh_prices(
         warning = "Finnhub API key not configured. Set FINNHUB_API_KEY in .env for live prices."
     else:
         import asyncio
-        import httpx
 
-        async def _fetch_one(symbol: str, client: httpx.AsyncClient) -> tuple[str, dict[str, float] | None]:
-            try:
-                resp = await client.get(
-                    "https://finnhub.io/api/v1/quote",
-                    params={"symbol": symbol, "token": api_key},
-                )
-                if resp.status_code == 200:
-                    data = resp.json()
-                    return symbol, {
-                        "current": float(data.get("c", 0)),
-                        "previous_close": float(data.get("pc", 0)),
+        # Shared adapter: the 48-calls/min sliding-window pacer rejects excess
+        # calls (never floods the free tier) and the 15-minute quote cache
+        # makes repeated refreshes cheap — cache hits cost zero budget, so
+        # coverage converges to the full portfolio on the next refresh.
+        adapter = _get_prices_adapter()
+
+        def _fetch_all() -> dict[str, dict[str, float]]:
+            out: dict[str, dict[str, float]] = {}
+            for s in sorted(symbols):
+                result = adapter.quote(s)
+                if result.failure is None and result.value is not None:
+                    out[s] = {
+                        "current": float(result.value.current_price),
+                        "previous_close": float(result.value.previous_close) if result.value.previous_close else 0.0,
                     }
-                _logger.warning("Finnhub quote for %s: HTTP %d", symbol, resp.status_code)
-            except Exception as exc:
-                _logger.warning("Finnhub quote failed for %s: %s", symbol, exc)
-            return symbol, None
+                else:
+                    _logger.warning(
+                        "refresh-prices quote for %s: %s",
+                        s,
+                        result.failure.failure_class.value if result.failure else "no value",
+                    )
+            return out
 
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            tasks = [_fetch_one(s, client) for s in sorted(symbols)]
-            results = await asyncio.gather(*tasks)
-            for symbol, quote in results:
-                if quote:
-                    prices[symbol] = quote
+        prices = await asyncio.to_thread(_fetch_all)
+        if prices and len(prices) < len(symbols):
+            warning = (
+                f"Refreshed {len(prices)} of {len(symbols)} symbols; the rest were rate-limited "
+                "or unsupported. Refresh again shortly to pick them up."
+            )
 
     acct_names: dict[int, str] = {}
     for acct in db.query(Account).filter(Account.id.in_(account_ids)).all():

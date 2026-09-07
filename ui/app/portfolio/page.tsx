@@ -334,15 +334,14 @@ export default function PortfolioPage() {
   }, [])
 
   // 1s ticker for the "Next refresh in MM:SS" countdown. Skipped
-  // when the loop is off OR the page is in read-only view mode (no
-  // countdown needed) so a view-mode user pays zero re-render cost —
-  // important because the countdown would otherwise force the entire
-  // page to re-render every second.
+  // only when the loop is off, so both modes show a live countdown
+  // without any per-tick re-render of its own (the countdown is a
+  // pure useMemo over ``now``).
   useEffect(() => {
-    if (!manageMode || autoRefreshMinutes === 0) return
+    if (autoRefreshMinutes === 0) return
     const t = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(t)
-  }, [manageMode, autoRefreshMinutes])
+  }, [autoRefreshMinutes])
 
   // Auto-refresh loop. setInterval re-fires every
   // ``autoRefreshMinutes`` minutes. The tick skips when:
@@ -360,11 +359,12 @@ export default function PortfolioPage() {
   // could fire arbitrarily soon after the just-completed one).
   // ``holdings.length`` is in the deps so the interval tears
   // down when the user has no portfolio to refresh.
-  // ``manageMode`` (GAP-11): the loop POSTs refresh-prices, so it is
-  // fully paused in the default read-only view — the read-only surface
-  // never mutates server data.
+  // The loop runs in BOTH modes: refresh-prices is a non-mutating
+  // read action (live-price overlays only — it never writes the DB),
+  // so the default read-only surface keeps prices fresh without
+  // violating the read-only boundary. Only the cadence INPUT is
+  // manage-gated; the loop honors the persisted preference either way.
   useEffect(() => {
-    if (!manageMode) return
     if (autoRefreshMinutes === 0) return
     if (typeof window === 'undefined') return
     if (holdings.length === 0) return
@@ -379,7 +379,23 @@ export default function PortfolioPage() {
     const intervalMs = autoRefreshMinutes * 60 * 1000
     const handle = setInterval(tick, intervalMs)
     return () => clearInterval(handle)
-  }, [manageMode, autoRefreshMinutes, holdings.length, performRefresh, lastRefreshedAt])
+  }, [autoRefreshMinutes, holdings.length, performRefresh, lastRefreshedAt])
+
+  // ---- Live prices on arrival ----
+  // Fire one refresh as soon as holdings render so the portfolio shows
+  // market prices without hunting for a button. Safe for the upstream
+  // budget: the backend's shared Finnhub adapter caches quotes for 15
+  // minutes (repeat visits within the window cost zero budget) and the
+  // 60s min-gap below protects rapid remounts.
+  const initialRefreshFired = useRef(false)
+  useEffect(() => {
+    if (initialRefreshFired.current) return
+    if (holdings.length === 0) return
+    if (refreshingRef.current) return
+    if (lastRefreshedAt && Date.now() - lastRefreshedAt < 60_000) return
+    initialRefreshFired.current = true
+    void performRefresh('auto')
+  }, [holdings.length, performRefresh, lastRefreshedAt])
 
   // "Next refresh in MM:SS" countdown. Reads the 1-second ticker
   // (``now``) so the display stays live without any setInterval
@@ -911,16 +927,32 @@ export default function PortfolioPage() {
         greeting={profile?.full_name ?? 'Alex'}
       />
 
-      {/* Controls row — GAP-11 (UI-12): the page is READ-ONLY by
-          default. Import / Refresh Prices / Add Holding are mutation
-          flows gated behind an explicit manage mode, so the certified
-          read-only surface carries no write affordances. */}
+      {/* Controls row — the page is READ-ONLY by default. Import /
+          Add Holding / per-row Edit + Delete are mutation flows gated
+          behind an explicit manage mode. Refresh Prices stays in the
+          default view: it only overlays live quotes (never writes the
+          DB), so it does not violate the read-only boundary. */}
       <div className="flex flex-wrap items-center gap-3 mt-6 mb-4">
         {!manageMode ? (
           <div className="flex flex-wrap items-center gap-3 w-full">
             <p className="text-xs text-secondary mr-auto" data-testid="readonly-note">
-              Read-only view — manage mode unlocks import, refresh, and edit controls.
+              Live prices refresh automatically — manage mode unlocks import and edit controls.
             </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={refreshing || holdings.length === 0}
+              icon={
+                refreshing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" aria-hidden="true" />
+                )
+              }
+            >
+              {refreshing ? 'Refreshing…' : 'Refresh Prices'}
+            </Button>
             <Button
               variant="secondary"
               size="sm"
@@ -993,11 +1025,10 @@ export default function PortfolioPage() {
       {/* ============================================================
           Phase 48 — auto-refresh config row
           ============================================================
-          GAP-11 (UI-12): the auto-refresh input COMMITS a refresh
-          loop (it POSTs refresh-prices), so the config row only
-          renders in manage mode. In the default read-only view the
-          loop is paused and only the last-refreshed badge (when one
-          exists) is shown.
+          The auto-refresh input COMMITS the cadence preference (and
+          writes localStorage), so the config row only renders in
+          manage mode. The loop itself runs in both modes; the default
+          view shows the cadence + countdown without the input.
 
           Sits BELOW the action buttons so the timer input reads as
           a "preference" rather than a sibling action. The number
@@ -1019,11 +1050,25 @@ export default function PortfolioPage() {
             signal without parsing the countdown.
           - "Auto-refresh is off" when the user set 0, so the row
             never reads as broken (input shows 0, no countdown). */}
-      {!manageMode && lastRefreshedLabel && (
+      {!manageMode && (autoRefreshMinutes > 0 || lastRefreshedLabel) && (
         <div className="flex flex-wrap items-center gap-3 -mt-2 mb-4 text-sm">
-          <span className="ml-auto text-xs text-secondary" data-testid="last-refreshed-label">
-            Last refreshed {lastRefreshedLabel}
-          </span>
+          {autoRefreshMinutes > 0 && (
+            <span className="text-xs text-secondary" data-testid="view-auto-refresh-hint">
+              Auto-refresh every {autoRefreshMinutes} min
+              {nextRefreshInSec !== null && (
+                <>
+                  {' '}
+                  · Next in {Math.floor(nextRefreshInSec / 60)}:
+                  {(nextRefreshInSec % 60).toString().padStart(2, '0')}
+                </>
+              )}
+            </span>
+          )}
+          {lastRefreshedLabel && (
+            <span className="ml-auto text-xs text-secondary" data-testid="last-refreshed-label">
+              Last refreshed {lastRefreshedLabel}
+            </span>
+          )}
         </div>
       )}
       {manageMode && (

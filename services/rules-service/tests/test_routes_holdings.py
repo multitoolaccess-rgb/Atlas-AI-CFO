@@ -38,6 +38,7 @@ so a future parser refactor that re-narrows the acceptance universe
 trips a test instead of the user.
 """
 import io
+from types import SimpleNamespace
 
 import pytest
 
@@ -983,3 +984,98 @@ def test_delete_then_list_holdings_count_drops(client):
     client.delete(f'/api/holdings/{holding_id}')
     post_count = len(client.get('/api/holdings/').json())
     assert post_count == pre_count - 1
+
+
+def test_refresh_prices_returns_live_overlays_and_skips_internal_labels(
+    client, db_session, monkeypatch, make_account
+):
+    """POST /api/holdings/refresh-prices surfaces live quote overlays for
+    market-addressable symbols and skips internal position labels
+    (``NON40...`` scratch codes, ``**`` cash rows) instead of burning a
+    Finnhub call on each."""
+    from types import SimpleNamespace
+
+    from app.models import Holding
+    from app.routes.shared import get_or_create_local_user
+
+    get_or_create_local_user(db_session, "alex")
+    account = make_account()
+    db_session.add(account)
+    db_session.commit()
+    for symbol, quantity, value in [
+        ("AAPL", 10, 2000.0),
+        ("NON40OJJ5", 5, 1000.0),
+        ("SPAXX**", None, 500.0),
+    ]:
+        db_session.add(
+            Holding(
+                account_id=account.id,
+                symbol=symbol,
+                quantity=quantity,
+                current_value=value,
+                type="Stock" if quantity else "Cash",
+            )
+        )
+    db_session.commit()
+
+    class FakeAdapter:
+        def __init__(self):
+            self.called: list[str] = []
+
+        def quote(self, symbol: str):
+            self.called.append(symbol)
+            if symbol == "AAPL":
+                return SimpleNamespace(
+                    failure=None,
+                    value=SimpleNamespace(current_price="210.0", previous_close="200.0"),
+                )
+            return SimpleNamespace(
+                failure=SimpleNamespace(failure_class=SimpleNamespace(value="not_found")),
+                value=None,
+            )
+
+    fake = FakeAdapter()
+    monkeypatch.setenv("FINNHUB_API_KEY", "test-key")
+    monkeypatch.setattr("app.routes.holdings._get_prices_adapter", lambda: fake)
+
+    response = client.post("/api/holdings/refresh-prices")
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["prices_updated"] == 1
+    # Only AAPL is market-addressable; the internal labels are skipped.
+    assert fake.called == ["AAPL"]
+
+    by_symbol = {row["symbol"]: row for row in body["holdings"]}
+    aapl = by_symbol["AAPL"]
+    assert aapl["live_price"] == 210.0
+    assert aapl["live_value"] == 2100.0
+    assert aapl["day_change_pct"] == 5.0
+    assert by_symbol["NON40OJJ5"]["live_price"] is None
+    assert by_symbol["SPAXX**"]["live_price"] is None
+
+
+def test_refresh_prices_reports_missing_api_key(client, db_session, monkeypatch, make_account):
+    """Without a Finnhub key the refresh degrades to a clear warning and
+    no live prices instead of failing silently or hitting the network."""
+    from app.models import Holding
+    from app.routes.shared import get_or_create_local_user
+
+    get_or_create_local_user(db_session, "alex")
+    account = make_account()
+    db_session.add(account)
+    db_session.commit()
+    db_session.add(
+        Holding(account_id=account.id, symbol="AAPL", quantity=10, current_value=2000.0, type="Stock")
+    )
+    db_session.commit()
+
+    monkeypatch.delenv("FINNHUB_API_KEY", raising=False)
+    import app.routes.holdings as holdings_routes
+    monkeypatch.setattr(holdings_routes, "settings", SimpleNamespace(finnhub_api_key=None))
+
+    response = client.post("/api/holdings/refresh-prices")
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["prices_updated"] == 0
+    assert "Finnhub API key not configured" in (body["warning"] or "")
+    assert body["holdings"][0]["live_price"] is None
