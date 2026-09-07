@@ -2235,8 +2235,12 @@ export const rulesService = {
     await api.delete(`/api/budgets/${id}`)
   },
 
-  getBudgetStatus: async (period: string): Promise<BudgetStatusResponse> => {
-    const response = await api.get('/api/budgets/status', { params: { period } })
+  getBudgetStatus: async (params: { period?: string; fromDate?: string; toDate?: string }): Promise<BudgetStatusResponse> => {
+    const cleaned: Record<string, string> = {}
+    if (params.period) cleaned.period = params.period
+    if (params.fromDate) cleaned.from_date = params.fromDate
+    if (params.toDate) cleaned.to_date = params.toDate
+    const response = await api.get('/api/budgets/status', { params: cleaned })
     return response.data
   },
 
@@ -2863,6 +2867,18 @@ export const rulesService = {
     const response = await api.get(
       `/api/assistant/conversations/${conversationId}`,
     )
+    return response.data
+  },
+
+  createTransaction: async (payload: {
+    description: string
+    amount: number
+    transaction_date: string
+    category_id?: number | null
+    account_id?: number | null
+    merchant_name?: string | null
+  }): Promise<Transaction> => {
+    const response = await api.post('/api/transactions/', payload)
     return response.data
   },
 }

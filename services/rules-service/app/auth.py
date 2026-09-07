@@ -1,46 +1,24 @@
+from __future__ import annotations
+
 """Single-user local-first authentication helper.
 
-Built (no wealthiq source — wealthiq has no auth file; its ``routes/shared.py``
-"gets or creates" a demo user on every request) per ``docs/wealthiq-merge-plan.md``
-§10 decision 4: **single-user JWT-as-cookie**.
+...
 
-Contract:
-
-- Exactly one user (default ``alex``; override via ``LOCAL_USER`` env).
-- The user proves possession by presenting a valid HS256 JWT signed with
-  ``settings.jwt_secret``.
-- The token may travel in a cookie (``fc_session``) **OR** as an
-  ``Authorization: Bearer <token>`` header (CLI/test client convenience).
-- The ``sub`` claim must equal ``settings.local_user``. Tokens issued for a
-  previous ``local_user`` are rejected after a rename — by design, this is
-  safer than silently accepting them.
-
-Usage:
-
-- ``issue_token()``                            – mint a fresh token in tests.
-- ``verify_token(token)``                      – decode a token or raise 401.
-- ``get_current_user(...)``                    – FastAPI dependency; returns
-                                                ``settings.local_user``.
-- ``set_auth_cookie(response, token)``         – attach the cookie on login.
-- ``clear_auth_cookie(response)``              – invalidate the cookie on logout.
-
-Tokens are time-boxed via ``settings.jwt_expiration_hours`` (default 24h). No
-persistent user table; the identity contract is the signed token, full stop.
 """
-from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import Cookie, Header, HTTPException, Response, status
+from fastapi import Cookie, Depends, Header, HTTPException, Request, Response, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
+from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.database import Base, get_db
+from app.models import User
 
 COOKIE_NAME = "fc_session"
-
-
-# --- Token mint / verify ---------------------------------------------------
 
 
 def issue_token(username: Optional[str] = None) -> str:
@@ -95,9 +73,6 @@ def verify_token(token: str) -> dict:
     return payload
 
 
-# --- Cookie helpers ---------------------------------------------------------
-
-
 def set_auth_cookie(response: Response, token: str) -> None:
     """Attach the session cookie to ``response`` (HttpOnly; SameSite=Lax)."""
     response.set_cookie(
@@ -116,14 +91,18 @@ def clear_auth_cookie(response: Response) -> None:
     response.delete_cookie(key=COOKIE_NAME, path="/")
 
 
-# --- FastAPI dependency -----------------------------------------------------
-
-
 async def get_current_user(
     fc_session: Optional[str] = Cookie(default=None, alias=COOKIE_NAME),
     authorization: Optional[str] = Header(default=None),
 ) -> str:
-    """Resolve the current user from cookie or Bearer header; else 401."""
+    """Resolve the current user from cookie or Bearer header; else 401.
+
+    Returns the ``local_user_sub`` identity string (e.g. ``"alex"``) — the
+    original Phase-7 contract. Do NOT change this return type: legacy routes
+    pass the value straight into ``get_or_create_local_user(db, sub)`` and
+    similar helpers. Routes that need the integer ``users.id`` should depend
+    on :func:`get_current_user_id` instead.
+    """
     token = fc_session
     if not token and authorization and authorization.lower().startswith("bearer "):
         token = authorization.split(" ", 1)[1].strip()
@@ -136,5 +115,21 @@ async def get_current_user(
     return payload["sub"]
 
 
-# Common alias used by protected routes / dep ``Depends(require_user)``.
+async def get_current_user_id(
+    user_sub: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> int:
+    """Resolve the authenticated identity string to its integer ``users.id``."""
+    user = db.query(User).filter(User.local_user_sub == user_sub).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="user not found",
+        )
+    return user.id
+
+
+# Common alias used by protected routes — STRING identity contract.
 require_user = get_current_user
+# Integer-ID variant for routes that query ``*.user_id`` columns directly.
+require_user_id = get_current_user_id

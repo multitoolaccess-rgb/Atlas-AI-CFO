@@ -1,88 +1,423 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
-import { AlertTriangle, ArrowLeft, BookOpen, ChevronDown, Clock3, Database, ExternalLink, Filter, RefreshCw, ShieldCheck, TrendingDown, TrendingUp } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import PageLayout from '@/components/layout/PageLayout'
 import PageHeader from '@/components/ui/PageHeader'
-import { classifyMarketBriefError, generateMarketBrief, type ActionToReview, type BriefSection, type MarketBrief } from '@/lib/marketBriefs'
+import BriefHero from '@/components/dashboard/BriefHero'
+import TopNews from '@/components/dashboard/TopNews'
+import EarningsCalendar from '@/components/dashboard/EarningsCalendar'
+import MarketPulse from '@/components/dashboard/MarketPulse'
+import LoadingIndicator from '@/components/ui/LoadingIndicator'
+import type {
+  BriefSummary,
+  BriefHeroData,
+  BriefNewsItem,
+  BriefEarningsEvent,
+  MarketContext,
+} from '@/lib/marketBriefs'
 
-function formatDate(value?: string | null) {
-  if (!value) return 'Unavailable'
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? 'Unavailable' : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-}
-
-function QualityBadge({ label }: { label: string }) {
-  const tone = label.toLowerCase().includes('fresh') || label.toLowerCase().includes('ready') ? 'bg-[var(--success-50)] text-[var(--success-700)]' : label.toLowerCase().includes('stale') || label.toLowerCase().includes('partial') ? 'bg-[var(--warning-50)] text-[var(--warning-700)]' : 'bg-[var(--surface-ambient)] text-secondary'
-  return <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${tone}`}>{label}</span>
-}
-
-function Section({ section, onEvidence }: { section: BriefSection; onEvidence: (section: BriefSection) => void }) {
-  return <article className="border-b border-[var(--border-subtle)] py-4 last:border-b-0" data-testid={`brief-section-${section.name.toLowerCase().replaceAll(' ', '-')}`}>
-    <div className="flex items-start justify-between gap-3"><h3 className="font-semibold text-primary">{section.name}</h3>{section.citations.length > 0 && <button type="button" onClick={() => onEvidence(section)} className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md px-2 text-sm font-medium text-[var(--accent-primary)] hover:bg-[var(--accent-selection)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]">Evidence <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /></button>}</div>
-    <ul className="mt-2 space-y-2 text-sm leading-6 text-secondary">{section.content.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>
-    {section.citations.length > 0 && <p className="mt-3 text-xs text-tertiary">{section.citations.length} source reference{section.citations.length === 1 ? '' : 's'} available</p>}
-  </article>
-}
-
-function ActionRow({ action, index, onSelect }: { action: ActionToReview; index: number; onSelect: (action: ActionToReview) => void }) {
-  return <button type="button" onClick={() => onSelect(action)} className="grid w-full grid-cols-[minmax(5rem,0.8fr)_minmax(0,2fr)_auto] items-center gap-3 border-b border-[var(--border-subtle)] px-3 py-3 text-left transition-colors hover:bg-[var(--surface-ambient)] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--accent-primary)]" data-testid={`brief-action-${index}`}><span className="font-mono text-sm font-semibold text-primary">{action.action}</span><span className="min-w-0 text-sm text-secondary">{action.why}</span><span className="text-xs text-tertiary">Review</span></button>
-}
-
-function Skeleton() {
-  return <div className="space-y-4" aria-busy="true" data-testid="brief-loading"><div className="h-28 animate-pulse rounded-lg bg-[var(--surface-ambient)]" /><div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]"><div className="h-72 animate-pulse rounded-lg bg-[var(--surface-ambient)]" /><div className="h-72 animate-pulse rounded-lg bg-[var(--surface-ambient)]" /></div></div>
-}
-
+/**
+ * Daily Investment Brief - Redesigned
+ * 
+ * Robinhood/Fidelity/Bloomberg-style UI showing:
+ * - Hero: Today's P&L and top movers
+ * - Market: Quick market context (SPY, QQQ, VTI)
+ * - News: 3-5 material news stories
+ * - Earnings: Upcoming earnings this week
+ * - Alerts: Watchlist and portfolio alerts
+ * 
+ * Design principles:
+ * - Scannable: Card-based layout, clear hierarchy
+ * - Fast: Aggressive caching (24h TTL)
+ * - Reliable: No rate limit errors (15 calls max)
+ * - Material: Only important information
+ */
 export default function DailyInvestmentBriefPage() {
-  const [brief, setBrief] = useState<MarketBrief | null>(null)
+  const [brief, setBrief] = useState<BriefSummary | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [errorRecovery, setErrorRecovery] = useState<string | null>(null)
-  const [selectedSection, setSelectedSection] = useState<BriefSection | null>(null)
-  const [selectedAction, setSelectedAction] = useState<ActionToReview | null>(null)
-  const [actionFilter, setActionFilter] = useState('all')
+  const [selectedNews, setSelectedNews] = useState<BriefNewsItem | null>(null)
+  const [selectedEarning, setSelectedEarning] = useState<BriefEarningsEvent | null>(null)
+
+  // Load initial brief on mount
+  useEffect(() => {
+    loadBrief()
+  }, [])
+
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.NEXT_PUBLIC_RULES_SERVICE_URL ||
+    'http://127.0.0.1:8888'
+
+  /**
+   * Safely parse a response as JSON. If the backend returns an HTML
+   * error page (e.g. a proxy 502/504 or Next.js error page), parse it
+   * as text and surface it as a readable message instead of throwing
+   * a raw "JSON.parse: unexpected character" SyntaxError.
+   */
+  const safeParseJson = async <T,>(response: Response): Promise<T> => {
+    const contentType = response.headers.get('content-type') ?? ''
+    if (contentType.includes('application/json')) {
+      return (await response.json()) as T
+    }
+    // Non-JSON response (HTML error page, proxy error, etc.)
+    const raw = await response.text()
+    const snippet = raw.replace(/\s+/g, ' ').trim().slice(0, 120)
+    throw new Error(
+      `Backend returned ${response.status} (non-JSON): ${snippet || 'empty response'}`
+    )
+  }
 
   const loadBrief = async () => {
-    setLoading(true)
-    setError(null)
     try {
-      const result = await generateMarketBrief()
-      setBrief(result.brief)
-    } catch (cause) {
-      const state = classifyMarketBriefError(cause)
-      setError(state.message)
-      setErrorRecovery(state.recovery)
+      setLoading(true)
+      setError(null)
+
+      const response = await fetch(`${apiBaseUrl}/api/v1/investments/brief/summary`, {
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        const errorData = await safeParseJson<{ detail?: string }>(response)
+        throw new Error(errorData.detail || 'Failed to load brief')
+      }
+
+      const data: BriefSummary = await safeParseJson<BriefSummary>(response)
+      setBrief(data)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load brief'
+      setError(message)
+      console.error('Failed to load brief:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { void loadBrief() }, [])
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true)
+      setError(null)
 
-  const actions = useMemo(() => {
-    const source = brief?.actions ?? []
-    return actionFilter === 'all' ? source : source.filter((item) => item.action.toLowerCase() === actionFilter)
-  }, [brief?.actions, actionFilter])
+      const response = await fetch(`${apiBaseUrl}/api/v1/investments/brief/refresh`, {
+        method: 'POST',
+        credentials: 'include'
+      })
 
-  if (loading) return <PageLayout><PageHeader eyebrow="Investment intelligence" title="Daily Investment Brief" description="Preparing a server-owned, evidence-backed brief." className="mb-6" /><Skeleton /></PageLayout>
+      if (!response.ok) {
+        const errorData = await safeParseJson<{ detail?: string }>(response)
+        throw new Error(errorData.detail || 'Failed to refresh brief')
+      }
 
-  if (error || !brief) return <PageLayout><PageHeader eyebrow="Investment intelligence" title="Daily Investment Brief" description="No report is shown unless Atlas can return a server-owned brief." className="mb-6" /><section className="card p-6" role="alert" data-testid="brief-error"><div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--warning-600)]" aria-hidden="true" /><div><h2 className="font-semibold text-primary">Investment Brief unavailable</h2><p className="mt-2 text-sm leading-6 text-secondary">{error ?? 'No investment report has been generated for this period.'}</p>{errorRecovery && <p className="mt-2 text-sm text-tertiary">{errorRecovery}</p>}<button type="button" onClick={() => void loadBrief()} className="btn-secondary mt-4 inline-flex min-h-11 items-center gap-2 px-3 text-sm"><RefreshCw className="h-4 w-4" aria-hidden="true" />Retry brief</button></div></div></section></PageLayout>
+      const data: BriefSummary = await safeParseJson<BriefSummary>(response)
+      setBrief(data)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to refresh brief'
+      setError(message)
+      console.error('Failed to refresh brief:', err)
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
-  return <PageLayout>
-    <PageHeader eyebrow="Investment intelligence" title="Daily Investment Brief" description="A structured morning review of portfolio context, market evidence, and items that need human attention." actions={<Link href="/investments" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-[var(--border-subtle)] px-3 text-sm font-medium text-secondary hover:bg-[var(--surface-ambient)]"><ArrowLeft className="h-4 w-4" aria-hidden="true" />Command Center</Link>} className="mb-4" />
+  if (loading) {
+    return (
+      <PageLayout>
+        <PageHeader
+          title="Daily Investment Brief"
+          description="Portfolio overview and market insights"
+        />
+        <div className="space-y-4">
+          <LoadingIndicator type="initial" message="Loading your brief..." />
+        </div>
+      </PageLayout>
+    )
+  }
 
-    <section className="surface-focal card mb-4 p-4" aria-label="Brief context"><div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm"><span className="inline-flex items-center gap-2 font-medium text-primary"><BookOpen className="h-4 w-4 text-[var(--accent-primary)]" aria-hidden="true" />Daily brief</span><span className="text-secondary">As of <strong className="font-medium text-primary">{formatDate(brief.as_of)}</strong></span><span className="text-secondary">Generated <strong className="font-medium text-primary">{formatDate(brief.generated_at)}</strong></span><QualityBadge label={brief.provider_readiness?.status ?? brief.market_data_basis ?? 'Quality unknown'} /></div></section>
+  if (error) {
+    return (
+      <PageLayout>
+        <PageHeader
+          title="Daily Investment Brief"
+          description="Portfolio overview and market insights"
+        />
+        <div className="rounded-lg border border-danger-200 bg-danger-50 p-4">
+          <p className="text-sm text-danger-700 font-medium">Error loading brief</p>
+          <p className="text-sm text-danger-600 mt-1">{error}</p>
+          <button
+            onClick={loadBrief}
+            className="mt-3 px-3 py-2 text-sm font-medium rounded-lg bg-danger-600 text-white hover:bg-danger-700 transition-colors"
+          >
+            Try again
+          </button>
+        </div>
+      </PageLayout>
+    )
+  }
 
-    {brief.warnings.length > 0 && <section className="mb-4 rounded-lg border border-[var(--warning-200)] bg-[var(--warning-50)] p-4" role="status" data-testid="brief-warnings"><div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning-700)]" aria-hidden="true" /><div><h2 className="font-semibold text-[var(--warning-900)]">Data limitations</h2><ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[var(--warning-900)]">{brief.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul></div></div></section>}
+  if (!brief) {
+    return (
+      <PageLayout>
+        <PageHeader
+          title="Daily Investment Brief"
+          description="Portfolio overview and market insights"
+        />
+        <div className="rounded-lg border border-outline-variant/20 p-8 text-center">
+          <p className="text-secondary">No portfolio data available</p>
+          <p className="text-xs text-tertiary mt-1">Add holdings to see your Daily Investment Brief</p>
+        </div>
+      </PageLayout>
+    )
+  }
 
-    <section className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]" aria-label="What matters today">
-      <article className="card p-4"><div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-primary">What matters today</h2><p className="mt-1 text-sm text-secondary">Server-authored brief sections, ordered for review.</p></div><Database className="h-5 w-5 text-[var(--accent-primary)]" aria-hidden="true" /></div><div className="mt-3">{brief.sections.length ? brief.sections.map((section) => <Section key={section.name} section={section} onEvidence={setSelectedSection} />) : <p className="py-6 text-sm text-secondary">No structured sections are available for this period.</p>}</div></article>
-      <aside className="space-y-4"><article className="card p-4"><div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[var(--success-600)]" aria-hidden="true" /><h2 className="font-semibold text-primary">Coverage and freshness</h2></div><dl className="mt-4 space-y-3 text-sm">{brief.coverage && <><div className="flex justify-between gap-4"><dt className="text-secondary">Eligible holdings</dt><dd className="font-mono text-primary">{brief.coverage.eligible_holding_count}</dd></div><div className="flex justify-between gap-4"><dt className="text-secondary">Covered holdings</dt><dd className="font-mono text-primary">{brief.coverage.covered_holding_count}</dd></div><div className="flex justify-between gap-4"><dt className="text-secondary">Coverage basis</dt><dd className="text-primary">{brief.coverage.coverage_basis.replaceAll('_', ' ')}</dd></div></>}</dl><p className="mt-4 border-t border-[var(--border-subtle)] pt-3 text-xs leading-5 text-tertiary">Coverage describes what the server could address. It does not imply that unavailable data is zero or current.</p></article><article className="card p-4"><h2 className="font-semibold text-primary">Portfolio context</h2><p className="mt-2 text-sm leading-6 text-secondary">{brief.portfolio_daily_change ? `Reported daily change: ${brief.portfolio_daily_change}` : 'Portfolio movement is unavailable in this brief.'}</p><Link href="/portfolio" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[var(--accent-primary)]">Open Portfolio <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /></Link></article></aside>
-    </section>
+  return (
+    <PageLayout>
+      <PageHeader
+        title="Daily Investment Brief"
+        description="Portfolio overview and market insights"
+      />
 
-    <section className="card mt-4 overflow-hidden" aria-labelledby="review-heading"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border-subtle)] p-4"><div><h2 id="review-heading" className="text-lg font-semibold text-primary">Human review queue</h2><p className="mt-1 text-sm text-secondary">Analytical actions from the server. Review does not execute anything.</p></div><label className="inline-flex min-h-11 items-center gap-2 rounded-md border border-[var(--border-subtle)] px-3 text-sm text-secondary"><Filter className="h-4 w-4" aria-hidden="true" /><span className="sr-only">Filter review actions</span><select value={actionFilter} onChange={(event) => setActionFilter(event.target.value)} className="bg-transparent text-primary outline-none"><option value="all">All actions</option>{Array.from(new Set((brief.actions ?? []).map((item) => item.action.toLowerCase()))).map((action) => <option key={action} value={action}>{action.toUpperCase()}</option>)}</select></label></div>{actions.length ? actions.map((action, index) => <ActionRow key={`${action.action}-${index}`} action={action} index={index} onSelect={setSelectedAction} />) : <p className="p-5 text-sm text-secondary">No review items are available for this brief.</p>}</section>
+      {/* Warning banner if rate limited or stale */}
+      {brief.warnings && brief.warnings.length > 0 && (
+        <div className="rounded-lg border border-warning-200 bg-warning-50 p-3 mb-6">
+          <p className="text-xs text-warning-700">
+            {brief.warnings[0]}
+          </p>
+        </div>
+      )}
 
-    {(selectedSection || selectedAction) && <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/30 p-0 sm:items-center sm:p-6" role="presentation" onClick={() => { setSelectedSection(null); setSelectedAction(null) }}><section role="dialog" aria-modal="true" aria-labelledby="detail-title" className="max-h-[85dvh] w-full max-w-2xl overflow-y-auto rounded-t-xl bg-[var(--surface-raised)] p-5 shadow-xl sm:rounded-xl" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between gap-4"><div><h2 id="detail-title" className="text-lg font-semibold text-primary">{selectedSection ? 'Evidence detail' : 'Review detail'}</h2><p className="mt-1 text-sm text-secondary">{selectedSection?.name ?? selectedAction?.action}</p></div><button type="button" onClick={() => { setSelectedSection(null); setSelectedAction(null) }} className="min-h-11 rounded-md px-3 text-sm text-secondary hover:bg-[var(--surface-ambient)] focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]">Close</button></div>{selectedSection ? <div className="mt-4 space-y-3">{selectedSection.citations.map((citation, index) => <div key={`${citation.source_url}-${index}`} className="rounded-lg border border-[var(--border-subtle)] p-3 text-sm"><p className="font-medium text-primary">{citation.provider}</p><p className="mt-1 text-secondary">Freshness: {citation.freshness}</p><p className="mt-1 text-xs text-tertiary">Retrieved {formatDate(citation.retrieved_at)}{citation.published_at ? ` · Published ${formatDate(citation.published_at)}` : ''}</p><a href={citation.source_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center gap-1 text-[var(--accent-primary)]">Open source <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /></a></div>)}</div> : <div className="mt-4 space-y-3 text-sm"><p className="leading-6 text-secondary">{selectedAction?.why}</p><p className="text-secondary">Evidence: {selectedAction?.evidence.length ? selectedAction.evidence.join(', ') : 'Unavailable'}</p><p className="text-secondary">Risks: {selectedAction?.risks.length ? selectedAction.risks.join(', ') : 'None returned'}</p><p className="text-xs leading-5 text-tertiary">This is analytical context for human review. Atlas does not place orders or change portfolio state.</p></div>}</section></div>}
-  </PageLayout>
+      {/* Hero Section - Today's P&L */}
+      <div className="mb-6">
+        <BriefHero
+          data={brief.hero}
+          isLoading={refreshing}
+          onRefresh={handleRefresh}
+        />
+      </div>
+
+      {/* Market Context */}
+      {brief.market && (
+        <div className="mb-6">
+          <p className="text-xs font-semibold uppercase tracking-wide text-secondary mb-3">
+            Market Overview
+          </p>
+          <MarketPulse market={brief.market} isLoading={refreshing} />
+        </div>
+      )}
+
+      {/* Two-column layout: News and Earnings */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* News Column */}
+        <div>
+          <TopNews
+            news={brief.news}
+            isLoading={refreshing}
+            onStoryClick={setSelectedNews}
+          />
+        </div>
+
+        {/* Earnings Column */}
+        <div>
+          <EarningsCalendar
+            earnings={brief.earnings}
+            isLoading={refreshing}
+            onEarningClick={setSelectedEarning}
+          />
+        </div>
+      </div>
+
+      {/* Data Quality Footer */}
+      {brief.quality && (
+        <div className="rounded-lg border border-outline-variant/20 p-4 bg-surface-container/30">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-xs text-secondary font-medium">Coverage</p>
+              <p className="text-sm font-semibold text-on-surface">
+                {brief.quality.coverage_covered}/{brief.quality.coverage_eligible}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-secondary font-medium">Freshness</p>
+              <p className={`text-sm font-semibold ${
+                brief.quality.freshness === 'fresh'
+                  ? 'text-success-600'
+                  : brief.quality.freshness === 'stale'
+                    ? 'text-warning-600'
+                    : 'text-secondary'
+              }`}>
+                {brief.quality.freshness.charAt(0).toUpperCase() + brief.quality.freshness.slice(1)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-secondary font-medium">Last Updated</p>
+              <p className="text-sm font-semibold text-on-surface">
+                {new Date(brief.generated_at).toLocaleTimeString(undefined, {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-secondary font-medium">Data Basis</p>
+              <p className="text-sm font-semibold text-on-surface">
+                {brief.quality.coverage_basis}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Selected News Modal */}
+      {selectedNews && (
+        <NewsDetailModal
+          news={selectedNews}
+          onClose={() => setSelectedNews(null)}
+        />
+      )}
+
+      {/* Selected Earning Modal */}
+      {selectedEarning && (
+        <EarningDetailModal
+          earning={selectedEarning}
+          onClose={() => setSelectedEarning(null)}
+        />
+      )}
+    </PageLayout>
+  )
+}
+
+interface NewsDetailModalProps {
+  news: BriefNewsItem
+  onClose: () => void
+}
+
+function NewsDetailModal({ news, onClose }: NewsDetailModalProps) {
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface-container rounded-lg max-w-2xl w-full max-h-96 overflow-y-auto p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-on-surface mb-2">
+              {news.headline}
+            </h2>
+            <div className="flex items-center gap-2">
+              {news.symbols.map((symbol) => (
+                <span
+                  key={symbol}
+                  className="inline-block px-2 py-1 text-xs font-semibold rounded bg-primary/10 text-primary"
+                >
+                  {symbol}
+                </span>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-secondary hover:text-on-surface transition-colors text-2xl"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <p className="text-sm text-secondary leading-relaxed mb-4">
+          {news.summary}
+        </p>
+
+        <div className="flex items-center justify-between pt-4 border-t border-outline-variant/20">
+          <p className="text-xs text-tertiary">
+            {news.source} • {new Date(news.published_at).toLocaleString()}
+          </p>
+          <a
+            href={news.url}
+            target="_blank"
+            rel="noreferrer"
+            className="px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
+          >
+            Read full story →
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface EarningDetailModalProps {
+  earning: BriefEarningsEvent
+  onClose: () => void
+}
+
+function EarningDetailModal({ earning, onClose }: EarningDetailModalProps) {
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface-container rounded-lg max-w-2xl w-full p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-on-surface">
+              {earning.symbol} Earnings
+            </h2>
+            <p className="text-sm text-secondary mt-1">
+              {earning.quarter} • {new Date(earning.date).toLocaleDateString()}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-secondary hover:text-on-surface transition-colors text-2xl"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="space-y-3 mb-4">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-surface-ambient">
+            <p className="text-sm text-secondary">EPS Estimate</p>
+            <p className="text-sm font-bold text-on-surface">
+              ${earning.eps_estimate?.toFixed(2) || 'TBD'}
+            </p>
+          </div>
+          {earning.eps_whisper && (
+            <div className="flex items-center justify-between p-3 rounded-lg bg-surface-ambient">
+              <p className="text-sm text-secondary">Whisper Estimate</p>
+              <p className="text-sm font-bold text-on-surface">
+                ${earning.eps_whisper.toFixed(2)}
+              </p>
+            </div>
+          )}
+          {earning.previous_eps && (
+            <div className="flex items-center justify-between p-3 rounded-lg bg-surface-ambient">
+              <p className="text-sm text-secondary">Previous EPS</p>
+              <p className="text-sm font-bold text-on-surface">
+                ${earning.previous_eps.toFixed(2)}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between pt-4 border-t border-outline-variant/20">
+          <p className="text-xs text-secondary">
+            Confidence: {earning.confidence.charAt(0).toUpperCase() + earning.confidence.slice(1)}
+          </p>
+          <button
+            onClick={onClose}
+            className="px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }

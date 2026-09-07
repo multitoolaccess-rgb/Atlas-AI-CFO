@@ -94,6 +94,26 @@ def configure_market_brief_composer(composer: TrustedMarketBriefComposer | None)
     _composer = composer
 
 
+def get_market_brief_composer() -> TrustedMarketBriefComposer | None:
+    """Public accessor for the configured trusted composer.
+
+    Shared with the Daily Investment Brief so both surfaces render the same
+    server-owned Market Intelligence evidence instead of maintaining a
+    parallel Finnhub budget.
+    """
+    return _composer
+
+
+def get_market_pulse_composer() -> MarketPulseComposer | None:
+    """Public accessor for the configured market-pulse composer.
+
+    The Daily Investment Brief uses its market-wide earnings calendar (a
+    single call on the pulse provider's own adapter) so earnings populate
+    even when the portfolio quote pass exhausts the composer's rate budget.
+    """
+    return _pulse
+
+
 def _error_response(
     reason_code: MarketBriefReasonCode,
     *,

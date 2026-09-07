@@ -63,14 +63,6 @@ from app.routes.categories import router as categories_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.data import router as data_router
 from app.routes.family_members import router as family_members_router
-
-# Phase 1 Slice D-post — authenticated POST /api/v1/goals/{goal_id}/forecasts
-# generation route. Bounded scope: ownership-before-adapter, idempotency,
-# conditional headers, default-off persistence-gated 503, sanitized
-# 4xx/5xx envelopes, HATEOAS links. NO mutable forecast CRUD. route
-# signature uses Annotated[X, Header(..., default=None)] (default INSIDE
-# Header) to avoid the FastAPI 0.104.1 + pydantic 2.x FieldInfo.in_ leak.
-from app.routes.forecasts_generation import router as forecasts_generation_router
 # Phase 1 Slice D-post — authenticated POST /api/v1/goals/{goal_id}/forecasts
 # generation route. Bounded scope: ownership-before-adapter, idempotency,
 # conditional headers, default-off persistence-gated 503, sanitized
@@ -118,6 +110,8 @@ from app.routes.investment_assistant import router as investment_assistant_route
 from app.routes.investment_risk import router as investment_risk_router
 from app.routes.investment_scout import router as investment_scout_router
 from app.routes.investment_evaluations import router as investment_evaluations_router
+# Redesigned Daily Investment Brief (Robinhood/Fidelity/Bloomberg-style)
+from app.routes.investment_brief import router as investment_brief_router
 
 __all__ = [
     "accounts_router",
@@ -149,4 +143,7 @@ __all__ = [
     "investment_risk_router",
     "investment_scout_router",
     "investment_evaluations_router",
+    "investment_brief_router",
+    "decision_history_router",
+    "recommendations_derived_router",
 ]

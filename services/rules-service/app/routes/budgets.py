@@ -190,35 +190,67 @@ def _parse_budget_period(period: str) -> tuple[int, int]:
     return year, month
 
 
+def _get_periods_in_range(from_ym: str, to_ym: str) -> list[str]:
+    """Generate all YYYY-MM periods between from_ym and to_ym (inclusive)."""
+    periods = []
+    from_year, from_month = int(from_ym[:4]), int(from_ym[5:7])
+    to_year, to_month = int(to_ym[:4]), int(to_ym[5:7])
+    
+    year, month = from_year, from_month
+    while (year, month) <= (to_year, to_month):
+        periods.append(f"{year:04d}-{month:02d}")
+        month += 1
+        if month > 12:
+            month = 1
+            year += 1
+    return periods
+
+
 @router.get("/status")
 async def get_budget_status(
-    period: str = Query(..., description="YYYY-MM"),
+    period: Optional[str] = Query(default=None, description="YYYY-MM (deprecated, use from/to instead)"),
+    from_date: Optional[str] = Query(default=None, description="YYYY-MM-DD start date"),
+    to_date: Optional[str] = Query(default=None, description="YYYY-MM-DD end date"),
     db: Session = Depends(get_db),
     _current_user: str = Depends(require_user),
 ):
-    """Budget vs actual comparison for a given period.
+    """Budget vs actual comparison for a given period or date range.
 
     Compares planned budgets against aggregated actual spending
     using classify_cashflow for account-type-aware normalization.
+    
+    Accepts either:
+    - period: YYYY-MM (legacy, single month)
+    - from_date + to_date: YYYY-MM-DD range (preferred)
     """
     from app.account_types import classify_cashflow
 
     user = get_or_create_local_user(db, _current_user)
 
-    year, month = _parse_budget_period(period)
+    # Determine date range and get relevant budget periods
+    if from_date and to_date:
+        period_start = from_date
+        period_end = to_date
+        # Extract all YYYY-MM periods that overlap with the date range
+        from_year_month = from_date[:7]  # YYYY-MM
+        to_year_month = to_date[:7]      # YYYY-MM
+        relevant_periods = _get_periods_in_range(from_year_month, to_year_month)
+    elif period:
+        year, month = _parse_budget_period(period)
+        last_day = calendar.monthrange(year, month)[1]
+        period_start = f"{year:04d}-{month:02d}-01"
+        period_end = f"{year:04d}-{month:02d}-{last_day:02d}"
+        relevant_periods = [period]
+    else:
+        raise HTTPException(status_code=400, detail="Either period or from_date/to_date is required")
 
-    # Get budgets for this period with category eagerly loaded (avoids N+1)
+    # Get budgets for all relevant periods with category eagerly loaded (avoids N+1)
     budgets = (
         db.query(Budget)
         .options(joinedload(Budget.category))
-        .filter(Budget.user_id == user.id, Budget.period == period)
+        .filter(Budget.user_id == user.id, Budget.period.in_(relevant_periods))
         .all()
     )
-
-    # Parse period to date range
-    last_day = calendar.monthrange(year, month)[1]
-    period_start = f"{year:04d}-{month:02d}-01"
-    period_end = f"{year:04d}-{month:02d}-{last_day:02d}"
 
     # Get actual spending per category for this period.
     # Join Account to get account_type for classify_cashflow.

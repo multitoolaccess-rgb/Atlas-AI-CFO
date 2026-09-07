@@ -385,3 +385,95 @@ export async function generateMarketBrief(): Promise<{ brief_id: string; replaye
 export async function fetchMarketPulse(): Promise<MarketPulseSnapshot> {
   return (await api.get<MarketPulseSnapshot>('/api/v1/market-briefs/pulse')).data
 }
+
+// ============================================================================
+// Redesigned Brief Types (Robinhood/Fidelity/Bloomberg-style)
+// ============================================================================
+
+/** Hero section: Today's P&L and top movers */
+export type BriefHeroData = {
+  daily_pnl: number
+  daily_pct: number
+  ytd_pnl?: number | null
+  ytd_pct?: number | null
+  top_gainer?: HoldingChange | null
+  top_loser?: HoldingChange | null
+  market_context?: MarketContext | null
+  updated_at: string | Date
+}
+
+/** Change data for a single holding */
+export type HoldingChange = {
+  symbol: string
+  name: string
+  change_pct: number
+  change_dollar: number
+  current_price: number
+  materiality: 'high' | 'watch' | 'informational'
+}
+
+/** Market overview (SPY, QQQ, VTI) */
+export type MarketContext = {
+  spy_change?: number | null
+  qqq_change?: number | null
+  vti_change?: number | null
+  market_sentiment?: string | null
+}
+
+/** Material news item */
+export type BriefNewsItem = {
+  id: string
+  headline: string
+  summary: string
+  source: string
+  published_at: string | Date
+  symbols: string[]
+  materiality_score: number
+  url: string
+}
+
+/** Earnings event */
+export type BriefEarningsEvent = {
+  symbol: string
+  name: string
+  date: string | Date
+  eps_estimate?: number | null
+  eps_whisper?: number | null
+  confidence: 'high' | 'medium' | 'low'
+  quarter: string
+  previous_eps?: number | null
+}
+
+/** Watchlist alert */
+export type BriefAlert = {
+  id: string
+  type: string
+  title: string
+  description: string
+  priority: 'critical' | 'high' | 'medium' | 'low'
+  symbols: string[]
+  created_at: string | Date
+}
+
+/** Data quality indicators */
+export type BriefDataQuality = {
+  freshness: 'fresh' | 'stale' | 'partial'
+  coverage_eligible: number
+  coverage_covered: number
+  coverage_basis: string
+  warnings: string[]
+}
+
+/** Complete brief summary (main response) */
+export type BriefSummary = {
+  id: string
+  hero: BriefHeroData
+  market: MarketContext
+  top_movers: HoldingChange[]
+  news: BriefNewsItem[]
+  earnings: BriefEarningsEvent[]
+  alerts: BriefAlert[]
+  quality: BriefDataQuality
+  generated_at: string | Date
+  warnings: string[]
+}

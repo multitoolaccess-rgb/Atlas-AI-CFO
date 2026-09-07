@@ -69,8 +69,6 @@ const navGroups: NavGroup[] = [
     items: [
       { name: 'Decisions', href: '/decisions', icon: BrainCircuit },
       { name: 'Investments', href: '/investments', icon: LineChart },
-      { name: 'Market Intelligence', href: '/market-intelligence', icon: Newspaper },
-      { name: 'Scenario Lab', href: '/scenario-lab', icon: Orbit },
     ],
   },
   {
@@ -79,7 +77,6 @@ const navGroups: NavGroup[] = [
     items: [
       { name: 'Data Connections', href: '/data-connections', icon: Landmark },
       { name: 'Settings', href: '/settings', icon: SettingsIcon },
-      { name: 'Help', href: '/help', icon: HelpCircle },
     ],
   },
 ];
@@ -110,7 +107,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="atlas-sidebar h-dvh min-h-dvh fixed left-0 top-0 flex flex-col border-r z-50 transition-[width,background-color,border-color] duration-300 ease-out"
+      className="atlas-sidebar h-dvh min-h-dvh fixed left-0 top-0 flex flex-col border-r z-50 transition-[width,background-color,border-color] duration-300 ease-out hidden md:flex"
       style={{ width: sidebarWidth }}
     >
       {/* Logo + toggle */}
@@ -121,12 +118,12 @@ export default function Sidebar() {
           </span>
         ) : (
           <div>
-          <h1 className="text-[1.65rem] font-semibold tracking-[-0.04em] text-on-background dark:text-sidebar-text-active">
-            Atlas
-          </h1>
-          <p className="sidebar-label mt-1 text-sm text-on-surface-variant opacity-80">
-            Financial Copilot
-          </p>
+            <h1 className="text-[1.65rem] font-semibold tracking-[-0.04em] text-on-background dark:text-sidebar-text-active">
+              Atlas
+            </h1>
+            <p className="sidebar-label mt-1 text-xs text-on-surface-variant opacity-80">
+              Financial Copilot
+            </p>
           </div>
         )}
         <button
@@ -146,18 +143,23 @@ export default function Sidebar() {
       <nav className={navClass} aria-label="Primary">
         {navGroups.map((group, groupIdx) => {
           const isExpanded = groupStates[group.key] !== false;
+          const isSystemGroup = group.key === 'system';
 
           return (
-            <div key={group.key}>
+            <div key={group.key} className={isSystemGroup ? 'mt-auto mb-4' : ''}>
               {/* Group header — only visible when sidebar is expanded */}
               {!collapsed && (
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.key)}
-                  className="sidebar-group-label w-full flex items-center justify-between px-4 pt-5 pb-2 text-[0.8125rem] font-semibold text-on-surface-variant/75 hover:text-on-surface-variant transition-colors dark:text-sidebar-text-inactive/75 dark:hover:text-sidebar-text-inactive"
+                  className={`sidebar-group-label w-full flex items-center justify-between px-4 pt-5 pb-2 text-[0.8125rem] font-semibold transition-colors ${
+                    isSystemGroup 
+                      ? 'text-on-surface-variant/50 hover:text-on-surface-variant/80 dark:text-sidebar-text-inactive/40 dark:hover:text-sidebar-text-inactive/70' 
+                      : 'text-on-surface-variant/75 hover:text-on-surface-variant dark:text-sidebar-text-inactive/75 dark:hover:text-sidebar-text-inactive'
+                  }`}
                   aria-expanded={isExpanded}
                 >
-                  <span>{group.label}</span>
+                  <span className={isSystemGroup ? 'opacity-70' : ''}>{group.label}</span>
                   <ChevronDown
                     className={`w-3 h-3 transition-transform duration-200 ${
                       isExpanded ? '' : '-rotate-90'
@@ -186,7 +188,9 @@ export default function Sidebar() {
                       collapsed ? 'justify-center px-0 py-3' : 'gap-3 px-4 py-2.5',
                       isActive
                         ? 'nav-active text-on-surface font-semibold dark:text-sidebar-text-active'
-                        : 'text-on-surface-variant hover:bg-surface-container dark:text-sidebar-text-inactive dark:hover:bg-sidebar-hover',
+                        : isSystemGroup 
+                          ? 'text-on-surface-variant/60 hover:bg-surface-container dark:text-sidebar-text-inactive/60 dark:hover:bg-sidebar-hover' 
+                          : 'text-on-surface-variant hover:bg-surface-container dark:text-sidebar-text-inactive dark:hover:bg-sidebar-hover',
                     ].join(' ');
 
                     return (
@@ -198,11 +202,17 @@ export default function Sidebar() {
                         className={linkClass}
                       >
                         <Icon
-                          className={`w-5 h-5 shrink-0 ${isActive ? 'dark:text-sidebar-text-active' : 'dark:text-sidebar-text-inactive'}`}
+                          className={`w-5 h-5 shrink-0 ${
+                            isActive 
+                              ? 'dark:text-sidebar-text-active' 
+                              : isSystemGroup 
+                                ? 'opacity-60 dark:text-sidebar-text-inactive/60' 
+                                : 'dark:text-sidebar-text-inactive'
+                          }`}
                           aria-hidden="true"
                         />
                         {!collapsed && (
-                          <span className="sidebar-label text-[0.875rem] font-medium">
+                          <span className={`sidebar-label text-[0.875rem] font-medium ${isSystemGroup ? 'opacity-80' : ''}`}>
                             {item.name}
                           </span>
                         )}

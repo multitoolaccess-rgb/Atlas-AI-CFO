@@ -97,6 +97,7 @@ from app.routes import (
     investment_risk_router,
     investment_scout_router,
     investment_evaluations_router,
+    investment_brief_router,
 )
 
 LOG = logging.getLogger("uvicorn.error")
@@ -491,6 +492,8 @@ app.include_router(investment_assistant_router)
 app.include_router(investment_risk_router)
 app.include_router(investment_scout_router)
 app.include_router(investment_evaluations_router)
+# Redesigned Daily Investment Brief (Robinhood/Fidelity/Bloomberg-style)
+app.include_router(investment_brief_router, prefix="/api/v1/investments/brief")
 
 
 @app.on_event("startup")
