@@ -28,7 +28,7 @@ import {
 import PageLayout from '@/components/layout/PageLayout'
 import { AtlasFilterProvider } from '@/components/ui/AtlasFilterContext'
 import FloatingTimeRangeBar from '@/components/ui/FloatingTimeRangeBar'
-import HeroSummary from '@/components/dashboard/HeroSummary'
+import PortfolioKpis from '@/components/portfolio/PortfolioKpis'
 import ChartDonut, { type DonutSliceConfig } from '@/components/charts/ChartDonut'
 import AnimatedRadialProgress from '@/components/charts/AnimatedRadialProgress'
 import TiltCard from '@/components/ui/TiltCard'
@@ -46,7 +46,6 @@ import {
   type HoldingManualCreate,
   type HoldingUpdate,
   type PortfolioValuationSummary,
-  type Profile,
 } from '@/lib/api'
 import { classifyErrorMessage } from '@/lib/errors'
 import { useThemeColors } from '@/lib/themeColors'
@@ -91,7 +90,6 @@ export default function PortfolioPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [accounts, setAccounts] = useState<Account[]>([])
   const [holdings, setHoldings] = useState<Holding[]>([])
-  const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
@@ -241,17 +239,15 @@ export default function PortfolioPage() {
     setLoading(true)
     setError(null)
     try {
-      const [s, a, h, p, v] = await Promise.all([
+      const [s, a, h, v] = await Promise.all([
         rulesService.getDashboardSummary(),
         rulesService.listAccounts(),
         rulesService.listHoldings(),
-        rulesService.getProfile().catch(() => null),
         rulesService.getPortfolioValuation(),
       ])
       setSummary(s)
       setAccounts(a)
       setHoldings(h)
-      setProfile(p)
       setValuation(v)
       // Detect whether any row carries live-price data from a
       // previous refresh — drives the Top Movers visibility toggle.
@@ -966,10 +962,13 @@ export default function PortfolioPage() {
         />
       )}
 
-      <HeroSummary
-        loading={!ready}
+      <PortfolioKpis
+        ready={ready}
         summary={ready ? summary : null}
-        greeting={profile?.full_name ?? 'Alex'}
+        accounts={accounts}
+        valuation={valuation}
+        holdings={holdings}
+        pricesAvailable={pricesAvailable}
       />
 
       {/* Controls row — the page is READ-ONLY by default. Bulk Import /
@@ -1874,7 +1873,12 @@ export default function PortfolioPage() {
               <div className="w-9 h-9 rounded-lg bg-[var(--primary-100)] flex items-center justify-center">
                 <Wallet className="w-5 h-5 text-[var(--primary-700)]" aria-hidden="true" />
               </div>
-              <span className="label-md text-primary">Total Portfolio Value</span>
+              <div className="flex flex-col">
+                <span className="label-md text-primary">Investments Total</span>
+                <span className="text-[10px] text-secondary">
+                  Sum of holdings · excludes cash accounts and debt
+                </span>
+              </div>
               {pricesAvailable && (
                 <span className="text-[10px] uppercase tracking-wider font-bold text-[var(--success-700)] px-2 py-0.5 rounded bg-[var(--success-50)] border border-[var(--success-200)]">
                   Live

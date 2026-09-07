@@ -132,6 +132,7 @@ vi.mock('@/components/dashboard/PayoffProjectionChart', () => ({ default: () => 
 vi.mock('@/components/dashboard/PayoffComparison', () => ({ default: () => null }))
 vi.mock('@/components/dashboard/BudgetCategoryCard', () => ({ default: () => null }))
 vi.mock('@/components/dashboard/HeroSummary', () => ({ default: () => null }))
+vi.mock('@/components/portfolio/PortfolioKpis', () => ({ default: () => null }))
 vi.mock('@/components/dashboard/FinancialPlans', () => ({
   default: () => null,
   GOAL_PROJECTION_ANNUAL_RETURN: 0.07,
