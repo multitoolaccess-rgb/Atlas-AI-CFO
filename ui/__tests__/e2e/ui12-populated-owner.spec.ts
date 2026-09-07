@@ -387,17 +387,16 @@ test.describe('UI-12 populated single-owner data proof', () => {
     // Server-owned totals render (GAP-12): allocation %, gain %, total.
     await expect(page.locator('#main-content')).toContainText('63.1%')
 
-    // Read-only by default (GAP-11): mutation controls are absent.
+    // Read-only by default (GAP-11): bulk mutation controls are absent.
     await expect(page.getByRole('button', { name: 'Manage portfolio' })).toBeVisible()
     await expect(page.getByRole('button', { name: /Import Portfolio/ })).toHaveCount(0)
-    // Refresh Prices is the sanctioned price-sync action (persists
-    // refreshed quotes + account balances), so it stays in the default
-    // view without exposing position-editing controls.
+    // Refresh Prices + per-row Edit / Delete are always available: the
+    // owner asked for quick position corrections and live totals.
     await expect(page.getByRole('button', { name: 'Refresh Prices' })).toBeVisible()
+    await expect(page.locator('[data-testid^="holding-edit-"]').first()).toBeVisible()
+    await expect(page.locator('[data-testid^="holding-delete-"]').first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Add Holding' })).toHaveCount(0)
     await expect(page.locator('#auto-refresh-minutes')).toHaveCount(0)
-    await expect(page.locator('[data-testid^="holding-edit-"]')).toHaveCount(0)
-    await expect(page.locator('[data-testid^="holding-delete-"]')).toHaveCount(0)
 
     // Manage mode reveals the gated mutation controls.
     await page.getByRole('button', { name: 'Manage portfolio' }).click()

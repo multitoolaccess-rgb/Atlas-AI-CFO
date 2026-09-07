@@ -50,7 +50,8 @@ import {
 } from '@/lib/api'
 import { classifyErrorMessage } from '@/lib/errors'
 import { useThemeColors } from '@/lib/themeColors'
-import { onDataRefresh } from '@/lib/dataRefresh'
+import { cacheInvalidate } from '@/lib/cache'
+import { fireDataRefresh, onDataRefresh } from '@/lib/dataRefresh'
 import {
   DEFAULT_REFRESH_MINUTES,
   getAutoRefreshMinutes,
@@ -144,6 +145,9 @@ export default function PortfolioPage() {
   // ``refreshing`` were a dep of the auto-refresh useEffect, turning
   // a single setInterval into a clear+create cycle per click).
   const refreshingRef = useRef(false)
+  // Set right before fireDataRefresh() so this page's own onDataRefresh
+  // subscription can skip the redundant self-triggered reload.
+  const selfRefreshedRef = useRef(false)
 
   // Phase 41 — manual Add Holding form state.
   const [showAddForm, setShowAddForm] = useState(false)
@@ -217,7 +221,21 @@ export default function PortfolioPage() {
   // and the row's chips already carry the per-ticker error detail.
   const [analystCoverageLoaded, setAnalystCoverageLoaded] = useState(false)
 
-  useEffect(() => onDataRefresh(() => setRetryCount((c) => c + 1)), [])
+  useEffect(
+    () =>
+      onDataRefresh(() => {
+        // Ignore events this page fired itself — the post-refresh
+        // aggregate re-fetch already updated the totals, so honoring the
+        // event here would trigger a redundant full reload + loading
+        // flicker after every refresh.
+        if (selfRefreshedRef.current) {
+          selfRefreshedRef.current = false
+          return
+        }
+        setRetryCount((c) => c + 1)
+      }),
+    [],
+  )
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -315,6 +333,16 @@ export default function PortfolioPage() {
           : `Prices updated for ${result.prices_updated} symbol(s).`
       )
       setLastRefreshedAt(Date.now())
+      // Keep every page consistent: Mission Control / Wealth serve
+      // dashboard summaries from a 5-minute in-memory TTL cache, so
+      // without invalidation they would keep showing the pre-refresh
+      // net worth. Clear the cache (refills on next visit) and fire the
+      // cross-page data-refresh event for pages that subscribe (accounts
+      // / activity re-fetch their balances). The flag lets this page's
+      // own subscription skip the redundant self-reload.
+      cacheInvalidate()
+      selfRefreshedRef.current = true
+      fireDataRefresh()
     } catch (err: unknown) {
       if (kind === 'manual') {
         setError(classifyErrorMessage(err))
@@ -378,9 +406,9 @@ export default function PortfolioPage() {
   // The loop runs in BOTH modes: refresh-prices is the sanctioned
   // price-sync action (it persists refreshed quotes + account balances
   // so net worth and totals stay market-accurate, without touching
-  // position data), so the default view keeps prices fresh without
-  // exposing position-editing controls. Only the cadence INPUT is
-  // manage-gated; the loop honors the persisted preference either way.
+  // position data), so the default view keeps prices fresh. Only the
+  // cadence INPUT is manage-gated; the loop honors the persisted
+  // preference either way.
   useEffect(() => {
     if (autoRefreshMinutes === 0) return
     if (typeof window === 'undefined') return
@@ -944,17 +972,17 @@ export default function PortfolioPage() {
         greeting={profile?.full_name ?? 'Alex'}
       />
 
-      {/* Controls row — the page is READ-ONLY by default. Import /
-          Add Holding / per-row Edit + Delete are mutation flows gated
-          behind an explicit manage mode. Refresh Prices stays in the
-          default view: it is the sanctioned price-sync action — it
-          persists refreshed quotes + account balances so net worth and
-          totals stay market-accurate, without touching position data. */}
+      {/* Controls row — the page is READ-ONLY by default. Bulk Import /
+          Add Holding stay gated behind an explicit manage mode; Refresh
+          Prices (the sanctioned price-sync action that persists refreshed
+          quotes + account balances) and per-row Edit / Delete are always
+          available so position corrections and live totals are quick to
+          reach. */}
       <div className="flex flex-wrap items-center gap-3 mt-6 mb-4">
         {!manageMode ? (
           <div className="flex flex-wrap items-center gap-3 w-full">
             <p className="text-xs text-secondary mr-auto" data-testid="readonly-note">
-              Live prices refresh automatically — manage mode unlocks import and edit controls.
+              Live prices refresh automatically — edit or delete any holding from its row; manage mode unlocks import and add controls.
             </p>
             <Button
               variant="secondary"
@@ -1492,21 +1520,20 @@ export default function PortfolioPage() {
                                 differently on hover so a user scanning the row
                                 can tell which cursor is over which action. */}
                             <div className="inline-flex items-center gap-1 justify-end whitespace-nowrap">
-                              {/* GAP-11 (UI-12): Edit + Delete are mutation
-                                  flows and render only in manage mode. Analyze
-                                  is a read-only fetch and stays available. */}
-                              {manageMode && (
-                                <button
-                                  type="button"
-                                  onClick={() => openEdit(h)}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--primary-50)] hover:text-[var(--primary-700)] border border-transparent hover:border-[var(--primary-200)] transition-colors"
-                                  title={`Edit ${h.symbol ?? 'holding'}`}
-                                  data-testid={`holding-edit-${h.id}`}
-                                >
-                                  <Pencil className="w-3 h-3" aria-hidden="true" />
-                                  Edit
-                                </button>
-                              )}
+                              {/* Edit + Delete are the sanctioned position
+                                  corrections and stay available in the default
+                                  view; only bulk Import + Add Holding remain
+                                  manage-gated. */}
+                              <button
+                                type="button"
+                                onClick={() => openEdit(h)}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--primary-50)] hover:text-[var(--primary-700)] border border-transparent hover:border-[var(--primary-200)] transition-colors"
+                                title={`Edit ${h.symbol ?? 'holding'}`}
+                                data-testid={`holding-edit-${h.id}`}
+                              >
+                                <Pencil className="w-3 h-3" aria-hidden="true" />
+                                Edit
+                              </button>
                               {h.symbol && (
                                 <button
                                   type="button"
@@ -1519,18 +1546,16 @@ export default function PortfolioPage() {
                                   Analyze
                                 </button>
                               )}
-                              {manageMode && (
-                                <button
-                                  type="button"
-                                  onClick={() => openDelete(h)}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--danger-50)] hover:text-[var(--danger-700)] border border-transparent hover:border-[var(--danger-200)] transition-colors"
-                                  title={`Delete ${h.symbol ?? 'holding'}`}
-                                  data-testid={`holding-delete-${h.id}`}
-                                >
-                                  <Trash2 className="w-3 h-3" aria-hidden="true" />
-                                  Delete
-                                </button>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => openDelete(h)}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--danger-50)] hover:text-[var(--danger-700)] border border-transparent hover:border-[var(--danger-200)] transition-colors"
+                                title={`Delete ${h.symbol ?? 'holding'}`}
+                                data-testid={`holding-delete-${h.id}`}
+                              >
+                                <Trash2 className="w-3 h-3" aria-hidden="true" />
+                                Delete
+                              </button>
                             </div>
                           </td>
                         </tr>
